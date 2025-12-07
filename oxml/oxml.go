@@ -4,12 +4,12 @@ import (
 	"archive/zip"
 	"encoding/xml"
 	"errors"
+	// "io"
+	// "os"
 	"path"
 	"slices"
 	"strconv"
 	"strings"
-	"io"
-	"os"
 )
 
 const (
@@ -106,12 +106,38 @@ type Sheet struct {
 	Rows  []*Row
 	Size  *Dimension
 
-	addr  string
+	Headers []string
+
+	addr string
+}
+
+func NewSheet(name string) *Sheet {
+	s := Sheet{
+		Name: name,
+	}
+	return &s
+}
+
+func (s *Sheet) SetHeaders(headers []string) {
+	s.Headers = slices.Clone(headers)
+}
+
+func (s *Sheet) Append(data []any) error {
+	return nil
+}
+
+func (s *Sheet) Insert(ix int64, data []any) error {
+	return nil
 }
 
 type File struct {
-	sheets []*Sheet
+	sheets       []*Sheet
 	sharedString []string
+}
+
+func NewFile() *File {
+	var file File
+	return &file
 }
 
 func Open(file string) (*File, error) {
@@ -123,12 +149,8 @@ func Open(file string) (*File, error) {
 	return readFile(z)
 }
 
-func (f *File) SheetNames() []string {
-	var sheets []string
-	for _, s := range f.sheets {
-		sheets = append(sheets, s.Name)
-	}
-	return sheets
+func (f *File) Sheets() []*Sheet {
+	return f.sheets
 }
 
 // rename a sheet
@@ -141,6 +163,7 @@ func (f *File) Copy(oldName, newName string) error {
 	return nil
 }
 
+// append sheets of given file to current fule
 func (f *File) Merge(other *File) error {
 	return nil
 }
@@ -186,7 +209,8 @@ func readContentFile(z *zip.ReadCloser) error {
 	if err != nil {
 		return err
 	}
-	io.Copy(os.Stdout, r)
+	_ = r
+	// io.Copy(os.Stdout, r)
 	return nil
 }
 
