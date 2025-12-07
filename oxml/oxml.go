@@ -169,12 +169,13 @@ func (s *Sheet) Append(data []string) error {
 		c := Cell{
 			rawValue:    d,
 			parsedValue: d,
-			Type:        TypeInlineStr,
+			Type:        TypeFormula,
 			Position:    pos,
 		}
 		rs.Cells = append(rs.Cells, &c)
 	}
 	s.Size.Columns = max(s.Size.Columns, int64(len(data)))
+	s.Rows = append(s.Rows, &rs)
 	return nil
 }
 
@@ -512,7 +513,8 @@ func (f *File) Copy(oldName, newName string) error {
 }
 
 func (f *File) AppendSheet(sheet *Sheet) error {
-	sheet.Index = len(f.sheets)
+	sheet.Index = len(f.sheets) + 1
+	sheet.Id = fmt.Sprintf("rId%d", sheet.Index)
 	f.sheets = append(f.sheets, sheet)
 	return nil
 }
