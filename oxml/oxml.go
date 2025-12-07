@@ -4,9 +4,10 @@ import (
 	"archive/zip"
 	"encoding/xml"
 	"errors"
-	// "io"
-	// "os"
+	"fmt"
+	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -22,11 +23,24 @@ const (
 	TypeNumber    = "n"
 )
 
+const (
+	typeSheetUrl = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"
+	typeDocUrl   = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+)
+
+const (
+	mimeRels      = "application/vnd.openxmlformats-package.relationships+xml"
+	mimeXml       = "application/xml"
+	mimeWorkbook  = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
+	mimeWorksheet = "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"
+)
+
 var errFile = errors.New("invalid openxml file")
 
 type Cell struct {
 	rawValue    string
 	parsedValue any
+	Type        string
 	Position
 }
 
@@ -50,6 +64,7 @@ func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 	}
 	c.Position = parsePosition(el.Addr)
 	c.rawValue = el.Value
+	c.Type = el.Type
 
 	switch el.Type {
 	case TypeInlineStr:
@@ -114,6 +129,7 @@ type Sheet struct {
 func NewSheet(name string) *Sheet {
 	s := Sheet{
 		Name: name,
+		Size: &Dimension{},
 	}
 	return &s
 }
@@ -122,7 +138,41 @@ func (s *Sheet) SetHeaders(headers []string) {
 	s.Headers = slices.Clone(headers)
 }
 
-func (s *Sheet) Append(data []any) error {
+func (s *Sheet) Bounding() (Position, Position) {
+	var (
+		start Position
+		end   Position
+	)
+	start = Position{
+		Line:   1,
+		Column: 1,
+	}
+	end = Position{
+		Line:   s.Size.Lines,
+		Column: s.Size.Columns,
+	}
+	return start, end
+}
+
+func (s *Sheet) Append(data []string) error {
+	rs := Row{
+		Line: int64(len(s.Rows)) + 1,
+	}
+	s.Size.Lines++
+	for i, d := range data {
+		pos := Position{
+			Line:   rs.Line,
+			Column: int64(i) + 1,
+		}
+		c := Cell{
+			rawValue:    d,
+			parsedValue: d,
+			Type:        TypeInlineStr,
+			Position:    pos,
+		}
+		rs.Cells = append(rs.Cells, &c)
+	}
+	s.Size.Columns = max(s.Size.Columns, int64(len(data)))
 	return nil
 }
 
@@ -149,6 +199,246 @@ func Open(file string) (*File, error) {
 	return readFile(z)
 }
 
+func (f *File) WriteFile(file string) error {
+	dir, _ := os.MkdirTemp("tmp", "writeFile")
+	for _, s := range f.sheets {
+		s.addr = filepath.Join("xl/worksheets/", s.Name+".xml")
+		if err := writeWorksheet(s, dir); err != nil {
+			return err
+		}
+	}
+	if err := writeWorkbook(f, dir); err != nil {
+		return err
+	}
+	if err := writeRelationForSheets(f, dir); err != nil {
+		return err
+	}
+	if err := writeRelations(dir); err != nil {
+		return err
+	}
+	return writeContentTypes(f, dir)
+}
+
+func writeContentTypes(f *File, dir string) error {
+	w, err := os.Create(filepath.Join(dir, "[Content_Types].xml"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	type xmlDefault struct {
+		XMLName     xml.Name `xml:"Default"`
+		Extension   string   `xml:"Extension,attr"`
+		ContentType string   `xml:"ContentType,attr"`
+	}
+
+	type xmlOverride struct {
+		XMLName     xml.Name `xml:"Override"`
+		PartName    string   `xml:"PartName,attr"`
+		ContentType string   `xml:"ContentType,attr"`
+	}
+
+	root := struct {
+		XMLName   xml.Name      `xml:"Types"`
+		Xmlns     string        `xml:"xmlns,attr"`
+		Defaults  []xmlDefault  `xml:"Default"`
+		Overrides []xmlOverride `xml:"Override"`
+	}{
+		Xmlns: "http://schemas.openxmlformats.org/package/2006/content-types",
+		Defaults: []xmlDefault{
+			{
+				Extension:   "rels",
+				ContentType: mimeRels,
+			},
+			{
+				Extension:   "xml",
+				ContentType: mimeXml,
+			},
+		},
+		Overrides: []xmlOverride{
+			{
+				PartName:    "/xl/workbook.xml",
+				ContentType: mimeWorkbook,
+			},
+		},
+	}
+	for _, s := range f.sheets {
+		ox := xmlOverride{
+			PartName:    s.addr,
+			ContentType: mimeWorksheet,
+		}
+		root.Overrides = append(root.Overrides, ox)
+	}
+	return xml.NewEncoder(w).Encode(&root)
+}
+
+func writeRelations(dir string) error {
+	dir = filepath.Join(dir, "_rels")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	w, err := os.Create(filepath.Join(dir, ".rels"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	type xmlRelation struct {
+		Id     string `xml:",attr"`
+		Type   string `xml:",attr"`
+		Target string `xml:",attr"`
+	}
+
+	root := struct {
+		XMLName   xml.Name      `xml:"Relationships"`
+		Xmlns     string        `xml:"xmlns,attr"`
+		Relations []xmlRelation `xml:"Relationship"`
+	}{
+		Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
+	}
+
+	root.Relations = append(root.Relations, xmlRelation{
+		Id:     "rId1",
+		Type:   typeDocUrl,
+		Target: "xl/workbook.xml",
+	})
+	return xml.NewEncoder(w).Encode(&root)
+}
+
+func writeRelationForSheets(f *File, dir string) error {
+	dir = filepath.Join(dir, "xl/_rels")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	w, err := os.Create(filepath.Join(dir, "workbook.xml.rels"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	type xmlRelation struct {
+		Id     string `xml:"r:id,attr"`
+		Type   string `xml:",attr"`
+		Target string `xml:",attr"`
+	}
+
+	root := struct {
+		XMLName   xml.Name      `xml:"Relationships"`
+		Xmlns     string        `xml:"xmlns,attr"`
+		Relations []xmlRelation `xml:"Relationship"`
+	}{
+		Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
+	}
+	for _, s := range f.sheets {
+		target, err := filepath.Rel("xl", s.addr)
+		if err != nil {
+			return err
+		}
+		rx := xmlRelation{
+			Id:     s.Id,
+			Type:   typeSheetUrl,
+			Target: target,
+		}
+		root.Relations = append(root.Relations, rx)
+	}
+	return xml.NewEncoder(w).Encode(&root)
+}
+
+func writeWorksheet(sheet *Sheet, dir string) error {
+	dir = filepath.Join(dir, filepath.Dir(sheet.addr))
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	w, err := os.Create(filepath.Join(dir, filepath.Base(sheet.addr)))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	type xmlCell struct {
+		XMLName xml.Name `xml:"c"`
+		Addr    string   `xml:"r,attr"`
+		Type    string   `xml:"t,attr"`
+		Value   any      `xml:"v"`
+	}
+
+	type xmlRow struct {
+		XMLName xml.Name `xml:"row"`
+		Line    int64    `xml:"r,attr"`
+		Cells   []xmlCell
+	}
+
+	root := struct {
+		XMLName   xml.Name `xml:"worksheet"`
+		Xmlns     string   `xml:"xmlns,attr"`
+		RelXmlns  string   `xml:"xmlns:r,attr"`
+		Dimension struct {
+			Ref string `xml:"ref,attr"`
+		} `xml:"dimension"`
+		Rows []xmlRow `xml:"sheetData>row"`
+	}{
+		Xmlns:    "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+	}
+	start, end := sheet.Bounding()
+	root.Dimension.Ref = fmt.Sprintf("%s:%s", start.Addr(), end.Addr())
+	for _, r := range sheet.Rows {
+		rx := xmlRow{
+			Line: r.Line,
+		}
+		for _, c := range r.Cells {
+			cx := xmlCell{
+				Addr:  c.Position.Addr(),
+				Type:  c.Type,
+				Value: c.parsedValue,
+			}
+			if cx.Value == nil {
+				cx.Value = c.rawValue
+			}
+			rx.Cells = append(rx.Cells, cx)
+		}
+		root.Rows = append(root.Rows, rx)
+	}
+	return xml.NewEncoder(w).Encode(&root)
+}
+
+func writeWorkbook(f *File, dir string) error {
+	dir = filepath.Join(dir, "xl")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	w, err := os.Create(filepath.Join(dir, "workbook.xml"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	type xmlSheet struct {
+		XMLName xml.Name `xml:"sheet"`
+		Id      string   `xml:"r:id,attr"`
+		Name    string   `xml:"name,attr"`
+		Index   int      `xml:"sheetId,attr"`
+	}
+	root := struct {
+		XMLName  xml.Name   `xml:"workbook"`
+		Xmlns    string     `xml:"xmlns,attr"`
+		RelXmlns string     `xml:"xmlns:r,attr"`
+		Sheets   []xmlSheet `xml:"sheets>sheet"`
+	}{
+		Xmlns:    "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+	}
+	for _, s := range f.sheets {
+		xs := xmlSheet{
+			Id:    s.Id,
+			Index: s.Index,
+			Name:  s.Name,
+		}
+		root.Sheets = append(root.Sheets, xs)
+	}
+	return xml.NewEncoder(w).Encode(&root)
+}
+
 func (f *File) Sheets() []*Sheet {
 	return f.sheets
 }
@@ -163,8 +453,27 @@ func (f *File) Copy(oldName, newName string) error {
 	return nil
 }
 
+func (f *File) AppendSheet(sheet *Sheet) error {
+	sheet.Index = len(f.sheets)
+	f.sheets = append(f.sheets, sheet)
+	return nil
+}
+
 // append sheets of given file to current fule
 func (f *File) Merge(other *File) error {
+	names := make(map[string]int)
+	for _, s := range f.sheets {
+		names[s.Name] = 1
+	}
+	for i, s := range other.sheets {
+		s.Index = len(f.sheets) + i + 1
+		s.Id = fmt.Sprintf("rId%d", s.Index)
+		if n, ok := names[s.Name]; ok {
+			names[s.Name] = n + 1
+			s.Name = fmt.Sprintf("%s_%03d", s.Name, names[s.Name])
+		}
+		f.sheets = append(f.sheets, s)
+	}
 	return nil
 }
 
