@@ -33,6 +33,8 @@ const (
 	mimeXml       = "application/xml"
 	mimeWorkbook  = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
 	mimeWorksheet = "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"
+	mimeStyle = "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"
+	mimeSharedString = "application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"
 )
 
 var errFile = errors.New("invalid openxml file")
@@ -200,9 +202,9 @@ func Open(file string) (*File, error) {
 }
 
 func (f *File) WriteFile(file string) error {
-	dir, _ := os.MkdirTemp("tmp", "writeFile")
+	dir, _ := os.MkdirTemp("tmp", "archive")
 	for _, s := range f.sheets {
-		s.addr = filepath.Join("xl/worksheets/", s.Name+".xml")
+		s.addr = path.Join("xl/worksheets/", s.Name+".xml")
 		if err := writeWorksheet(s, dir); err != nil {
 			return err
 		}
@@ -216,6 +218,8 @@ func (f *File) WriteFile(file string) error {
 	if err := writeRelations(dir); err != nil {
 		return err
 	}
+	writeSharedStrings(dir)
+	writeStyles(dir)
 	return writeContentTypes(f, dir)
 }
 
@@ -260,15 +264,69 @@ func writeContentTypes(f *File, dir string) error {
 				PartName:    "/xl/workbook.xml",
 				ContentType: mimeWorkbook,
 			},
+			{
+				PartName:    "/xl/sharedStrings.xml",
+				ContentType: mimeSharedString,
+			},
+			{
+				PartName:    "/xl/styles.xml",
+				ContentType: mimeStyle,
+			},
 		},
 	}
 	for _, s := range f.sheets {
 		ox := xmlOverride{
-			PartName:    s.addr,
+			PartName:    "/"+s.addr,
 			ContentType: mimeWorksheet,
 		}
 		root.Overrides = append(root.Overrides, ox)
 	}
+	return xml.NewEncoder(w).Encode(&root)
+}
+
+func writeStyles(dir string) error {
+	dir = filepath.Join(dir, "xl")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	w, err := os.Create(filepath.Join(dir, "styles.xml"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	root := struct{
+		XMLName xml.Name `xml:"styleSheet"`
+		Xmlns string `xml:"xmlns,attr"`
+	}{
+		Xmlns: "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+	}
+
+	return xml.NewEncoder(w).Encode(&root)
+}
+
+func writeSharedStrings(dir string) error {
+	dir = filepath.Join(dir, "xl")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	w, err := os.Create(filepath.Join(dir, "sharedStrings.xml"))
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	root := struct{
+		XMLName xml.Name `xml:"sst"`
+		Xmlns string `xml:"xmlns,attr"`
+		Count int `xml:"count"`
+		uniqueCount int `xml:"uniqueCount,attr"`
+	}{
+		Xmlns: "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+	}
+
 	return xml.NewEncoder(w).Encode(&root)
 }
 
@@ -318,7 +376,7 @@ func writeRelationForSheets(f *File, dir string) error {
 	defer w.Close()
 
 	type xmlRelation struct {
-		Id     string `xml:"r:id,attr"`
+		Id     string `xml:"Id,attr"`
 		Type   string `xml:",attr"`
 		Target string `xml:",attr"`
 	}
@@ -338,7 +396,7 @@ func writeRelationForSheets(f *File, dir string) error {
 		rx := xmlRelation{
 			Id:     s.Id,
 			Type:   typeSheetUrl,
-			Target: target,
+			Target: strings.ReplaceAll(target, "\\", "/"),
 		}
 		root.Relations = append(root.Relations, rx)
 	}
