@@ -53,7 +53,13 @@ func main() {
 func prepare() *cli.CommandTrie {
 	root := cli.New()
 	root.Register([]string{"info"}, &infoCmd)
+	root.Register([]string{"lookup"}, &lookupCmd)
 	root.Register([]string{"merge"}, &mergeCmd)
+	root.Register([]string{"append"}, &appendCmd)
+	root.Register([]string{"move"}, &moveCmd)
+	root.Register([]string{"copy"}, &copyCmd)
+	root.Register([]string{"extract"}, &extractCmd)
+	root.Register([]string{"join"}, &joinCmd)
 
 	return root
 }
@@ -64,19 +70,99 @@ var infoCmd = cli.Command{
 	Handler: &GetInfoCommand{},
 }
 
+var lookupCmd = cli.Command{
+	Name:    "lookup",
+	Alias:   []string{"search", "find"},
+	Summary: "find that data in given file",
+	Handler: nil,
+}
+
 var mergeCmd = cli.Command{
 	Name:    "merge",
 	Summary: "merge sheets of file(s) into a single file",
 	Handler: &MergeFilesCommand{},
 }
 
+var appendCmd = cli.Command{
+	Name:    "append",
+	Summary: "append data from input to file to a sheet in a given file",
+	Handler: nil,
+}
+
+var joinCmd = cli.Command{
+	Name:    "join",
+	Summary: "join sheets of a file",
+	Handler: nil,
+}
+
+var extractCmd = cli.Command{
+	Name:    "extract",
+	Summary: "extract one or more sheets from given file",
+	Handler: &ExtractSheetCommand{},
+}
+
+var moveCmd = cli.Command{
+	Name:    "move",
+	Alias:   []string{"mv"},
+	Summary: "move one or more sheets from one file to another",
+	Handler: nil,
+}
+
+var copyCmd = cli.Command{
+	Name:    "copy",
+	Alias:   []string{"cp"},
+	Summary: "move one or more sheets from one file to another",
+	Handler: nil,
+}
+
+var convertCmd = cli.Command{
+	Name:    "convert",
+	Summary: "convert file to another format",
+	Handler: nil,
+}
+
+type ExtractSheetCommand struct {
+	OutDir string
+	Format string
+}
+
+func (c ExtractSheetCommand) Run(args []string) error {
+	set := cli.NewFlagSet("merge")
+	set.StringVar(&c.OutDir, "d", "", "write result to output file")
+	set.StringVar(&c.Format, "f", "", "extract a list of sheet form given file")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	f, err := oxml.Open(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(c.OutDir, 0755); err != nil {
+		return err
+	}
+	writeFile := func(name string) error {
+		w, err := os.Create(filepath.Join(c.OutDir, name+".csv"))
+		if err != nil {
+			return err
+		}
+		defer w.Close()
+		return f.ExtractSheet(w, name)
+	}
+	for i := 1; i < set.NArg(); i++ {
+		if err := writeFile(set.Arg(i)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type MergeFilesCommand struct {
 	OutFile string
 }
 
-func (m MergeFilesCommand) Run(args []string) error {
+func (c MergeFilesCommand) Run(args []string) error {
 	set := cli.NewFlagSet("merge")
-	set.StringVar(&m.OutFile, "o", "", "write result to output file")
+	set.StringVar(&c.OutFile, "o", "", "write result to output file")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -98,7 +184,7 @@ func (m MergeFilesCommand) Run(args []string) error {
 			return err
 		}
 	}
-	return f.WriteFile(m.OutFile)
+	return f.WriteFile(c.OutFile)
 }
 
 func mergeCSV(f *oxml.File, file string) error {
