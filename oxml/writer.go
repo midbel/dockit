@@ -11,6 +11,7 @@ import (
 )
 
 type writer struct {
+	base   string
 	writer *zip.Writer
 	io.Closer
 }
@@ -21,6 +22,7 @@ func writeFile(file string) (*writer, error) {
 		return nil, err
 	}
 	z := writer{
+		base:   "xl",
 		writer: zip.NewWriter(w),
 		Closer: w,
 	}
@@ -29,32 +31,27 @@ func writeFile(file string) (*writer, error) {
 
 func (w *writer) WriteFile(file *File) error {
 	for _, s := range file.sheets {
-		target := []string{
-			"xl",
-			"worksheets",
-			s.Name + ".xml",
-		}
-		s.addr = strings.Join(target, "/")
-		if err := writeWorksheet(w.writer, s); err != nil {
+		s.addr = w.createTarget("worksheets", s.Name+".xml")
+		if err := w.writeWorksheet(s); err != nil {
 			return err
 		}
 	}
-	if err := writeWorkbook(w.writer, file); err != nil {
+	if err := w.writeWorkbook(file); err != nil {
 		return err
 	}
-	if err := writeRelationForSheets(w.writer, file); err != nil {
+	if err := w.writeRelationForSheets(file); err != nil {
 		return err
 	}
-	if err := writeRelations(w.writer); err != nil {
+	if err := w.writeRelations(); err != nil {
 		return err
 	}
-	if err := writeSharedStrings(w.writer); err != nil {
+	if err := w.writeSharedStrings(); err != nil {
 		return err
 	}
-	if err := writeStyles(w.writer); err != nil {
+	if err := w.writeStyles(); err != nil {
 		return err
 	}
-	if err := writeContentTypes(w.writer, file); err != nil {
+	if err := w.writeContentTypes(file); err != nil {
 		return err
 	}
 	return nil
@@ -65,8 +62,8 @@ func (w *writer) Close() error {
 	return w.Closer.Close()
 }
 
-func writeContentTypes(z *zip.Writer, f *File) error {
-	w, err := z.Create("[Content_Types].xml")
+func (z *writer) writeContentTypes(file *File) error {
+	w, err := z.writer.Create("[Content_Types].xml")
 	if err != nil {
 		return err
 	}
@@ -115,7 +112,7 @@ func writeContentTypes(z *zip.Writer, f *File) error {
 			},
 		},
 	}
-	for _, s := range f.sheets {
+	for _, s := range file.sheets {
 		ox := xmlOverride{
 			PartName:    "/" + s.addr,
 			ContentType: mimeWorksheet,
@@ -125,32 +122,22 @@ func writeContentTypes(z *zip.Writer, f *File) error {
 	return xml.NewEncoder(w).Encode(&root)
 }
 
-func writeStyles(z *zip.Writer) error {
-	target := []string{
-		"xl",
-		"styles.xml",
-	}
-	w, err := z.Create(strings.Join(target, "/"))
+func (z *writer) writeStyles() error {
+	w, err := z.writer.Create(z.createTarget("styles.xml"))
 	if err != nil {
 		return err
 	}
-
 	root := struct {
 		XMLName xml.Name `xml:"styleSheet"`
 		Xmlns   string   `xml:"xmlns,attr"`
 	}{
 		Xmlns: typeMainUrl,
 	}
-
 	return xml.NewEncoder(w).Encode(&root)
 }
 
-func writeSharedStrings(z *zip.Writer) error {
-	target := []string{
-		"xl",
-		"sharedStrings.xml",
-	}
-	w, err := z.Create(strings.Join(target, "/"))
+func (z *writer) writeSharedStrings() error {
+	w, err := z.writer.Create(z.createTarget("sharedStrings.xml"))
 	if err != nil {
 		return err
 	}
@@ -167,12 +154,8 @@ func writeSharedStrings(z *zip.Writer) error {
 	return xml.NewEncoder(w).Encode(&root)
 }
 
-func writeRelations(z *zip.Writer) error {
-	target := []string{
-		"_rels",
-		".rels",
-	}
-	w, err := z.Create(strings.Join(target, "/"))
+func (z *writer) writeRelations() error {
+	w, err := z.writer.Create("_rels/.rels")
 	if err != nil {
 		return err
 	}
@@ -199,13 +182,8 @@ func writeRelations(z *zip.Writer) error {
 	return xml.NewEncoder(w).Encode(&root)
 }
 
-func writeRelationForSheets(z *zip.Writer, f *File) error {
-	target := []string{
-		"xl",
-		"_rels",
-		"workbook.xml.rels",
-	}
-	w, err := z.Create(strings.Join(target, "/"))
+func (z *writer) writeRelationForSheets(f *File) error {
+	w, err := z.writer.Create(z.createTarget("_rels", "workbook.xml.rels"))
 	if err != nil {
 		return err
 	}
@@ -238,8 +216,8 @@ func writeRelationForSheets(z *zip.Writer, f *File) error {
 	return xml.NewEncoder(w).Encode(&root)
 }
 
-func writeWorksheet(z *zip.Writer, sheet *Sheet) error {
-	w, err := z.Create(sheet.addr)
+func (z *writer) writeWorksheet(sheet *Sheet) error {
+	w, err := z.writer.Create(sheet.addr)
 	if err != nil {
 		return err
 	}
@@ -274,12 +252,8 @@ func writeWorksheet(z *zip.Writer, sheet *Sheet) error {
 	return xml.NewEncoder(w).Encode(&root)
 }
 
-func writeWorkbook(z *zip.Writer, f *File) error {
-	target := []string{
-		"xl",
-		"workbook.xml",
-	}
-	w, err := z.Create(strings.Join(target, "/"))
+func (z *writer) writeWorkbook(f *File) error {
+	w, err := z.writer.Create(z.createTarget("workbook.xml"))
 	if err != nil {
 		return err
 	}
@@ -307,4 +281,9 @@ func writeWorkbook(z *zip.Writer, f *File) error {
 		root.Sheets = append(root.Sheets, xs)
 	}
 	return xml.NewEncoder(w).Encode(&root)
+}
+
+func (w *writer) createTarget(parts ...string) string {
+	parts = append([]string{w.base}, parts...)
+	return strings.Join(parts, "/")
 }

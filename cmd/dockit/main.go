@@ -122,36 +122,20 @@ var convertCmd = cli.Command{
 }
 
 type ExtractSheetCommand struct {
-	OutDir string
-	Format string
+	OutDir    string
+	Format    string
+	Delimiter string
+	Range     string
 }
 
 func (c ExtractSheetCommand) Run(args []string) error {
-	set := cli.NewFlagSet("merge")
+	set := cli.NewFlagSet("extract")
 	set.StringVar(&c.OutDir, "d", "", "write result to output file")
-	set.StringVar(&c.Format, "f", "", "extract a list of sheet form given file")
+	set.StringVar(&c.Format, "f", "", "extract to given format (csv, json, xml)")
+	set.StringVar(&c.Delimiter, "c", "", "delimiter to use")
+	set.StringVar(&c.Range, "r", "", "range of data to extract")
 	if err := set.Parse(args); err != nil {
 		return err
-	}
-	f, err := oxml.Open(set.Arg(0))
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(c.OutDir, 0755); err != nil {
-		return err
-	}
-	writeFile := func(name string) error {
-		w, err := os.Create(filepath.Join(c.OutDir, name+".csv"))
-		if err != nil {
-			return err
-		}
-		defer w.Close()
-		return f.ExtractSheet(w, name)
-	}
-	for i := 1; i < set.NArg(); i++ {
-		if err := writeFile(set.Arg(i)); err != nil {
-			return err
-		}
 	}
 	return nil
 }

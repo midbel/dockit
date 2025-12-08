@@ -2,11 +2,9 @@ package oxml
 
 import (
 	"archive/zip"
-	"encoding/csv"
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"path"
 	"slices"
 	"strconv"
@@ -262,23 +260,6 @@ func (f *File) AppendSheet(sheet *Sheet) error {
 	sheet.Id = fmt.Sprintf("rId%d", sheet.Index)
 	f.sheets = append(f.sheets, sheet)
 	return nil
-}
-
-func (f *File) ExtractSheet(w io.Writer, name string) error {
-	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
-		return s.Name == name
-	})
-	if ix < 0 {
-		return fmt.Errorf("%s: sheet not found", name)
-	}
-	ws := csv.NewWriter(w)
-	for _, rs := range f.sheets[ix].Rows {
-		if err := ws.Write(rs.Data()); err != nil {
-			return err
-		}
-	}
-	ws.Flush()
-	return ws.Error()
 }
 
 // append sheets of given file to current fule
