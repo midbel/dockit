@@ -44,6 +44,7 @@ var errFile = errors.New("invalid openxml file")
 
 type Cell struct {
 	rawValue    string
+	cachedValue string
 	parsedValue any
 	Type        string
 	Position
@@ -55,6 +56,25 @@ func (c *Cell) Value() string {
 
 func (c *Cell) Get() any {
 	return c.parsedValue
+}
+
+func (c *Cell) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
+	el := struct {
+		XMLName     xml.Name `xml:"c"`
+		Addr        string   `xml:"r,attr"`
+		Type        string   `xml:"t,attr"`
+		RawValue    any      `xml:"v,omitempty"`
+		InlineValue any      `xml:"is>t,omitempty"`
+	}{
+		Addr: c.Addr(),
+		Type: c.Type,
+	}
+	if c.Type == TypeInlineStr {
+		el.InlineValue = c.rawValue
+	} else {
+		el.RawValue = c.rawValue
+	}
+	return encoder.EncodeElement(&el, start)
 }
 
 func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
@@ -76,6 +96,9 @@ func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 		c.parsedValue = el.Value
 	case TypeSharedStr:
 	case TypeFormula:
+		if !strings.HasPrefix(el.Value, "=") {
+			c.Type = TypeInlineStr
+		}
 	case TypeBool:
 		b, _ := strconv.ParseBool(el.Value)
 		c.parsedValue = b
@@ -180,7 +203,7 @@ func (s *Sheet) Append(data []string) error {
 		c := Cell{
 			rawValue:    d,
 			parsedValue: d,
-			Type:        TypeFormula,
+			Type:        TypeInlineStr,
 			Position:    pos,
 		}
 		rs.Cells = append(rs.Cells, &c)
@@ -434,17 +457,17 @@ func writeWorksheet(z *zip.Writer, sheet *Sheet) error {
 		return err
 	}
 
-	type xmlCell struct {
-		XMLName xml.Name `xml:"c"`
-		Addr    string   `xml:"r,attr"`
-		Type    string   `xml:"t,attr"`
-		Value   any      `xml:"v"`
-	}
+	// type xmlCell struct {
+	// 	XMLName xml.Name `xml:"c"`
+	// 	Addr    string   `xml:"r,attr"`
+	// 	Type    string   `xml:"t,attr"`
+	// 	Value   any      `xml:"v"`
+	// }
 
 	type xmlRow struct {
 		XMLName xml.Name `xml:"row"`
 		Line    int64    `xml:"r,attr"`
-		Cells   []xmlCell
+		Cells   []*Cell  `xml:"c"`
 	}
 
 	root := struct {
@@ -463,19 +486,20 @@ func writeWorksheet(z *zip.Writer, sheet *Sheet) error {
 	root.Dimension.Ref = fmt.Sprintf("%s:%s", start.Addr(), end.Addr())
 	for _, r := range sheet.Rows {
 		rx := xmlRow{
-			Line: r.Line,
+			Line:  r.Line,
+			Cells: r.Cells,
 		}
-		for _, c := range r.Cells {
-			cx := xmlCell{
-				Addr:  c.Position.Addr(),
-				Type:  c.Type,
-				Value: c.parsedValue,
-			}
-			if cx.Value == nil {
-				cx.Value = c.rawValue
-			}
-			rx.Cells = append(rx.Cells, cx)
-		}
+		// for _, c := range r.Cells {
+		// 	cx := xmlCell{
+		// 		Addr:  c.Position.Addr(),
+		// 		Type:  c.Type,
+		// 		Value: c.parsedValue,
+		// 	}
+		// 	if cx.Value == nil {
+		// 		cx.Value = c.rawValue
+		// 	}
+		// 	rx.Cells = append(rx.Cells, cx)
+		// }
 		root.Rows = append(root.Rows, rx)
 	}
 	return xml.NewEncoder(w).Encode(&root)
