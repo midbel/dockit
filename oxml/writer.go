@@ -2,11 +2,12 @@ package oxml
 
 import (
 	"archive/zip"
+	"compress/flate"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -26,6 +27,9 @@ func writeFile(file string) (*writer, error) {
 		writer: zip.NewWriter(w),
 		Closer: w,
 	}
+	z.writer.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
+		return flate.NewWriter(out, flate.BestCompression)
+	})
 	return &z, nil
 }
 
@@ -145,8 +149,8 @@ func (z *writer) writeSharedStrings() error {
 	root := struct {
 		XMLName     xml.Name `xml:"sst"`
 		Xmlns       string   `xml:"xmlns,attr"`
-		Count       int      `xml:"count"`
-		uniqueCount int      `xml:"uniqueCount,attr"`
+		Count       int      `xml:"count,attr"`
+		UniqueCount int      `xml:"uniqueCount,attr"`
 	}{
 		Xmlns: typeMainUrl,
 	}
@@ -202,14 +206,10 @@ func (z *writer) writeRelationForSheets(f *File) error {
 		Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
 	}
 	for _, s := range f.sheets {
-		target, err := filepath.Rel("xl", s.addr)
-		if err != nil {
-			return err
-		}
 		rx := xmlRelation{
 			Id:     s.Id,
 			Type:   typeSheetUrl,
-			Target: strings.ReplaceAll(target, "\\", "/"),
+			Target: z.fromBase(s.addr),
 		}
 		root.Relations = append(root.Relations, rx)
 	}
@@ -286,4 +286,13 @@ func (z *writer) writeWorkbook(f *File) error {
 func (w *writer) createTarget(parts ...string) string {
 	parts = append([]string{w.base}, parts...)
 	return strings.Join(parts, "/")
+}
+
+func (w *writer) fromBase(target string) string {
+	parts := strings.Split(target, "/")
+	ix := slices.Index(parts, w.base)
+	if ix < 0 {
+		return target
+	}
+	return strings.Join(parts[ix+1:], "/")
 }
