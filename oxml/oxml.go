@@ -28,6 +28,7 @@ const (
 const (
 	typeSheetUrl = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"
 	typeDocUrl   = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
+	typeMainUrl  = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
 )
 
 const (
@@ -328,7 +329,7 @@ func writeStyles(z *zip.Writer) error {
 		XMLName xml.Name `xml:"styleSheet"`
 		Xmlns   string   `xml:"xmlns,attr"`
 	}{
-		Xmlns: "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+		Xmlns: typeMainUrl,
 	}
 
 	return xml.NewEncoder(w).Encode(&root)
@@ -350,7 +351,7 @@ func writeSharedStrings(z *zip.Writer) error {
 		Count       int      `xml:"count"`
 		uniqueCount int      `xml:"uniqueCount,attr"`
 	}{
-		Xmlns: "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+		Xmlns: typeMainUrl,
 	}
 
 	return xml.NewEncoder(w).Encode(&root)
@@ -455,7 +456,7 @@ func writeWorksheet(z *zip.Writer, sheet *Sheet) error {
 		} `xml:"dimension"`
 		Rows []xmlRow `xml:"sheetData>row"`
 	}{
-		Xmlns:    "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+		Xmlns:    typeMainUrl,
 		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
 	}
 	start, end := sheet.Bounding()
@@ -501,7 +502,7 @@ func writeWorkbook(z *zip.Writer, f *File) error {
 		RelXmlns string     `xml:"xmlns:r,attr"`
 		Sheets   []xmlSheet `xml:"sheets>sheet"`
 	}{
-		Xmlns:    "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+		Xmlns:    typeMainUrl,
 		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
 	}
 	for _, s := range f.sheets {
