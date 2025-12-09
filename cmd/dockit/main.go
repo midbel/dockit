@@ -79,45 +79,47 @@ var lookupCmd = cli.Command{
 
 var mergeCmd = cli.Command{
 	Name:    "merge",
-	Summary: "merge sheets of file(s) into a single file",
+	Summary: "merge sheets of one or more spreadsheet into one",
+	// Usage: "merge [-o file] <spreadsheet> <file1,[file2,...]>"
 	Handler: &MergeFilesCommand{},
 }
 
 var appendCmd = cli.Command{
 	Name:    "append",
-	Summary: "append data from input to file to a sheet in a given file",
+	Summary: "append data to a spreadsheet",
 	Handler: nil,
 }
 
 var joinCmd = cli.Command{
 	Name:    "join",
-	Summary: "join sheets of a file",
+	Summary: "join multiple sheets of a spreadsheet",
 	Handler: nil,
 }
 
 var extractCmd = cli.Command{
 	Name:    "extract",
-	Summary: "extract one or more sheets from given file",
+	Summary: "extract one or more sheets from given spreadsheets",
+	// Usage: "extract [-d directory] [-f format] [-c delimiter] [-r range] file.xlsx sheet",
 	Handler: &ExtractSheetCommand{},
 }
 
 var moveCmd = cli.Command{
 	Name:    "move",
 	Alias:   []string{"mv"},
-	Summary: "move one or more sheets from one file to another",
+	Summary: "move one or more sheets from one spreadsheet to another",
 	Handler: nil,
 }
 
 var copyCmd = cli.Command{
 	Name:    "copy",
 	Alias:   []string{"cp"},
-	Summary: "move one or more sheets from one file to another",
+	Summary: "move one or more sheets from one spreadsheet to another",
 	Handler: nil,
 }
 
 var convertCmd = cli.Command{
 	Name:    "convert",
-	Summary: "convert file to another format",
+	Summary: "convert spreadsheet to another format",
 	Handler: nil,
 }
 
@@ -130,14 +132,42 @@ type ExtractSheetCommand struct {
 
 func (c ExtractSheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("extract")
-	set.StringVar(&c.OutDir, "d", "", "write result to output file")
+	set.StringVar(&c.OutDir, "d", "", "write result to directory")
 	set.StringVar(&c.Format, "f", "", "extract to given format (csv, json, xml)")
 	set.StringVar(&c.Delimiter, "c", "", "delimiter to use")
 	set.StringVar(&c.Range, "r", "", "range of data to extract")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
+	if err := os.MkdirAll(c.OutDir, 0755); err != nil {
+		return err
+	}
+	file, err := oxml.Open(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	for i := 1; i < set.NArg(); i++ {
+		err := c.Extract(file, set.Arg(i))
+		if err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
+	sh, err := file.Sheet(name)
+	if err != nil {
+		return err
+	}
+	out := filepath.Join(c.OutDir, sh.Name+".csv")
+	w, err := os.Create(out)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+
+	return sh.Encode(oxml.EncodeCSV(w))
 }
 
 type MergeFilesCommand struct {
@@ -153,6 +183,9 @@ func (c MergeFilesCommand) Run(args []string) error {
 	f, err := oxml.Open(set.Arg(0))
 	if err != nil {
 		return err
+	}
+	if c.OutFile == "" {
+		c.OutFile = set.Arg(0)
 	}
 	for i := 1; i < set.NArg(); i++ {
 		isZip, err := isZip(set.Arg(i))

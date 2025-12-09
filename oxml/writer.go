@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"compress/flate"
 	"encoding/xml"
-	"fmt"
 	"io"
 	"os"
 	"slices"
@@ -240,8 +239,8 @@ func (z *writer) writeWorksheet(sheet *Sheet) error {
 		Xmlns:    typeMainUrl,
 		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
 	}
-	start, end := sheet.Bounding()
-	root.Dimension.Ref = fmt.Sprintf("%s:%s", start.Addr(), end.Addr())
+	bounds := sheet.Bounding()
+	root.Dimension.Ref = bounds.String()
 	for _, r := range sheet.Rows {
 		rx := xmlRow{
 			Line:  r.Line,
@@ -257,26 +256,47 @@ func (z *writer) writeWorkbook(f *File) error {
 	if err != nil {
 		return err
 	}
+
 	type xmlSheet struct {
-		XMLName xml.Name `xml:"sheet"`
-		Id      string   `xml:"r:id,attr"`
-		Name    string   `xml:"name,attr"`
-		Index   int      `xml:"sheetId,attr"`
+		XMLName xml.Name   `xml:"sheet"`
+		Id      string     `xml:"http://schemas.openxmlformats.org/officeDocument/2006/relationships id,attr"`
+		Name    string     `xml:"name,attr"`
+		Index   int        `xml:"sheetId,attr"`
+		State   SheetState `xml:"state,attr"`
 	}
+
 	root := struct {
-		XMLName  xml.Name   `xml:"workbook"`
-		Xmlns    string     `xml:"xmlns,attr"`
-		RelXmlns string     `xml:"xmlns:r,attr"`
-		Sheets   []xmlSheet `xml:"sheets>sheet"`
+		XMLName    xml.Name `xml:"workbook"`
+		Xmlns      string   `xml:"xmlns,attr"`
+		RelXmlns   string   `xml:"xmlns:r,attr"`
+		Properties struct {
+			Date int `xml:"date1904,attr"`
+		} `xml:"workbookProperties"`
+		Protection struct {
+			Locked int `xml:"lockStructure,attr"`
+		} `xml:"workbookProtection"`
+		Views struct {
+			View struct {
+				activeTab int `xml:"activeTab,attr"`
+			} `xml:workbookView`
+		} `xml:"workbookViews"`
+		Sheets []xmlSheet `xml:"sheets>sheet"`
 	}{
 		Xmlns:    typeMainUrl,
 		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+	}
+	if f.locked {
+		root.Protection.Locked++
+	}
+	if f.date1904 {
+		root.Properties.Date++
 	}
 	for _, s := range f.sheets {
 		xs := xmlSheet{
 			Id:    s.Id,
 			Index: s.Index,
 			Name:  s.Name,
+			State: s.State,
 		}
 		root.Sheets = append(root.Sheets, xs)
 	}

@@ -5,6 +5,18 @@ import (
 	"strconv"
 )
 
+type Bounds struct {
+	Start Position
+	End   Position
+}
+
+func (b Bounds) String() string {
+	if b.Start.Equal(b.End) {
+		return b.Start.Addr()
+	}
+	return fmt.Sprintf("%s:%s", b.Start.Addr(), b.End.Addr())
+}
+
 type Position struct {
 	Line   int64
 	Column int64
@@ -27,6 +39,10 @@ func parsePosition(addr string) Position {
 		pos.Line, _ = strconv.ParseInt(addr[offset:], 10, 64)
 	}
 	return pos
+}
+
+func (p Position) Equal(other Position) bool {
+	return p.Line == other.Line && p.Column == other.Column
 }
 
 func (p Position) Addr() string {
