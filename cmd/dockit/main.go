@@ -54,6 +54,7 @@ func prepare() *cli.CommandTrie {
 	root := cli.New()
 	root.Register([]string{"info"}, &infoCmd)
 	root.Register([]string{"lookup"}, &lookupCmd)
+	root.Register([]string{"new"}, &newCmd)
 	root.Register([]string{"merge"}, &mergeCmd)
 	root.Register([]string{"append"}, &appendCmd)
 	root.Register([]string{"move"}, &moveCmd)
@@ -75,6 +76,14 @@ var lookupCmd = cli.Command{
 	Alias:   []string{"search", "find"},
 	Summary: "find that data in given file",
 	Handler: nil,
+}
+
+var newCmd = cli.Command{
+	Name: "new",
+	Alias: []string{"create"},
+	Summary: "create a new spreadsheet from input files",
+	// Usage: "new [-o file] <file, [file,...]>"
+	Handler: &CreateFileCommand{},
 }
 
 var mergeCmd = cli.Command{
@@ -134,6 +143,34 @@ var unlockCmd = cli.Command{
 	Name:    "unlock",
 	Summary: "unlock an entire spreadsheet or some of its sheet(s)",
 	Handler: nil,
+}
+
+type CreateFileCommand struct {
+	OutFile string
+}
+
+func (c CreateFileCommand) Run(args []string) error {
+	set := cli.NewFlagSet("new")
+	set.StringVar(&c.OutFile, "o", "", "write result to output file")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	if c.OutFile == "" {
+		c.OutFile = "new.xlsx"
+	}
+	if err := os.MkdirAll(filepath.Dir(c.OutFile), 0755); err != nil {
+		return err
+	}
+	file := oxml.NewFile()
+	for _, a := range set.Args() {
+		if ok, err := isZip(a); ok || err != nil {
+			continue
+		}
+		if err := mergeCSV(file, a); err != nil {
+			return err
+		}
+	}
+	return file.WriteFile(c.OutFile)
 }
 
 type ExtractSheetCommand struct {

@@ -201,7 +201,7 @@ func (z *writer) writeWorksheet(sheet *Sheet) {
 		root.Rows = append(root.Rows, rx)
 	}
 	addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sheet.Name))
-	z.encodeXML(z.fromBase(addr), &root)
+	z.encodeXML(addr, &root)
 }
 
 func (z *writer) writeWorkbook(f *File) {
@@ -230,7 +230,7 @@ func (z *writer) writeWorkbook(f *File) {
 		Views struct {
 			View struct {
 				activeTab int `xml:"activeTab,attr"`
-			} `xml:workbookView`
+			} `xml:"workbookView"`
 		} `xml:"workbookViews"`
 		Sheets []xmlSheet `xml:"sheets>sheet"`
 	}{
