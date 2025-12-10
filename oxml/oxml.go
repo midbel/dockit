@@ -1,12 +1,10 @@
 package oxml
 
 import (
-	"archive/zip"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"iter"
-	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -20,21 +18,6 @@ const (
 	TypeError     = "e"
 	TypeBool      = "b"
 	TypeNumber    = "n"
-)
-
-const (
-	typeSheetUrl = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"
-	typeDocUrl   = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
-	typeMainUrl  = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
-)
-
-const (
-	mimeRels         = "application/vnd.openxmlformats-package.relationships+xml"
-	mimeXml          = "application/xml"
-	mimeWorkbook     = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
-	mimeWorksheet    = "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"
-	mimeStyle        = "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"
-	mimeSharedString = "application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"
 )
 
 var (
@@ -75,7 +58,9 @@ func (c *Cell) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
 	if c.Type == TypeInlineStr {
 		el.InlineValue = c.rawValue
 	} else if c.Type == TypeFormula {
-		el.Formula = c.parsedValue
+		if c.parsedValue != "" {
+			el.Formula = c.parsedValue
+		}
 		el.RawValue = c.rawValue
 	} else {
 		el.RawValue = c.rawValue
@@ -264,8 +249,6 @@ type Sheet struct {
 
 	State     SheetState
 	Protected SheetProtection
-
-	addr string
 }
 
 func NewSheet(name string) *Sheet {
@@ -356,12 +339,12 @@ func NewFile() *File {
 }
 
 func Open(file string) (*File, error) {
-	z, err := zip.OpenReader(file)
+	rs, err := readFile(file)
 	if err != nil {
 		return nil, err
 	}
-	defer z.Close()
-	return readFile(z)
+	defer rs.Close()
+	return rs.ReadFile()
 }
 
 func (f *File) WriteFile(file string) error {
@@ -432,173 +415,4 @@ func (f *File) Merge(other *File) error {
 		f.sheets = append(f.sheets, s)
 	}
 	return nil
-}
-
-func readFile(z *zip.ReadCloser) (*File, error) {
-	if err := readContentFile(z); err != nil {
-		return nil, err
-	}
-	ix := slices.IndexFunc(z.File, func(f *zip.File) bool {
-		return f.Name == "_rels/.rels"
-	})
-	if ix < 0 {
-		return nil, ErrFile
-	}
-	wb, err := getWorkbookAddr(z.File[ix])
-	if err != nil {
-		return nil, err
-	}
-	ix = slices.IndexFunc(z.File, func(f *zip.File) bool {
-		return f.Name == wb
-	})
-	if ix < 0 {
-		return nil, ErrFile
-	}
-	var file *File
-	if file, err = getWorkbookSheets(z.File[ix]); err != nil {
-		return nil, err
-	}
-	if err := getWorksheets(file, z); err != nil {
-		return nil, err
-	}
-	return file, nil
-}
-
-func readContentFile(z *zip.ReadCloser) error {
-	ix := slices.IndexFunc(z.File, func(f *zip.File) bool {
-		return f.Name == "[Content_Types].xml"
-	})
-	if ix < 0 {
-		return ErrFile
-	}
-	r, err := z.File[ix].Open()
-	if err != nil {
-		return err
-	}
-	_ = r
-	return nil
-}
-
-func getWorkbookSheets(z *zip.File) (*File, error) {
-	r, err := z.Open()
-	if err != nil {
-		return nil, err
-	}
-	type xmlSheet struct {
-		XMLName xml.Name   `xml:"sheet"`
-		Id      string     `xml:"http://schemas.openxmlformats.org/officeDocument/2006/relationships id,attr"`
-		Name    string     `xml:"name,attr"`
-		Index   int        `xml:"sheetId,attr"`
-		State   SheetState `xml:"state,attr"`
-	}
-	root := struct {
-		XMLName xml.Name   `xml:"workbook"`
-		Sheets  []xmlSheet `xml:"sheets>sheet"`
-	}{}
-	if err := xml.NewDecoder(r).Decode(&root); err != nil {
-		return nil, err
-	}
-	file := NewFile()
-	for _, sx := range root.Sheets {
-		s := Sheet{
-			Id:    sx.Id,
-			Name:  sx.Name,
-			Index: sx.Index,
-			State: sx.State,
-		}
-		if s.State == 0 {
-			s.State = StateVisible
-		}
-		file.names[s.Name]++
-		file.sheets = append(file.sheets, &s)
-	}
-	return file, nil
-}
-
-type relation struct {
-	XMLName xml.Name `xml:"Relationship"`
-	Target  string   `xml:",attr"`
-	Id      string   `xml:",attr"`
-	Type    string   `xml:",attr"`
-}
-
-func getWorksheets(file *File, z *zip.ReadCloser) error {
-	ix := slices.IndexFunc(z.File, func(f *zip.File) bool {
-		return f.Name == "xl/_rels/workbook.xml.rels"
-	})
-	if ix < 0 {
-		return ErrFile
-	}
-	r, err := z.File[ix].Open()
-	if err != nil {
-		return err
-	}
-	root := struct {
-		XMLName   xml.Name   `xml:"Relationships"`
-		Relations []relation `xml:"Relationship"`
-	}{}
-	if err := xml.NewDecoder(r).Decode(&root); err != nil {
-		return err
-	}
-	for _, s := range file.sheets {
-		ix := slices.IndexFunc(root.Relations, func(r relation) bool {
-			return r.Id == s.Id
-		})
-		if ix < 0 {
-			return ErrFile
-		}
-		s.addr = path.Join("xl", root.Relations[ix].Target)
-		if err := getWorksheetData(s, z); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func getWorksheetData(sheet *Sheet, z *zip.ReadCloser) error {
-	ix := slices.IndexFunc(z.File, func(f *zip.File) bool {
-		return f.Name == sheet.addr
-	})
-	if ix < 0 {
-		return ErrFile
-	}
-	r, err := z.File[ix].Open()
-	if err != nil {
-		return err
-	}
-	root := struct {
-		XMLName xml.Name   `xml:"worksheet"`
-		Size    *Dimension `xml:"dimension"`
-		Rows    []*Row     `xml:"sheetData>row"`
-	}{}
-	if err := xml.NewDecoder(r).Decode(&root); err != nil {
-		return err
-	}
-	sheet.Size = root.Size
-	sheet.Rows = root.Rows
-	return nil
-}
-
-func getWorkbookAddr(z *zip.File) (string, error) {
-	r, err := z.Open()
-	if err != nil {
-		return "", err
-	}
-	if err != nil {
-		return "", err
-	}
-	root := struct {
-		XMLName   xml.Name   `xml:"Relationships"`
-		Relations []relation `xml:"Relationship"`
-	}{}
-	if err := xml.NewDecoder(r).Decode(&root); err != nil {
-		return "", err
-	}
-	ix := slices.IndexFunc(root.Relations, func(r relation) bool {
-		return strings.HasSuffix(r.Type, "relationships/officeDocument")
-	})
-	if ix < 0 {
-		return "", ErrFile
-	}
-	return root.Relations[ix].Target, nil
 }

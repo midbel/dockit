@@ -98,6 +98,7 @@ var joinCmd = cli.Command{
 
 var extractCmd = cli.Command{
 	Name:    "extract",
+	Alias:   []string{"export"},
 	Summary: "extract one or more sheets from given spreadsheets",
 	// Usage: "extract [-d directory] [-f format] [-c delimiter] [-r range] file.xlsx sheet",
 	Handler: &ExtractSheetCommand{},
@@ -113,13 +114,25 @@ var moveCmd = cli.Command{
 var copyCmd = cli.Command{
 	Name:    "copy",
 	Alias:   []string{"cp"},
-	Summary: "move one or more sheets from one spreadsheet to another",
+	Summary: "copy one or more sheets from one spreadsheet to another",
 	Handler: nil,
 }
 
 var convertCmd = cli.Command{
 	Name:    "convert",
 	Summary: "convert spreadsheet to another format",
+	Handler: nil,
+}
+
+var lockCmd = cli.Command{
+	Name:    "lock",
+	Summary: "lock an entire spreadsheet or some of its sheet(s)",
+	Handler: nil,
+}
+
+var unlockCmd = cli.Command{
+	Name:    "unlock",
+	Summary: "unlock an entire spreadsheet or some of its sheet(s)",
 	Handler: nil,
 }
 

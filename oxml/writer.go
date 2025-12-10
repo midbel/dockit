@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"compress/flate"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"os"
 	"slices"
@@ -14,6 +15,8 @@ type writer struct {
 	base   string
 	writer *zip.Writer
 	io.Closer
+
+	err error
 }
 
 func writeFile(file string) (*writer, error) {
@@ -22,7 +25,7 @@ func writeFile(file string) (*writer, error) {
 		return nil, err
 	}
 	z := writer{
-		base:   "xl",
+		base:   wbBaseDir,
 		writer: zip.NewWriter(w),
 		Closer: w,
 	}
@@ -32,32 +35,20 @@ func writeFile(file string) (*writer, error) {
 	return &z, nil
 }
 
-func (w *writer) WriteFile(file *File) error {
+func (z *writer) WriteFile(file *File) error {
 	for _, s := range file.sheets {
-		s.addr = w.createTarget("worksheets", s.Name+".xml")
-		if err := w.writeWorksheet(s); err != nil {
-			return err
+		z.writeWorksheet(s)
+		if z.invalid() {
+			return z.err
 		}
 	}
-	if err := w.writeWorkbook(file); err != nil {
-		return err
-	}
-	if err := w.writeRelationForSheets(file); err != nil {
-		return err
-	}
-	if err := w.writeRelations(); err != nil {
-		return err
-	}
-	if err := w.writeSharedStrings(); err != nil {
-		return err
-	}
-	if err := w.writeStyles(); err != nil {
-		return err
-	}
-	if err := w.writeContentTypes(file); err != nil {
-		return err
-	}
-	return nil
+	z.writeWorkbook(file)
+	z.writeRelationForSheets(file)
+	z.writeRelations()
+	z.writeSharedStrings()
+	z.writeStyles()
+	z.writeContentTypes(file)
+	return z.err
 }
 
 func (w *writer) Close() error {
@@ -65,12 +56,10 @@ func (w *writer) Close() error {
 	return w.Closer.Close()
 }
 
-func (z *writer) writeContentTypes(file *File) error {
-	w, err := z.writer.Create("[Content_Types].xml")
-	if err != nil {
-		return err
+func (z *writer) writeContentTypes(file *File) {
+	if z.invalid() {
+		return
 	}
-
 	type xmlDefault struct {
 		XMLName     xml.Name `xml:"Default"`
 		Extension   string   `xml:"Extension,attr"`
@@ -116,19 +105,19 @@ func (z *writer) writeContentTypes(file *File) error {
 		},
 	}
 	for _, s := range file.sheets {
+		addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", s.Name))
 		ox := xmlOverride{
-			PartName:    "/" + s.addr,
+			PartName:    "/" + z.fromBase(addr),
 			ContentType: mimeWorksheet,
 		}
 		root.Overrides = append(root.Overrides, ox)
 	}
-	return xml.NewEncoder(w).Encode(&root)
+	z.encodeXML("[Content_Types].xml", &root)
 }
 
-func (z *writer) writeStyles() error {
-	w, err := z.writer.Create(z.createTarget("styles.xml"))
-	if err != nil {
-		return err
+func (z *writer) writeStyles() {
+	if z.invalid() {
+		return
 	}
 	root := struct {
 		XMLName xml.Name `xml:"styleSheet"`
@@ -136,97 +125,61 @@ func (z *writer) writeStyles() error {
 	}{
 		Xmlns: typeMainUrl,
 	}
-	return xml.NewEncoder(w).Encode(&root)
+	z.encodeXML("styles.xml", root)
 }
 
-func (z *writer) writeSharedStrings() error {
-	w, err := z.writer.Create(z.createTarget("sharedStrings.xml"))
-	if err != nil {
-		return err
+func (z *writer) writeSharedStrings() {
+	if z.invalid() {
+		return
 	}
-
-	root := struct {
-		XMLName     xml.Name `xml:"sst"`
-		Xmlns       string   `xml:"xmlns,attr"`
-		Count       int      `xml:"count,attr"`
-		UniqueCount int      `xml:"uniqueCount,attr"`
-	}{
+	root := xmlSharedStrings{
 		Xmlns: typeMainUrl,
 	}
-
-	return xml.NewEncoder(w).Encode(&root)
+	z.encodeXML("sharedStrings.xml", &root)
 }
 
-func (z *writer) writeRelations() error {
-	w, err := z.writer.Create("_rels/.rels")
-	if err != nil {
-		return err
+func (z *writer) writeRelations() {
+	if z.invalid() {
+		return
 	}
-
-	type xmlRelation struct {
-		Id     string `xml:",attr"`
-		Type   string `xml:",attr"`
-		Target string `xml:",attr"`
-	}
-
-	root := struct {
-		XMLName   xml.Name      `xml:"Relationships"`
-		Xmlns     string        `xml:"xmlns,attr"`
-		Relations []xmlRelation `xml:"Relationship"`
-	}{
+	root := xmlRelations{
 		Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
+		Relations: []xmlRelation{
+			{
+				Id:     "rId1",
+				Type:   typeDocUrl,
+				Target: "xl/workbook.xml",
+			},
+		},
 	}
-
-	root.Relations = append(root.Relations, xmlRelation{
-		Id:     "rId1",
-		Type:   typeDocUrl,
-		Target: "xl/workbook.xml",
-	})
-	return xml.NewEncoder(w).Encode(&root)
+	z.encodeXML("_rels/.rels", &root)
 }
 
-func (z *writer) writeRelationForSheets(f *File) error {
-	w, err := z.writer.Create(z.createTarget("_rels", "workbook.xml.rels"))
-	if err != nil {
-		return err
+func (z *writer) writeRelationForSheets(file *File) {
+	if z.invalid() {
+		return
 	}
 
-	type xmlRelation struct {
-		Id     string `xml:"Id,attr"`
-		Type   string `xml:",attr"`
-		Target string `xml:",attr"`
-	}
-
-	root := struct {
-		XMLName   xml.Name      `xml:"Relationships"`
-		Xmlns     string        `xml:"xmlns,attr"`
-		Relations []xmlRelation `xml:"Relationship"`
-	}{
+	root := xmlRelations{
 		Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
 	}
-	for _, s := range f.sheets {
+	for _, sh := range file.sheets {
+		addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sh.Name))
 		rx := xmlRelation{
-			Id:     s.Id,
+			Id:     sh.Id,
 			Type:   typeSheetUrl,
-			Target: z.fromBase(s.addr),
+			Target: z.fromBase(addr),
 		}
 		root.Relations = append(root.Relations, rx)
 	}
-	return xml.NewEncoder(w).Encode(&root)
+	addr := z.createTarget("_rels", "workbook.xml.rels")
+	z.encodeXML(addr, &root)
 }
 
-func (z *writer) writeWorksheet(sheet *Sheet) error {
-	w, err := z.writer.Create(sheet.addr)
-	if err != nil {
-		return err
+func (z *writer) writeWorksheet(sheet *Sheet) {
+	if z.invalid() {
+		return
 	}
-
-	type xmlRow struct {
-		XMLName xml.Name `xml:"row"`
-		Line    int64    `xml:"r,attr"`
-		Cells   []*Cell  `xml:"c"`
-	}
-
 	root := struct {
 		XMLName   xml.Name `xml:"worksheet"`
 		Xmlns     string   `xml:"xmlns,attr"`
@@ -239,8 +192,7 @@ func (z *writer) writeWorksheet(sheet *Sheet) error {
 		Xmlns:    typeMainUrl,
 		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
 	}
-	bounds := sheet.Bounding()
-	root.Dimension.Ref = bounds.String()
+	root.Dimension.Ref = sheet.Bounding().String()
 	for _, r := range sheet.Rows {
 		rx := xmlRow{
 			Line:  r.Line,
@@ -248,18 +200,18 @@ func (z *writer) writeWorksheet(sheet *Sheet) error {
 		}
 		root.Rows = append(root.Rows, rx)
 	}
-	return xml.NewEncoder(w).Encode(&root)
+	addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sheet.Name))
+	z.encodeXML(z.fromBase(addr), &root)
 }
 
-func (z *writer) writeWorkbook(f *File) error {
-	w, err := z.writer.Create(z.createTarget("workbook.xml"))
-	if err != nil {
-		return err
+func (z *writer) writeWorkbook(f *File) {
+	if z.invalid() {
+		return
 	}
 
 	type xmlSheet struct {
 		XMLName xml.Name   `xml:"sheet"`
-		Id      string     `xml:"http://schemas.openxmlformats.org/officeDocument/2006/relationships id,attr"`
+		Id      string     `xml:"r:id,attr"`
 		Name    string     `xml:"name,attr"`
 		Index   int        `xml:"sheetId,attr"`
 		State   SheetState `xml:"state,attr"`
@@ -300,19 +252,34 @@ func (z *writer) writeWorkbook(f *File) error {
 		}
 		root.Sheets = append(root.Sheets, xs)
 	}
-	return xml.NewEncoder(w).Encode(&root)
+	z.encodeXML(z.createTarget("workbook.xml"), root)
 }
 
-func (w *writer) createTarget(parts ...string) string {
-	parts = append([]string{w.base}, parts...)
+func (z *writer) encodeXML(name string, ptr any) {
+	w, err := z.writer.Create(name)
+	if err != nil {
+		z.err = err
+		return
+	}
+	if err := xml.NewEncoder(w).Encode(ptr); err != nil {
+		z.err = fmt.Errorf("%w: fail to write data to %s", err, name)
+	}
+}
+
+func (z *writer) createTarget(parts ...string) string {
+	parts = append([]string{z.base}, parts...)
 	return strings.Join(parts, "/")
 }
 
-func (w *writer) fromBase(target string) string {
+func (z *writer) fromBase(target string) string {
 	parts := strings.Split(target, "/")
-	ix := slices.Index(parts, w.base)
+	ix := slices.Index(parts, z.base)
 	if ix < 0 {
 		return target
 	}
 	return strings.Join(parts[ix+1:], "/")
+}
+
+func (z *writer) invalid() bool {
+	return z.err != nil
 }
