@@ -36,7 +36,7 @@ func (w *Writer) Write(line []string) error {
 	var err error
 	for i, n := range line {
 		if i > 0 {
-			if err = w.inner.WriteRune(w.Comma); err != nil {
+			if _, err = w.inner.WriteRune(w.Comma); err != nil {
 				return err
 			}
 		}
@@ -49,13 +49,13 @@ func (w *Writer) Write(line []string) error {
 			return err
 		}
 	}
-	if useCrlf {
-		err = w.WriteRune(cr)
+	if w.UseCRLF {
+		_, err = w.inner.WriteRune(cr)
 		if err != nil {
 			return err
 		}
 	}
-	err = w.WriteRune(nl)
+	_, err = w.inner.WriteRune(nl)
 	return err
 }
 
@@ -86,19 +86,19 @@ func (w *Writer) writeQuoted(str string) error {
 			break
 		}
 		if c == quote {
-			w.WriteRune(c)
-			_, err = w.WriteRune(c)
+			w.inner.WriteRune(c)
+			_, err = w.inner.WriteRune(c)
 		} else if c == cr {
 			if w.UseCRLF {
-				_, err = w.WriteRune(c)
+				_, err = w.inner.WriteRune(c)
 			}
 		} else if c == nl {
 			if w.UseCRL {
-				w.WriteRune(cr)
+				w.inner.WriteRune(cr)
 			}
-			_, err = w.WriteRune(c)
+			_, err = w.inner.WriteRune(c)
 		} else {
-			_, err = w.WriteRune(c)
+			_, err = w.inner.WriteRune(c)
 		}
 		if err != nil {
 			return err
