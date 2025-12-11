@@ -79,8 +79,8 @@ var lookupCmd = cli.Command{
 }
 
 var newCmd = cli.Command{
-	Name: "new",
-	Alias: []string{"create"},
+	Name:    "new",
+	Alias:   []string{"create"},
 	Summary: "create a new spreadsheet from input files",
 	// Usage: "new [-o file] <file, [file,...]>"
 	Handler: &CreateFileCommand{},
