@@ -274,6 +274,13 @@ func (s *Sheet) Bounding() Bounds {
 	return bounds
 }
 
+func (s *Sheet) Select() iter.Seq[[]string] {
+	it := func(yield func([]string) bool) {
+
+	}
+	return it
+}
+
 func (s *Sheet) Iter() iter.Seq[[]string] {
 	it := func(yield func([]string) bool) {
 		for _, r := range s.Rows {
@@ -323,6 +330,14 @@ func (s *Sheet) Encode(e Encoder) error {
 	return e.EncodeSheet(s)
 }
 
+func (s *Sheet) Lock() {
+
+}
+
+func (s *Sheet) Unlock() {
+
+}
+
 type File struct {
 	locked   bool
 	date1904 bool
@@ -368,6 +383,30 @@ func (f *File) Sheet(name string) (*Sheet, error) {
 
 func (f *File) Sheets() []*Sheet {
 	return f.sheets
+}
+
+func (f *File) Lock() {
+
+}
+
+func (f *File) LockSheet(name string) error {
+	sh, err := f.Sheet(name)
+	if err == nil {
+		sh.Lock()
+	}
+	return err
+}
+
+func (f *File) Unlock() {
+
+}
+
+func (f *File) UnlockSheet(name string) error {
+	sh, err := f.Sheet(name)
+	if err == nil {
+		sh.Unlock()
+	}
+	return err
 }
 
 // rename a sheet

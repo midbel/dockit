@@ -61,6 +61,11 @@ func prepare() *cli.CommandTrie {
 	root.Register([]string{"copy"}, &copyCmd)
 	root.Register([]string{"extract"}, &extractCmd)
 	root.Register([]string{"join"}, &joinCmd)
+	root.Register([]string{"eval"}, &evalCmd)
+	root.Register([]string{"split"}, &splitCmd)
+	root.Register([]string{"transpose"}, &transposeCmd)
+	root.Register([]string{"lock"}, &lockCmd)
+	root.Register([]string{"unlock"}, &unlockCmd)
 
 	return root
 }
@@ -82,7 +87,7 @@ var newCmd = cli.Command{
 	Name:    "new",
 	Alias:   []string{"create"},
 	Summary: "create a new spreadsheet from input files",
-	// Usage: "new [-o file] <file, [file,...]>"
+	Usage:   "new [-o file] <file, [file,...]>",
 	Handler: &CreateFileCommand{},
 }
 
@@ -105,11 +110,29 @@ var joinCmd = cli.Command{
 	Handler: nil,
 }
 
+var evalCmd = cli.Command{
+	Name:    "eval",
+	Summary: "execute script on spreadsheet",
+	Handler: nil,
+}
+
+var splitCmd = cli.Command{
+	Name:    "split",
+	Summary: "split a sheet to multiple according to given criteria",
+	Handler: nil,
+}
+
+var transposeCmd = cli.Command{
+	Name:    "transpose",
+	Summary: "switch rows and columns",
+	Handler: nil,
+}
+
 var extractCmd = cli.Command{
 	Name:    "extract",
 	Alias:   []string{"export"},
 	Summary: "extract one or more sheets from given spreadsheets",
-	// Usage: "extract [-d directory] [-f format] [-c delimiter] [-r range] file.xlsx sheet",
+	// Usage: "extract [-d directory] [-f format] [-c delimiter] file.xlsx sheet",
 	Handler: &ExtractSheetCommand{},
 }
 
@@ -136,13 +159,33 @@ var convertCmd = cli.Command{
 var lockCmd = cli.Command{
 	Name:    "lock",
 	Summary: "lock an entire spreadsheet or some of its sheet(s)",
-	Handler: nil,
+	Handler: &LockFileCommand{},
 }
 
 var unlockCmd = cli.Command{
 	Name:    "unlock",
 	Summary: "unlock an entire spreadsheet or some of its sheet(s)",
-	Handler: nil,
+	Handler: &UnlockFileCommand{},
+}
+
+type LockFileCommand struct{}
+
+func (c LockFileCommand) Run(args []string) error {
+	set := cli.NewFlagSet("lock")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	return nil
+}
+
+type UnlockFileCommand struct{}
+
+func (c UnlockFileCommand) Run(args []string) error {
+	set := cli.NewFlagSet("unlock")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	return nil
 }
 
 type CreateFileCommand struct {
