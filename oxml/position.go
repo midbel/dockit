@@ -2,8 +2,135 @@ package oxml
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 )
+
+type Selection struct {
+	Start int
+	End   int
+}
+
+func ParseRange(str string) (Select, error) {
+	var (
+		sel   Select
+		parts = strings.Split(str, ",")
+	)
+	for _, str := range parts {
+		p, err := ParseSelection(str)
+		if err != nil {
+			return sel, err
+		}
+		sel.ranges = append(sel.ranges, p)
+	}
+	return sel, nil
+}
+
+func ParseSelection(str string) (Selection, error) {
+	var (
+		sel Selection
+		err error
+	)
+	first, last, ok := strings.Cut(str, ":")
+	if !ok {
+		ix, err := parseOffset(str)
+		if err == nil {
+			sel.Start = ix
+			sel.End = ix
+		}
+		return sel, err
+	}
+	sel.Start = -1
+	sel.End = -1
+	if first != "" {
+		sel.Start, err = parseOffset(first)
+		if err != nil {
+			return sel, err
+		}
+	}
+	if last != "" {
+		sel.End, err = parseOffset(last)
+		if err != nil {
+			return sel, err
+		}
+	}
+	return sel, err
+}
+
+func parseOffset(str string) (int, error) {
+	var (
+		column int
+		offset int
+	)
+	for offset < len(str) && isLetter(str[offset]) {
+		delta := byte('A')
+		if isLower(str[offset]) {
+			delta = 'a'
+		}
+		column = column*26 + int(str[offset]-delta+1)
+		offset++
+	}
+	if offset < len(str) {
+		return 0, fmt.Errorf("invalid column")
+	}
+	return column, nil
+}
+
+func (s Selection) One() bool {
+	return s.Start == s.End
+}
+
+func (s Selection) Open() bool {
+	return s.End < 0 || s.Start < 0
+}
+
+func (s Selection) Select(rs *Row) []string {
+	if s.One() {
+		return s.selectOne(rs)
+	}
+	if s.Open() {
+		if s.End < 0 {
+			s.End = len(rs.Cells) - 1
+		}
+		if s.Start < 0 {
+			s.Start = 0
+		}
+	}
+	var reverse bool
+	if s.Start > s.End {
+		reverse = true
+		s.Start, s.End = s.End, s.Start
+	}
+	var list []string
+	for i := s.Start; i <= s.End && i < len(rs.Cells); i++ {
+		list = append(list, rs.Cells[i].Value())
+	}
+	if reverse {
+		slices.Reverse(list)
+	}
+	return list
+}
+
+func (s Selection) selectOne(rs *Row) []string {
+	if s.Start < 0 || s.Start >= len(rs.Cells) {
+		return nil
+	}
+	return []string{rs.Cells[s.Start].Value()}
+}
+
+type Select struct {
+	ranges []Selection
+}
+
+func (s Select) Select(rs *Row) []string {
+	var list []string
+	for _, r := range s.ranges {
+		others := r.Select(rs)
+		list = slices.Concat(list, others)
+	}
+	return list
+}
 
 type Bounds struct {
 	Start Position

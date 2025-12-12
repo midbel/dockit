@@ -274,9 +274,22 @@ func (s *Sheet) Bounding() Bounds {
 	return bounds
 }
 
-func (s *Sheet) Select() iter.Seq[[]string] {
-	it := func(yield func([]string) bool) {
+func (s *Sheet) Extract(sel *Select) *Sheet {
+	copy := NewSheet(fmt.Sprintf("%s.copy", s.Name))
+	for vs := range s.Select(sel) {
+		copy.Append(vs)
+	}
+	return copy
+}
 
+func (s *Sheet) Select(sel *Select) iter.Seq[[]string] {
+	it := func(yield func([]string) bool) {
+		for _, rs := range s.Rows {
+			vs := sel.Select(rs)
+			if !yield(vs) {
+				break
+			}
+		}
 	}
 	return it
 }
