@@ -18,7 +18,7 @@ func ParseRange(str string) (Select, error) {
 		parts = strings.Split(str, ",")
 	)
 	for _, str := range parts {
-		p, err := ParseSelection(str)
+		p, err := ParseSelection(strings.TrimSpace(str))
 		if err != nil {
 			return sel, err
 		}
@@ -43,14 +43,14 @@ func ParseSelection(str string) (Selection, error) {
 	}
 	sel.Start = -1
 	sel.End = -1
-	if first != "" {
-		sel.Start, err = parseOffset(first)
+	if str := strings.TrimSpace(first); str != "" {
+		sel.Start, err = parseOffset(str)
 		if err != nil {
 			return sel, err
 		}
 	}
-	if last != "" {
-		sel.End, err = parseOffset(last)
+	if str := strings.TrimSpace(last); str != "" {
+		sel.End, err = parseOffset(str)
 		if err != nil {
 			return sel, err
 		}
@@ -74,7 +74,7 @@ func parseOffset(str string) (int, error) {
 	if offset < len(str) {
 		return 0, fmt.Errorf("invalid column")
 	}
-	return column, nil
+	return column - 1, nil
 }
 
 func (s Selection) One() bool {

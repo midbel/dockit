@@ -53,6 +53,7 @@ func main() {
 func prepare() *cli.CommandTrie {
 	root := cli.New()
 	root.Register([]string{"info"}, &infoCmd)
+	root.Register([]string{"print"}, &printCmd)
 	root.Register([]string{"lookup"}, &lookupCmd)
 	root.Register([]string{"new"}, &newCmd)
 	root.Register([]string{"merge"}, &mergeCmd)
@@ -73,6 +74,7 @@ func prepare() *cli.CommandTrie {
 var infoCmd = cli.Command{
 	Name:    "info",
 	Summary: "get informations about sheets in given file",
+	Usage:   "info [-a] <spreadsheet>",
 	Handler: &GetInfoCommand{},
 }
 
@@ -81,6 +83,13 @@ var lookupCmd = cli.Command{
 	Alias:   []string{"search", "find"},
 	Summary: "find that data in given file",
 	Handler: nil,
+}
+
+var printCmd = cli.Command{
+	Name:    "print",
+	Alias:   []string{"view", "show"},
+	Summary: "print content of a sheet",
+	Handler: &PrintSheetCommand{},
 }
 
 var newCmd = cli.Command{
@@ -94,7 +103,7 @@ var newCmd = cli.Command{
 var mergeCmd = cli.Command{
 	Name:    "merge",
 	Summary: "merge sheets of one or more spreadsheet into one",
-	// Usage: "merge [-o file] <spreadsheet> <file1,[file2,...]>"
+	Usage:   "merge [-o file] <spreadsheet> <file1,[file2,...]>",
 	Handler: &MergeFilesCommand{},
 }
 
@@ -132,7 +141,7 @@ var extractCmd = cli.Command{
 	Name:    "extract",
 	Alias:   []string{"export"},
 	Summary: "extract one or more sheets from given spreadsheets",
-	// Usage: "extract [-d directory] [-f format] [-c delimiter] file.xlsx sheet",
+	Usage:   "extract [-d directory] [-f format] [-c delimiter] <spreadsheet> [sheet,...]",
 	Handler: &ExtractSheetCommand{},
 }
 
@@ -184,6 +193,34 @@ func (c UnlockFileCommand) Run(args []string) error {
 	set := cli.NewFlagSet("unlock")
 	if err := set.Parse(args); err != nil {
 		return err
+	}
+	return nil
+}
+
+type PrintSheetCommand struct {
+	Range string
+}
+
+func (c PrintSheetCommand) Run(args []string) error {
+	set := cli.NewFlagSet("print")
+	set.StringVar(&c.Range, "r", "", "range")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	file, err := oxml.Open(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	sheet, err := file.Sheet(set.Arg(1))
+	if err != nil {
+		return err
+	}
+	sel, err := oxml.ParseRange(c.Range)
+	if err != nil {
+		return err
+	}
+	for rows := range sheet.Select(&sel) {
+		fmt.Println(rows)
 	}
 	return nil
 }
