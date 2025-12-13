@@ -74,7 +74,7 @@ func prepare() *cli.CommandTrie {
 var infoCmd = cli.Command{
 	Name:    "info",
 	Summary: "get informations about sheets in given file",
-	Usage:   "info [-a] <spreadsheet>",
+	Usage:   "info [-a] <spreadsheet> [<sheet>,...]",
 	Handler: &GetInfoCommand{},
 }
 
@@ -89,6 +89,7 @@ var printCmd = cli.Command{
 	Name:    "print",
 	Alias:   []string{"view", "show"},
 	Summary: "print content of a sheet",
+	Usage:   "print [-r <range>] <spreadsheet> [sheet]",
 	Handler: &PrintSheetCommand{},
 }
 
