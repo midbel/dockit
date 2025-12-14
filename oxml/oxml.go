@@ -194,6 +194,7 @@ const (
 	ProtectedInsertColumns
 	ProtectedInsertRows
 	ProtectedSort
+	ProtectedAll
 )
 
 func (p SheetProtection) Locked() bool {
@@ -232,10 +233,90 @@ func (p SheetProtection) MarshalXML(encoder *xml.Encoder, start xml.StartElement
 		FormatRows  any      `xml:"formatRows,attr,omitempty"`
 		Sort        any      `xml:"sort,attr,omitempty"`
 	}{}
+	if p&ProtectedSheet != 0 {
+		el.Sheet = 1
+	}
+	if p&ProtectedObjects != 0 {
+		el.Objects = 1
+	}
+	if p&ProtectedScenarios != 0 {
+		el.Scenarios = 1
+	}
+	if p&ProtectedFormatCells != 0 {
+		el.FormatCells = 1
+	}
+	if p&ProtectedFormatColumns != 0 {
+		el.FormatCols = 1
+	}
+	if p&ProtectedDeleteColumns != 0 {
+		el.DeleteCols = 1
+	}
+	if p&ProtectedInsertColumns != 0 {
+		el.InsertCols = 1
+	}
+	if p&ProtectedDeleteRows != 0 {
+		el.DeleteRows = 1
+	}
+	if p&ProtectedInsertRows != 0 {
+		el.InsertRows = 1
+	}
+	if p&ProtectedSort != 0 {
+		el.Sort = 1
+	}
 	return encoder.EncodeElement(&el, start)
 }
 
 func (p *SheetProtection) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+	el := struct {
+		XMLName     xml.Name `xml:"sheetProtection"`
+		Sheet       any      `xml:"sheet,attr,omitempty"`
+		Objects     any      `xml:"objects,attr,omitempty"`
+		Scenarios   any      `xml:"scenarios,attr,omitempty"`
+		FormatCells any      `xml:"formatCells,attr,omitempty"`
+		DeleteCols  any      `xml:"deleteColumns,attr,omitempty"`
+		InsertCols  any      `xml:"insertColumns,attr,omitempty"`
+		FormatCols  any      `xml:"formatColumns,attr,omitempty"`
+		DeleteRows  any      `xml:"deleteColumns,attr,omitempty"`
+		InsertRows  any      `xml:"insertColumns,attr,omitempty"`
+		FormatRows  any      `xml:"formatRows,attr,omitempty"`
+		Sort        any      `xml:"sort,attr,omitempty"`
+	}{}
+	if err := decoder.DecodeElement(&el, &start); err != nil {
+		return err
+	}
+	if el.Sheet == 1 {
+		(*p) |= ProtectedSheet
+	}
+	if el.Objects == 1 {
+		(*p) |= ProtectedObjects
+	}
+	if el.Scenarios == 1 {
+		(*p) |= ProtectedScenarios
+	}
+	if el.FormatCells == 1 {
+		(*p) |= ProtectedFormatCells
+	}
+	if el.DeleteCols == 1 {
+		(*p) |= ProtectedDeleteColumns
+	}
+	if el.InsertCols == 1 {
+		(*p) |= ProtectedInsertColumns
+	}
+	if el.FormatCols == 1 {
+		(*p) |= ProtectedFormatColumns
+	}
+	if el.DeleteRows == 1 {
+		(*p) |= ProtectedDeleteRows
+	}
+	if el.InsertRows == 1 {
+		(*p) |= ProtectedInsertRows
+	}
+	if el.FormatRows == 1 {
+		(*p) |= ProtectedFormatRows
+	}
+	if el.Sort == 1 {
+		(*p) |= ProtectedSort
+	}
 	return nil
 }
 
@@ -344,11 +425,11 @@ func (s *Sheet) Encode(e Encoder) error {
 }
 
 func (s *Sheet) Lock() {
-
+	s.Protected = ProtectedAll - 1
 }
 
 func (s *Sheet) Unlock() {
-
+	s.Protected = 0
 }
 
 type File struct {
@@ -399,7 +480,9 @@ func (f *File) Sheets() []*Sheet {
 }
 
 func (f *File) Lock() {
-
+	for i := range f.sheets {
+		f.sheets[i].Lock()
+	}
 }
 
 func (f *File) LockSheet(name string) error {
@@ -411,7 +494,9 @@ func (f *File) LockSheet(name string) error {
 }
 
 func (f *File) Unlock() {
-
+	for i := range f.sheets {
+		f.sheets[i].Unlock()
+	}
 }
 
 func (f *File) UnlockSheet(name string) error {

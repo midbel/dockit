@@ -89,7 +89,7 @@ var printCmd = cli.Command{
 	Name:    "print",
 	Alias:   []string{"view", "show"},
 	Summary: "print content of a sheet",
-	Usage:   "print [-r <range>] <spreadsheet> [sheet]",
+	Usage:   "print [-c <columns>] <spreadsheet> [<sheet>,...]",
 	Handler: &PrintSheetCommand{},
 }
 
@@ -185,6 +185,15 @@ func (c LockFileCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
+	f, err := oxml.Open(flag.Arg(0))
+	if err != nil {
+		return err
+	}
+	for i := 1; i < set.NArg(); i++ {
+		if err := f.LockSheet(set.Arg(i)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -195,16 +204,25 @@ func (c UnlockFileCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
+	f, err := oxml.Open(flag.Arg(0))
+	if err != nil {
+		return err
+	}
+	for i := 1; i < set.NArg(); i++ {
+		if err := f.UnlockSheet(set.Arg(i)); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 type PrintSheetCommand struct {
-	Range string
+	Columns string
 }
 
 func (c PrintSheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("print")
-	set.StringVar(&c.Range, "r", "", "range")
+	set.StringVar(&c.Columns, "c", "", "columns")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -216,7 +234,7 @@ func (c PrintSheetCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	sel, err := oxml.ParseRange(c.Range)
+	sel, err := oxml.ParseRange(c.Columns)
 	if err != nil {
 		return err
 	}
