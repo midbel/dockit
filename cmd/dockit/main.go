@@ -309,14 +309,33 @@ func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
 	if err != nil {
 		return err
 	}
-	out := filepath.Join(c.OutDir, sh.Name+".csv")
+
+	var (
+		encode func(io.Writer) oxml.Encoder
+		ext string
+	)
+	switch c.Format {
+	case "", "csv":
+		ext = ".csv"
+		encode = oxml.EncodeCSV
+	case "json":
+		ext = ".json"
+		encode = oxml.EncodeJSON
+	case "xml":
+		ext = ".xml"
+		encode = oxml.EncodeXML
+	default:
+		return fmt.Errorf("%s: unsupported format", c.Format)
+	}
+
+	out := filepath.Join(c.OutDir, sh.Name+ext)
 	w, err := os.Create(out)
 	if err != nil {
 		return err
 	}
 	defer w.Close()
 
-	return sh.Encode(oxml.EncodeCSV(w))
+	return sh.Encode(encode(w))
 }
 
 type MergeFilesCommand struct {
@@ -387,6 +406,36 @@ func mergeFile(f *oxml.File, file string) error {
 	return f.Merge(x)
 }
 
+type GetInfoCommand struct{}
+
+func (c GetInfoCommand) Run(args []string) error {
+	set := cli.NewFlagSet("info")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	f, err := oxml.Open(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	var (
+		sheets  = f.Sheets()
+		pattern = "%d %s(%s): %d lines, %d columns - %s"
+	)
+	for _, s := range sheets {
+		var (
+			state  = s.Status()
+			locked = "unlocked"
+		)
+		if s.IsLock() {
+			locked = "locked"
+		}
+
+		fmt.Fprintf(os.Stdout, pattern, s.Index, s.Name, state, s.Size.Lines, s.Size.Columns, locked)
+		fmt.Fprintln(os.Stdout)
+	}
+	return nil
+}
+
 var magicZipBytes = [][]byte{
 	{0x50, 0x4b, 0x03, 0x04},
 	{0x50, 0x4b, 0x05, 0x06},
@@ -410,26 +459,4 @@ func isZip(file string) (bool, error) {
 		}
 	}
 	return false, nil
-}
-
-type GetInfoCommand struct{}
-
-func (c GetInfoCommand) Run(args []string) error {
-	set := cli.NewFlagSet("info")
-	if err := set.Parse(args); err != nil {
-		return err
-	}
-	f, err := oxml.Open(set.Arg(0))
-	if err != nil {
-		return err
-	}
-	var (
-		sheets  = f.Sheets()
-		pattern = "%d %s: %d lines, %d columns"
-	)
-	for _, s := range sheets {
-		fmt.Fprintf(os.Stdout, pattern, s.Index, s.Name, s.Size.Lines, s.Size.Columns)
-		fmt.Fprintln(os.Stdout)
-	}
-	return nil
 }

@@ -78,7 +78,11 @@ func parseOffset(str string) (int, error) {
 }
 
 func (s Selection) One() bool {
-	return s.Start == s.End
+	return s.Start >= 0 && s.Start == s.End
+}
+
+func (s Selection) Full() bool {
+	return s.Start < 0 && s.Start == s.End
 }
 
 func (s Selection) Open() bool {
@@ -88,6 +92,9 @@ func (s Selection) Open() bool {
 func (s Selection) Select(rs *Row) []string {
 	if s.One() {
 		return s.selectOne(rs)
+	}
+	if s.Full() {
+		return rs.Data()
 	}
 	if s.Open() {
 		if s.End < 0 {

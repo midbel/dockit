@@ -432,6 +432,17 @@ func (s *Sheet) Unlock() {
 	s.Protected = 0
 }
 
+func (s *Sheet) IsLock() bool {
+	return s.Protected != 0
+}
+
+func (s *Sheet) Status() string {
+	if s.State <= StateVisible {
+		return "visible"
+	}
+	return "hidden"
+}
+
 type File struct {
 	locked   bool
 	date1904 bool
