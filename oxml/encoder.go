@@ -2,6 +2,7 @@ package oxml
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"io"
 )
 
@@ -35,6 +36,7 @@ func (e *csvEncoder) EncodeSheet(sheet *Sheet) error {
 
 type jsonEncoder struct {
 	writer io.Writer
+	fields []string
 }
 
 func EncodeJSON(w io.Writer) Encoder {
@@ -44,11 +46,16 @@ func EncodeJSON(w io.Writer) Encoder {
 }
 
 func (e *jsonEncoder) EncodeSheet(sheet *Sheet) error {
-	return nil
+	var data [][]any
+	for _, rs := range sheet.Rows {
+		data = append(data, rs.values())
+	}
+	return json.NewEncoder(e.writer).Encode(data)
 }
 
 type xmlEncoder struct {
 	writer io.Writer
+	fields []string
 }
 
 func EncodeXML(w io.Writer) Encoder {

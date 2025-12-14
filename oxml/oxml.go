@@ -119,6 +119,14 @@ func (r *Row) Data() []string {
 	return ds
 }
 
+func (r *Row) values() []any {
+	var list []any
+	for i := range r.Cells {
+		list = append(list, r.Cells[i].parsedValue)
+	}
+	return list
+}
+
 type Dimension struct {
 	Lines   int64
 	Columns int64
