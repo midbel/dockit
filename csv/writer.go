@@ -2,8 +2,8 @@ package csv
 
 import (
 	"bufio"
+	"io"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 )
 

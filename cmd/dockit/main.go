@@ -312,7 +312,7 @@ func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
 
 	var (
 		encode func(io.Writer) oxml.Encoder
-		ext string
+		ext    string
 	)
 	switch c.Format {
 	case "", "csv":

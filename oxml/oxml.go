@@ -371,6 +371,14 @@ func (s *Sheet) Extract(sel *Select) *Sheet {
 	return copy
 }
 
+func (s *Sheet) DistinctValues(sel *Select) iter.Seq[[]string] {
+	it := func(yield func([]string) bool) {
+		seen := make(map[string]struct{})
+		_ = seen
+	}
+	return it
+}
+
 func (s *Sheet) Select(sel *Select) iter.Seq[[]string] {
 	it := func(yield func([]string) bool) {
 		for _, rs := range s.Rows {
