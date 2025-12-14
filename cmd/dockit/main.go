@@ -316,17 +316,18 @@ func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
 	)
 	switch c.Format {
 	case "", "csv":
-		ext = ".csv"
 		encode = oxml.EncodeCSV
 	case "json":
-		ext = ".json"
 		encode = oxml.EncodeJSON
 	case "xml":
-		ext = ".xml"
 		encode = oxml.EncodeXML
 	default:
 		return fmt.Errorf("%s: unsupported format", c.Format)
 	}
+	if c.Format == "" {
+		c.Format = "csv"
+	}
+	ext = fmt.Sprintf(".%s", c.Format)
 
 	out := filepath.Join(c.OutDir, sh.Name+ext)
 	w, err := os.Create(out)
