@@ -150,14 +150,15 @@ var moveCmd = cli.Command{
 	Name:    "move",
 	Alias:   []string{"mv"},
 	Summary: "move one or more sheets from one spreadsheet to another",
-	Handler: nil,
+	Handler: &MoveSheetCommand{},
 }
 
 var copyCmd = cli.Command{
 	Name:    "copy",
 	Alias:   []string{"cp"},
 	Summary: "copy one or more sheets from one spreadsheet to another",
-	Handler: nil,
+	Usage:   "copy file:sheet[:target] [file[:sheet]]",
+	Handler: &CopySheetCommand{},
 }
 
 var convertCmd = cli.Command{
@@ -178,6 +179,101 @@ var unlockCmd = cli.Command{
 	Handler: &UnlockFileCommand{},
 }
 
+type CopySheetCommand struct{}
+
+func (c CopySheetCommand) Run(args []string) error {
+	set := cli.NewFlagSet("copy")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	file, rest, ok := strings.Cut(set.Arg(0), ":")
+	if !ok {
+		return fmt.Errorf("missing sheet name to copy")
+	}
+	f, err := oxml.Open(file)
+	if err != nil {
+		return err
+	}
+	switch set.NArg() {
+	case 1:
+		source, target, _ := strings.Cut(rest, ":")
+		return f.Copy(source, target)
+	case 2:
+		file, target, _ := strings.Cut(set.Arg(1), ":")
+		other, err := oxml.Open(file)
+		if err != nil {
+			return err
+		}
+		sh, err := f.Sheet(rest)
+		if err != nil {
+			return err
+		}
+		if target != "" {
+			sh.Name = target
+		}
+		err = other.AppendSheet(sh)
+		if err == nil {
+			err = other.WriteFile(file)
+		}
+		return err
+	default:
+		return fmt.Errorf("invalid number of arguments")
+	}
+	return nil
+}
+
+type MoveSheetCommand struct{}
+
+func (c MoveSheetCommand) Run(args []string) error {
+	set := cli.NewFlagSet("move")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	file, sheet, ok := strings.Cut(set.Arg(0), ":")
+	if !ok {
+		return fmt.Errorf("missing sheet name to move")
+	}
+	f, err := oxml.Open(file)
+	if err != nil {
+		return err
+	}
+	switch set.NArg() {
+	case 1:
+		source, target, ok := strings.Cut(sheet, ":")
+		if !ok {
+			return fmt.Errorf("missing new name")
+		}
+		if err := f.Rename(source, target); err != nil {
+			return err
+		}
+		return f.WriteFile(file)
+	case 2:
+		file, target, _ := strings.Cut(set.Arg(1), ":")
+		other, err := oxml.Open(file)
+		if err != nil {
+			return err
+		}
+		sh, err := f.Sheet(sheet)
+		if err != nil {
+			return err
+		}
+		if target != "" {
+			sh.Name = target
+		}
+		if err = other.AppendSheet(sh); err != nil {
+			return err
+		}
+		if err = other.WriteFile(file); err == nil {
+			return err
+		}
+		f.Remove(sh.Name)
+		return f.WriteFile(file)
+	default:
+		return fmt.Errorf("invalid number of arguments")
+	}
+	return nil
+}
+
 type LockFileCommand struct{}
 
 func (c LockFileCommand) Run(args []string) error {
@@ -185,7 +281,7 @@ func (c LockFileCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	f, err := oxml.Open(flag.Arg(0))
+	f, err := oxml.Open(set.Arg(0))
 	if err != nil {
 		return err
 	}
@@ -204,7 +300,7 @@ func (c UnlockFileCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	f, err := oxml.Open(flag.Arg(0))
+	f, err := oxml.Open(set.Arg(0))
 	if err != nil {
 		return err
 	}

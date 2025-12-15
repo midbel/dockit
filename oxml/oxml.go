@@ -127,6 +127,15 @@ func (r *Row) values() []any {
 	return list
 }
 
+func (r *Row) cloneCells() []*Cell {
+	var cells []*Cell
+	for i := range r.Cells {
+		c := *r.Cells[i]
+		cells = append(cells, &c)
+	}
+	return cells
+}
+
 type Dimension struct {
 	Lines   int64
 	Columns int64
@@ -547,6 +556,31 @@ func (f *File) Copy(oldName, newName string) error {
 	if f.locked {
 		return ErrLock
 	}
+	source, err := f.Sheet(oldName)
+	if err != nil {
+		return err
+	}
+	if newName == "" {
+		newName = oldName
+	}
+	target := NewSheet(newName)
+	for _, rs := range source.Rows {
+		x := Row{
+			Line:  rs.Line,
+			Cells: rs.cloneCells(),
+		}
+		target.Rows = append(target.Rows, &x)
+	}
+	return f.AppendSheet(target)
+}
+
+func (f *File) Remove(name string) error {
+	if f.locked {
+		return ErrLock
+	}
+	slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
+		return s.Name == name
+	})
 	return nil
 }
 
