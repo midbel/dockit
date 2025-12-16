@@ -16,11 +16,11 @@ type Writer struct {
 }
 
 func NewWriter(w io.Writer) *Writer {
-	w := Writer{
-		inner: w,
+	ws := Writer{
+		inner: bufio.NewWriter(w),
 		Comma: ',',
 	}
-	return &w
+	return &ws
 }
 
 func (w *Writer) WriteAll(data [][]string) error {
@@ -34,7 +34,7 @@ func (w *Writer) WriteAll(data [][]string) error {
 
 func (w *Writer) Write(line []string) error {
 	var err error
-	for i, n := range line {
+	for i, str := range line {
 		if i > 0 {
 			if _, err = w.inner.WriteRune(w.Comma); err != nil {
 				return err
@@ -43,7 +43,7 @@ func (w *Writer) Write(line []string) error {
 		if w.needQuotes(str) {
 			err = w.writeQuoted(str)
 		} else {
-			_, err = w.inner.WriteString(n)
+			_, err = w.inner.WriteString(str)
 		}
 		if err != nil {
 			return err
@@ -68,13 +68,6 @@ func (w *Writer) Err() error {
 	return err
 }
 
-const (
-	quote = '"'
-	nl    = '\n'
-	cr    = '\r'
-	space = ' '
-)
-
 func (w *Writer) writeQuoted(str string) error {
 	if _, err := w.inner.WriteRune(quote); err != nil {
 		return err
@@ -93,7 +86,7 @@ func (w *Writer) writeQuoted(str string) error {
 				_, err = w.inner.WriteRune(c)
 			}
 		} else if c == nl {
-			if w.UseCRL {
+			if w.UseCRLF {
 				w.inner.WriteRune(cr)
 			}
 			_, err = w.inner.WriteRune(c)
@@ -127,7 +120,7 @@ func (w *Writer) needQuotes(str string) bool {
 			}
 		}
 	} else {
-		ok := strings.ContainsRune(field, w.Comma) || strings.ContainsAny(field, "\"\r\n")
+		ok := strings.ContainsRune(str, w.Comma) || strings.ContainsAny(str, "\"\r\n")
 		if ok {
 			return ok
 		}
