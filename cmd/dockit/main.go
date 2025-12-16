@@ -197,7 +197,10 @@ func (c CopySheetCommand) Run(args []string) error {
 	switch set.NArg() {
 	case 1:
 		source, target, _ := strings.Cut(rest, ":")
-		return f.Copy(source, target)
+		if err := f.Copy(source, target); err != nil {
+			return err
+		}
+		return f.WriteFile(file)
 	case 2:
 		file, target, _ := strings.Cut(set.Arg(1), ":")
 		other, err := oxml.Open(file)
