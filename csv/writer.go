@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"io"
 	"strings"
-	"unicode/utf8"
 )
 
 type Writer struct {
@@ -12,7 +11,7 @@ type Writer struct {
 
 	ForceQuote bool
 	UseCRLF    bool
-	Comma      rune
+	Comma      byte
 }
 
 func NewWriter(w io.Writer) *Writer {
@@ -36,7 +35,7 @@ func (w *Writer) Write(line []string) error {
 	var err error
 	for i, str := range line {
 		if i > 0 {
-			if _, err = w.inner.WriteRune(w.Comma); err != nil {
+			if err = w.inner.WriteByte(w.Comma); err != nil {
 				return err
 			}
 		}
@@ -50,12 +49,12 @@ func (w *Writer) Write(line []string) error {
 		}
 	}
 	if w.UseCRLF {
-		_, err = w.inner.WriteRune(cr)
+		err = w.inner.WriteByte(cr)
 		if err != nil {
 			return err
 		}
 	}
-	_, err = w.inner.WriteRune(nl)
+	err = w.inner.WriteByte(nl)
 	return err
 }
 
@@ -69,36 +68,32 @@ func (w *Writer) Err() error {
 }
 
 func (w *Writer) writeQuoted(str string) error {
-	if _, err := w.inner.WriteRune(quote); err != nil {
+	if err := w.inner.WriteByte(quote); err != nil {
 		return err
 	}
 	var err error
-	for i := 0; i < len(str); {
-		c, z := utf8.DecodeRuneInString(str[i:])
-		if c == utf8.RuneError {
-			break
-		}
+	for i := 0; i < len(str); i++ {
+		c := str[i]
 		if c == quote {
-			w.inner.WriteRune(c)
-			_, err = w.inner.WriteRune(c)
+			w.inner.WriteByte(c)
+			err = w.inner.WriteByte(c)
 		} else if c == cr {
 			if w.UseCRLF {
-				_, err = w.inner.WriteRune(c)
+				err = w.inner.WriteByte(c)
 			}
 		} else if c == nl {
 			if w.UseCRLF {
-				w.inner.WriteRune(cr)
+				w.inner.WriteByte(cr)
 			}
-			_, err = w.inner.WriteRune(c)
+			err = w.inner.WriteByte(c)
 		} else {
-			_, err = w.inner.WriteRune(c)
+			err = w.inner.WriteByte(c)
 		}
 		if err != nil {
 			return err
 		}
-		i += z
 	}
-	_, err = w.inner.WriteRune(quote)
+	err = w.inner.WriteByte(quote)
 	return err
 }
 
@@ -109,20 +104,13 @@ func (w *Writer) needQuotes(str string) bool {
 	if str == "" {
 		return false
 	}
-	if r, _ := utf8.DecodeRuneInString(str); r == space {
+	if str[0] == space {
 		return true
 	}
-	if w.Comma < utf8.RuneSelf {
-		for i := 0; i < len(str); i++ {
-			c := str[i]
-			if c == nl || c == cr || c == quote || c == byte(w.Comma) {
-				return true
-			}
-		}
-	} else {
-		ok := strings.ContainsRune(str, w.Comma) || strings.ContainsAny(str, "\"\r\n")
-		if ok {
-			return ok
+	for _, c := range []byte{w.Comma, cr, nl, space} {
+		ix := strings.IndexByte(str, c)
+		if ix >= 0 {
+			return true
 		}
 	}
 	return false

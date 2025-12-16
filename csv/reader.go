@@ -37,7 +37,7 @@ func (r *Reader) ReadAll() ([][]string, error) {
 }
 
 func (r *Reader) Read() ([]string, error) {
-	line, err := r.inner.ReadBytes('\n')
+	line, err := r.inner.ReadBytes(nl)
 	if len(line) == 0 && errors.Is(err, io.EOF) {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (r *Reader) readQuotedField(line []byte) ([]byte, int, error) {
 				offset += 2
 				continue
 			}
-			return line[pos:offset], offset+1, nil
+			return line[pos:offset], offset + 1, nil
 			break
 		}
 		offset++
