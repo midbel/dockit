@@ -1,12 +1,13 @@
 package oxml
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
 	"strings"
+
+	"github.com/midbel/dockit/csv"
 )
 
 type Encoder interface {
@@ -15,7 +16,7 @@ type Encoder interface {
 
 type csvEncoder struct {
 	writer io.Writer
-	comma  rune
+	comma  byte
 }
 
 func EncodeCSV(w io.Writer) Encoder {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/csv"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/midbel/cli"
+	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/oxml"
 )
 

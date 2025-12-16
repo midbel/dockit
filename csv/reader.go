@@ -11,6 +11,8 @@ type Reader struct {
 	inner         *bufio.Reader
 	Comma         byte
 	FieldsPerLine int
+
+	atEOF bool
 }
 
 func NewReader(r io.Reader) *Reader {
@@ -19,6 +21,10 @@ func NewReader(r io.Reader) *Reader {
 		Comma: ',',
 	}
 	return &rs
+}
+
+func (r *Reader) Done() bool {
+	return r.atEOF
 }
 
 func (r *Reader) ReadAll() ([][]string, error) {
@@ -37,8 +43,12 @@ func (r *Reader) ReadAll() ([][]string, error) {
 }
 
 func (r *Reader) Read() ([]string, error) {
+	if r.Done() {
+		return nil, io.EOF
+	}
 	line, err := r.inner.ReadBytes(nl)
 	if len(line) == 0 && errors.Is(err, io.EOF) {
+		r.atEOF = true
 		return nil, err
 	}
 	if err != nil && !errors.Is(err, io.EOF) {

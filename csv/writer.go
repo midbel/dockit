@@ -62,7 +62,7 @@ func (w *Writer) Flush() {
 	w.inner.Flush()
 }
 
-func (w *Writer) Err() error {
+func (w *Writer) Error() error {
 	_, err := w.inner.Write(nil)
 	return err
 }
