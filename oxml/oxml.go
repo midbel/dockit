@@ -412,6 +412,18 @@ func (s *Sheet) Iter() iter.Seq[[]string] {
 	return it
 }
 
+func (s *Sheet) Copy(other *Sheet) {
+	for _, rs := range other.Rows {
+		s.Size.Lines++
+		x := Row{
+			Line:  rs.Line,
+			Cells: rs.cloneCells(),
+		}
+		s.Rows = append(other.Rows, &x)		
+		s.Size.Columns = max(s.Size.Columns, int64(len(x.Cells)))
+	}
+}
+
 func (s *Sheet) Append(data []string) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
@@ -548,6 +560,15 @@ func (f *File) Rename(oldName, newName string) error {
 	if f.locked {
 		return ErrLock
 	}
+	sh, err := f.Sheet(oldName)
+	if err != nil {
+		return err
+	}
+	sh.Name = newName
+	if n, ok := f.names[sh.Name]; ok {
+		f.names[sh.Name] = n + 1
+		sh.Name = fmt.Sprintf("%s_%03d", sh.Name, f.names[sh.Name])
+	}
 	return nil
 }
 
@@ -564,13 +585,7 @@ func (f *File) Copy(oldName, newName string) error {
 		newName = oldName
 	}
 	target := NewSheet(newName)
-	for _, rs := range source.Rows {
-		x := Row{
-			Line:  rs.Line,
-			Cells: rs.cloneCells(),
-		}
-		target.Rows = append(target.Rows, &x)
-	}
+	target.Copy(source)
 	return f.AppendSheet(target)
 }
 

@@ -149,14 +149,15 @@ var extractCmd = cli.Command{
 var moveCmd = cli.Command{
 	Name:    "move",
 	Alias:   []string{"mv"},
-	Summary: "move one or more sheets from one spreadsheet to another",
+	Summary: "move a sheet from one spreadsheet to another or rename it",
+	Usage:   "move file:sheet[:target] [file[:sheet]]",
 	Handler: &MoveSheetCommand{},
 }
 
 var copyCmd = cli.Command{
 	Name:    "copy",
 	Alias:   []string{"cp"},
-	Summary: "copy one or more sheets from one spreadsheet to another",
+	Summary: "copy a sheet from one file to the same or another file",
 	Usage:   "copy file:sheet[:target] [file[:sheet]]",
 	Handler: &CopySheetCommand{},
 }
