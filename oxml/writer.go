@@ -28,9 +28,9 @@ func writeFile(file string) (*writer, error) {
 		return nil, err
 	}
 	z := writer{
-		base:   wbBaseDir,
-		writer: zip.NewWriter(w),
-		Closer: w,
+		base:       wbBaseDir,
+		writer:     zip.NewWriter(w),
+		Closer:     w,
 		lastUsedId: startIx,
 	}
 	z.writer.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {

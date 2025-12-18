@@ -373,11 +373,11 @@ func (s *Sheet) Bounding() Bounds {
 }
 
 func (s *Sheet) Extract(sel *Select) *Sheet {
-	copy := NewSheet(fmt.Sprintf("%s.copy", s.Name))
+	other := NewSheet(fmt.Sprintf("%s.copy", s.Name))
 	for vs := range s.Select(sel) {
-		copy.Append(vs)
+		other.Append(vs)
 	}
-	return copy
+	return other
 }
 
 func (s *Sheet) DistinctValues(sel *Select) iter.Seq[[]string] {
@@ -412,7 +412,10 @@ func (s *Sheet) Iter() iter.Seq[[]string] {
 	return it
 }
 
-func (s *Sheet) Copy(other *Sheet) {
+func (s *Sheet) Copy(other *Sheet) error {
+	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
+		return ErrLock
+	}
 	for _, rs := range other.Rows {
 		s.Size.Lines++
 		x := Row{
@@ -422,6 +425,7 @@ func (s *Sheet) Copy(other *Sheet) {
 		s.Rows = append(other.Rows, &x)
 		s.Size.Columns = max(s.Size.Columns, int64(len(x.Cells)))
 	}
+	return nil
 }
 
 func (s *Sheet) Append(data []string) error {
@@ -524,7 +528,7 @@ func (f *File) Sheet(name string) (*Sheet, error) {
 }
 
 func (f *File) Sheets() []*Sheet {
-	return f.sheets
+	return slices.Clone(f.sheets)
 }
 
 func (f *File) Lock() {
@@ -564,12 +568,11 @@ func (f *File) Rename(oldName, newName string) error {
 	if err != nil {
 		return err
 	}
-	sh.Name = newName
-	if n, ok := f.names[sh.Name]; ok {
-		f.names[sh.Name] = n + 1
-		sh.Name = fmt.Sprintf("%s_%03d", sh.Name, f.names[sh.Name])
+	if err := f.Remove(oldName); err != nil {
+		return err
 	}
-	return nil
+	sh.Name = newName
+	return f.AppendSheet(sh)
 }
 
 // copy a sheet
@@ -593,9 +596,13 @@ func (f *File) Remove(name string) error {
 	if f.locked {
 		return ErrLock
 	}
+	size := len(f.sheets)
 	f.sheets = slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
 		return s.Name == name
 	})
+	if n, ok := f.names[name]; ok && n == 1 && len(f.sheets) < size {
+		delete(f.names, name)
+	}
 	return nil
 }
 
