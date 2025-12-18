@@ -215,10 +215,21 @@ func (c RemoveSheetCommand) Run(args []string) error {
 	return f.WriteFile(c.OutFile)
 }
 
-type CopySheetCommand struct{}
+type CopySheetCommand struct {
+	OutFile  string
+	CopyOnly oxml.CopyMode
+}
 
 func (c CopySheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("copy")
+	set.StringVar(&c.OutFile, "o", "", "write results to output file")
+	set.Func("c", "", func(str string) error {
+		mode, err := oxml.CopyModeFromString(str)
+		if err == nil {
+			c.CopyOnly = mode
+		}
+		return err
+	})
 	if err := set.Parse(args); err != nil {
 		return err
 	}
