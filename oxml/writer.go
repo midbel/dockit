@@ -11,12 +11,15 @@ import (
 	"strings"
 )
 
+const startIx = 1000
+
 type writer struct {
 	base   string
 	writer *zip.Writer
 	io.Closer
 
-	err error
+	lastUsedId int
+	err        error
 }
 
 func writeFile(file string) (*writer, error) {
@@ -28,6 +31,7 @@ func writeFile(file string) (*writer, error) {
 		base:   wbBaseDir,
 		writer: zip.NewWriter(w),
 		Closer: w,
+		lastUsedId: startIx,
 	}
 	z.writer.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
 		return flate.NewWriter(out, flate.BestCompression)
@@ -244,6 +248,8 @@ func (z *writer) writeWorkbook(f *File) {
 		root.Properties.Date++
 	}
 	for _, s := range f.sheets {
+		s.Id = z.createFileID()
+		s.Index = z.getFileIndex()
 		xs := xmlSheet{
 			Id:    s.Id,
 			Index: s.Index,
@@ -282,4 +288,13 @@ func (z *writer) fromBase(target string) string {
 
 func (z *writer) invalid() bool {
 	return z.err != nil
+}
+
+func (z *writer) createFileID() string {
+	z.lastUsedId++
+	return fmt.Sprintf("rId%d", z.lastUsedId)
+}
+
+func (z *writer) getFileIndex() int {
+	return z.lastUsedId - startIx
 }
