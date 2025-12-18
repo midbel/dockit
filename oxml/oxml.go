@@ -419,7 +419,7 @@ func (s *Sheet) Copy(other *Sheet) {
 			Line:  rs.Line,
 			Cells: rs.cloneCells(),
 		}
-		s.Rows = append(other.Rows, &x)		
+		s.Rows = append(other.Rows, &x)
 		s.Size.Columns = max(s.Size.Columns, int64(len(x.Cells)))
 	}
 }
@@ -593,7 +593,7 @@ func (f *File) Remove(name string) error {
 	if f.locked {
 		return ErrLock
 	}
-	slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
+	f.sheets = slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
 		return s.Name == name
 	})
 	return nil

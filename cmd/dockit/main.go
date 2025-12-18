@@ -60,6 +60,7 @@ func prepare() *cli.CommandTrie {
 	root.Register([]string{"append"}, &appendCmd)
 	root.Register([]string{"move"}, &moveCmd)
 	root.Register([]string{"copy"}, &copyCmd)
+	root.Register([]string{"remove"}, &removeCmd)
 	root.Register([]string{"extract"}, &extractCmd)
 	root.Register([]string{"join"}, &joinCmd)
 	root.Register([]string{"eval"}, &evalCmd)
@@ -162,6 +163,14 @@ var copyCmd = cli.Command{
 	Handler: &CopySheetCommand{},
 }
 
+var removeCmd = cli.Command{
+	Name:    "remove",
+	Alias:   []string{"rm"},
+	Summary: "remove a sheet from a file",
+	Usage:   "remove <file> <sheet> [<sheet>,...]",
+	Handler: &RemoveSheetCommand{},
+}
+
 var convertCmd = cli.Command{
 	Name:    "convert",
 	Summary: "convert spreadsheet to another format",
@@ -178,6 +187,32 @@ var unlockCmd = cli.Command{
 	Name:    "unlock",
 	Summary: "unlock an entire spreadsheet or some of its sheet(s)",
 	Handler: &UnlockFileCommand{},
+}
+
+type RemoveSheetCommand struct {
+	OutFile string
+}
+
+func (c RemoveSheetCommand) Run(args []string) error {
+	set := cli.NewFlagSet("remove")
+	set.StringVar(&c.OutFile, "o", "", "write result to output file")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	f, err := oxml.Open(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	if c.OutFile == "" {
+		c.OutFile = set.Arg(0)
+	}
+	for i := 1; i < set.NArg(); i++ {
+		err := f.Remove(set.Arg(i))
+		if err != nil {
+			return err
+		}
+	}
+	return f.WriteFile(c.OutFile)
 }
 
 type CopySheetCommand struct{}
