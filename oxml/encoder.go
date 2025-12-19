@@ -2,6 +2,7 @@ package oxml
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"reflect"
@@ -49,7 +50,7 @@ func EncodeJSON(w io.Writer) Encoder {
 }
 
 func (e *jsonEncoder) EncodeSheet(sheet *Sheet) error {
-	data, err := e.makeObjects(sheet, "json")
+	data, err := makeObjects(sheet, "json")
 	if err != nil {
 		return err
 	}
