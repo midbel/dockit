@@ -39,8 +39,7 @@ func (e *csvEncoder) EncodeSheet(sheet *Sheet) error {
 }
 
 type jsonEncoder struct {
-	writer  io.Writer
-	AsArray bool
+	writer io.Writer
 }
 
 func EncodeJSON(w io.Writer) Encoder {
@@ -50,35 +49,44 @@ func EncodeJSON(w io.Writer) Encoder {
 }
 
 func (e *jsonEncoder) EncodeSheet(sheet *Sheet) error {
-	var (
-		data any
-		err  error
-	)
-	if e.AsArray {
-		data, err = e.getArray(sheet)
-	} else {
-		data, err = e.getObject(sheet)
-	}
+	data, err := e.makeObjects(sheet, "json")
 	if err != nil {
 		return err
 	}
 	return json.NewEncoder(e.writer).Encode(data)
 }
 
-func (e *jsonEncoder) getArray(sheet *Sheet) ([][]any, error) {
-	var data [][]any
-	for _, rs := range sheet.Rows {
-		data = append(data, rs.values())
-	}
-	return data, nil
+type xmlEncoder struct {
+	writer io.Writer
 }
 
-func (e *jsonEncoder) getObject(sheet *Sheet) ([]any, error) {
+func EncodeXML(w io.Writer) Encoder {
+	return &xmlEncoder{
+		writer: w,
+	}
+}
+
+func (e *xmlEncoder) EncodeSheet(sheet *Sheet) error {
+	data, err := makeObjects(sheet, "xml")
+	if err != nil {
+		return err
+	}
+	root := struct {
+		XMLName xml.Name
+		Data    []any `xml:"item"`
+	}{
+		Data: data,
+	}
+	root.XMLName.Local = sheet.Name
+	return xml.NewEncoder(e.writer).Encode(&root)
+}
+
+func makeObjects(sheet *Sheet, tag string) ([]any, error) {
 	if len(sheet.Rows) <= 1 {
 		return nil, nil
 	}
 	var (
-		ptr  = createType(sheet.Rows[0].Data(), "json")
+		ptr  = createType(sheet.Rows[0].Data(), tag)
 		data []any
 	)
 	for i := 1; i < len(sheet.Rows); i++ {
@@ -89,21 +97,6 @@ func (e *jsonEncoder) getObject(sheet *Sheet) ([]any, error) {
 		data = append(data, v.Addr().Interface())
 	}
 	return data, nil
-}
-
-type xmlEncoder struct {
-	writer io.Writer
-	fields []string
-}
-
-func EncodeXML(w io.Writer) Encoder {
-	return &xmlEncoder{
-		writer: w,
-	}
-}
-
-func (e *xmlEncoder) EncodeSheet(sheet *Sheet) error {
-	return nil
 }
 
 func createType(names []string, format string) reflect.Type {
