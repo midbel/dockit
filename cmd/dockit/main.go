@@ -215,6 +215,102 @@ func (c RemoveSheetCommand) Run(args []string) error {
 	return f.WriteFile(c.OutFile)
 }
 
+type SheetRef struct {
+	*oxml.File
+	Path  string
+	Sheet string
+	Range oxml.Select
+}
+
+func parseReference(str string) (*SheetRef, error) {
+	file, rest, ok := strings.Cut(str, ":")
+	if !ok {
+		return nil, fmt.Errorf("invalid reference given")
+	}
+	var (
+		ref SheetRef
+		err error
+	)
+	if ref.File, err = oxml.Open(file); err != nil {
+		return nil, err
+	}
+	ref.Path = file
+	ref.Sheet = rest
+	if rest, sel, ok := strings.Cut(rest, "!"); ok {
+		ref.Range, err = oxml.ParseRange(sel)
+		if err != nil {
+			return nil, err
+		}
+		ref.Sheet = rest
+	}
+	return &ref, nil
+}
+
+func (s SheetRef) Copy(to string) error {
+	source, target, _ := strings.Cut(s.Sheet, ":")
+	if err := s.File.Copy(source, target); err != nil {
+		return err
+	}
+	if to == "" {
+		to = s.Path
+	}
+	return s.WriteFile(to)
+}
+
+func (s SheetRef) CopyTo(other *SheetRef, to string) error {
+	sh, err := s.getSheetFromFile()
+	if err != nil {
+		return err
+	}
+	if err := other.appendSheetToFile(sh); err != nil {
+		return err
+	}
+	if to == "" {
+		to = other.Path
+	}
+	return other.WriteFile(to)
+}
+
+func (s SheetRef) Move(to string) error {
+	source, target, ok := strings.Cut(s.Sheet, ":")
+	if !ok {
+		return fmt.Errorf("missing new name")
+	}
+	if err := s.Rename(source, target); err != nil {
+		return err
+	}
+	if to == "" {
+		to = s.Path
+	}
+	return s.WriteFile(to)
+}
+
+func (s SheetRef) MoveTo(other *SheetRef, to string) error {
+	sh, err := s.getSheetFromFile()
+	if err != nil {
+		return err
+	}
+	if err := other.appendSheetToFile(sh); err != nil {
+		return err
+	}
+	if err := other.WriteFile(to); err != nil {
+		return err
+	}
+	s.Remove(s.Sheet)
+	return s.WriteFile(s.Path)
+}
+
+func (s SheetRef) appendSheetToFile(sh *oxml.Sheet) error {
+	if s.Sheet != "" {
+		sh.Name = s.Sheet
+	}
+	return s.AppendSheet(sh)
+}
+
+func (s SheetRef) getSheetFromFile() (*oxml.Sheet, error) {
+	return s.File.Sheet(s.Sheet)
+}
+
 type CopySheetCommand struct {
 	OutFile  string
 	CopyOnly oxml.CopyMode
@@ -233,91 +329,55 @@ func (c CopySheetCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	file, rest, ok := strings.Cut(set.Arg(0), ":")
-	if !ok {
-		return fmt.Errorf("missing sheet name to copy")
-	}
-	f, err := oxml.Open(file)
-	if err != nil {
-		return err
-	}
 	switch set.NArg() {
 	case 1:
-		source, target, _ := strings.Cut(rest, ":")
-		if err := f.Copy(source, target); err != nil {
+		ref, err := parseReference(set.Arg(0))
+		if err != nil {
 			return err
 		}
-		return f.WriteFile(file)
+		return ref.Copy(c.OutFile)
 	case 2:
-		file, target, _ := strings.Cut(set.Arg(1), ":")
-		other, err := oxml.Open(file)
+		src, err := parseReference(set.Arg(0))
 		if err != nil {
 			return err
 		}
-		sh, err := f.Sheet(rest)
+		dst, err := parseReference(set.Arg(1))
 		if err != nil {
 			return err
 		}
-		if target != "" {
-			sh.Name = target
-		}
-		err = other.AppendSheet(sh)
-		if err == nil {
-			err = other.WriteFile(file)
-		}
-		return err
+		return src.CopyTo(dst, c.OutFile)
 	default:
 		return fmt.Errorf("invalid number of arguments")
 	}
 	return nil
 }
 
-type MoveSheetCommand struct{}
+type MoveSheetCommand struct {
+	OutFile string
+}
 
 func (c MoveSheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("move")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	file, sheet, ok := strings.Cut(set.Arg(0), ":")
-	if !ok {
-		return fmt.Errorf("missing sheet name to move")
-	}
-	f, err := oxml.Open(file)
-	if err != nil {
-		return err
-	}
 	switch set.NArg() {
 	case 1:
-		source, target, ok := strings.Cut(sheet, ":")
-		if !ok {
-			return fmt.Errorf("missing new name")
-		}
-		if err := f.Rename(source, target); err != nil {
+		ref, err := parseReference(set.Arg(0))
+		if err != nil {
 			return err
 		}
-		return f.WriteFile(file)
+		return ref.Move(c.OutFile)
 	case 2:
-		file, target, _ := strings.Cut(set.Arg(1), ":")
-		other, err := oxml.Open(file)
+		src, err := parseReference(set.Arg(0))
 		if err != nil {
 			return err
 		}
-		sh, err := f.Sheet(sheet)
+		dst, err := parseReference(set.Arg(1))
 		if err != nil {
 			return err
 		}
-		if target != "" {
-			sh.Name = target
-		}
-		if err = other.AppendSheet(sh); err != nil {
-			return err
-		}
-		if err = other.WriteFile(file); err == nil {
-			return err
-		}
-		f.Remove(sh.Name)
-		return f.WriteFile(file)
+		return src.MoveTo(dst, c.OutFile)
 	default:
 		return fmt.Errorf("invalid number of arguments")
 	}
