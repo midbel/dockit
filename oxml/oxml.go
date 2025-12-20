@@ -41,7 +41,7 @@ func CopyModeFromString(str string) (CopyMode, error) {
 	case "", "all":
 		mode |= CopyAll
 	default:
-		return mode, fmt.Errorf("%s invalid value for copy mode")
+		return mode, fmt.Errorf("%s invalid value for copy mode", str)
 	}
 	return mode, nil
 }

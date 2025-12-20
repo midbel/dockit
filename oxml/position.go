@@ -63,9 +63,9 @@ func parseOffset(str string) (int, error) {
 		column int
 		offset int
 	)
-	for offset < len(str) && isLetter(str[offset]) {
+	for offset < len(str) && isLetter(rune(str[offset])) {
 		delta := byte('A')
-		if isLower(str[offset]) {
+		if isLower(rune(str[offset])) {
 			delta = 'a'
 		}
 		column = column*26 + int(str[offset]-delta+1)
@@ -161,9 +161,9 @@ func parsePosition(addr string) Position {
 		pos    Position
 		offset int
 	)
-	for offset < len(addr) && isLetter(addr[offset]) {
+	for offset < len(addr) && isLetter(rune(addr[offset])) {
 		delta := byte('A')
-		if isLower(addr[offset]) {
+		if isLower(rune(addr[offset])) {
 			delta = 'a'
 		}
 		pos.Column = pos.Column*26 + int64(addr[offset]-delta+1)
@@ -189,20 +189,8 @@ func (p Position) Addr() string {
 	)
 	for column > 0 {
 		column--
-		result = string('A'+(column%26)) + result
+		result = string(rune('A')+rune(column%26)) + result
 		column /= 26
 	}
 	return fmt.Sprintf("%s%d", result, p.Line)
-}
-
-func isLetter(r byte) bool {
-	return isUpper(r) || isLower(r)
-}
-
-func isLower(r byte) bool {
-	return (r >= 'a' && r <= 'z')
-}
-
-func isUpper(r byte) bool {
-	return (r >= 'A' && r <= 'Z')
 }

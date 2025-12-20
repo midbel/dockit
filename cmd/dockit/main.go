@@ -167,7 +167,7 @@ var removeCmd = cli.Command{
 	Name:    "remove",
 	Alias:   []string{"rm"},
 	Summary: "remove a sheet from a file",
-	Usage:   "remove <file> <sheet> [<sheet>,...]",
+	Usage:   "remove file:sheet",
 	Handler: &RemoveSheetCommand{},
 }
 
