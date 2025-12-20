@@ -189,32 +189,6 @@ var unlockCmd = cli.Command{
 	Handler: &UnlockFileCommand{},
 }
 
-type RemoveSheetCommand struct {
-	OutFile string
-}
-
-func (c RemoveSheetCommand) Run(args []string) error {
-	set := cli.NewFlagSet("remove")
-	set.StringVar(&c.OutFile, "o", "", "write result to output file")
-	if err := set.Parse(args); err != nil {
-		return err
-	}
-	f, err := oxml.Open(set.Arg(0))
-	if err != nil {
-		return err
-	}
-	if c.OutFile == "" {
-		c.OutFile = set.Arg(0)
-	}
-	for i := 1; i < set.NArg(); i++ {
-		err := f.Remove(set.Arg(i))
-		if err != nil {
-			return err
-		}
-	}
-	return f.WriteFile(c.OutFile)
-}
-
 type SheetRef struct {
 	*oxml.File
 	Path  string
@@ -244,6 +218,16 @@ func parseReference(str string) (*SheetRef, error) {
 		ref.Sheet = rest
 	}
 	return &ref, nil
+}
+
+func (s SheetRef) Remove(to string) error {
+	if err := s.Remove(s.Sheet); err != nil {
+		return err
+	}
+	if to == "" {
+		to = s.Path
+	}
+	return s.WriteFile(to)
 }
 
 func (s SheetRef) Copy(to string) error {
@@ -309,6 +293,23 @@ func (s SheetRef) appendSheetToFile(sh *oxml.Sheet) error {
 
 func (s SheetRef) getSheetFromFile() (*oxml.Sheet, error) {
 	return s.File.Sheet(s.Sheet)
+}
+
+type RemoveSheetCommand struct {
+	OutFile string
+}
+
+func (c RemoveSheetCommand) Run(args []string) error {
+	set := cli.NewFlagSet("remove")
+	set.StringVar(&c.OutFile, "o", "", "write result to output file")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	ref, err := parseReference(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	return ref.Remove(c.OutFile)
 }
 
 type CopySheetCommand struct {
