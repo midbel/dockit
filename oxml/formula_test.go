@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+type MockSheet struct{}
+
+func (m MockSheet) At(row int, column int) (Value, error) {
+	value := fmt.Sprintf("%d%d", column, row)
+	return value, nil
+}
+
 type TestCase struct {
 	Formula string
 	Want    string
@@ -36,15 +43,22 @@ func TestBasic(t *testing.T) {
 			Formula: "=100-1",
 			Want:    "99",
 		},
+		{
+			Formula: "=$A1",
+			Want:    "11",
+		},
 	}
-	p := Parse()
+	var (
+		p = Parse()
+		k MockSheet
+	)
 	for _, c := range tests {
 		expr, err := p.ParseString(c.Formula)
 		if err != nil {
 			t.Errorf("%s: error parsing formula: %s", c.Formula, err)
 			continue
 		}
-		value, err := Eval(expr)
+		value, err := Eval(expr, k)
 		if err != nil {
 			t.Errorf("%s: error evaluating formula: %s", c.Formula, err)
 			continue

@@ -17,31 +17,35 @@ type Expr interface{}
 
 type Value interface{}
 
-func Eval(expr Expr) (Value, error) {
+type Context interface {
+	At(row, col int) (Value, error)
+}
+
+func Eval(expr Expr, ctx Context) (Value, error) {
 	switch e := expr.(type) {
 	case binary:
-		return evalBinary(e)
+		return evalBinary(e, ctx)
 	case unary:
-		return evalUnary(e)
+		return evalUnary(e, ctx)
 	case literal:
 		return e.value, nil
 	case number:
 		return e.value, nil
 	case call:
-		return evalCall(e)
-	case identifier:
-		return evalIdent(e)
+		return evalCall(e, ctx)
+	case cellAddr:
+		return ctx.At(e.line, e.column)
 	default:
 		return nil, fmt.Errorf("unuspported expression type")
 	}
 }
 
-func evalBinary(e binary) (Value, error) {
-	left, err := Eval(e.left)
+func evalBinary(e binary, ctx Context) (Value, error) {
+	left, err := Eval(e.left, ctx)
 	if err != nil {
 		return nil, err
 	}
-	right, err := Eval(e.right)
+	right, err := Eval(e.right, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -70,22 +74,21 @@ func evalBinary(e binary) (Value, error) {
 			return math.Pow(left, right), nil
 		})
 	case Concat:
-		if !isScalar(left) && !isScalar(right) {
+		if !isScalar(left) || !isScalar(right) {
 			return nil, fmt.Errorf("expected scalar operand(s) for concat operator")
 		}
 		return fmt.Sprintf("%v%v", left, right), nil
 	default:
 		return nil, fmt.Errorf("invalid infix operator")
 	}
-	return nil, nil
 }
 
 func applyValues(left, right Value, do func(left, right float64) (float64, error)) (Value, error) {
 	if !isNumber(left) {
-		return nil, fmt.Errorf("invalid operand on left side")
+		return nil, fmt.Errorf("expected numeric operands")
 	}
 	if !isNumber(right) {
-		return nil, fmt.Errorf("invalid operand on right side")
+		return nil, fmt.Errorf("expected numeric operands")
 	}
 	return do(left.(float64), right.(float64))
 }
@@ -106,8 +109,8 @@ func isScalar(v Value) bool {
 	return true
 }
 
-func evalUnary(e unary) (Value, error) {
-	val, err := Eval(e.right)
+func evalUnary(e unary, ctx Context) (Value, error) {
+	val, err := Eval(e.right, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -125,11 +128,11 @@ func evalUnary(e unary) (Value, error) {
 	}
 }
 
-func evalCall(e call) (Value, error) {
+func evalCall(e call, ctx Context) (Value, error) {
 	return nil, nil
 }
 
-func evalIdent(e identifier) (Value, error) {
+func evalCellAddr(e cellAddr, ctx Context) (Value, error) {
 	return nil, nil
 }
 
@@ -157,8 +160,41 @@ type call struct {
 	args  []Expr
 }
 
-type identifier struct {
-	addr string
+type cellAddr struct {
+	sheet   string
+	column  int
+	absCols bool
+	line    int
+	absLine bool
+}
+
+type rangeAddr struct{}
+
+func parseCellAddr(addr string) (cellAddr, error) {
+	var (
+		pos    cellAddr
+		offset int
+	)
+	if addr[offset] == dollar {
+		pos.absCols = true
+		offset++
+	}
+	for offset < len(addr) && isLetter(rune(addr[offset])) {
+		delta := byte('A')
+		if isLower(rune(addr[offset])) {
+			delta = 'a'
+		}
+		pos.column = pos.column*26 + int(addr[offset]-delta+1)
+		offset++
+	}
+	if offset < len(addr) && addr[offset] == dollar {
+		pos.absLine = true
+		offset++
+	}
+	if offset < len(addr) {
+		pos.line, _ = strconv.Atoi(addr[offset:])
+	}
+	return pos, nil
 }
 
 const (
@@ -201,7 +237,7 @@ type Parser struct {
 func Parse() *Parser {
 	var p Parser
 	p.prefix = map[rune]func() (Expr, error){
-		Ident:   p.parseIdent,
+		Ident:   p.parseAdress,
 		Number:  p.parseNumber,
 		Literal: p.parseLiteral,
 		Sub:     p.parseUnary,
@@ -328,8 +364,13 @@ func (p *Parser) parseLiteral() (Expr, error) {
 	return i, nil
 }
 
-func (p *Parser) parseIdent() (Expr, error) {
-	return nil, nil
+func (p *Parser) parseAdress() (Expr, error) {
+	defer p.next()
+	a, err := parseCellAddr(p.curr.Literal)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
 }
 
 func (p *Parser) next() {
@@ -587,6 +628,7 @@ const (
 	dot        = '.'
 	amper      = '&'
 	percent    = '%'
+	dollar     = '$'
 )
 
 func isQuote(c rune) bool {
@@ -610,7 +652,7 @@ func isDigit(c rune) bool {
 }
 
 func isAlpha(c rune) bool {
-	return isLetter(c) || isDigit(c)
+	return isLetter(c) || isDigit(c) || c == dollar
 }
 
 func isBlank(c rune) bool {
