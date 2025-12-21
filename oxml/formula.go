@@ -53,7 +53,18 @@ var builtins = map[string]func([]Value) (Value, error){
 }
 
 type Context interface {
-	At(row, col int) (Value, error)
+	At(sheet string, row, col int) (Value, error)
+}
+
+type fileContext struct {
+	*File
+}
+
+func (c fileContext) At(sheet string, row, col int) (Value, error) {
+	if sheet == "" {
+
+	}
+	return nil, nil
 }
 
 func Eval(expr Expr, ctx Context) (Value, error) {
@@ -183,10 +194,11 @@ func evalCall(e call, ctx Context) (Value, error) {
 		return nil, fmt.Errorf("%s: unsupported function", id.name)
 	}
 	return fn(args)
+
 }
 
 func evalCellAddr(e cellAddr, ctx Context) (Value, error) {
-	return ctx.At(e.line, e.column)
+	return ctx.At(e.sheet, e.line, e.column)
 }
 
 type binary struct {
@@ -294,6 +306,12 @@ type Parser struct {
 
 	prefix map[rune]func() (Expr, error)
 	infix  map[rune]func(Expr) (Expr, error)
+}
+
+var defaultParser = Parse()
+
+func parseFormula(str string) (Expr, error) {
+	return defaultParser.ParseString(str)
 }
 
 func Parse() *Parser {
@@ -455,11 +473,21 @@ func (p *Parser) parseAdressOrIdentifier() (Expr, error) {
 			name: p.curr.Literal,
 		}
 		return i, nil
+	} 
+	var sheet string
+	if p.peek.Type == SheetRef {
+		sheet = p.curr.Literal
+		p.next()
+		p.next()
 	}
 	a, err := parseCellAddr(p.curr.Literal)
 	if err != nil {
 		return nil, err
 	}
+	if p.curr.Type == RangeRef {
+		p.next()
+	}
+	a.sheet = sheet
 	return a, nil
 }
 
@@ -496,6 +524,8 @@ const (
 	EndGrp
 	BegArr
 	EndArr
+	RangeRef
+	SheetRef
 )
 
 type Token struct {
@@ -631,6 +661,10 @@ func (s *Scanner) scanOperator(tok *Token) {
 		}
 	case equal:
 		tok.Type = Eq
+	case colon:
+		tok.Type = RangeRef
+	case bang:
+		tok.Type = SheetRef
 	default:
 	}
 	s.read()

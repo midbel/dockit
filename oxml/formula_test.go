@@ -7,7 +7,7 @@ import (
 
 type MockSheet struct{}
 
-func (m MockSheet) At(row int, column int) (Value, error) {
+func (m MockSheet) At(_ string, row int, column int) (Value, error) {
 	value := fmt.Sprintf("%d%d", column, row)
 	return value, nil
 }

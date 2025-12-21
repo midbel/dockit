@@ -55,9 +55,9 @@ const (
 
 type Cell struct {
 	rawValue    string
-	cachedValue string
 	parsedValue any
 	Type        string
+	Formula     Expr
 	Position
 }
 
@@ -67,6 +67,10 @@ func (c *Cell) Value() string {
 
 func (c *Cell) Get() any {
 	return c.parsedValue
+}
+
+func (c *Cell) Refresh(ctx Context) error {
+	return nil
 }
 
 func (c *Cell) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
@@ -117,6 +121,11 @@ func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 	case TypeSharedStr:
 	case TypeFormula:
 		c.parsedValue = el.Formula
+		expr, err := parseFormula(el.Formula)
+		if err != nil {
+			return err
+		}
+		c.Formula = expr
 	case TypeBool:
 		b, _ := strconv.ParseBool(el.Value)
 		c.parsedValue = b
@@ -385,6 +394,17 @@ func NewSheet(name string) *Sheet {
 	return &s
 }
 
+func (s *Sheet) Refresh(ctx Context) error {
+	for _, r := range s.Rows {
+		for _, c := range r.Cells {
+			if err := c.Refresh(ctx); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Sheet) Bounding() Bounds {
 	var bounds Bounds
 	bounds.Start = Position{
@@ -531,7 +551,11 @@ func Open(file string) (*File, error) {
 		return nil, err
 	}
 	defer rs.Close()
-	return rs.ReadFile()
+	book, err := rs.ReadFile()
+	if err != nil {
+		return nil, err
+	}
+	return book, nil
 }
 
 func (f *File) WriteFile(file string) error {
@@ -541,6 +565,18 @@ func (f *File) WriteFile(file string) error {
 	}
 	defer w.Close()
 	return w.WriteFile(f)
+}
+
+func (f *File) Reload() error {
+	ctx := fileContext{
+		File: f,
+	}
+	for _, s := range f.sheets {
+		if err := s.Refresh(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (f *File) Sheet(name string) (*Sheet, error) {
