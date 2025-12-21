@@ -47,6 +47,18 @@ func TestBasic(t *testing.T) {
 			Formula: "=$A1",
 			Want:    "11",
 		},
+		{
+			Formula: "=$A1 & B1",
+			Want:    "1121",
+		},
+		{
+			Formula: "=SUM(1, 2, 3)",
+			Want:    "6",
+		},
+		{
+			Formula: "=AVERAGE(1, 2, 3)",
+			Want:    "2",
+		},
 	}
 	var (
 		p = Parse()

@@ -17,6 +17,41 @@ type Expr interface{}
 
 type Value interface{}
 
+func execSum(args []Value) (Value, error) {
+	var total float64
+	for i := range args {
+		if !isNumber(args[i]) {
+			return nil, fmt.Errorf("number expected")
+		}
+		total += args[i].(float64)
+	}
+	return total, nil
+}
+
+func execAvg(args []Value) (Value, error) {
+	if len(args) == 0 {
+		return 0, nil
+	}
+	var total float64
+	for i := range args {
+		if !isNumber(args[i]) {
+			return nil, fmt.Errorf("number expected")
+		}
+		total += args[i].(float64)
+	}
+	return total / float64(len(args)), nil
+}
+
+func execCount(args []Value) (Value, error) {
+	return nil, nil
+}
+
+var builtins = map[string]func([]Value) (Value, error){
+	"sum":     execSum,
+	"average": execAvg,
+	"count":   execCount,
+}
+
 type Context interface {
 	At(row, col int) (Value, error)
 }
@@ -34,9 +69,11 @@ func Eval(expr Expr, ctx Context) (Value, error) {
 	case call:
 		return evalCall(e, ctx)
 	case cellAddr:
-		return ctx.At(e.line, e.column)
+		return evalCellAddr(e, ctx)
+	case rangeAddr:
+		return nil, nil
 	default:
-		return nil, fmt.Errorf("unuspported expression type")
+		return nil, fmt.Errorf("unuspported expression type: %T", expr)
 	}
 }
 
@@ -129,11 +166,27 @@ func evalUnary(e unary, ctx Context) (Value, error) {
 }
 
 func evalCall(e call, ctx Context) (Value, error) {
-	return nil, nil
+	id, ok := e.ident.(identifier)
+	if !ok {
+		return nil, fmt.Errorf("identifier expected")
+	}
+	var args []Value
+	for _, a := range e.args {
+		v, err := Eval(a, ctx)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, v)
+	}
+	fn, ok := builtins[strings.ToLower(id.name)]
+	if !ok {
+		return nil, fmt.Errorf("%s: unsupported function", id.name)
+	}
+	return fn(args)
 }
 
 func evalCellAddr(e cellAddr, ctx Context) (Value, error) {
-	return nil, nil
+	return ctx.At(e.line, e.column)
 }
 
 type binary struct {
@@ -156,8 +209,12 @@ type number struct {
 }
 
 type call struct {
-	ident string
+	ident Expr
 	args  []Expr
+}
+
+type identifier struct {
+	name string
 }
 
 type cellAddr struct {
@@ -168,7 +225,10 @@ type cellAddr struct {
 	absLine bool
 }
 
-type rangeAddr struct{}
+type rangeAddr struct {
+	startAddr cellAddr
+	endAddr   cellAddr
+}
 
 func parseCellAddr(addr string) (cellAddr, error) {
 	var (
@@ -207,6 +267,7 @@ const (
 	powPow
 	powUnary
 	powPercent
+	powCall
 )
 
 var bindings = map[rune]int{
@@ -223,6 +284,7 @@ var bindings = map[rune]int{
 	Le:      powCmp,
 	Gt:      powCmp,
 	Ge:      powCmp,
+	BegGrp:  powCall,
 }
 
 type Parser struct {
@@ -237,7 +299,7 @@ type Parser struct {
 func Parse() *Parser {
 	var p Parser
 	p.prefix = map[rune]func() (Expr, error){
-		Ident:   p.parseAdress,
+		Ident:   p.parseAdressOrIdentifier,
 		Number:  p.parseNumber,
 		Literal: p.parseLiteral,
 		Sub:     p.parseUnary,
@@ -300,7 +362,29 @@ func (p *Parser) parse(pow int) (Expr, error) {
 }
 
 func (p *Parser) parseCall(expr Expr) (Expr, error) {
-	return nil, nil
+	p.next()
+	c := call{
+		ident: expr,
+	}
+	for !p.done() && p.curr.Type != EndGrp {
+		arg, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		switch p.curr.Type {
+		case Comma:
+			p.next()
+		case EndGrp:
+		default:
+			return nil, fmt.Errorf("unexpected character in function call")
+		}
+		c.args = append(c.args, arg)
+	}
+	if p.curr.Type != EndGrp {
+		return nil, fmt.Errorf("unexpected character in function call")
+	}
+	p.next()
+	return c, nil
 }
 
 func (p *Parser) parseBinary(left Expr) (Expr, error) {
@@ -364,8 +448,14 @@ func (p *Parser) parseLiteral() (Expr, error) {
 	return i, nil
 }
 
-func (p *Parser) parseAdress() (Expr, error) {
+func (p *Parser) parseAdressOrIdentifier() (Expr, error) {
 	defer p.next()
+	if p.peek.Type == BegGrp {
+		i := identifier{
+			name: p.curr.Literal,
+		}
+		return i, nil
+	}
 	a, err := parseCellAddr(p.curr.Literal)
 	if err != nil {
 		return nil, err
@@ -433,10 +523,10 @@ func Scan(r io.Reader) (*Scanner, error) {
 		return nil, err
 	}
 	scan.read()
-	if scan.char != equal {
-		return nil, fmt.Errorf("formula should start with '=' character")
+	if scan.char == equal {
+		scan.read()
 	}
-	scan.read()
+	// scan.read()
 	return &scan, nil
 }
 
@@ -549,7 +639,7 @@ func (s *Scanner) scanOperator(tok *Token) {
 func (s *Scanner) scanDelimiter(tok *Token) {
 	tok.Type = Invalid
 	switch s.char {
-	case semi:
+	case semi, comma:
 		tok.Type = Comma
 	case lparen:
 		tok.Type = BegGrp
@@ -608,6 +698,7 @@ const (
 	underscore = '_'
 	bang       = '!'
 	semi       = ';'
+	comma      = ','
 	rparen     = ')'
 	lparen     = '('
 	lcurly     = '{'
@@ -661,7 +752,7 @@ func isBlank(c rune) bool {
 
 func isDelimiter(c rune) bool {
 	return c == semi || c == lparen || c == rparen ||
-		c == lcurly || c == rcurly
+		c == lcurly || c == rcurly || c == comma
 }
 
 func isOperator(c rune) bool {
