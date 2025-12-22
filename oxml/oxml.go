@@ -11,6 +11,11 @@ import (
 )
 
 const (
+	FormulaNormal = "normal"
+	FormulaShared = "shared"
+)
+
+const (
 	TypeSharedStr = "s"
 	TypeInlineStr = "inlineStr"
 	TypeFormula   = "str"
@@ -150,7 +155,9 @@ func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 }
 
 type Row struct {
-	Line  int64   `xml:"r,attr"`
+	Line   int64 `xml:"r,attr"`
+	Hidden int   `xml:"hidden,attr"`
+	// Spans  string  `xml:"spans,attr"`
 	Cells []*Cell `xml:"c"`
 }
 
