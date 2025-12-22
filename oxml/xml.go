@@ -56,3 +56,11 @@ type xmlRow struct {
 	Line    int64    `xml:"r,attr"`
 	Cells   []*Cell  `xml:"c"`
 }
+
+type xmlFormula struct {
+	XMLName xml.Name `xml:"f"`
+	Type    string   `xml:"t,attr"`
+	Index   string   `xml:"si,attr"`
+	Ref     string   `xml:"ref,attr"`
+	Expr    string   `xml:",chardata"`
+}

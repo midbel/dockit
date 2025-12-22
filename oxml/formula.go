@@ -17,6 +17,30 @@ type Expr interface{}
 
 type Value interface{}
 
+func valueToScalar(value Value) any {
+	switch v := value.(type) {
+	case string, float64, bool, error:
+		return v
+	default:
+		return nil
+	}
+}
+
+func valueToString(value Value) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(v)
+	case error:
+		return v.Error()
+	default:
+		return ""
+	}
+}
+
 func execSum(args []Value) (Value, error) {
 	var total float64
 	for i := range args {
@@ -473,7 +497,7 @@ func (p *Parser) parseAdressOrIdentifier() (Expr, error) {
 			name: p.curr.Literal,
 		}
 		return i, nil
-	} 
+	}
 	var sheet string
 	if p.peek.Type == SheetRef {
 		sheet = p.curr.Literal

@@ -70,7 +70,15 @@ func (c *Cell) Get() any {
 }
 
 func (c *Cell) Refresh(ctx Context) error {
-	return nil
+	if c.Formula == nil {
+		return nil
+	}
+	value, err := Eval(c.Formula, ctx)
+	if err == nil {
+		c.parsedValue = valueToScalar(value)
+		c.rawValue = valueToString(value)
+	}
+	return err
 }
 
 func (c *Cell) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
@@ -80,7 +88,7 @@ func (c *Cell) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
 		Type        string   `xml:"t,attr"`
 		RawValue    any      `xml:"v,omitempty"`
 		InlineValue any      `xml:"is>t,omitempty"`
-		Formula     any      `xml:"f"`
+		Formula     string   `xml:"f"`
 	}{
 		Addr: c.Addr(),
 		Type: c.Type,
@@ -100,12 +108,12 @@ func (c *Cell) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
 
 func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
 	el := struct {
-		XMLName xml.Name `xml:"c"`
-		Addr    string   `xml:"r,attr"`
-		Type    string   `xml:"t,attr"`
-		Value   string   `xml:"v"`
-		Inline  string   `xml:"is>t"`
-		Formula string   `xml:"f"`
+		XMLName xml.Name   `xml:"c"`
+		Addr    string     `xml:"r,attr"`
+		Type    string     `xml:"t,attr"`
+		Value   string     `xml:"v"`
+		Inline  string     `xml:"is>t"`
+		Formula xmlFormula `xml:"f"`
 	}{}
 	if err := decoder.DecodeElement(&el, &start); err != nil {
 		return err
@@ -120,8 +128,8 @@ func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 		c.rawValue = el.Inline
 	case TypeSharedStr:
 	case TypeFormula:
-		c.parsedValue = el.Formula
-		expr, err := parseFormula(el.Formula)
+		c.parsedValue = el.Formula.Expr
+		expr, err := parseFormula(el.Formula.Expr)
 		if err != nil {
 			return err
 		}
