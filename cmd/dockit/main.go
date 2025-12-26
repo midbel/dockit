@@ -421,12 +421,14 @@ func (c UnlockFileCommand) Run(args []string) error {
 type PrintSheetCommand struct {
 	Columns string
 	Reload  bool
+	Width   int
 }
 
 func (c PrintSheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("print")
 	set.StringVar(&c.Columns, "c", "", "columns")
 	set.BoolVar(&c.Reload, "r", false, "reload")
+	set.IntVar(&c.Width, "w", 12, "column width")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -434,7 +436,6 @@ func (c PrintSheetCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(set.Arg(0))
 	ctx := oxml.FileContext(file)
 	for i := 1; i < set.NArg(); i++ {
 		sheet, err := file.Sheet(set.Arg(i))
@@ -455,8 +456,17 @@ func (c PrintSheetCommand) printSheet(ctx oxml.Context, sheet *oxml.Sheet) error
 			return err
 		}
 	}
+	if c.Width <= 0 {
+		c.Width = 16
+	}
 	for row := range sheet.Iter() {
-		fmt.Println(row)
+		for i, v := range row {
+			if i > 0 {
+				fmt.Print("|")
+			}
+			fmt.Printf(" %-*v ", c.Width, v)
+		}
+		fmt.Println()
 	}
 	return nil
 }
