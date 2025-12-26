@@ -193,7 +193,6 @@ type SheetRef struct {
 	*oxml.File
 	Path  string
 	Sheet string
-	Range oxml.Select
 }
 
 func parseReference(str string) (*SheetRef, error) {
@@ -210,12 +209,8 @@ func parseReference(str string) (*SheetRef, error) {
 	}
 	ref.Path = file
 	ref.Sheet = rest
-	if rest, sel, ok := strings.Cut(rest, "!"); ok {
-		ref.Range, err = oxml.ParseRange(sel)
-		if err != nil {
-			return nil, err
-		}
-		ref.Sheet = rest
+	if _, _, ok := strings.Cut(rest, "!"); ok {
+
 	}
 	return &ref, nil
 }
@@ -432,21 +427,6 @@ func (c PrintSheetCommand) Run(args []string) error {
 	set.StringVar(&c.Columns, "c", "", "columns")
 	if err := set.Parse(args); err != nil {
 		return err
-	}
-	file, err := oxml.Open(set.Arg(0))
-	if err != nil {
-		return err
-	}
-	sheet, err := file.Sheet(set.Arg(1))
-	if err != nil {
-		return err
-	}
-	sel, err := oxml.ParseRange(c.Columns)
-	if err != nil {
-		return err
-	}
-	for rows := range sheet.Select(&sel) {
-		fmt.Println(rows)
 	}
 	return nil
 }

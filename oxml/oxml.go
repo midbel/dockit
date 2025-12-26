@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"iter"
 	"slices"
-	"strings"
 )
 
 const (
@@ -115,30 +114,6 @@ func (r *Row) cloneCells() []*Cell {
 		cells = append(cells, &c)
 	}
 	return cells
-}
-
-type Dimension struct {
-	Lines   int64
-	Columns int64
-}
-
-func (d *Dimension) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
-	el := struct {
-		Ref string `xml:"ref,attr"`
-	}{}
-	if err := decoder.DecodeElement(&el, &start); err != nil {
-		return err
-	}
-	startIx, endIx, ok := strings.Cut(el.Ref, ":")
-	if ok {
-		var (
-			start = parsePosition(startIx)
-			end   = parsePosition(endIx)
-		)
-		d.Lines = (end.Line - start.Line) + 1
-		d.Columns = (end.Column - start.Column) + 1
-	}
-	return nil
 }
 
 type SheetState int8
@@ -362,34 +337,6 @@ func (s *Sheet) Bounding() Bounds {
 		Column: s.Size.Columns,
 	}
 	return bounds
-}
-
-func (s *Sheet) Extract(sel *Select) *Sheet {
-	other := NewSheet(fmt.Sprintf("%s.copy", s.Name))
-	for vs := range s.Select(sel) {
-		other.Append(vs)
-	}
-	return other
-}
-
-func (s *Sheet) DistinctValues(sel *Select) iter.Seq[[]string] {
-	it := func(yield func([]string) bool) {
-		seen := make(map[string]struct{})
-		_ = seen
-	}
-	return it
-}
-
-func (s *Sheet) Select(sel *Select) iter.Seq[[]string] {
-	it := func(yield func([]string) bool) {
-		for _, rs := range s.Rows {
-			vs := sel.Select(rs)
-			if !yield(vs) {
-				break
-			}
-		}
-	}
-	return it
 }
 
 func (s *Sheet) Iter() iter.Seq[[]string] {
