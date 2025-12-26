@@ -206,7 +206,7 @@ type sheetReader struct {
 	reader         *sax.Reader
 	sheet          *Sheet
 	sharedStrings  []string
-	sharedFormulas map[int]string
+	sharedFormulas map[string]Expr
 }
 
 func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
@@ -214,7 +214,7 @@ func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
 		reader:         sax.NewReader(r),
 		sheet:          sheet,
 		sharedStrings:  shared,
-		sharedFormulas: make(map[int]string),
+		sharedFormulas: make(map[string]Expr),
 	}
 	return &rs
 }
@@ -240,8 +240,8 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 		cell.parsedValue = r.sharedStrings[n]
 	case TypeDate:
 		// date: TBW
-	case TypeInlineStr:
-	case TypeFormula:
+	case TypeInlineStr, TypeFormula:
+		cell.parsedValue = str
 	case TypeBool:
 		b, err := strconv.ParseBool(str)
 		if err != nil {
@@ -262,21 +262,24 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 	var (
 		shared = el.GetAttributeValue("t")
 		index  = el.GetAttributeValue("si")
-		id     int
 	)
-	if shared == "shared" {
-		ix, err := strconv.Atoi(index)
+	if _, ok := r.sharedFormulas[index]; shared == "shared" && ok {
+		cell.Formula = r.sharedFormulas[index]
+	}
+	if el.SelfClosed {
+		return nil
+	}
+	rs.OnText(func(_ *sax.Reader, str string) error {
+		formula, err := parseFormula(str)
 		if err != nil {
 			return err
 		}
-		id = ix
-		// cell.Formula = r.sharedFormulas[ix]
-	}
-	rs.OnText(func(_ *sax.Reader, str string) error {
-		if shared == "shared" {
-			r.sharedFormulas[id] = str
+		if _, ok := r.sharedFormulas[index]; shared == "shared" && !ok {
+			r.sharedFormulas[index] = formula
 		}
-		// cell.Formula = str
+		if cell.Formula == nil {
+			cell.Formula = formula
+		}
 		return nil
 	})
 	return nil

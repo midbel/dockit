@@ -88,9 +88,9 @@ var lookupCmd = cli.Command{
 
 var printCmd = cli.Command{
 	Name:    "print",
-	Alias:   []string{"view", "show"},
+	Alias:   []string{"view", "show", "dump"},
 	Summary: "print content of a sheet",
-	Usage:   "print [-c <columns>] <spreadsheet> [<sheet>,...]",
+	Usage:   "print [-c <columns>] [-r] <spreadsheet> [<sheet>,...]",
 	Handler: &PrintSheetCommand{},
 }
 
@@ -420,13 +420,43 @@ func (c UnlockFileCommand) Run(args []string) error {
 
 type PrintSheetCommand struct {
 	Columns string
+	Reload  bool
 }
 
 func (c PrintSheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("print")
 	set.StringVar(&c.Columns, "c", "", "columns")
+	set.BoolVar(&c.Reload, "r", false, "reload")
 	if err := set.Parse(args); err != nil {
 		return err
+	}
+	file, err := oxml.Open(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	fmt.Println(set.Arg(0))
+	ctx := oxml.FileContext(file)
+	for i := 1; i < set.NArg(); i++ {
+		sheet, err := file.Sheet(set.Arg(i))
+		if err != nil {
+			return err
+		}
+		if err := c.printSheet(ctx, sheet); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c PrintSheetCommand) printSheet(ctx oxml.Context, sheet *oxml.Sheet) error {
+	if c.Reload {
+		err := sheet.Refresh(ctx)
+		if err != nil {
+			return err
+		}
+	}
+	for row := range sheet.Iter() {
+		fmt.Println(row)
 	}
 	return nil
 }

@@ -91,10 +91,10 @@ type Row struct {
 	Cells  []*Cell
 }
 
-func (r *Row) Data() []string {
-	var ds []string
+func (r *Row) Data() []any {
+	var ds []any
 	for _, c := range r.Cells {
-		ds = append(ds, c.Value())
+		ds = append(ds, c.Get())
 	}
 	return ds
 }
@@ -339,8 +339,8 @@ func (s *Sheet) Bounding() Bounds {
 	return bounds
 }
 
-func (s *Sheet) Iter() iter.Seq[[]string] {
-	it := func(yield func([]string) bool) {
+func (s *Sheet) Iter() iter.Seq[[]any] {
+	it := func(yield func([]any) bool) {
 		for _, r := range s.Rows {
 			row := r.Data()
 			if !yield(row) {

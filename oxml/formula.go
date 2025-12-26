@@ -116,6 +116,12 @@ type fileContext struct {
 	*File
 }
 
+func FileContext(file *File) Context {
+	return fileContext{
+		File: file,
+	}
+}
+
 func (c fileContext) At(sheet string, row, col int) (Value, error) {
 	if sheet == "" {
 
