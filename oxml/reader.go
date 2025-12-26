@@ -68,6 +68,7 @@ func (r *reader) readSharedStrings(file *File) {
 		Shared  []string `xml:"si>t"`
 	}{}
 	if err := r.decodeXML(r.fromBase("sharedStrings.xml"), &root); err != nil {
+		r.err = nil
 		return
 	}
 	file.sharedStrings = root.Shared

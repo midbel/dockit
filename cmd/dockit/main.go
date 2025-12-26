@@ -422,6 +422,7 @@ type PrintSheetCommand struct {
 	Columns string
 	Reload  bool
 	Width   int
+	Sep     string
 }
 
 func (c PrintSheetCommand) Run(args []string) error {
@@ -429,6 +430,7 @@ func (c PrintSheetCommand) Run(args []string) error {
 	set.StringVar(&c.Columns, "c", "", "columns")
 	set.BoolVar(&c.Reload, "r", false, "reload")
 	set.IntVar(&c.Width, "w", 12, "column width")
+	set.StringVar(&c.Sep, "s", "|", "column separator")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -462,7 +464,7 @@ func (c PrintSheetCommand) printSheet(ctx oxml.Context, sheet *oxml.Sheet) error
 	for row := range sheet.Iter() {
 		for i, v := range row {
 			if i > 0 {
-				fmt.Print("|")
+				fmt.Print(c.Sep)
 			}
 			fmt.Printf(" %-*v ", c.Width, v)
 		}
