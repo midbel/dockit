@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"iter"
 	"slices"
-	"strconv"
 	"strings"
 )
 
@@ -59,11 +58,12 @@ const (
 )
 
 type Cell struct {
+	Type string
+	Position
+
 	rawValue    string
 	parsedValue any
-	Type        string
 	Formula     Expr
-	Position
 }
 
 func (c *Cell) Value() string {
@@ -86,79 +86,10 @@ func (c *Cell) Refresh(ctx Context) error {
 	return err
 }
 
-func (c *Cell) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
-	el := struct {
-		XMLName     xml.Name `xml:"c"`
-		Addr        string   `xml:"r,attr"`
-		Type        string   `xml:"t,attr"`
-		RawValue    any      `xml:"v,omitempty"`
-		InlineValue any      `xml:"is>t,omitempty"`
-		Formula     string   `xml:"f"`
-	}{
-		Addr: c.Addr(),
-		Type: c.Type,
-	}
-	if c.Type == TypeInlineStr {
-		el.InlineValue = c.rawValue
-	} else if c.Type == TypeFormula {
-		if c.parsedValue != "" {
-			el.Formula = c.parsedValue
-		}
-		el.RawValue = c.rawValue
-	} else {
-		el.RawValue = c.rawValue
-	}
-	return encoder.EncodeElement(&el, start)
-}
-
-func (c *Cell) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
-	el := struct {
-		XMLName xml.Name   `xml:"c"`
-		Addr    string     `xml:"r,attr"`
-		Type    string     `xml:"t,attr"`
-		Value   string     `xml:"v"`
-		Inline  string     `xml:"is>t"`
-		Formula xmlFormula `xml:"f"`
-	}{}
-	if err := decoder.DecodeElement(&el, &start); err != nil {
-		return err
-	}
-	c.Position = parsePosition(el.Addr)
-	c.rawValue = el.Value
-	c.Type = el.Type
-
-	switch el.Type {
-	case TypeInlineStr:
-		c.parsedValue = el.Inline
-		c.rawValue = el.Inline
-	case TypeSharedStr:
-	case TypeFormula:
-		c.parsedValue = el.Formula.Expr
-		expr, err := parseFormula(el.Formula.Expr)
-		if err != nil {
-			return err
-		}
-		c.Formula = expr
-	case TypeBool:
-		b, _ := strconv.ParseBool(el.Value)
-		c.parsedValue = b
-	case TypeNumber, "":
-		n, _ := strconv.ParseFloat(el.Value, 64)
-		c.parsedValue = n
-	case TypeDate:
-		t, _ := ParseDate(el.Value)
-		c.parsedValue = t
-	case TypeError:
-	default:
-	}
-	return nil
-}
-
 type Row struct {
-	Line   int64 `xml:"r,attr"`
-	Hidden int   `xml:"hidden,attr"`
-	// Spans  string  `xml:"spans,attr"`
-	Cells []*Cell `xml:"c"`
+	Line   int64
+	Hidden int
+	Cells  []*Cell
 }
 
 func (r *Row) Data() []string {
@@ -549,9 +480,9 @@ type File struct {
 	locked   bool
 	date1904 bool
 
-	names        map[string]int
-	sheets       []*Sheet
-	sharedString []string
+	names         map[string]int
+	sheets        []*Sheet
+	sharedStrings []string
 }
 
 func NewFile() *File {

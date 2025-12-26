@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strconv"
 	"strings"
+
+	sax "github.com/midbel/codecs/xml"
 )
 
 type reader struct {
@@ -38,7 +41,7 @@ func (r *reader) Close() error {
 func (r *reader) ReadFile() (*File, error) {
 	file := NewFile()
 	r.readContentFile(file)
-	// r.readSharedStrings(file)
+	r.readSharedStrings(file)
 	r.readWorkbook(file)
 	r.readWorksheets(file)
 	return file, r.err
@@ -60,12 +63,14 @@ func (r *reader) readSharedStrings(file *File) {
 	if r.invalid() {
 		return
 	}
-	rs, err := r.openFile(r.fromBase("sharedStrings.xml"))
-	if err != nil {
-		r.err = err
+	root := struct {
+		XMLName xml.Name `xml:"sst"`
+		Shared  []string `xml:"si>t"`
+	}{}
+	if err := r.decodeXML(r.fromBase("sharedStrings.xml"), &root); err != nil {
 		return
 	}
-	_ = rs
+	file.sharedStrings = root.Shared
 }
 
 func (r *reader) readWorkbook(file *File) {
@@ -86,6 +91,7 @@ func (r *reader) readWorkbook(file *File) {
 			Name:  xs.Name,
 			Index: xs.Index,
 			State: xs.State,
+			Size:  new(Dimension),
 		}
 		if s.State == 0 {
 			s.State = StateVisible
@@ -111,27 +117,26 @@ func (r *reader) readWorksheets(file *File) {
 			r.err = ErrFile
 			return
 		}
-		r.readWorksheet(s, relations[ix].Target)
+		r.readWorksheet(s, file.sharedStrings, relations[ix].Target)
 		if r.invalid() {
 			break
 		}
 	}
 }
 
-func (r *reader) readWorksheet(sheet *Sheet, addr string) {
+func (r *reader) readWorksheet(sheet *Sheet, sharedStrings []string, addr string) {
 	if r.invalid() {
 		return
 	}
-	root := struct {
-		XMLName xml.Name   `xml:"worksheet"`
-		Size    *Dimension `xml:"dimension"`
-		Rows    []*Row     `xml:"sheetData>row"`
-	}{}
-	if err := r.decodeXML(r.fromBase(addr), &root); err != nil {
+	z, err := r.openFile(r.fromBase(addr))
+	if err != nil {
+		r.err = err
 		return
 	}
-	sheet.Size = root.Size
-	sheet.Rows = root.Rows
+	rs := updateSheet(z, sheet, sharedStrings)
+	if err := rs.Update(); err != nil {
+		r.err = err
+	}
 }
 
 func (r *reader) readWorkbookLocation() string {
@@ -195,4 +200,137 @@ func (r *reader) fromBase(name string) string {
 
 func (r *reader) invalid() bool {
 	return r.err != nil
+}
+
+type sheetReader struct {
+	reader         *sax.Reader
+	sheet          *Sheet
+	sharedStrings  []string
+	sharedFormulas map[int]string
+}
+
+func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
+	rs := sheetReader{
+		reader:         sax.NewReader(r),
+		sheet:          sheet,
+		sharedStrings:  shared,
+		sharedFormulas: make(map[int]string),
+	}
+	return &rs
+}
+
+func (r *sheetReader) Update() error {
+	r.reader.Element(sax.LocalName("dimension"), r.onDimension)
+	r.reader.Element(sax.LocalName("row"), r.onRow)
+	r.reader.Element(sax.LocalName("c"), r.onCell)
+	return r.reader.Start()
+}
+
+func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
+	cell.rawValue = str
+	switch cell.Type {
+	case TypeSharedStr:
+		n, err := strconv.Atoi(str)
+		if err != nil {
+			return fmt.Errorf("invalid shared string index: %s", str)
+		}
+		if n < 0 || n >= len(r.sharedStrings) {
+			return fmt.Errorf("shared string index out of bounds")
+		}
+		cell.parsedValue = r.sharedStrings[n]
+	case TypeDate:
+		// date: TBW
+	case TypeInlineStr:
+	case TypeFormula:
+	case TypeBool:
+		b, err := strconv.ParseBool(str)
+		if err != nil {
+			return err
+		}
+		cell.parsedValue = b
+	default:
+		n, err := strconv.ParseFloat(strings.TrimSpace(str), 64)
+		if err != nil {
+			return err
+		}
+		cell.parsedValue = n
+	}
+	return nil
+}
+
+func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) error {
+	var (
+		shared = el.GetAttributeValue("t")
+		index  = el.GetAttributeValue("si")
+		id     int
+	)
+	if shared == "shared" {
+		ix, err := strconv.Atoi(index)
+		if err != nil {
+			return err
+		}
+		id = ix
+		// cell.Formula = r.sharedFormulas[ix]
+	}
+	rs.OnText(func(_ *sax.Reader, str string) error {
+		if shared == "shared" {
+			r.sharedFormulas[id] = str
+		}
+		// cell.Formula = str
+		return nil
+	})
+	return nil
+}
+
+func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
+	if len(r.sheet.Rows) == 0 {
+		return fmt.Errorf("no row in worksheet")
+	}
+
+	var (
+		kind  = el.GetAttributeValue("t")
+		index = el.GetAttributeValue("r")
+		pos   = len(r.sheet.Rows) - 1
+		cell  = &Cell{
+			Position: parsePosition(index),
+			Type:     kind,
+		}
+	)
+	r.sheet.Rows[pos].Cells = append(r.sheet.Rows[pos].Cells, cell)
+
+	rs.Element(sax.LocalName("v"), func(rs *sax.Reader, _ sax.E) error {
+		rs.OnText(func(_ *sax.Reader, str string) error {
+			return r.parseCellValue(cell, str)
+		})
+		return nil
+	})
+	rs.Element(sax.LocalName("f"), func(rs *sax.Reader, el sax.E) error {
+		return r.parseCellFormula(cell, el, rs)
+	})
+	return nil
+}
+
+func (r *sheetReader) onRow(rs *sax.Reader, el sax.E) error {
+	var (
+		row Row
+		err error
+	)
+	row.Line, err = strconv.ParseInt(el.GetAttributeValue("r"), 10, 64)
+	if err == nil {
+		r.sheet.Rows = append(r.sheet.Rows, &row)
+	}
+	return err
+}
+
+func (r *sheetReader) onDimension(rs *sax.Reader, el sax.E) error {
+	startIx, endIx, ok := strings.Cut(el.GetAttributeValue("ref"), ":")
+	if ok {
+		var (
+			start = parsePosition(startIx)
+			end   = parsePosition(endIx)
+		)
+		r.sheet.Size.Lines = (end.Line - start.Line) + 1
+		r.sheet.Size.Columns = (end.Column - start.Column) + 1
+	}
+	return nil
 }
