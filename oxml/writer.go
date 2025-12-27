@@ -8,7 +8,10 @@ import (
 	"io"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
+
+	sax "github.com/midbel/codecs/xml"
 )
 
 const startIx = 1000
@@ -47,9 +50,9 @@ func (z *writer) WriteFile(file *File) error {
 		}
 	}
 	z.writeWorkbook(file)
+	z.writeSharedStrings(file)
 	z.writeRelationForSheets(file)
 	z.writeRelations()
-	z.writeSharedStrings()
 	z.writeStyles()
 	z.writeContentTypes(file)
 	return z.err
@@ -132,14 +135,25 @@ func (z *writer) writeStyles() {
 	z.encodeXML("styles.xml", root)
 }
 
-func (z *writer) writeSharedStrings() {
+func (z *writer) writeSharedStrings(file *File) {
+	if len(file.sharedStrings) == 0 {
+		return
+	}
 	if z.invalid() {
 		return
 	}
 	root := xmlSharedStrings{
-		Xmlns: typeMainUrl,
+		Xmlns:     typeMainUrl,
+		Count:     len(file.sharedStrings),
+		UniqCount: len(file.sharedStrings),
 	}
-	z.encodeXML("sharedStrings.xml", &root)
+	for _, s := range file.sharedStrings {
+		shared := xmlSharedString{
+			Value: s,
+		}
+		root.Values = append(root.Values, shared)
+	}
+	z.encodeXML("xl/sharedStrings.xml", &root)
 }
 
 func (z *writer) writeRelations() {
@@ -176,6 +190,14 @@ func (z *writer) writeRelationForSheets(file *File) {
 		}
 		root.Relations = append(root.Relations, rx)
 	}
+	if len(file.sharedStrings) > 0 {
+		rx := xmlRelation{
+			Id: z.createFileID(),
+			Type: typeSharedUrl,
+			Target: "sharedStrings.xml",
+		}
+		root.Relations = append(root.Relations, rx)
+	} 
 	addr := z.createTarget("_rels", "workbook.xml.rels")
 	z.encodeXML(addr, &root)
 }
@@ -184,28 +206,20 @@ func (z *writer) writeWorksheet(sheet *Sheet) {
 	if z.invalid() {
 		return
 	}
-	root := struct {
-		XMLName   xml.Name `xml:"worksheet"`
-		Xmlns     string   `xml:"xmlns,attr"`
-		RelXmlns  string   `xml:"xmlns:r,attr"`
-		Dimension struct {
-			Ref string `xml:"ref,attr"`
-		} `xml:"dimension"`
-		Rows []xmlRow `xml:"sheetData>row"`
-	}{
-		Xmlns:    typeMainUrl,
-		RelXmlns: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+	name := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sheet.Name))
+	writer, err := z.writer.Create(name)
+	if err != nil {
+		z.err = err
+		return
 	}
-	root.Dimension.Ref = sheet.Bounding().String()
-	for _, r := range sheet.Rows {
-		rx := xmlRow{
-			Line:  r.Line,
-			Cells: r.Cells,
-		}
-		root.Rows = append(root.Rows, rx)
+	sw, err := writeSheet(writer)
+	if err != nil {
+		z.err = err
+		return
 	}
-	addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sheet.Name))
-	z.encodeXML(addr, &root)
+	if err := sw.WriteSheet(sheet); err != nil {
+		z.err = err
+	}
 }
 
 func (z *writer) writeWorkbook(f *File) {
@@ -297,4 +311,99 @@ func (z *writer) createFileID() string {
 
 func (z *writer) getFileIndex() int {
 	return z.lastUsedId - startIx
+}
+
+type sheetWriter struct {
+	writer *sax.StreamWriter
+}
+
+func writeSheet(w io.Writer) (*sheetWriter, error) {
+	sw, err := sax.Compact(w)
+	if err != nil {
+		return nil, err
+	}
+	sh := sheetWriter{
+		writer: sw,
+	}
+	return &sh, nil
+}
+
+func (w *sheetWriter) WriteSheet(sheet *Sheet) error {
+	wshName := sax.LocalName("worksheet")
+	w.writer.Open(wshName, []sax.A{
+		createNS("", typeMainUrl),
+		createNS("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships"),
+	})
+	w.writer.Empty(sax.LocalName("dimension"), []sax.A{
+		createAttr("ref", sheet.Bounding().String()),
+	})
+	if err := w.writeRows(sheet); err != nil {
+		return err
+	}
+	w.writer.Close(wshName)
+	return w.writer.Flush()
+}
+
+func (w *sheetWriter) writeRows(sheet *Sheet) error {
+	var (
+		dshName = sax.LocalName("sheetData")
+		rowName = sax.LocalName("row")
+	)
+	w.writer.Open(dshName, nil)
+	for _, r := range sheet.Rows {
+		w.writer.Open(rowName, []sax.A{
+			createAttr("r", strconv.FormatInt(r.Line, 10)),
+		})
+		for _, c := range r.Cells {
+			if err := w.writeCell(c); err != nil {
+				return err
+			}
+		}
+		w.writer.Close(rowName)
+	}
+	w.writer.Close(dshName)
+	return nil
+}
+
+func (w *sheetWriter) writeCell(cell *Cell) error {
+	var (
+		cellName = sax.LocalName("c")
+		valName  = sax.LocalName("v")
+		formName = sax.LocalName("f")
+	)
+	attrs := []sax.A{
+		createAttr("r", cell.Position.Addr()),
+	}
+	if cell.Type != "" {
+		attrs = append(attrs, createAttr("t", cell.Type))
+	}
+	w.writer.Open(cellName, attrs)
+	if cell.Formula != nil {
+		w.writer.Open(formName, nil)
+		w.writer.Text(cell.Formula.String())
+		w.writer.Close(formName)
+	}
+	w.writer.Open(valName, nil)
+	w.writer.Text(cell.rawValue)
+	w.writer.Close(valName)
+	w.writer.Close(cellName)
+	return nil
+}
+
+func createAttr(name, value string) sax.A {
+	return sax.A{
+		QName: sax.LocalName(name),
+		Value: value,
+	}
+}
+
+func createNS(name, value string) sax.A {
+	qn := sax.LocalName("xmlns")
+	if name != "" {
+		qn = sax.QualifiedName(name, "xmlns")
+	}
+	return sax.A{
+		QName: qn,
+		Value: value,
+	}
 }

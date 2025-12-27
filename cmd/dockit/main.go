@@ -420,17 +420,19 @@ func (c UnlockFileCommand) Run(args []string) error {
 
 type PrintSheetCommand struct {
 	Columns string
-	Reload  bool
 	Width   int
 	Sep     string
+	Reload  bool
+	Lino    bool
 }
 
 func (c PrintSheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("print")
 	set.StringVar(&c.Columns, "c", "", "columns")
 	set.BoolVar(&c.Reload, "r", false, "reload")
-	set.IntVar(&c.Width, "w", 12, "column width")
 	set.StringVar(&c.Sep, "s", "|", "column separator")
+	set.IntVar(&c.Width, "w", 12, "column width")
+	set.BoolVar(&c.Lino, "n", false, "print line number")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -465,7 +467,13 @@ func (c PrintSheetCommand) EncodeSheet(sheet *oxml.Sheet) error {
 	if c.Width <= 0 {
 		c.Width = 16
 	}
+	var lino int
 	for row := range sheet.Iter() {
+		lino++
+		if c.Lino {
+			fmt.Fprintf(os.Stdout, "%-5d ", lino)
+			fmt.Fprint(os.Stdout, c.Sep)
+		}
 		for i, v := range row {
 			if i > 0 {
 				fmt.Fprint(os.Stdout, c.Sep)

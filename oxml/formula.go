@@ -13,7 +13,9 @@ import (
 
 var ErrZero = errors.New("division by zero")
 
-type Expr interface{}
+type Expr interface {
+	fmt.Stringer
+}
 
 type Value interface{}
 
@@ -269,17 +271,67 @@ type binary struct {
 	op    rune
 }
 
+func (b binary) String() string {
+	var op string
+	switch b.op {
+	case Add:
+		op = "+"
+	case Sub:
+		op = "-"
+	case Mul:
+		op = "*"
+	case Div:
+		op = "/"
+	case Pow:
+		op = "^"
+	case Concat:
+		op = "&"
+	case Eq:
+		op = "="
+	case Ne:
+		op = "<>"
+	case Lt:
+		op = "<"
+	case Le:
+		op = "<="
+	case Gt:
+		op = ">"
+	case Ge:
+		op = ">="
+	}
+	return fmt.Sprintf("%s %s %s", b.left.String(), op, b.right.String())
+}
+
 type unary struct {
 	right Expr
 	op    rune
+}
+
+func (u unary) String() string {
+	var op string
+	switch u.op {
+	case Add:
+		op = "+"
+	case Sub:
+		op = "-"
+	}
+	return fmt.Sprintf("%s%s", op, u.right.String())
 }
 
 type literal struct {
 	value string
 }
 
+func (i literal) String() string {
+	return fmt.Sprintf("\"%s\"", i.value)
+}
+
 type number struct {
 	value float64
+}
+
+func (n number) String() string {
+	return strconv.FormatFloat(n.value, 'f', -1, 64)
 }
 
 type call struct {
@@ -287,8 +339,20 @@ type call struct {
 	args  []Expr
 }
 
+func (c call) String() string {
+	var args []string
+	for i := range c.args {
+		args = append(args, c.args[i].String())
+	}
+	return fmt.Sprintf("%s(%s)", c.ident.String(), strings.Join(args, ", "))
+}
+
 type identifier struct {
 	name string
+}
+
+func (i identifier) String() string {
+	return i.name
 }
 
 type cellAddr struct {
@@ -299,9 +363,46 @@ type cellAddr struct {
 	absLine bool
 }
 
+func (c cellAddr) String() string {
+	return formatCellAddr(c)
+}
+
 type rangeAddr struct {
 	startAddr cellAddr
 	endAddr   cellAddr
+}
+
+func (c rangeAddr) String() string {
+	return fmt.Sprintf("%s:%s", c.startAddr.String(), c.endAddr.String())
+}
+
+func formatCellAddr(addr cellAddr) string {
+	if addr.column == 0 {
+		return ""
+	}
+	var (
+		column = addr.column
+		result string
+	)
+	for column > 0 {
+		column--
+		result = string(rune('A')+rune(column%26)) + result
+		column /= 26
+	}
+	var parts []string
+	if addr.sheet != "" {
+		parts = append(parts, addr.sheet)
+		parts = append(parts, "!")
+	}
+	if addr.absCols {
+		parts = append(parts, "$")
+	}
+	parts = append(parts, result)
+	if addr.absLine {
+		parts = append(parts, "$")
+	}
+	parts = append(parts, strconv.Itoa(addr.line))
+	return strings.Join(parts, "")
 }
 
 func parseCellAddr(addr string) (cellAddr, error) {

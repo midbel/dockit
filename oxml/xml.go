@@ -10,6 +10,7 @@ const (
 	typeSheetUrl = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"
 	typeDocUrl   = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
 	typeMainUrl  = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+	typeSharedUrl = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings"
 )
 
 const (
@@ -45,10 +46,15 @@ type xmlRelation struct {
 }
 
 type xmlSharedStrings struct {
-	XMLName     xml.Name `xml:"sst"`
-	Xmlns       string   `xml:"xmlns,attr"`
-	Count       int      `xml:"count,attr"`
-	UniqueCount int      `xml:"uniqueCount,attr"`
+	XMLName   xml.Name          `xml:"sst"`
+	Xmlns     string            `xml:"xmlns,attr"`
+	Count     int               `xml:"count,attr"`
+	UniqCount int               `xml:"uniqueCount,attr"`
+	Values    []xmlSharedString `xml:"si"`
+}
+
+type xmlSharedString struct {
+	Value string `xml:"t"`
 }
 
 type xmlRow struct {
