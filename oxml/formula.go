@@ -15,6 +15,7 @@ var ErrZero = errors.New("division by zero")
 
 type Expr interface {
 	fmt.Stringer
+	cloneWithOffset(master, target cellAddr) Expr
 }
 
 type Value interface{}
@@ -302,6 +303,15 @@ func (b binary) String() string {
 	return fmt.Sprintf("%s %s %s", b.left.String(), op, b.right.String())
 }
 
+func (b binary) cloneWithOffset(master, target cellAddr) Expr {
+	x := binary{
+		left:  b.left.cloneWithOffset(master, target),
+		right: b.right.cloneWithOffset(master, target),
+		op:    b.op,
+	}
+	return x
+}
+
 type unary struct {
 	right Expr
 	op    rune
@@ -318,6 +328,14 @@ func (u unary) String() string {
 	return fmt.Sprintf("%s%s", op, u.right.String())
 }
 
+func (u unary) cloneWithOffset(master, target cellAddr) Expr {
+	x := unary{
+		right: u.right.cloneWithOffset(master, target),
+		op:    u.op,
+	}
+	return x
+}
+
 type literal struct {
 	value string
 }
@@ -326,12 +344,20 @@ func (i literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
 
+func (i literal) cloneWithOffset(_, _ cellAddr) Expr {
+	return i
+}
+
 type number struct {
 	value float64
 }
 
 func (n number) String() string {
 	return strconv.FormatFloat(n.value, 'f', -1, 64)
+}
+
+func (n number) cloneWithOffset(_, _ cellAddr) Expr {
+	return n
 }
 
 type call struct {
@@ -347,12 +373,27 @@ func (c call) String() string {
 	return fmt.Sprintf("%s(%s)", c.ident.String(), strings.Join(args, ", "))
 }
 
+func (c call) cloneWithOffset(master, target cellAddr) Expr {
+	x := call{
+		ident: c.ident,
+	}
+	for i := range c.args {
+		a := c.args[i].cloneWithOffset(master, target)
+		x.args = append(x.args, a)
+	}
+	return x
+}
+
 type identifier struct {
 	name string
 }
 
 func (i identifier) String() string {
 	return i.name
+}
+
+func (i identifier) cloneWithOffset(_, _ cellAddr) Expr {
+	return i
 }
 
 type cellAddr struct {
@@ -362,8 +403,19 @@ type cellAddr struct {
 	AbsLine bool
 }
 
-func (c cellAddr) String() string {
-	return formatCellAddr(c)
+func (a cellAddr) String() string {
+	return formatCellAddr(a)
+}
+
+func (a cellAddr) cloneWithOffset(master, target cellAddr) Expr {
+	x := a
+	if !x.AbsLine {
+		x.Line += target.Line - master.Line
+	}
+	if !x.AbsCols {
+		x.Column += target.Column - master.Column
+	}
+	return x
 }
 
 type rangeAddr struct {
@@ -371,8 +423,16 @@ type rangeAddr struct {
 	endAddr   cellAddr
 }
 
-func (c rangeAddr) String() string {
-	return fmt.Sprintf("%s:%s", c.startAddr.String(), c.endAddr.String())
+func (a rangeAddr) String() string {
+	return fmt.Sprintf("%s:%s", a.startAddr.String(), a.endAddr.String())
+}
+
+func (a rangeAddr) cloneWithOffset(master, target cellAddr) Expr {
+	x := rangeAddr{
+		startAddr: a.startAddr.cloneWithOffset(master, target).(cellAddr),
+		endAddr:   a.endAddr.cloneWithOffset(master, target).(cellAddr),
+	}
+	return x
 }
 
 func formatCellAddr(addr cellAddr) string {
