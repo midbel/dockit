@@ -580,6 +580,13 @@ func (f *File) Merge(other *File) error {
 	if f.locked {
 		return ErrLock
 	}
+	for _, s := range other.sharedStrings {
+		ok := slices.Contains(f.sharedStrings, s)
+		if ok {
+			continue
+		}
+		f.sharedStrings = append(f.sharedStrings, s)
+	}
 	for i, s := range other.sheets {
 		s.Index = len(f.sheets) + i + 1
 		s.Id = fmt.Sprintf("rId%d", s.Index)
