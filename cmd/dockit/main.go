@@ -458,17 +458,21 @@ func (c PrintSheetCommand) printSheet(ctx oxml.Context, sheet *oxml.Sheet) error
 			return err
 		}
 	}
+	return sheet.Encode(c)
+}
+
+func (c PrintSheetCommand) EncodeSheet(sheet *oxml.Sheet) error {
 	if c.Width <= 0 {
 		c.Width = 16
 	}
 	for row := range sheet.Iter() {
 		for i, v := range row {
 			if i > 0 {
-				fmt.Print(c.Sep)
+				fmt.Fprint(os.Stdout, c.Sep)
 			}
-			fmt.Printf(" %-*v ", c.Width, v)
+			fmt.Fprintf(os.Stdout, " %-*v ", c.Width, v)
 		}
-		fmt.Println()
+		fmt.Fprintln(os.Stdout)
 	}
 	return nil
 }

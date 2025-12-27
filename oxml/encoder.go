@@ -25,11 +25,15 @@ func EncodeCSV(w io.Writer) Encoder {
 func (e *csvEncoder) EncodeSheet(sheet *Sheet) error {
 	writer := csv.NewWriter(e.writer)
 	writer.Comma = e.comma
-	// for row := range sheet.Iter() {
-	// 	if err := writer.Write(row); err != nil {
-	// 		return err
-	// 	}
-	// }
+	for row := range sheet.Iter() {
+		var fields []string
+		for i := range row {
+			fields = append(fields, valueToString(row[i]))
+		}
+		if err := writer.Write(fields); err != nil {
+			return err
+		}
+	}
 	writer.Flush()
 	return writer.Error()
 }
