@@ -192,12 +192,12 @@ func (z *writer) writeRelationForSheets(file *File) {
 	}
 	if len(file.sharedStrings) > 0 {
 		rx := xmlRelation{
-			Id: z.createFileID(),
-			Type: typeSharedUrl,
+			Id:     z.createFileID(),
+			Type:   typeSharedUrl,
 			Target: "sharedStrings.xml",
 		}
 		root.Relations = append(root.Relations, rx)
-	} 
+	}
 	addr := z.createTarget("_rels", "workbook.xml.rels")
 	z.encodeXML(addr, &root)
 }

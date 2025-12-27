@@ -111,7 +111,7 @@ var builtins = map[string]func([]Value) (Value, error){
 }
 
 type Context interface {
-	At(sheet string, row, col int) (Value, error)
+	At(sheet string, row, col int64) (Value, error)
 }
 
 type fileContext struct {
@@ -124,7 +124,7 @@ func FileContext(file *File) Context {
 	}
 }
 
-func (c fileContext) At(sheet string, row, col int) (Value, error) {
+func (c fileContext) At(sheet string, row, col int64) (Value, error) {
 	if sheet == "" {
 
 	}
@@ -262,7 +262,7 @@ func evalCall(e call, ctx Context) (Value, error) {
 }
 
 func evalCellAddr(e cellAddr, ctx Context) (Value, error) {
-	return ctx.At(e.sheet, e.line, e.column)
+	return ctx.At(e.Sheet, e.Line, e.Column)
 }
 
 type binary struct {
@@ -356,11 +356,10 @@ func (i identifier) String() string {
 }
 
 type cellAddr struct {
-	sheet   string
-	column  int
-	absCols bool
-	line    int
-	absLine bool
+	Position
+	Sheet   string
+	AbsCols bool
+	AbsLine bool
 }
 
 func (c cellAddr) String() string {
@@ -377,11 +376,11 @@ func (c rangeAddr) String() string {
 }
 
 func formatCellAddr(addr cellAddr) string {
-	if addr.column == 0 {
+	if addr.Column == 0 {
 		return ""
 	}
 	var (
-		column = addr.column
+		column = addr.Column
 		result string
 	)
 	for column > 0 {
@@ -390,18 +389,18 @@ func formatCellAddr(addr cellAddr) string {
 		column /= 26
 	}
 	var parts []string
-	if addr.sheet != "" {
-		parts = append(parts, addr.sheet)
+	if addr.Sheet != "" {
+		parts = append(parts, addr.Sheet)
 		parts = append(parts, "!")
 	}
-	if addr.absCols {
+	if addr.AbsCols {
 		parts = append(parts, "$")
 	}
 	parts = append(parts, result)
-	if addr.absLine {
+	if addr.AbsLine {
 		parts = append(parts, "$")
 	}
-	parts = append(parts, strconv.Itoa(addr.line))
+	parts = append(parts, strconv.FormatInt(addr.Line, 10))
 	return strings.Join(parts, "")
 }
 
@@ -410,8 +409,8 @@ func parseCellAddr(addr string) (cellAddr, error) {
 		pos    cellAddr
 		offset int
 	)
-	if addr[offset] == dollar {
-		pos.absCols = true
+	if offset < len(addr) && addr[offset] == dollar {
+		pos.AbsCols = true
 		offset++
 	}
 	for offset < len(addr) && isLetter(rune(addr[offset])) {
@@ -419,15 +418,15 @@ func parseCellAddr(addr string) (cellAddr, error) {
 		if isLower(rune(addr[offset])) {
 			delta = 'a'
 		}
-		pos.column = pos.column*26 + int(addr[offset]-delta+1)
+		pos.Column = pos.Column*26 + int64(addr[offset]-delta+1)
 		offset++
 	}
 	if offset < len(addr) && addr[offset] == dollar {
-		pos.absLine = true
+		pos.AbsLine = true
 		offset++
 	}
 	if offset < len(addr) {
-		pos.line, _ = strconv.Atoi(addr[offset:])
+		pos.Line, _ = strconv.ParseInt(addr[offset:], 10, 64)
 	}
 	return pos, nil
 }
@@ -650,7 +649,7 @@ func (p *Parser) parseAdressOrIdentifier() (Expr, error) {
 	if p.curr.Type == RangeRef {
 		p.next()
 	}
-	a.sheet = sheet
+	a.Sheet = sheet
 	return a, nil
 }
 

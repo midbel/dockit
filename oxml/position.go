@@ -2,7 +2,6 @@ package oxml
 
 import (
 	"fmt"
-	"strconv"
 )
 
 type Dimension struct {
@@ -28,22 +27,11 @@ type Position struct {
 }
 
 func parsePosition(addr string) Position {
-	var (
-		pos    Position
-		offset int
-	)
-	for offset < len(addr) && isLetter(rune(addr[offset])) {
-		delta := byte('A')
-		if isLower(rune(addr[offset])) {
-			delta = 'a'
-		}
-		pos.Column = pos.Column*26 + int64(addr[offset]-delta+1)
-		offset++
+	cell, err := parseCellAddr(addr)
+	if err != nil {
+		return Position{}
 	}
-	if offset < len(addr) {
-		pos.Line, _ = strconv.ParseInt(addr[offset:], 10, 64)
-	}
-	return pos
+	return cell.Position
 }
 
 func (p Position) Equal(other Position) bool {
@@ -51,17 +39,8 @@ func (p Position) Equal(other Position) bool {
 }
 
 func (p Position) Addr() string {
-	if p.Column == 0 {
-		return ""
+	addr := cellAddr{
+		Position: p,
 	}
-	var (
-		column = p.Column
-		result string
-	)
-	for column > 0 {
-		column--
-		result = string(rune('A')+rune(column%26)) + result
-		column /= 26
-	}
-	return fmt.Sprintf("%s%d", result, p.Line)
+	return addr.String()
 }
