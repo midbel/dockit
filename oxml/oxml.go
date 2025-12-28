@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"iter"
 	"slices"
+	"strconv"
 )
 
 const (
@@ -423,6 +424,20 @@ func (s *Sheet) Status() string {
 	return "hidden"
 }
 
+func (s *Sheet) resetSharedIndex(ix map[int]int) {
+	for _, r := range s.Rows {
+		for _, c := range r.Cells {
+			if c.Type != TypeSharedStr {
+				continue
+			}
+			x, _ := strconv.Atoi(c.rawValue)
+			if n, ok := ix[x]; ok {
+				c.rawValue = strconv.Itoa(n)
+			}
+		}
+	}
+}
+
 type File struct {
 	locked   bool
 	date1904 bool
@@ -580,11 +595,13 @@ func (f *File) Merge(other *File) error {
 	if f.locked {
 		return ErrLock
 	}
-	for _, s := range other.sharedStrings {
+	ix := make(map[int]int)
+	for i, s := range other.sharedStrings {
 		ok := slices.Contains(f.sharedStrings, s)
 		if ok {
 			continue
 		}
+		ix[i] = len(f.sharedStrings)
 		f.sharedStrings = append(f.sharedStrings, s)
 	}
 	for i, s := range other.sheets {
@@ -595,6 +612,7 @@ func (f *File) Merge(other *File) error {
 			s.Name = fmt.Sprintf("%s_%03d", s.Name, f.names[s.Name])
 		}
 		f.sheets = append(f.sheets, s)
+		s.resetSharedIndex(ix)
 	}
 	return nil
 }

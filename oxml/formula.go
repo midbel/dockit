@@ -15,7 +15,7 @@ var ErrZero = errors.New("division by zero")
 
 type Expr interface {
 	fmt.Stringer
-	cloneWithOffset(master, target cellAddr) Expr
+	cloneWithOffset(Position) Expr
 }
 
 type Value interface{}
@@ -303,10 +303,10 @@ func (b binary) String() string {
 	return fmt.Sprintf("%s %s %s", b.left.String(), op, b.right.String())
 }
 
-func (b binary) cloneWithOffset(master, target cellAddr) Expr {
+func (b binary) cloneWithOffset(pos Position) Expr {
 	x := binary{
-		left:  b.left.cloneWithOffset(master, target),
-		right: b.right.cloneWithOffset(master, target),
+		left:  b.left.cloneWithOffset(pos),
+		right: b.right.cloneWithOffset(pos),
 		op:    b.op,
 	}
 	return x
@@ -328,9 +328,9 @@ func (u unary) String() string {
 	return fmt.Sprintf("%s%s", op, u.right.String())
 }
 
-func (u unary) cloneWithOffset(master, target cellAddr) Expr {
+func (u unary) cloneWithOffset(pos Position) Expr {
 	x := unary{
-		right: u.right.cloneWithOffset(master, target),
+		right: u.right.cloneWithOffset(pos),
 		op:    u.op,
 	}
 	return x
@@ -344,7 +344,7 @@ func (i literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
 
-func (i literal) cloneWithOffset(_, _ cellAddr) Expr {
+func (i literal) cloneWithOffset(_ Position) Expr {
 	return i
 }
 
@@ -356,7 +356,7 @@ func (n number) String() string {
 	return strconv.FormatFloat(n.value, 'f', -1, 64)
 }
 
-func (n number) cloneWithOffset(_, _ cellAddr) Expr {
+func (n number) cloneWithOffset(_ Position) Expr {
 	return n
 }
 
@@ -373,12 +373,12 @@ func (c call) String() string {
 	return fmt.Sprintf("%s(%s)", c.ident.String(), strings.Join(args, ", "))
 }
 
-func (c call) cloneWithOffset(master, target cellAddr) Expr {
+func (c call) cloneWithOffset(pos Position) Expr {
 	x := call{
 		ident: c.ident,
 	}
 	for i := range c.args {
-		a := c.args[i].cloneWithOffset(master, target)
+		a := c.args[i].cloneWithOffset(pos)
 		x.args = append(x.args, a)
 	}
 	return x
@@ -392,7 +392,7 @@ func (i identifier) String() string {
 	return i.name
 }
 
-func (i identifier) cloneWithOffset(_, _ cellAddr) Expr {
+func (i identifier) cloneWithOffset(_ Position) Expr {
 	return i
 }
 
@@ -407,13 +407,13 @@ func (a cellAddr) String() string {
 	return formatCellAddr(a)
 }
 
-func (a cellAddr) cloneWithOffset(master, target cellAddr) Expr {
+func (a cellAddr) cloneWithOffset(pos Position) Expr {
 	x := a
 	if !x.AbsLine {
-		x.Line += target.Line - master.Line
+		x.Line += pos.Line
 	}
 	if !x.AbsCols {
-		x.Column += target.Column - master.Column
+		x.Column += pos.Column
 	}
 	return x
 }
@@ -427,10 +427,10 @@ func (a rangeAddr) String() string {
 	return fmt.Sprintf("%s:%s", a.startAddr.String(), a.endAddr.String())
 }
 
-func (a rangeAddr) cloneWithOffset(master, target cellAddr) Expr {
+func (a rangeAddr) cloneWithOffset(pos Position) Expr {
 	x := rangeAddr{
-		startAddr: a.startAddr.cloneWithOffset(master, target).(cellAddr),
-		endAddr:   a.endAddr.cloneWithOffset(master, target).(cellAddr),
+		startAddr: a.startAddr.cloneWithOffset(pos).(cellAddr),
+		endAddr:   a.endAddr.cloneWithOffset(pos).(cellAddr),
 	}
 	return x
 }
