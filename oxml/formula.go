@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -117,6 +118,7 @@ type Context interface {
 
 type fileContext struct {
 	*File
+	currentSheet *Sheet
 }
 
 func FileContext(file *File) Context {
@@ -126,10 +128,31 @@ func FileContext(file *File) Context {
 }
 
 func (c fileContext) At(sheet string, row, col int64) (Value, error) {
+	var (
+		sh  *Sheet
+		err error
+	)
 	if sheet == "" {
-
+		sh = c.currentSheet
+	} else {
+		sh, err = c.File.Sheet(sheet)
 	}
-	return nil, nil
+	if err != nil {
+		return nil, err
+	}
+	rix := slices.IndexFunc(sh.Rows, func(r *Row) bool {
+		return r.Line == row
+	})
+	if rix < 0 {
+		return nil, nil
+	}
+	cix := slices.IndexFunc(sh.Rows[rix].Cells, func(c *Cell) bool {
+		return c.Line == row && c.Column == col
+	})
+	if cix < 0 {
+		return nil, nil
+	}
+	return sh.Rows[rix].Cells[cix].Get(), nil
 }
 
 func Eval(expr Expr, ctx Context) (Value, error) {

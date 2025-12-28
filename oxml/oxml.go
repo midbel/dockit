@@ -317,6 +317,10 @@ func NewSheet(name string) *Sheet {
 }
 
 func (s *Sheet) Refresh(ctx Context) error {
+	if c, ok := ctx.(fileContext); ok && c.currentSheet == nil {
+		c.currentSheet = s
+		ctx = c
+	}
 	for _, r := range s.Rows {
 		for _, c := range r.Cells {
 			if err := c.Refresh(ctx); err != nil {
@@ -476,10 +480,11 @@ func (f *File) WriteFile(file string) error {
 }
 
 func (f *File) Reload() error {
-	ctx := fileContext{
-		File: f,
-	}
 	for _, s := range f.sheets {
+		ctx := fileContext{
+			File: f,
+			currentSheet: s,
+		}
 		if err := s.Refresh(ctx); err != nil {
 			return err
 		}
