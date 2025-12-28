@@ -337,11 +337,51 @@ func (w *sheetWriter) WriteSheet(sheet *Sheet) error {
 	w.writer.Empty(sax.LocalName("dimension"), []sax.A{
 		createAttr("ref", sheet.Bounding().String()),
 	})
+	if sheet.Protected != 0 {
+		if err := w.writeProtection(sheet); err != nil {
+			return err
+		}
+	}
 	if err := w.writeRows(sheet); err != nil {
 		return err
 	}
 	w.writer.Close(wshName)
 	return w.writer.Flush()
+}
+
+func (w *sheetWriter) writeProtection(sheet *Sheet) error {
+	var attrs []sax.A
+	if sheet.Protected&ProtectedSheet != 0 {
+		attrs = append(attrs, createAttr("sheet", "1"))
+	}
+	if sheet.Protected&ProtectedObjects != 0 {
+		attrs = append(attrs, createAttr("objects", "1"))
+	}
+	if sheet.Protected&ProtectedScenarios != 0 {
+		attrs = append(attrs, createAttr("scenarios", "1"))
+	}
+	if sheet.Protected&ProtectedFormatCells != 0 {
+		attrs = append(attrs, createAttr("formatCells", "1"))
+	}
+	if sheet.Protected&ProtectedFormatColumns != 0 {
+		attrs = append(attrs, createAttr("formatColumns", "1"))
+	}
+	if sheet.Protected&ProtectedDeleteColumns != 0 {
+		attrs = append(attrs, createAttr("deleteColumns", "1"))
+	}
+	if sheet.Protected&ProtectedInsertColumns != 0 {
+		attrs = append(attrs, createAttr("insertColumns", "1"))
+	}
+	if sheet.Protected&ProtectedDeleteRows != 0 {
+		attrs = append(attrs, createAttr("deleteRows", "1"))
+	}
+	if sheet.Protected&ProtectedInsertRows != 0 {
+		attrs = append(attrs, createAttr("insertRows", "1"))
+	}
+	if sheet.Protected&ProtectedSort != 0 {
+		attrs = append(attrs, createAttr("sort", "1"))
+	}
+	return w.writer.Empty(sax.LocalName("sheetProtection"), attrs)
 }
 
 func (w *sheetWriter) writeRows(sheet *Sheet) error {
@@ -351,9 +391,13 @@ func (w *sheetWriter) writeRows(sheet *Sheet) error {
 	)
 	w.writer.Open(dshName, nil)
 	for _, r := range sheet.Rows {
-		w.writer.Open(rowName, []sax.A{
+		attrs := []sax.A{
 			createAttr("r", strconv.FormatInt(r.Line, 10)),
-		})
+		}
+		if r.Hidden {
+			attrs = append(attrs, createAttr("hidden", "1"))
+		}
+		w.writer.Open(rowName, attrs)
 		for _, c := range r.Cells {
 			if err := w.writeCell(c); err != nil {
 				return err

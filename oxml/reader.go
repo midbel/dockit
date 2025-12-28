@@ -227,6 +227,7 @@ func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
 
 func (r *sheetReader) Update() error {
 	r.reader.Element(sax.LocalName("dimension"), r.onDimension)
+	r.reader.Element(sax.LocalName("sheetProtection"), r.onProtection)
 	r.reader.Element(sax.LocalName("row"), r.onRow)
 	r.reader.Element(sax.LocalName("c"), r.onCell)
 	return r.reader.Start()
@@ -332,6 +333,7 @@ func (r *sheetReader) onRow(rs *sax.Reader, el sax.E) error {
 		err error
 	)
 	row.Line, err = strconv.ParseInt(el.GetAttributeValue("r"), 10, 64)
+	row.Hidden = el.GetAttributeValue("hidden") == "1"
 	if err == nil {
 		r.sheet.Rows = append(r.sheet.Rows, &row)
 	}
@@ -347,6 +349,43 @@ func (r *sheetReader) onDimension(rs *sax.Reader, el sax.E) error {
 		)
 		r.sheet.Size.Lines = (end.Line - start.Line) + 1
 		r.sheet.Size.Columns = (end.Column - start.Column) + 1
+	}
+	return nil
+}
+
+func (r *sheetReader) onProtection(rs *sax.Reader, el sax.E) error {
+	if el.GetAttributeValue("sheet") == "1" {
+		r.sheet.Protected |= ProtectedSheet
+	}
+	if el.GetAttributeValue("objects") == "1" {
+		r.sheet.Protected |= ProtectedObjects
+	}
+	if el.GetAttributeValue("scenarios") == "1" {
+		r.sheet.Protected |= ProtectedScenarios
+	}
+	if el.GetAttributeValue("formatCells") == "1" {
+		r.sheet.Protected |= ProtectedFormatCells
+	}
+	if el.GetAttributeValue("formatColumns") == "1" {
+		r.sheet.Protected |= ProtectedFormatColumns
+	}
+	if el.GetAttributeValue("formatRows") == "1" {
+		r.sheet.Protected |= ProtectedFormatRows
+	}
+	if el.GetAttributeValue("deleteColumns") == "1" {
+		r.sheet.Protected |= ProtectedDeleteColumns
+	}
+	if el.GetAttributeValue("deleteRows") == "1" {
+		r.sheet.Protected |= ProtectedDeleteRows
+	}
+	if el.GetAttributeValue("insertColumns") == "1" {
+		r.sheet.Protected |= ProtectedInsertColumns
+	}
+	if el.GetAttributeValue("insertRows") == "1" {
+		r.sheet.Protected |= ProtectedInsertRows
+	}
+	if el.GetAttributeValue("sort") == "1" {
+		r.sheet.Protected |= ProtectedSort
 	}
 	return nil
 }

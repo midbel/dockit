@@ -380,10 +380,13 @@ func (c MoveSheetCommand) Run(args []string) error {
 	return nil
 }
 
-type LockFileCommand struct{}
+type LockFileCommand struct {
+	OutFile string
+}
 
 func (c LockFileCommand) Run(args []string) error {
 	set := cli.NewFlagSet("lock")
+	set.StringVar(&c.OutFile, "o", "", "write result to output file")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -396,13 +399,19 @@ func (c LockFileCommand) Run(args []string) error {
 			return err
 		}
 	}
-	return nil
+	if c.OutFile == "" {
+		c.OutFile = set.Arg(0)
+	}
+	return f.WriteFile(c.OutFile)
 }
 
-type UnlockFileCommand struct{}
+type UnlockFileCommand struct {
+	OutFile string
+}
 
 func (c UnlockFileCommand) Run(args []string) error {
 	set := cli.NewFlagSet("unlock")
+	set.StringVar(&c.OutFile, "o", "", "write result to output file")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -415,7 +424,10 @@ func (c UnlockFileCommand) Run(args []string) error {
 			return err
 		}
 	}
-	return nil
+	if c.OutFile == "" {
+		c.OutFile = set.Arg(0)
+	}
+	return f.WriteFile(c.OutFile)
 }
 
 type PrintSheetCommand struct {

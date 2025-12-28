@@ -88,7 +88,7 @@ func (c *Cell) Refresh(ctx Context) error {
 
 type Row struct {
 	Line   int64
-	Hidden int
+	Hidden bool
 	Cells  []*Cell
 }
 
@@ -187,111 +187,6 @@ func (p SheetProtection) ColumnsLocked() bool {
 		return true
 	}
 	return p&ProtectedDeleteColumns > 0 || p&ProtectedInsertColumns > 0
-}
-
-func (p SheetProtection) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
-	if p == 0 {
-		return nil
-	}
-	el := struct {
-		XMLName     xml.Name `xml:"sheetProtection"`
-		Sheet       any      `xml:"sheet,attr,omitempty"`
-		Objects     any      `xml:"objects,attr,omitempty"`
-		Scenarios   any      `xml:"scenarios,attr,omitempty"`
-		FormatCells any      `xml:"formatCells,attr,omitempty"`
-		DeleteCols  any      `xml:"deleteColumns,attr,omitempty"`
-		InsertCols  any      `xml:"insertColumns,attr,omitempty"`
-		FormatCols  any      `xml:"formatColumns,attr,omitempty"`
-		DeleteRows  any      `xml:"deleteColumns,attr,omitempty"`
-		InsertRows  any      `xml:"insertColumns,attr,omitempty"`
-		FormatRows  any      `xml:"formatRows,attr,omitempty"`
-		Sort        any      `xml:"sort,attr,omitempty"`
-	}{}
-	if p&ProtectedSheet != 0 {
-		el.Sheet = 1
-	}
-	if p&ProtectedObjects != 0 {
-		el.Objects = 1
-	}
-	if p&ProtectedScenarios != 0 {
-		el.Scenarios = 1
-	}
-	if p&ProtectedFormatCells != 0 {
-		el.FormatCells = 1
-	}
-	if p&ProtectedFormatColumns != 0 {
-		el.FormatCols = 1
-	}
-	if p&ProtectedDeleteColumns != 0 {
-		el.DeleteCols = 1
-	}
-	if p&ProtectedInsertColumns != 0 {
-		el.InsertCols = 1
-	}
-	if p&ProtectedDeleteRows != 0 {
-		el.DeleteRows = 1
-	}
-	if p&ProtectedInsertRows != 0 {
-		el.InsertRows = 1
-	}
-	if p&ProtectedSort != 0 {
-		el.Sort = 1
-	}
-	return encoder.EncodeElement(&el, start)
-}
-
-func (p *SheetProtection) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
-	el := struct {
-		XMLName     xml.Name `xml:"sheetProtection"`
-		Sheet       any      `xml:"sheet,attr,omitempty"`
-		Objects     any      `xml:"objects,attr,omitempty"`
-		Scenarios   any      `xml:"scenarios,attr,omitempty"`
-		FormatCells any      `xml:"formatCells,attr,omitempty"`
-		DeleteCols  any      `xml:"deleteColumns,attr,omitempty"`
-		InsertCols  any      `xml:"insertColumns,attr,omitempty"`
-		FormatCols  any      `xml:"formatColumns,attr,omitempty"`
-		DeleteRows  any      `xml:"deleteColumns,attr,omitempty"`
-		InsertRows  any      `xml:"insertColumns,attr,omitempty"`
-		FormatRows  any      `xml:"formatRows,attr,omitempty"`
-		Sort        any      `xml:"sort,attr,omitempty"`
-	}{}
-	if err := decoder.DecodeElement(&el, &start); err != nil {
-		return err
-	}
-	if el.Sheet == 1 {
-		(*p) |= ProtectedSheet
-	}
-	if el.Objects == 1 {
-		(*p) |= ProtectedObjects
-	}
-	if el.Scenarios == 1 {
-		(*p) |= ProtectedScenarios
-	}
-	if el.FormatCells == 1 {
-		(*p) |= ProtectedFormatCells
-	}
-	if el.DeleteCols == 1 {
-		(*p) |= ProtectedDeleteColumns
-	}
-	if el.InsertCols == 1 {
-		(*p) |= ProtectedInsertColumns
-	}
-	if el.FormatCols == 1 {
-		(*p) |= ProtectedFormatColumns
-	}
-	if el.DeleteRows == 1 {
-		(*p) |= ProtectedDeleteRows
-	}
-	if el.InsertRows == 1 {
-		(*p) |= ProtectedInsertRows
-	}
-	if el.FormatRows == 1 {
-		(*p) |= ProtectedFormatRows
-	}
-	if el.Sort == 1 {
-		(*p) |= ProtectedSort
-	}
-	return nil
 }
 
 type Sheet struct {
@@ -408,6 +303,7 @@ func (s *Sheet) Encode(e Encoder) error {
 
 func (s *Sheet) Lock() {
 	s.Protected = ProtectedAll - 1
+	fmt.Println("lock", s.Name, s.Protected)
 }
 
 func (s *Sheet) Unlock() {
@@ -500,6 +396,10 @@ func (f *File) Reload() error {
 		}
 	}
 	return nil
+}
+
+func (f *File) ActiveSheet() (*Sheet, error) {
+	return nil, nil
 }
 
 func (f *File) Sheet(name string) (*Sheet, error) {
