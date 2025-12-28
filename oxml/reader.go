@@ -203,11 +203,16 @@ func (r *reader) invalid() bool {
 	return r.err != nil
 }
 
+type sharedFormula struct {
+	Position
+	Expr
+}
+
 type sheetReader struct {
 	reader         *sax.Reader
 	sheet          *Sheet
 	sharedStrings  []string
-	sharedFormulas map[string]Expr
+	sharedFormulas map[string]sharedFormula
 }
 
 func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
@@ -215,7 +220,7 @@ func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
 		reader:         sax.NewReader(r),
 		sheet:          sheet,
 		sharedStrings:  shared,
-		sharedFormulas: make(map[string]Expr),
+		sharedFormulas: make(map[string]sharedFormula),
 	}
 	return &rs
 }
@@ -264,8 +269,12 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		shared = el.GetAttributeValue("t")
 		index  = el.GetAttributeValue("si")
 	)
-	if _, ok := r.sharedFormulas[index]; shared == "shared" && ok {
-		cell.Formula = r.sharedFormulas[index]
+	if sf, ok := r.sharedFormulas[index]; shared == "shared" && ok {
+		pos := Position{
+			Line:   cell.Line - sf.Line,
+			Column: cell.Column - sf.Column,
+		}
+		cell.Formula = sf.Expr.cloneWithOffset(pos)
 	}
 	if el.SelfClosed {
 		return nil
@@ -276,7 +285,10 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 			return err
 		}
 		if _, ok := r.sharedFormulas[index]; shared == "shared" && !ok {
-			r.sharedFormulas[index] = formula
+			r.sharedFormulas[index] = sharedFormula{
+				Position: cell.Position,
+				Expr:     formula,
+			}
 		}
 		if cell.Formula == nil {
 			cell.Formula = formula
