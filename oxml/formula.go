@@ -112,7 +112,8 @@ var builtins = map[string]func([]Value) (Value, error){
 }
 
 type Context interface {
-	At(sheet string, row, col int64) (Value, error)
+	At(string, Position) (Value, error)
+	Range(string, Position, Position) ([]Value, error)
 }
 
 type sheetContext struct {
@@ -127,11 +128,15 @@ func SheetContext(parent Context, sheet *Sheet) Context {
 	}
 }
 
-func (c sheetContext) At(sheet string, row, col int64) (Value, error) {
+func (c sheetContext) Range(sheet string, start, end Position) ([]Value, error) {
+	return nil, nil
+}
+
+func (c sheetContext) At(sheet string, pos Position) (Value, error) {
 	if sheet == "" || sheet == c.currentSheet.Name {
-		return c.currentSheet.At(row, col)
+		return c.currentSheet.At(pos.Line, pos.Column)
 	}
-	return c.parent.At(sheet, row, col)
+	return c.parent.At(sheet, pos)
 }
 
 type fileContext struct {
@@ -144,20 +149,34 @@ func FileContext(file *File) Context {
 	}
 }
 
-func (c fileContext) At(sheet string, row, col int64) (Value, error) {
-	var (
-		sh *Sheet
-		err error
-	)
-	if sheet == "" {
-		sh, err = c.File.ActiveSheet()
-	} else {
-		sh, err = c.File.Sheet(sheet)
-	}
+func (c fileContext) Range(sheet string, start, end Position) ([]Value, error) {
+	sh, err := c.sheet(sheet)
 	if err != nil {
 		return nil, err
 	}
-	return sh.At(row, col)
+	_ = sh
+	return nil, nil
+}
+
+func (c fileContext) At(sheet string, pos Position) (Value, error) {
+	sh, err := c.sheet(sheet)
+	if err != nil {
+		return nil, err
+	}
+	return sh.At(pos.Line, pos.Column)
+}
+
+func (c fileContext) sheet(name string) (*Sheet, error) {
+	var (
+		sh  *Sheet
+		err error
+	)
+	if name == "" {
+		sh, err = c.File.ActiveSheet()
+	} else {
+		sh, err = c.File.Sheet(name)
+	}
+	return sh, err
 }
 
 func Eval(expr Expr, ctx Context) (Value, error) {
@@ -291,7 +310,7 @@ func evalCall(e call, ctx Context) (Value, error) {
 }
 
 func evalCellAddr(e cellAddr, ctx Context) (Value, error) {
-	return ctx.At(e.Sheet, e.Line, e.Column)
+	return ctx.At(e.Sheet, e.Position)
 }
 
 type binary struct {
