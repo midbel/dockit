@@ -303,7 +303,6 @@ func (s *Sheet) Encode(e Encoder) error {
 
 func (s *Sheet) Lock() {
 	s.Protected = ProtectedAll - 1
-	fmt.Println("lock", s.Name, s.Protected)
 }
 
 func (s *Sheet) Unlock() {
