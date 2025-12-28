@@ -136,7 +136,6 @@ func (c sheetContext) At(sheet string, row, col int64) (Value, error) {
 
 type fileContext struct {
 	*File
-	currentSheet *Sheet
 }
 
 func FileContext(file *File) Context {
@@ -146,7 +145,15 @@ func FileContext(file *File) Context {
 }
 
 func (c fileContext) At(sheet string, row, col int64) (Value, error) {
-	sh, err := c.File.Sheet(sheet)
+	var (
+		sh *Sheet
+		err error
+	)
+	if sheet == "" {
+		sh, err = c.File.ActiveSheet()
+	} else {
+		sh, err = c.File.Sheet(sheet)
+	}
 	if err != nil {
 		return nil, err
 	}
