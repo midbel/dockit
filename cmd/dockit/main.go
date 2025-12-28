@@ -673,18 +673,24 @@ func (c GetInfoCommand) Run(args []string) error {
 	}
 	var (
 		sheets  = f.Sheets()
-		pattern = "%d %s(%s): %d lines, %d columns - %s"
+		pattern = "%d %s%s(%s): %d lines, %d columns - %s"
 	)
 	for _, s := range sheets {
 		var (
+			active string
 			state  = s.Status()
 			locked = "unlocked"
 		)
+		if s.Active {
+			active = "*"
+		} else {
+			active = " "
+		}
 		if s.IsLock() {
 			locked = "locked"
 		}
 
-		fmt.Fprintf(os.Stdout, pattern, s.Index, s.Name, state, s.Size.Lines, s.Size.Columns, locked)
+		fmt.Fprintf(os.Stdout, pattern, s.Index, active, s.Name, state, s.Size.Lines, s.Size.Columns, locked)
 		fmt.Fprintln(os.Stdout)
 	}
 	return nil

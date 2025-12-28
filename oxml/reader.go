@@ -79,20 +79,20 @@ func (r *reader) readWorkbook(file *File) {
 	if r.invalid() {
 		return
 	}
-	root := struct {
-		XMLName xml.Name   `xml:"workbook"`
-		Sheets  []xmlSheet `xml:"sheets>sheet"`
-	}{}
+	var root xmlWorkbook
 	if err := r.decodeXML(addr, &root); err != nil {
 		return
 	}
-	for _, xs := range root.Sheets {
+	for i, xs := range root.Sheets {
 		s := Sheet{
 			Id:    xs.Id,
 			Name:  xs.Name,
 			Index: xs.Index,
 			State: xs.State,
 			Size:  new(Dimension),
+		}
+		if i == root.View.ActiveTab {
+			s.Active = true
 		}
 		if s.State == 0 {
 			s.State = StateVisible

@@ -22,7 +22,16 @@ const (
 	mimeSharedString = "application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"
 )
 
-type xmlWorkbook struct{}
+type xmlWorkbook struct {
+	XMLName xml.Name        `xml:"workbook"`
+	Sheets  []xmlSheet      `xml:"sheets>sheet"`
+	View    xmlWorkbookView `xml:"bookViews>workbookView"`
+}
+
+type xmlWorkbookView struct {
+	ActiveTab  int `xml:"activeTab,attr"`
+	FirstSheet int `xml:"firstSheet,attr"`
+}
 
 type xmlSheet struct {
 	XMLName xml.Name   `xml:"sheet"`

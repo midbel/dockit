@@ -398,7 +398,16 @@ func (f *File) Reload() error {
 }
 
 func (f *File) ActiveSheet() (*Sheet, error) {
-	return nil, nil
+	if len(f.sheets) == 1 {
+		return f.sheets[0], nil
+	}
+	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
+		return s.Active == true
+	})
+	if ix < 0 {
+		return nil, fmt.Errorf("missing active sheet")
+	}
+	return f.sheets[ix], nil
 }
 
 func (f *File) Sheet(name string) (*Sheet, error) {
