@@ -11,14 +11,62 @@ import (
 	"unicode/utf8"
 )
 
-var ErrZero = errors.New("division by zero")
+var (
+	ErrZero   = errors.New("division by zero")
+	ErrScalar = errors.New("value is not scalar")
+)
 
 type Expr interface {
 	fmt.Stringer
 	cloneWithOffset(Position) Expr
 }
 
-type Value interface{}
+type Value interface {
+	// Scalar() bool
+	// Float64() (float64, error)
+	// String() (string, error)
+	// Bool() (bool, error)
+}
+
+type scalarValue struct {
+	value any
+}
+
+func (scalarValue) Scalar() bool {
+	return true
+}
+
+func (s scalarValue) Float64() (float64, error) {
+	return 0, nil
+}
+
+func (s scalarValue) String() (string, error) {
+	return "", nil
+}
+
+func (s scalarValue) Bool() (bool, error) {
+	return false, nil
+}
+
+type rangeValue struct {
+	values []any
+}
+
+func (rangeValue) Scalar() bool {
+	return false
+}
+
+func (rangeValue) Float64() (float64, error) {
+	return 0, ErrScalar
+}
+
+func (rangeValue) String() (string, error) {
+	return "", ErrScalar
+}
+
+func (rangeValue) Bool() (bool, error) {
+	return false, ErrScalar
+}
 
 func valueToScalar(value Value) any {
 	switch v := value.(type) {
@@ -194,7 +242,7 @@ func Eval(expr Expr, ctx Context) (Value, error) {
 	case cellAddr:
 		return evalCellAddr(e, ctx)
 	case rangeAddr:
-		return nil, nil
+		return evalRangeAddr(e, ctx)
 	default:
 		return nil, fmt.Errorf("unuspported expression type: %T", expr)
 	}
@@ -311,6 +359,11 @@ func evalCall(e call, ctx Context) (Value, error) {
 
 func evalCellAddr(e cellAddr, ctx Context) (Value, error) {
 	return ctx.At(e.Sheet, e.Position)
+}
+
+func evalRangeAddr(e rangeAddr, ctx Context) (Value, error) {
+	_, err := ctx.Range(e.startAddr.Sheet, e.startAddr.Position, e.endAddr.Position)
+	return nil, err
 }
 
 type binary struct {
