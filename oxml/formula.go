@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -116,6 +115,25 @@ type Context interface {
 	At(sheet string, row, col int64) (Value, error)
 }
 
+type sheetContext struct {
+	currentSheet *Sheet
+	parent       Context
+}
+
+func SheetContext(parent Context, sheet *Sheet) Context {
+	return sheetContext{
+		parent:       parent,
+		currentSheet: sheet,
+	}
+}
+
+func (c sheetContext) At(sheet string, row, col int64) (Value, error) {
+	if sheet == "" || sheet == c.currentSheet.Name {
+		return c.currentSheet.At(row, col)
+	}
+	return c.parent.At(sheet, row, col)
+}
+
 type fileContext struct {
 	*File
 	currentSheet *Sheet
@@ -128,31 +146,11 @@ func FileContext(file *File) Context {
 }
 
 func (c fileContext) At(sheet string, row, col int64) (Value, error) {
-	var (
-		sh  *Sheet
-		err error
-	)
-	if sheet == "" {
-		sh = c.currentSheet
-	} else {
-		sh, err = c.File.Sheet(sheet)
-	}
+	sh, err := c.File.Sheet(sheet)
 	if err != nil {
 		return nil, err
 	}
-	rix := slices.IndexFunc(sh.Rows, func(r *Row) bool {
-		return r.Line == row
-	})
-	if rix < 0 {
-		return nil, nil
-	}
-	cix := slices.IndexFunc(sh.Rows[rix].Cells, func(c *Cell) bool {
-		return c.Line == row && c.Column == col
-	})
-	if cix < 0 {
-		return nil, nil
-	}
-	return sh.Rows[rix].Cells[cix].Get(), nil
+	return sh.At(row, col)
 }
 
 func Eval(expr Expr, ctx Context) (Value, error) {

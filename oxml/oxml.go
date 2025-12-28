@@ -317,10 +317,7 @@ func NewSheet(name string) *Sheet {
 }
 
 func (s *Sheet) Refresh(ctx Context) error {
-	if c, ok := ctx.(fileContext); ok && c.currentSheet == nil {
-		c.currentSheet = s
-		ctx = c
-	}
+	ctx = SheetContext(ctx, s)
 	for _, r := range s.Rows {
 		for _, c := range r.Cells {
 			if err := c.Refresh(ctx); err != nil {
@@ -428,6 +425,22 @@ func (s *Sheet) Status() string {
 	return "hidden"
 }
 
+func (s *Sheet) At(row, col int64) (Value, error) {
+	rix := slices.IndexFunc(s.Rows, func(r *Row) bool {
+		return r.Line == row
+	})
+	if rix < 0 {
+		return nil, nil
+	}
+	cix := slices.IndexFunc(s.Rows[rix].Cells, func(c *Cell) bool {
+		return c.Line == row && c.Column == col
+	})
+	if cix < 0 {
+		return nil, nil
+	}
+	return s.Rows[rix].Cells[cix].Get(), nil
+}
+
 func (s *Sheet) resetSharedIndex(ix map[int]int) {
 	for _, r := range s.Rows {
 		for _, c := range r.Cells {
@@ -480,12 +493,9 @@ func (f *File) WriteFile(file string) error {
 }
 
 func (f *File) Reload() error {
+	ctx := FileContext(f)
 	for _, s := range f.sheets {
-		ctx := fileContext{
-			File: f,
-			currentSheet: s,
-		}
-		if err := s.Refresh(ctx); err != nil {
+		if err := s.Refresh(SheetContext(ctx, s)); err != nil {
 			return err
 		}
 	}
