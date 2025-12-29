@@ -499,11 +499,13 @@ func (c PrintSheetCommand) EncodeSheet(sheet *oxml.Sheet) error {
 
 type CreateFileCommand struct {
 	OutFile string
+	Sep     string
 }
 
 func (c CreateFileCommand) Run(args []string) error {
 	set := cli.NewFlagSet("new")
 	set.StringVar(&c.OutFile, "o", "", "write result to output file")
+	set.StringVar(&c.Sep, "s", "", "fields separator")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -518,7 +520,7 @@ func (c CreateFileCommand) Run(args []string) error {
 		if ok, err := isZip(a); ok || err != nil {
 			continue
 		}
-		if err := mergeCSV(file, a); err != nil {
+		if err := mergeCSV(file, a, c.Sep); err != nil {
 			return err
 		}
 	}
@@ -582,8 +584,7 @@ func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
 	}
 	ext = fmt.Sprintf(".%s", c.Format)
 
-	out := filepath.Join(c.OutDir, sh.Name+ext)
-	w, err := os.Create(out)
+	w, err := os.Create(filepath.Join(c.OutDir, sh.Name+ext))
 	if err != nil {
 		return err
 	}
@@ -594,11 +595,13 @@ func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
 
 type MergeFilesCommand struct {
 	OutFile string
+	Sep     string
 }
 
 func (c MergeFilesCommand) Run(args []string) error {
 	set := cli.NewFlagSet("merge")
 	set.StringVar(&c.OutFile, "o", "", "write result to output file")
+	set.StringVar(&c.Sep, "s", "", "csv field separator")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -617,7 +620,7 @@ func (c MergeFilesCommand) Run(args []string) error {
 		if isZip {
 			err = mergeFile(f, set.Arg(i))
 		} else {
-			err = mergeCSV(f, set.Arg(i))
+			err = mergeCSV(f, set.Arg(i), c.Sep)
 		}
 		if err != nil {
 			return err
@@ -626,7 +629,7 @@ func (c MergeFilesCommand) Run(args []string) error {
 	return f.WriteFile(c.OutFile)
 }
 
-func mergeCSV(f *oxml.File, file string) error {
+func mergeCSV(f *oxml.File, file, sep string) error {
 	r, err := os.Open(file)
 	if err != nil {
 		return err
@@ -639,6 +642,10 @@ func mergeCSV(f *oxml.File, file string) error {
 	sheet := oxml.NewSheet(name)
 
 	rs := csv.NewReader(r)
+	if rs.Comma, err = csvSeparator(sep); err != nil {
+		return err
+	}
+
 	for {
 		row, err := rs.Read()
 		if err != nil {
@@ -719,4 +726,21 @@ func isZip(file string) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func csvSeparator(str string) (byte, error) {
+	var comma byte
+	switch str {
+	case "semi", "semicolon", ";":
+		comma = ';'
+	case "comma", ",", "":
+		comma = ','
+	case "tab", "\t":
+		comma = '\t'
+	case "colon", ":":
+		comma = ':'
+	default:
+		return 0, fmt.Errorf("unsupported separator")
+	}
+	return comma, nil
 }

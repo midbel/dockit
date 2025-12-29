@@ -410,6 +410,33 @@ func (w *sheetWriter) writeRows(sheet *Sheet) error {
 }
 
 func (w *sheetWriter) writeCell(cell *Cell) error {
+	if cell.Type == TypeInlineStr {
+		return w.writeInlineStrCell(cell)
+	}
+	return w.writeDefaultCell(cell)
+}
+
+func (w *sheetWriter) writeInlineStrCell(cell *Cell) error {
+	var (
+		cellName = sax.LocalName("c")
+		isName   = sax.LocalName("is")
+		valName  = sax.LocalName("t")
+	)
+	attrs := []sax.A{
+		createAttr("r", cell.Position.Addr()),
+		createAttr("t", cell.Type),
+	}
+	w.writer.Open(cellName, attrs)
+	w.writer.Open(isName, nil)
+	w.writer.Open(valName, nil)
+	w.writer.Text(cell.rawValue)
+	w.writer.Close(valName)
+	w.writer.Close(isName)
+	w.writer.Close(cellName)
+	return nil
+}
+
+func (w *sheetWriter) writeDefaultCell(cell *Cell) error {
 	var (
 		cellName = sax.LocalName("c")
 		valName  = sax.LocalName("v")

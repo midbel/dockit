@@ -7,6 +7,8 @@ import (
 	"iter"
 	"slices"
 	"strconv"
+	"strings"
+	"unicode"
 )
 
 const (
@@ -202,6 +204,7 @@ type Sheet struct {
 }
 
 func NewSheet(name string) *Sheet {
+	name = cleanSheetName(name)
 	s := Sheet{
 		Name:   name,
 		Active: false,
@@ -464,7 +467,7 @@ func (f *File) Rename(oldName, newName string) error {
 	if err := f.Remove(oldName); err != nil {
 		return err
 	}
-	sh.Name = newName
+	sh.Name = cleanSheetName(newName)
 	return f.AppendSheet(sh)
 }
 
@@ -503,6 +506,7 @@ func (f *File) AppendSheet(sheet *Sheet) error {
 	if f.locked {
 		return ErrLock
 	}
+	sheet.Name = cleanSheetName(sheet.Name)
 	if n, ok := f.names[sheet.Name]; ok {
 		f.names[sheet.Name] = n + 1
 		sheet.Name = fmt.Sprintf("%s_%03d", sheet.Name, f.names[sheet.Name])
@@ -530,6 +534,8 @@ func (f *File) Merge(other *File) error {
 	for i, s := range other.sheets {
 		s.Index = len(f.sheets) + i + 1
 		s.Id = fmt.Sprintf("rId%d", s.Index)
+
+		s.Name = cleanSheetName(s.Name)
 		if n, ok := f.names[s.Name]; ok {
 			f.names[s.Name] = n + 1
 			s.Name = fmt.Sprintf("%s_%03d", s.Name, f.names[s.Name])
@@ -538,4 +544,13 @@ func (f *File) Merge(other *File) error {
 		s.resetSharedIndex(ix)
 	}
 	return nil
+}
+
+func cleanSheetName(str string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' {
+			return r
+		}
+		return -1
+	}, str)
 }
