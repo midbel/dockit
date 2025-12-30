@@ -307,15 +307,21 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 	var (
 		kind  = el.GetAttributeValue("t")
 		index = el.GetAttributeValue("r")
+		local sax.QName
 		pos   = len(r.sheet.Rows) - 1
 		cell  = &Cell{
 			Position: parsePosition(index),
 			Type:     kind,
 		}
 	)
+	if kind == TypeInlineStr {
+		local = sax.LocalName("is")
+	} else {
+		local = sax.LocalName("v")
+	}
 	r.sheet.Rows[pos].Cells = append(r.sheet.Rows[pos].Cells, cell)
 
-	rs.Element(sax.LocalName("v"), func(rs *sax.Reader, _ sax.E) error {
+	rs.Element(local, func(rs *sax.Reader, _ sax.E) error {
 		rs.OnText(func(_ *sax.Reader, str string) error {
 			return r.parseCellValue(cell, str)
 		})
@@ -349,6 +355,9 @@ func (r *sheetReader) onDimension(rs *sax.Reader, el sax.E) error {
 		)
 		r.sheet.Size.Lines = (end.Line - start.Line) + 1
 		r.sheet.Size.Columns = (end.Column - start.Column) + 1
+	} else {
+		r.sheet.Size.Lines = 1
+		r.sheet.Size.Columns = 1
 	}
 	return nil
 }

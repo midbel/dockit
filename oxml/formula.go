@@ -18,54 +18,11 @@ var (
 
 type Expr interface {
 	fmt.Stringer
+	Depends() []Position
 	cloneWithOffset(Position) Expr
 }
 
 type Value interface {
-	// Scalar() bool
-	// Float64() (float64, error)
-	// String() (string, error)
-	// Bool() (bool, error)
-}
-
-type scalarValue struct {
-	value any
-}
-
-func (scalarValue) Scalar() bool {
-	return true
-}
-
-func (s scalarValue) Float64() (float64, error) {
-	return 0, nil
-}
-
-func (s scalarValue) String() (string, error) {
-	return "", nil
-}
-
-func (s scalarValue) Bool() (bool, error) {
-	return false, nil
-}
-
-type rangeValue struct {
-	values []any
-}
-
-func (rangeValue) Scalar() bool {
-	return false
-}
-
-func (rangeValue) Float64() (float64, error) {
-	return 0, ErrScalar
-}
-
-func (rangeValue) String() (string, error) {
-	return "", ErrScalar
-}
-
-func (rangeValue) Bool() (bool, error) {
-	return false, ErrScalar
 }
 
 func valueToScalar(value Value) any {
@@ -372,6 +329,10 @@ type binary struct {
 	op    rune
 }
 
+func (b binary) Depends() []Position {
+	return slices.Concat(b.left.Depends(), b.right.Depends())
+}
+
 func (b binary) String() string {
 	var op string
 	switch b.op {
@@ -417,6 +378,10 @@ type unary struct {
 	op    rune
 }
 
+func (u unary) Depends() []Position {
+	return u.right.Depends()
+}
+
 func (u unary) String() string {
 	var op string
 	switch u.op {
@@ -440,6 +405,10 @@ type literal struct {
 	value string
 }
 
+func (literal) Depends() []Position {
+	return nil
+}
+
 func (i literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
@@ -450,6 +419,10 @@ func (i literal) cloneWithOffset(_ Position) Expr {
 
 type number struct {
 	value float64
+}
+
+func (number) Depends() []Position {
+	return nil
 }
 
 func (n number) String() string {
@@ -463,6 +436,14 @@ func (n number) cloneWithOffset(_ Position) Expr {
 type call struct {
 	ident Expr
 	args  []Expr
+}
+
+func (c call) Depends() []Position {
+	var list []Position
+	for _, a := range c.args {
+		list = slices.Concat(list, a.Depends())
+	}
+	return list
 }
 
 func (c call) String() string {
@@ -488,6 +469,10 @@ type identifier struct {
 	name string
 }
 
+func (identifier) Depends() []Position {
+	return nil
+}
+
 func (i identifier) String() string {
 	return i.name
 }
@@ -501,6 +486,10 @@ type cellAddr struct {
 	Sheet   string
 	AbsCols bool
 	AbsLine bool
+}
+
+func (a cellAddr) Depends() []Position {
+	return []Position{a.Position}
 }
 
 func (a cellAddr) String() string {
@@ -521,6 +510,20 @@ func (a cellAddr) cloneWithOffset(pos Position) Expr {
 type rangeAddr struct {
 	startAddr cellAddr
 	endAddr   cellAddr
+}
+
+func (a rangeAddr) Depends() []Position {
+	var list []Position
+	for i := a.startAddr.Line; i <= a.endAddr.Line; i++ {
+		for j := a.startAddr.Column; j < a.endAddr.Column; j++ {
+			p := Position{
+				Line: i,
+				Column: j,
+			}
+			list = append(list, p)
+		}
+	}
+	return list
 }
 
 func (a rangeAddr) String() string {

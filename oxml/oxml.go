@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -227,16 +228,51 @@ func (s *Sheet) Refresh(ctx Context) error {
 }
 
 func (s *Sheet) Bounding() Bounds {
+	var (
+		minRow int64 = math.MaxInt64
+		maxRow int64
+		minCol int64 = math.MaxInt64
+		maxCol int64
+	)
+	for c := range s.Cells() {
+		minRow = min(minRow, c.Line)
+		maxRow = max(maxRow, c.Line)
+		minCol = min(minCol, c.Column)
+		maxCol = max(maxCol, c.Column)
+	}
 	var bounds Bounds
-	bounds.Start = Position{
-		Line:   1,
-		Column: 1,
+	if maxRow == 0 || maxCol == 0 {
+		pos := Position{
+			Line:   1,
+			Column: 1,
+		}
+		bounds.Start = pos
+		bounds.End = pos
+	} else {
+		bounds.Start = Position{
+			Line:   minRow,
+			Column: minCol,
+		}
+		bounds.End = Position{
+			Line:   maxRow,
+			Column: maxCol,
+		}
 	}
-	bounds.End = Position{
-		Line:   s.Size.Lines,
-		Column: s.Size.Columns,
-	}
+	fmt.Println(bounds.Start.Addr(), bounds.End.Addr())
 	return bounds
+}
+
+func (s *Sheet) Cells() iter.Seq[*Cell] {
+	it := func(yield func(*Cell) bool) {
+		for _, r := range s.Rows {
+			for _, c := range r.Cells {
+				if !yield(c) {
+					return
+				}
+			}
+		}
+	}
+	return it
 }
 
 func (s *Sheet) Iter() iter.Seq[[]any] {
