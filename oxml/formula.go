@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -139,9 +141,9 @@ func (c sheetContext) Range(sheet string, start, end Position) ([]Value, error) 
 
 func (c sheetContext) At(sheet string, pos Position) (Value, error) {
 	if sheet == "" || sheet == c.currentSheet.Name {
-		return c.currentSheet.At(pos.Line, pos.Column)
+		return nil, nil
 	}
-	return c.parent.At(sheet, pos)
+	return nil, nil
 }
 
 type fileContext struct {
@@ -168,7 +170,8 @@ func (c fileContext) At(sheet string, pos Position) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return sh.At(pos.Line, pos.Column)
+	_ = sh
+	return nil, nil
 }
 
 func (c fileContext) sheet(name string) (*Sheet, error) {
@@ -323,6 +326,19 @@ func evalRangeAddr(e rangeAddr, ctx Context) (Value, error) {
 	return nil, err
 }
 
+func mergeDepends(deps ...[]Position) []Position {
+	all := make(map[Position]struct{})
+	for _, list := range deps {
+		for _, p := range list {
+			if _, ok := all[p]; ok {
+				continue
+			}
+			all[p] = struct{}{}
+		}
+	}
+	return slices.Collect(maps.Keys(all))
+}
+
 type binary struct {
 	left  Expr
 	right Expr
@@ -330,7 +346,7 @@ type binary struct {
 }
 
 func (b binary) Depends() []Position {
-	return slices.Concat(b.left.Depends(), b.right.Depends())
+	return mergeDepends(b.left.Depends(), b.right.Depends())
 }
 
 func (b binary) String() string {
@@ -439,11 +455,11 @@ type call struct {
 }
 
 func (c call) Depends() []Position {
-	var list []Position
+	var list [][]Position
 	for _, a := range c.args {
-		list = slices.Concat(list, a.Depends())
+		list = append(list, a.Depends())
 	}
-	return list
+	return mergeDepends(list...)
 }
 
 func (c call) String() string {
@@ -517,13 +533,13 @@ func (a rangeAddr) Depends() []Position {
 	for i := a.startAddr.Line; i <= a.endAddr.Line; i++ {
 		for j := a.startAddr.Column; j < a.endAddr.Column; j++ {
 			p := Position{
-				Line: i,
+				Line:   i,
 				Column: j,
 			}
 			list = append(list, p)
 		}
 	}
-	return list
+	return mergeDepends(list)
 }
 
 func (a rangeAddr) String() string {

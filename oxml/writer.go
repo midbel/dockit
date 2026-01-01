@@ -390,7 +390,7 @@ func (w *sheetWriter) writeRows(sheet *Sheet) error {
 		rowName = sax.LocalName("row")
 	)
 	w.writer.Open(dshName, nil)
-	for _, r := range sheet.Rows {
+	for _, r := range sheet.rows {
 		attrs := []sax.A{
 			createAttr("r", strconv.FormatInt(r.Line, 10)),
 		}

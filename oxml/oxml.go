@@ -66,6 +66,7 @@ type Cell struct {
 
 	rawValue    string
 	parsedValue any
+	dirty       bool
 	Formula     Expr
 }
 
@@ -77,7 +78,7 @@ func (c *Cell) Get() any {
 	return c.parsedValue
 }
 
-func (c *Cell) Refresh(ctx Context) error {
+func (c *Cell) Reload(ctx Context) error {
 	if c.Formula == nil {
 		return nil
 	}
@@ -197,8 +198,10 @@ type Sheet struct {
 	Name   string
 	Active bool
 	Index  int
-	Rows   []*Row
 	Size   *Dimension
+
+	rows  []*Row
+	cells map[Position]*Cell
 
 	State     SheetState
 	Protected SheetProtection
@@ -211,15 +214,32 @@ func NewSheet(name string) *Sheet {
 		Active: false,
 		State:  StateVisible,
 		Size:   &Dimension{},
+		cells:  make(map[Position]*Cell),
 	}
 	return &s
 }
 
-func (s *Sheet) Refresh(ctx Context) error {
+func (s *Sheet) Cell(pos Position) (*Cell, error) {
+	row := slices.IndexFunc(s.rows, func(r *Row) bool {
+		return r.Line == pos.Line
+	})
+	if row < 0 {
+		return nil, nil
+	}
+	col := slices.IndexFunc(s.rows[row].Cells, func(c *Cell) bool {
+		return c.Line == pos.Line && c.Column == pos.Column
+	})
+	if col < 0 {
+		return nil, nil
+	}
+	return s.rows[row].Cells[col], nil
+}
+
+func (s *Sheet) Reload(ctx Context) error {
 	ctx = SheetContext(ctx, s)
-	for _, r := range s.Rows {
+	for _, r := range s.rows {
 		for _, c := range r.Cells {
-			if err := c.Refresh(ctx); err != nil {
+			if err := c.Reload(ctx); err != nil {
 				return err
 			}
 		}
@@ -258,13 +278,12 @@ func (s *Sheet) Bounding() Bounds {
 			Column: maxCol,
 		}
 	}
-	fmt.Println(bounds.Start.Addr(), bounds.End.Addr())
 	return bounds
 }
 
 func (s *Sheet) Cells() iter.Seq[*Cell] {
 	it := func(yield func(*Cell) bool) {
-		for _, r := range s.Rows {
+		for _, r := range s.rows {
 			for _, c := range r.Cells {
 				if !yield(c) {
 					return
@@ -277,7 +296,7 @@ func (s *Sheet) Cells() iter.Seq[*Cell] {
 
 func (s *Sheet) Iter() iter.Seq[[]any] {
 	it := func(yield func([]any) bool) {
-		for _, r := range s.Rows {
+		for _, r := range s.rows {
 			row := r.Data()
 			if !yield(row) {
 				break
@@ -291,13 +310,13 @@ func (s *Sheet) Copy(other *Sheet) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
 	}
-	for _, rs := range other.Rows {
+	for _, rs := range other.rows {
 		s.Size.Lines++
 		x := Row{
 			Line:  rs.Line,
 			Cells: rs.cloneCells(),
 		}
-		s.Rows = append(other.Rows, &x)
+		s.rows = append(other.rows, &x)
 		s.Size.Columns = max(s.Size.Columns, int64(len(x.Cells)))
 	}
 	return nil
@@ -308,7 +327,7 @@ func (s *Sheet) Append(data []string) error {
 		return ErrLock
 	}
 	rs := Row{
-		Line: int64(len(s.Rows)) + 1,
+		Line: int64(len(s.rows)) + 1,
 	}
 	s.Size.Lines++
 	for i, d := range data {
@@ -325,11 +344,11 @@ func (s *Sheet) Append(data []string) error {
 		rs.Cells = append(rs.Cells, &c)
 	}
 	s.Size.Columns = max(s.Size.Columns, int64(len(data)))
-	s.Rows = append(s.Rows, &rs)
+	s.rows = append(s.rows, &rs)
 	return nil
 }
 
-func (s *Sheet) Insert(ix int64, data []any) error {
+func (s *Sheet) Insert(pos Position, data []any) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
 	}
@@ -359,24 +378,8 @@ func (s *Sheet) Status() string {
 	return "hidden"
 }
 
-func (s *Sheet) At(row, col int64) (Value, error) {
-	rix := slices.IndexFunc(s.Rows, func(r *Row) bool {
-		return r.Line == row
-	})
-	if rix < 0 {
-		return nil, nil
-	}
-	cix := slices.IndexFunc(s.Rows[rix].Cells, func(c *Cell) bool {
-		return c.Line == row && c.Column == col
-	})
-	if cix < 0 {
-		return nil, nil
-	}
-	return s.Rows[rix].Cells[cix].Get(), nil
-}
-
 func (s *Sheet) resetSharedIndex(ix map[int]int) {
-	for _, r := range s.Rows {
+	for _, r := range s.rows {
 		for _, c := range r.Cells {
 			if c.Type != TypeSharedStr {
 				continue
@@ -429,7 +432,7 @@ func (f *File) WriteFile(file string) error {
 func (f *File) Reload() error {
 	ctx := FileContext(f)
 	for _, s := range f.sheets {
-		if err := s.Refresh(SheetContext(ctx, s)); err != nil {
+		if err := s.Reload(SheetContext(ctx, s)); err != nil {
 			return err
 		}
 	}
@@ -582,6 +585,10 @@ func (f *File) Merge(other *File) error {
 	return nil
 }
 
+func (f *File) setSheetName(sheet *Sheet) error {
+	return nil
+}
+
 func cleanSheetName(str string) string {
 	return strings.Map(func(r rune) rune {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' {
@@ -589,4 +596,68 @@ func cleanSheetName(str string) string {
 		}
 		return -1
 	}, str)
+}
+
+type DependencyGraph struct {
+	dependsOn map[Position][]Position
+	usedBy    map[Position][]Position
+}
+
+func buildGraph(cells []*Cell) *DependencyGraph {
+	g := DependencyGraph{
+		dependsOn: make(map[Position][]Position),
+		usedBy:    make(map[Position][]Position),
+	}
+
+	has := make(map[Position]struct{})
+	for _, c := range cells {
+		if c.Formula != nil {
+			has[c.Position] = struct{}{}
+		}
+	}
+	for _, c := range cells {
+		if c.Formula == nil {
+			continue
+		}
+		deps := c.Formula.Depends()
+		for _, d := range deps {
+			if _, ok := has[d]; ok {
+				g.dependsOn[c.Position] = append(g.dependsOn[c.Position], d)
+				g.usedBy[d] = append(g.usedBy[d], c.Position)
+			}
+		}
+	}
+	return &g
+}
+
+func evalGraph(g *DependencyGraph, cell *Cell, sheet *Sheet) error {
+	var (
+		deps  []Position
+		seen  = make(map[Position]struct{})
+		visit func(Position)
+	)
+
+	visit = func(pos Position) {
+		if _, ok := seen[pos]; ok {
+			return
+		}
+		seen[pos] = struct{}{}
+		for _, v := range g.dependsOn[pos] {
+			visit(v)
+		}
+		if pos != cell.Position {
+			deps = append(deps, pos)
+		}
+	}
+
+	for _, pos := range deps {
+		c, err := sheet.Cell(pos)
+		if err != nil {
+			return err
+		}
+		if c.Formula == nil {
+			continue
+		}
+	}
+	return nil
 }

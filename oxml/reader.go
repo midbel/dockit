@@ -300,7 +300,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 }
 
 func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
-	if len(r.sheet.Rows) == 0 {
+	if len(r.sheet.rows) == 0 {
 		return fmt.Errorf("no row in worksheet")
 	}
 
@@ -308,7 +308,7 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 		kind  = el.GetAttributeValue("t")
 		index = el.GetAttributeValue("r")
 		local sax.QName
-		pos   = len(r.sheet.Rows) - 1
+		pos   = len(r.sheet.rows) - 1
 		cell  = &Cell{
 			Position: parsePosition(index),
 			Type:     kind,
@@ -319,7 +319,7 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 	} else {
 		local = sax.LocalName("v")
 	}
-	r.sheet.Rows[pos].Cells = append(r.sheet.Rows[pos].Cells, cell)
+	r.sheet.rows[pos].Cells = append(r.sheet.rows[pos].Cells, cell)
 
 	rs.Element(local, func(rs *sax.Reader, _ sax.E) error {
 		rs.OnText(func(_ *sax.Reader, str string) error {
@@ -341,7 +341,7 @@ func (r *sheetReader) onRow(rs *sax.Reader, el sax.E) error {
 	row.Line, err = strconv.ParseInt(el.GetAttributeValue("r"), 10, 64)
 	row.Hidden = el.GetAttributeValue("hidden") == "1"
 	if err == nil {
-		r.sheet.Rows = append(r.sheet.Rows, &row)
+		r.sheet.rows = append(r.sheet.rows, &row)
 	}
 	return err
 }

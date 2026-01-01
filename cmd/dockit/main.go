@@ -467,7 +467,7 @@ func (c PrintSheetCommand) Run(args []string) error {
 
 func (c PrintSheetCommand) printSheet(ctx oxml.Context, sheet *oxml.Sheet) error {
 	if c.Reload {
-		err := sheet.Refresh(ctx)
+		err := sheet.Reload(ctx)
 		if err != nil {
 			return err
 		}
