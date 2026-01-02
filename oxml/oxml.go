@@ -78,6 +78,10 @@ func (c *Cell) Get() any {
 	return c.parsedValue
 }
 
+func (c *Cell) Eval() (Value, error) {
+	return nil, nil
+}
+
 func (c *Cell) Reload(ctx Context) error {
 	if c.Formula == nil {
 		return nil
@@ -598,13 +602,13 @@ func cleanSheetName(str string) string {
 	}, str)
 }
 
-type DependencyGraph struct {
+type dependencyGraph struct {
 	dependsOn map[Position][]Position
 	usedBy    map[Position][]Position
 }
 
-func buildGraph(cells []*Cell) *DependencyGraph {
-	g := DependencyGraph{
+func buildGraph(cells []*Cell) *dependencyGraph {
+	g := dependencyGraph{
 		dependsOn: make(map[Position][]Position),
 		usedBy:    make(map[Position][]Position),
 	}
@@ -630,7 +634,7 @@ func buildGraph(cells []*Cell) *DependencyGraph {
 	return &g
 }
 
-func evalGraph(g *DependencyGraph, cell *Cell, sheet *Sheet) error {
+func evalGraph(g *dependencyGraph, cell *Cell, sheet *Sheet) error {
 	var (
 		deps  []Position
 		seen  = make(map[Position]struct{})

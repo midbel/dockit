@@ -44,6 +44,10 @@ func (r *reader) ReadFile() (*File, error) {
 	r.readSharedStrings(file)
 	r.readWorkbook(file)
 	r.readWorksheets(file)
+
+	for _, s := range file.sheets {
+		_ = s
+	}
 	return file, r.err
 }
 
@@ -90,6 +94,7 @@ func (r *reader) readWorkbook(file *File) {
 			Index: xs.Index,
 			State: xs.State,
 			Size:  new(Dimension),
+			cells: make(map[Position]*Cell),
 		}
 		if i == root.View.ActiveTab {
 			s.Active = true
@@ -216,6 +221,9 @@ type sheetReader struct {
 }
 
 func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
+	if sheet.cells == nil {
+		sheet.cells = make(map[Position]*Cell)
+	}
 	rs := sheetReader{
 		reader:         sax.NewReader(r),
 		sheet:          sheet,
@@ -320,6 +328,7 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 		local = sax.LocalName("v")
 	}
 	r.sheet.rows[pos].Cells = append(r.sheet.rows[pos].Cells, cell)
+	r.sheet.cells[cell.Position] = cell
 
 	rs.Element(local, func(rs *sax.Reader, _ sax.E) error {
 		rs.OnText(func(_ *sax.Reader, str string) error {

@@ -25,6 +25,7 @@ func EncodeCSV(w io.Writer) Encoder {
 func (e *csvEncoder) EncodeSheet(sheet *Sheet) error {
 	writer := csv.NewWriter(e.writer)
 	writer.Comma = e.comma
+	writer.ForceQuote = true
 	for row := range sheet.Iter() {
 		var fields []string
 		for i := range row {

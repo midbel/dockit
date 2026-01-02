@@ -22,6 +22,7 @@ func (b Bounds) String() string {
 }
 
 type Position struct {
+	Sheet  string
 	Line   int64
 	Column int64
 }
