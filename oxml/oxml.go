@@ -78,10 +78,6 @@ func (c *Cell) Get() any {
 	return c.parsedValue
 }
 
-func (c *Cell) Eval() (Value, error) {
-	return nil, nil
-}
-
 func (c *Cell) Reload(ctx Context) error {
 	if c.Formula == nil {
 		return nil
@@ -197,6 +193,32 @@ func (p SheetProtection) ColumnsLocked() bool {
 	return p&ProtectedDeleteColumns > 0 || p&ProtectedInsertColumns > 0
 }
 
+type View struct {
+	sheet *Sheet
+	part  Selection
+}
+
+func (v *View) Cell(pos Position) (*Cell, error) {
+	return nil, nil
+}
+
+func (v *View) Bounding() Bounds {
+	var b Bounds
+	return b
+}
+
+func (v *View) Cells() iter.Seq[*Cell] {
+	return nil
+}
+
+func (v *View) Iter() iter.Seq[[]any] {
+	return nil
+}
+
+func (v *View) Encode(e Encoder) error {
+	return nil
+}
+
 type Sheet struct {
 	Id     string
 	Name   string
@@ -221,6 +243,18 @@ func NewSheet(name string) *Sheet {
 		cells:  make(map[Position]*Cell),
 	}
 	return &s
+}
+
+func (s *Sheet) Sub(start, end Position) *View {
+	return s.Select(NewRange(start, end))
+}
+
+func (s *Sheet) Select(rg Selection) *View {
+	v := View{
+		sheet: s,
+		part:  rg,
+	}
+	return &v
 }
 
 func (s *Sheet) Cell(pos Position) (*Cell, error) {

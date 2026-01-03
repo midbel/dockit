@@ -499,7 +499,6 @@ func (i identifier) cloneWithOffset(_ Position) Expr {
 
 type cellAddr struct {
 	Position
-	Sheet   string
 	AbsCols bool
 	AbsLine bool
 }

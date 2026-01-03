@@ -2,6 +2,7 @@ package oxml
 
 import (
 	"fmt"
+	"strings"
 )
 
 type Dimension struct {
@@ -44,4 +45,62 @@ func (p Position) Addr() string {
 		Position: p,
 	}
 	return addr.String()
+}
+
+type Selection interface {
+	Select() error
+}
+
+func ParseSelection(str string) (Selection, error) {
+	var (
+		list  []Selection
+		parts = strings.Split(str, ";")
+	)
+	for _, str := range parts {
+		fst, lst, ok := strings.Cut(":", str)
+		var (
+			starts Position
+			ends   Position
+		)
+		starts = parsePosition(lst)
+		if ok {
+			ends = parsePosition(fst)
+		}
+		list = append(list, NewRange(starts, ends))
+	}
+	if len(list) == 1 {
+		return list[0], nil
+	}
+	set := RangeSet{
+		list: list,
+	}
+	return &set, nil
+}
+
+type Range struct {
+	Starts Position
+	Ends   Position
+}
+
+func NewRange(starts, ends Position) *Range {
+	return &Range{
+		Starts: starts,
+		Ends:   ends,
+	}
+}
+
+func (r *Range) Width() int64 {
+	return 0
+}
+
+func (r *Range) Height() int64 {
+	return 0
+}
+
+type RangeSet struct {
+	list []Selection
+}
+
+func (r *RangeSet) Select() error {
+	return nil
 }
