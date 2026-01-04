@@ -44,10 +44,6 @@ func (r *reader) ReadFile() (*File, error) {
 	r.readSharedStrings(file)
 	r.readWorkbook(file)
 	r.readWorksheets(file)
-
-	for _, s := range file.sheets {
-		_ = s
-	}
 	return file, r.err
 }
 

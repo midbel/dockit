@@ -48,7 +48,7 @@ func (p Position) Addr() string {
 }
 
 type Selection interface {
-	Select() error
+	Contains(Position) bool
 }
 
 func ParseSelection(str string) (Selection, error) {
@@ -57,14 +57,14 @@ func ParseSelection(str string) (Selection, error) {
 		parts = strings.Split(str, ";")
 	)
 	for _, str := range parts {
-		fst, lst, ok := strings.Cut(":", str)
+		fst, lst, ok := strings.Cut(str, ":")
 		var (
 			starts Position
 			ends   Position
 		)
-		starts = parsePosition(lst)
+		starts = parsePosition(fst)
 		if ok {
-			ends = parsePosition(fst)
+			ends = parsePosition(lst)
 		}
 		list = append(list, NewRange(starts, ends))
 	}
@@ -89,18 +89,36 @@ func NewRange(starts, ends Position) *Range {
 	}
 }
 
+func (r *Range) Open() bool {
+	var zero Position
+	return r.Starts == zero || r.Ends == zero
+}
+
+func (r *Range) Contains(pos Position) bool {
+	ok := pos.Line >= r.Starts.Line && pos.Line <= r.Ends.Line
+	if !ok {
+		return false
+	}
+	return pos.Column >= r.Starts.Column && pos.Column <= r.Ends.Column
+}
+
 func (r *Range) Width() int64 {
-	return 0
+	return r.Ends.Line - r.Starts.Line
 }
 
 func (r *Range) Height() int64 {
-	return 0
+	return r.Ends.Column - r.Starts.Column
 }
 
 type RangeSet struct {
 	list []Selection
 }
 
-func (r *RangeSet) Select() error {
-	return nil
+func (r *RangeSet) Contains(pos Position) bool {
+	for _, s := range r.list {
+		if ok := s.Contains(pos); ok {
+			return true
+		}
+	}
+	return false
 }

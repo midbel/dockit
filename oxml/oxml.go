@@ -208,11 +208,24 @@ func (v *View) Bounding() Bounds {
 }
 
 func (v *View) Cells() iter.Seq[*Cell] {
-	return nil
+	it := func(yield func(*Cell) bool) {
+		for p, c := range v.sheet.cells {
+			if !v.part.Contains(p) {
+				continue
+			}
+			if ok := yield(c); !ok {
+				return 
+			}
+		}
+	}
+	return it
 }
 
 func (v *View) Iter() iter.Seq[[]any] {
-	return nil
+	it := func(yield func([]any) bool) {
+
+	}
+	return it
 }
 
 func (v *View) Encode(e Encoder) error {
@@ -634,68 +647,4 @@ func cleanSheetName(str string) string {
 		}
 		return -1
 	}, str)
-}
-
-type dependencyGraph struct {
-	dependsOn map[Position][]Position
-	usedBy    map[Position][]Position
-}
-
-func buildGraph(cells []*Cell) *dependencyGraph {
-	g := dependencyGraph{
-		dependsOn: make(map[Position][]Position),
-		usedBy:    make(map[Position][]Position),
-	}
-
-	has := make(map[Position]struct{})
-	for _, c := range cells {
-		if c.Formula != nil {
-			has[c.Position] = struct{}{}
-		}
-	}
-	for _, c := range cells {
-		if c.Formula == nil {
-			continue
-		}
-		deps := c.Formula.Depends()
-		for _, d := range deps {
-			if _, ok := has[d]; ok {
-				g.dependsOn[c.Position] = append(g.dependsOn[c.Position], d)
-				g.usedBy[d] = append(g.usedBy[d], c.Position)
-			}
-		}
-	}
-	return &g
-}
-
-func evalGraph(g *dependencyGraph, cell *Cell, sheet *Sheet) error {
-	var (
-		deps  []Position
-		seen  = make(map[Position]struct{})
-		visit func(Position)
-	)
-
-	visit = func(pos Position) {
-		if _, ok := seen[pos]; ok {
-			return
-		}
-		seen[pos] = struct{}{}
-		for _, v := range g.dependsOn[pos] {
-			visit(v)
-		}
-		if pos != cell.Position {
-			deps = append(deps, pos)
-		}
-	}
-
-	for _, pos := range deps {
-		c, err := sheet.Cell(pos)
-		if err != nil {
-			return err
-		}
-		if c.Formula == nil {
-			continue
-		}
-	}
-	return nil
 }
