@@ -40,6 +40,18 @@ func (p Position) Equal(other Position) bool {
 	return p.Line == other.Line && p.Column == other.Column
 }
 
+func (p Position) All() bool {
+	return p.AllLines() && p.AllColumns()
+}
+
+func (p Position) AllLines() bool {
+	return p.Line == 0
+}
+
+func (p Position) AllColumns() bool {
+	return p.Column == 0
+}
+
 func (p Position) Addr() string {
 	addr := cellAddr{
 		Position: p,
