@@ -10,18 +10,6 @@ type Dimension struct {
 	Columns int64
 }
 
-type Bounds struct {
-	Start Position
-	End   Position
-}
-
-func (b Bounds) String() string {
-	if b.Start.Equal(b.End) {
-		return b.Start.Addr()
-	}
-	return fmt.Sprintf("%s:%s", b.Start.Addr(), b.End.Addr())
-}
-
 type Position struct {
 	Sheet  string
 	Line   int64
@@ -40,23 +28,21 @@ func (p Position) Equal(other Position) bool {
 	return p.Line == other.Line && p.Column == other.Column
 }
 
-func (p Position) All() bool {
-	return p.AllLines() && p.AllColumns()
-}
-
-func (p Position) AllLines() bool {
-	return p.Line == 0
-}
-
-func (p Position) AllColumns() bool {
-	return p.Column == 0
-}
-
 func (p Position) Addr() string {
 	addr := cellAddr{
 		Position: p,
 	}
 	return addr.String()
+}
+
+func (p Position) Update(other Position) Position {
+	if p.Line == 0 {
+		p.Line = other.Line
+	}
+	if p.Column == 0 {
+		p.Column = other.Column
+	}
+	return p
 }
 
 type Selection interface {
@@ -120,6 +106,13 @@ func (r *Range) Width() int64 {
 
 func (r *Range) Height() int64 {
 	return r.Ends.Column - r.Starts.Column
+}
+
+func (r *Range) String() string {
+	if r.Starts.Equal(r.Ends) {
+		return r.Starts.Addr()
+	}
+	return fmt.Sprintf("%s:%s", r.Starts.Addr(), r.Ends.Addr())
 }
 
 type RangeSet struct {

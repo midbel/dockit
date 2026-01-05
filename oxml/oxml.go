@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"maps"
 	"math"
 	"slices"
 	"strconv"
@@ -195,16 +196,15 @@ func (p SheetProtection) ColumnsLocked() bool {
 
 type View struct {
 	sheet *Sheet
-	part  Selection
+	part  *Range
 }
 
 func (v *View) Cell(pos Position) (*Cell, error) {
 	return nil, nil
 }
 
-func (v *View) Bounding() Bounds {
-	var b Bounds
-	return b
+func (v *View) Bounds() *Range {
+	return nil
 }
 
 func (v *View) Cells() iter.Seq[*Cell] {
@@ -214,7 +214,7 @@ func (v *View) Cells() iter.Seq[*Cell] {
 				continue
 			}
 			if ok := yield(c); !ok {
-				return 
+				return
 			}
 		}
 	}
@@ -223,7 +223,24 @@ func (v *View) Cells() iter.Seq[*Cell] {
 
 func (v *View) Iter() iter.Seq[[]any] {
 	it := func(yield func([]any) bool) {
-
+		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
+			var data []any
+			for col := v.part.Starts.Column; col <= v.part.Ends.Column; col++ {
+				p := Position{
+					Line:   row,
+					Column: col,
+				}
+				c, ok := v.sheet.cells[p]
+				if ok {
+					data = append(data, c.Get())
+				} else {
+					data = append(data, nil)
+				}
+			}
+			if !yield(data) {
+				break
+			}
+		}
 	}
 	return it
 }
@@ -262,7 +279,10 @@ func (s *Sheet) Sub(start, end Position) *View {
 	return s.Select(NewRange(start, end))
 }
 
-func (s *Sheet) Select(rg Selection) *View {
+func (s *Sheet) Select(rg *Range) *View {
+	bd := s.Bounds()
+	rg.Starts = rg.Starts.Update(bd.Starts)
+	rg.Ends = rg.Ends.Update(bd.Ends)
 	v := View{
 		sheet: s,
 		part:  rg,
@@ -271,19 +291,16 @@ func (s *Sheet) Select(rg Selection) *View {
 }
 
 func (s *Sheet) Cell(pos Position) (*Cell, error) {
-	row := slices.IndexFunc(s.rows, func(r *Row) bool {
-		return r.Line == pos.Line
-	})
-	if row < 0 {
-		return nil, nil
+	cell, ok := s.cells[pos]
+	if !ok {
+		cell = &Cell{
+			Type:        TypeInlineStr,
+			Position:    pos,
+			rawValue:    "",
+			parsedValue: "",
+		}
 	}
-	col := slices.IndexFunc(s.rows[row].Cells, func(c *Cell) bool {
-		return c.Line == pos.Line && c.Column == pos.Column
-	})
-	if col < 0 {
-		return nil, nil
-	}
-	return s.rows[row].Cells[col], nil
+	return cell, nil
 }
 
 func (s *Sheet) Reload(ctx Context) error {
@@ -298,7 +315,7 @@ func (s *Sheet) Reload(ctx Context) error {
 	return nil
 }
 
-func (s *Sheet) Bounding() Bounds {
+func (s *Sheet) Bounds() *Range {
 	var (
 		minRow int64 = math.MaxInt64
 		maxRow int64
@@ -311,38 +328,29 @@ func (s *Sheet) Bounding() Bounds {
 		minCol = min(minCol, c.Column)
 		maxCol = max(maxCol, c.Column)
 	}
-	var bounds Bounds
+	var rg Range
 	if maxRow == 0 || maxCol == 0 {
 		pos := Position{
 			Line:   1,
 			Column: 1,
 		}
-		bounds.Start = pos
-		bounds.End = pos
+		rg.Starts = pos
+		rg.Ends = pos
 	} else {
-		bounds.Start = Position{
+		rg.Starts = Position{
 			Line:   minRow,
 			Column: minCol,
 		}
-		bounds.End = Position{
+		rg.Ends = Position{
 			Line:   maxRow,
 			Column: maxCol,
 		}
 	}
-	return bounds
+	return &rg
 }
 
 func (s *Sheet) Cells() iter.Seq[*Cell] {
-	it := func(yield func(*Cell) bool) {
-		for _, r := range s.rows {
-			for _, c := range r.Cells {
-				if !yield(c) {
-					return
-				}
-			}
-		}
-	}
-	return it
+	return maps.Values(s.cells)
 }
 
 func (s *Sheet) Iter() iter.Seq[[]any] {

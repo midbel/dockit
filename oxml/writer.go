@@ -335,7 +335,7 @@ func (w *sheetWriter) WriteSheet(sheet *Sheet) error {
 		createNS("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships"),
 	})
 	w.writer.Empty(sax.LocalName("dimension"), []sax.A{
-		createAttr("ref", sheet.Bounding().String()),
+		createAttr("ref", sheet.Bounds().String()),
 	})
 	if sheet.Protected != 0 {
 		if err := w.writeProtection(sheet); err != nil {
