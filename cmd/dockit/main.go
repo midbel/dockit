@@ -480,7 +480,7 @@ func (c PrintSheetCommand) EncodeSheet(sheet *oxml.Sheet) error {
 		c.Width = 16
 	}
 	var lino int
-	for row := range sheet.Iter() {
+	for row := range sheet.Data() {
 		lino++
 		if c.Lino {
 			fmt.Fprintf(os.Stdout, "%-5d ", lino)

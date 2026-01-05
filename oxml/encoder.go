@@ -26,7 +26,7 @@ func (e *csvEncoder) EncodeSheet(sheet *Sheet) error {
 	writer := csv.NewWriter(e.writer)
 	writer.Comma = e.comma
 	writer.ForceQuote = true
-	for row := range sheet.Iter() {
+	for row := range sheet.Data() {
 		var fields []string
 		for i := range row {
 			fields = append(fields, valueToString(row[i]))

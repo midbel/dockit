@@ -221,7 +221,7 @@ func (v *View) Cells() iter.Seq[*Cell] {
 	return it
 }
 
-func (v *View) Iter() iter.Seq[[]any] {
+func (v *View) Data() iter.Seq[[]any] {
 	it := func(yield func([]any) bool) {
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
 			var data []any
@@ -352,7 +352,7 @@ func (s *Sheet) Cells() iter.Seq[*Cell] {
 	return maps.Values(s.cells)
 }
 
-func (s *Sheet) Iter() iter.Seq[[]any] {
+func (s *Sheet) Data() iter.Seq[[]any] {
 	it := func(yield func([]any) bool) {
 		for _, r := range s.rows {
 			row := r.Data()
