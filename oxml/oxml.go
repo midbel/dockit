@@ -254,7 +254,7 @@ type Sheet struct {
 	Name   string
 	Active bool
 	Index  int
-	Size   *Dimension
+	Size   Dimension
 
 	rows  []*Row
 	cells map[Position]*Cell
@@ -269,7 +269,6 @@ func NewSheet(name string) *Sheet {
 		Name:   name,
 		Active: false,
 		State:  StateVisible,
-		Size:   &Dimension{},
 		cells:  make(map[Position]*Cell),
 	}
 	return &s

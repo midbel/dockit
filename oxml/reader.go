@@ -89,7 +89,6 @@ func (r *reader) readWorkbook(file *File) {
 			Name:  xs.Name,
 			Index: xs.Index,
 			State: xs.State,
-			Size:  new(Dimension),
 			cells: make(map[Position]*Cell),
 		}
 		if i == root.View.ActiveTab {
