@@ -274,11 +274,15 @@ func NewSheet(name string) *Sheet {
 	return &s
 }
 
-func (s *Sheet) Sub(start, end Position) *View {
-	return s.Select(NewRange(start, end))
+func (s *Sheet) Select() *Sheet {
+	return s
 }
 
-func (s *Sheet) Select(rg *Range) *View {
+func (s *Sheet) Sub(start, end Position) *View {
+	return s.sub(NewRange(start, end))
+}
+
+func (s *Sheet) sub(rg *Range) *View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
 	rg.Ends = rg.Ends.Update(bd.Ends)

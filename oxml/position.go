@@ -45,36 +45,6 @@ func (p Position) Update(other Position) Position {
 	return p
 }
 
-type Selection interface {
-	Contains(Position) bool
-}
-
-func ParseSelection(str string) (Selection, error) {
-	var (
-		list  []Selection
-		parts = strings.Split(str, ";")
-	)
-	for _, str := range parts {
-		fst, lst, ok := strings.Cut(str, ":")
-		var (
-			starts Position
-			ends   Position
-		)
-		starts = parsePosition(fst)
-		if ok {
-			ends = parsePosition(lst)
-		}
-		list = append(list, NewRange(starts, ends))
-	}
-	if len(list) == 1 {
-		return list[0], nil
-	}
-	set := RangeSet{
-		list: list,
-	}
-	return &set, nil
-}
-
 type Range struct {
 	Starts Position
 	Ends   Position
@@ -116,14 +86,28 @@ func (r *Range) String() string {
 }
 
 type RangeSet struct {
-	list []Selection
+	list []*Range
 }
 
-func (r *RangeSet) Contains(pos Position) bool {
-	for _, s := range r.list {
-		if ok := s.Contains(pos); ok {
-			return true
+func RangeSetFromString(str string) (*RangeSet, error) {
+	var (
+		list  []*Range
+		parts = strings.Split(str, ";")
+	)
+	for _, str := range parts {
+		fst, lst, ok := strings.Cut(str, ":")
+		var (
+			starts Position
+			ends   Position
+		)
+		starts = parsePosition(fst)
+		if ok {
+			ends = parsePosition(lst)
 		}
+		list = append(list, NewRange(starts, ends))
 	}
-	return false
+	set := RangeSet{
+		list: list,
+	}
+	return &set, nil
 }
