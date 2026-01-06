@@ -159,7 +159,7 @@ var copyCmd = cli.Command{
 	Name:    "copy",
 	Alias:   []string{"cp"},
 	Summary: "copy a sheet from one spreadsheet to the same or another",
-	Usage:   "copy file:sheet[:target] [file[:sheet]]",
+	Usage:   "copy [-o] [-c] file:sheet[:target] [file[:sheet]]",
 	Handler: &CopySheetCommand{},
 }
 
@@ -213,6 +213,20 @@ func parseReference(str string) (*SheetRef, error) {
 
 	}
 	return &ref, nil
+}
+
+func (s SheetRef) DumpTo(encoder oxml.Encoder, reload bool) error {
+	sh, err := s.getSheetFromFile()
+	if err != nil {
+		return err
+	}
+	ctx := oxml.FileContext(s.File)
+	if reload {
+		if err := sh.Reload(ctx); err != nil {
+			return err
+		}
+	}
+	return sh.Encode(encoder)
 }
 
 func (s SheetRef) Remove(to string) error {
@@ -448,31 +462,11 @@ func (c PrintSheetCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	file, err := oxml.Open(set.Arg(0))
+	ref, err := parseReference(set.Arg(0))
 	if err != nil {
 		return err
 	}
-	ctx := oxml.FileContext(file)
-	for i := 1; i < set.NArg(); i++ {
-		sheet, err := file.Sheet(set.Arg(i))
-		if err != nil {
-			return err
-		}
-		if err := c.printSheet(ctx, sheet); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (c PrintSheetCommand) printSheet(ctx oxml.Context, sheet *oxml.Sheet) error {
-	if c.Reload {
-		err := sheet.Reload(ctx)
-		if err != nil {
-			return err
-		}
-	}
-	return sheet.Encode(c)
+	return ref.DumpTo(c, c.Reload)
 }
 
 func (c PrintSheetCommand) EncodeSheet(sheet *oxml.Sheet) error {
