@@ -191,6 +191,7 @@ var unlockCmd = cli.Command{
 
 type SheetRef struct {
 	*oxml.File
+	*oxml.Range
 	Path  string
 	Sheet string
 }
@@ -209,8 +210,9 @@ func parseReference(str string) (*SheetRef, error) {
 	}
 	ref.Path = file
 	ref.Sheet = rest
-	if _, _, ok := strings.Cut(rest, "!"); ok {
-
+	if sheet, spec, ok := strings.Cut(rest, "!"); ok {
+		ref.Sheet = sheet
+		ref.Range = oxml.RangeFromString(spec)
 	}
 	return &ref, nil
 }
@@ -225,6 +227,9 @@ func (s SheetRef) DumpTo(encoder oxml.Encoder, reload bool) error {
 		if err := sh.Reload(ctx); err != nil {
 			return err
 		}
+	}
+	if s.Range != nil {
+		return sh.View(s.Range).Encode(encoder)
 	}
 	return sh.Encode(encoder)
 }
@@ -469,12 +474,12 @@ func (c PrintSheetCommand) Run(args []string) error {
 	return ref.DumpTo(c, c.Reload)
 }
 
-func (c PrintSheetCommand) EncodeSheet(sheet *oxml.Sheet) error {
+func (c PrintSheetCommand) EncodeSheet(sheet oxml.RowIterator) error {
 	if c.Width <= 0 {
 		c.Width = 16
 	}
 	var lino int
-	for row := range sheet.Data() {
+	for row := range sheet.Rows() {
 		lino++
 		if c.Lino {
 			fmt.Fprintf(os.Stdout, "%-5d ", lino)

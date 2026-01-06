@@ -57,6 +57,19 @@ func NewRange(starts, ends Position) *Range {
 	}
 }
 
+func RangeFromString(str string) *Range {
+	fst, lst, ok := strings.Cut(str, ":")
+	var (
+		starts Position
+		ends   Position
+	)
+	starts = parsePosition(fst)
+	if ok {
+		ends = parsePosition(lst)
+	}
+	return NewRange(starts, ends)
+}
+
 func (r *Range) Open() bool {
 	var zero Position
 	return r.Starts == zero || r.Ends == zero
@@ -95,16 +108,8 @@ func RangeSetFromString(str string) (*RangeSet, error) {
 		parts = strings.Split(str, ";")
 	)
 	for _, str := range parts {
-		fst, lst, ok := strings.Cut(str, ":")
-		var (
-			starts Position
-			ends   Position
-		)
-		starts = parsePosition(fst)
-		if ok {
-			ends = parsePosition(lst)
-		}
-		list = append(list, NewRange(starts, ends))
+		rg := RangeFromString(str)
+		list = append(list, rg)
 	}
 	set := RangeSet{
 		list: list,

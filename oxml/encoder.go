@@ -2,12 +2,17 @@ package oxml
 
 import (
 	"io"
+	"iter"
 
 	"github.com/midbel/dockit/csv"
 )
 
+type RowIterator interface {
+	Rows() iter.Seq[[]any]
+}
+
 type Encoder interface {
-	EncodeSheet(*Sheet) error
+	EncodeSheet(RowIterator) error
 }
 
 type csvEncoder struct {
@@ -22,11 +27,11 @@ func EncodeCSV(w io.Writer) Encoder {
 	}
 }
 
-func (e *csvEncoder) EncodeSheet(sheet *Sheet) error {
+func (e *csvEncoder) EncodeSheet(it RowIterator) error {
 	writer := csv.NewWriter(e.writer)
 	writer.Comma = e.comma
 	writer.ForceQuote = true
-	for row := range sheet.Data() {
+	for row := range it.Rows() {
 		var fields []string
 		for i := range row {
 			fields = append(fields, valueToString(row[i]))
@@ -49,7 +54,7 @@ func EncodeJSON(w io.Writer) Encoder {
 	}
 }
 
-func (e *jsonEncoder) EncodeSheet(sheet *Sheet) error {
+func (e *jsonEncoder) EncodeSheet(it RowIterator) error {
 	return nil
 }
 
@@ -63,6 +68,6 @@ func EncodeXML(w io.Writer) Encoder {
 	}
 }
 
-func (e *xmlEncoder) EncodeSheet(sheet *Sheet) error {
+func (e *xmlEncoder) EncodeSheet(it RowIterator) error {
 	return nil
 }

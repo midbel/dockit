@@ -221,21 +221,25 @@ func (v *View) Cells() iter.Seq[*Cell] {
 	return it
 }
 
-func (v *View) Data() iter.Seq[[]any] {
+func (v *View) Rows() iter.Seq[[]any] {
 	it := func(yield func([]any) bool) {
+		var (
+			width = v.part.Ends.Column - v.part.Starts.Column + 1
+			data  = make([]any, width)
+		)
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
-			var data []any
-			for col := v.part.Starts.Column; col <= v.part.Ends.Column; col++ {
+			for col, ix := v.part.Starts.Column, 0; col <= v.part.Ends.Column; col++ {
 				p := Position{
 					Line:   row,
 					Column: col,
 				}
 				c, ok := v.sheet.cells[p]
 				if ok {
-					data = append(data, c.Get())
+					data[ix] = c.Get()
 				} else {
-					data = append(data, nil)
+					data[ix] = ""
 				}
+				ix++
 			}
 			if !yield(data) {
 				break
@@ -246,7 +250,7 @@ func (v *View) Data() iter.Seq[[]any] {
 }
 
 func (v *View) Encode(e Encoder) error {
-	return nil
+	return e.EncodeSheet(v)
 }
 
 type Sheet struct {
@@ -278,11 +282,7 @@ func (s *Sheet) Select() *Sheet {
 	return s
 }
 
-func (s *Sheet) Sub(start, end Position) *View {
-	return s.sub(NewRange(start, end))
-}
-
-func (s *Sheet) sub(rg *Range) *View {
+func (s *Sheet) View(rg *Range) *View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
 	rg.Ends = rg.Ends.Update(bd.Ends)
@@ -291,6 +291,10 @@ func (s *Sheet) sub(rg *Range) *View {
 		part:  rg,
 	}
 	return &v
+}
+
+func (s *Sheet) Sub(start, end Position) *View {
+	return s.View(NewRange(start, end))
 }
 
 func (s *Sheet) Cell(pos Position) (*Cell, error) {
@@ -356,7 +360,7 @@ func (s *Sheet) Cells() iter.Seq[*Cell] {
 	return maps.Values(s.cells)
 }
 
-func (s *Sheet) Data() iter.Seq[[]any] {
+func (s *Sheet) Rows() iter.Seq[[]any] {
 	it := func(yield func([]any) bool) {
 		for _, r := range s.rows {
 			row := r.Data()
