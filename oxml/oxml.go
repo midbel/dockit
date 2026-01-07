@@ -194,23 +194,36 @@ func (p SheetProtection) ColumnsLocked() bool {
 	return p&ProtectedDeleteColumns > 0 || p&ProtectedInsertColumns > 0
 }
 
-type View struct {
+type View interface {
+	Cell(Position) (*Cell, error)
+	Cells() iter.Seq[*Cell]
+	Rows() iter.Seq[[]any]
+	Encode(Encoder) error
+}
+
+type projectedView struct {
+	sheet   View
+	columns []int64
+	mapping map[int64]int64
+}
+
+type boundedView struct {
 	sheet *Sheet
 	part  *Range
 }
 
-func (v *View) Cell(pos Position) (*Cell, error) {
+func (v *boundedView) Cell(pos Position) (*Cell, error) {
 	if !v.part.Contains(pos) {
 		return nil, fmt.Errorf("position outside view range")
 	}
 	return v.sheet.Cell(pos)
 }
 
-func (v *View) Bounds() *Range {
+func (v *boundedView) Bounds() *Range {
 	return v.part
 }
 
-func (v *View) Cells() iter.Seq[*Cell] {
+func (v *boundedView) Cells() iter.Seq[*Cell] {
 	it := func(yield func(*Cell) bool) {
 		for p, c := range v.sheet.cells {
 			if !v.part.Contains(p) {
@@ -224,7 +237,7 @@ func (v *View) Cells() iter.Seq[*Cell] {
 	return it
 }
 
-func (v *View) Rows() iter.Seq[[]any] {
+func (v *boundedView) Rows() iter.Seq[[]any] {
 	it := func(yield func([]any) bool) {
 		var (
 			width = v.part.Ends.Column - v.part.Starts.Column + 1
@@ -252,7 +265,7 @@ func (v *View) Rows() iter.Seq[[]any] {
 	return it
 }
 
-func (v *View) Encode(e Encoder) error {
+func (v *boundedView) Encode(e Encoder) error {
 	return e.EncodeSheet(v)
 }
 
@@ -281,18 +294,18 @@ func NewSheet(name string) *Sheet {
 	return &s
 }
 
-func (s *Sheet) View(rg *Range) *View {
+func (s *Sheet) View(rg *Range) View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
 	rg.Ends = rg.Ends.Update(bd.Ends)
-	v := View{
+	v := boundedView{
 		sheet: s,
 		part:  rg.normalize(),
 	}
 	return &v
 }
 
-func (s *Sheet) Sub(start, end Position) *View {
+func (s *Sheet) Sub(start, end Position) View {
 	return s.View(NewRange(start, end))
 }
 

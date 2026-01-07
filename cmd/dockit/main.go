@@ -192,6 +192,7 @@ var unlockCmd = cli.Command{
 type SheetRef struct {
 	*oxml.File
 	*oxml.Range
+	oxml.Selection
 	Path  string
 	Sheet string
 }
@@ -210,7 +211,7 @@ func parseReference(str string) (*SheetRef, error) {
 	}
 	rest, columns, ok := strings.Cut(rest, "(")
 	if ok {
-		_, err := oxml.SelectionFromString(columns[:len(columns)-1])
+		ref.Selection, err = oxml.SelectionFromString(columns[:len(columns)-1])
 		if err != nil {
 			return nil, err
 		}
