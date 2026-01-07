@@ -133,26 +133,33 @@ type Selection interface {
 
 func SelectionFromString(str string) (Selection, error) {
 	var (
-		list []Selection
+		list  []Selection
 		parts = strings.Split(str, ";")
 	)
 	for _, str := range parts {
 		str = strings.TrimSpace(str)
 		fst, lst, ok := strings.Cut(str, ":")
 		if ok {
-
+			lo, _ := parseIndex(fst)
+			hi, _ := parseIndex(lst)
+			list = append(list, columnSpan{
+				Starts: lo,
+				Ends:   hi,
+			})
 		} else {
-			ix, err := strconv.ParseInt(fst, 10, 64)
-			if err != nil {
-				return nil, err
-			}
-			c := columnRef{
+			ix, _ := parseIndex(fst)
+			list = append(list, columnRef{
 				Index: ix,
-			}
-			list = append(list, c)
+			})
 		}
 	}
-	return list, nil
+	if len(list) == 1 {
+		return list[0], nil
+	}
+	combined := combinedRef{
+		list: list,
+	}
+	return combined, nil
 }
 
 type columnRef struct {
@@ -160,7 +167,7 @@ type columnRef struct {
 }
 
 func (c columnRef) Indices(rg *Range) []int64 {
-	if rg == nil || rg.Open() {
+	if rg == nil {
 		return nil
 	}
 	if c.Index >= rg.Starts.Column && c.Index <= rg.Ends.Column {
@@ -176,24 +183,25 @@ type columnSpan struct {
 }
 
 func (c columnSpan) Indices(rg *Range) []int64 {
-	if rg == nil || rg.Open() {
+	if rg == nil {
 		return nil
 	}
 	var (
 		all     []int64
+		step    = c.Step
 		starts  = c.Starts
 		ends    = c.Ends
 		reverse = c.Starts > c.Ends
 	)
-	if c.Step == 0 {
-		c.Step = 1
+	if step <= 0 {
+		step = 1
 	}
 	starts = max(starts, rg.Starts.Column)
 	starts = min(starts, rg.Ends.Column)
 	ends = max(ends, rg.Starts.Column)
 	ends = min(ends, rg.Ends.Column)
 
-	for i := starts; i <= ends; i += c.Step {
+	for i := starts; i <= ends; i += step {
 		all = append(all, i)
 	}
 	if reverse {

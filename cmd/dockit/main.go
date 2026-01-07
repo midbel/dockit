@@ -208,6 +208,13 @@ func parseReference(str string) (*SheetRef, error) {
 	if ref.File, err = oxml.Open(file); err != nil {
 		return nil, err
 	}
+	rest, columns, ok := strings.Cut(rest, "(")
+	if ok {
+		_, err := oxml.SelectionFromString(columns[:len(columns)-1])
+		if err != nil {
+			return nil, err
+		}
+	}
 	ref.Path = file
 	ref.Sheet = rest
 	if sheet, spec, ok := strings.Cut(rest, "!"); ok {

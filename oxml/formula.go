@@ -586,19 +586,15 @@ func parseCellAddr(addr string) (cellAddr, error) {
 	var (
 		pos    cellAddr
 		offset int
+		size   int
 	)
 	if offset < len(addr) && addr[offset] == dollar {
 		pos.AbsCols = true
 		offset++
 	}
-	for offset < len(addr) && isLetter(rune(addr[offset])) {
-		delta := byte('A')
-		if isLower(rune(addr[offset])) {
-			delta = 'a'
-		}
-		pos.Column = pos.Column*26 + int64(addr[offset]-delta+1)
-		offset++
-	}
+	pos.Column, size = parseIndex(addr[offset:])
+	offset += size
+
 	if offset < len(addr) && addr[offset] == dollar {
 		pos.AbsLine = true
 		offset++
@@ -607,6 +603,25 @@ func parseCellAddr(addr string) (cellAddr, error) {
 		pos.Line, _ = strconv.ParseInt(addr[offset:], 10, 64)
 	}
 	return pos, nil
+}
+
+func parseIndex(str string) (int64, int) {
+	if len(str) == 0 {
+		return 0, 0
+	}
+	var (
+		offset int
+		index  int
+	)
+	for offset < len(str) && isLetter(rune(str[offset])) {
+		delta := byte('A')
+		if isLower(rune(str[offset])) {
+			delta = 'a'
+		}
+		index = index*26 + int(str[offset]-delta+1)
+		offset++
+	}
+	return int64(index), offset
 }
 
 const (
