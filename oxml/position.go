@@ -2,6 +2,7 @@ package oxml
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -98,6 +99,15 @@ func (r *Range) String() string {
 	return fmt.Sprintf("%s:%s", r.Starts.Addr(), r.Ends.Addr())
 }
 
+func (r *Range) normalize() *Range {
+	x := NewRange(r.Starts, r.Ends)
+	x.Starts.Line = min(r.Starts.Line, r.Ends.Line)
+	x.Starts.Column = min(r.Starts.Column, r.Ends.Column)
+	x.Ends.Line = max(r.Starts.Line, r.Ends.Line)
+	x.Ends.Column = max(r.Starts.Column, r.Ends.Column)
+	return x
+}
+
 type RangeSet struct {
 	list []*Range
 }
@@ -115,4 +125,91 @@ func RangeSetFromString(str string) (*RangeSet, error) {
 		list: list,
 	}
 	return &set, nil
+}
+
+type Selection interface {
+	Indices(*Range) []int64
+}
+
+func SelectionFromString(str string) (Selection, error) {
+	var (
+		list []Selection
+		parts = strings.Split(str, ";")
+	)
+	for _, str := range parts {
+		str = strings.TrimSpace(str)
+		fst, lst, ok := strings.Cut(str, ":")
+		if ok {
+
+		} else {
+			ix, err := strconv.ParseInt(fst, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			c := columnRef{
+				Index: ix,
+			}
+			list = append(list, c)
+		}
+	}
+	return list, nil
+}
+
+type columnRef struct {
+	Index int64
+}
+
+func (c columnRef) Indices(rg *Range) []int64 {
+	if rg == nil || rg.Open() {
+		return nil
+	}
+	if c.Index >= rg.Starts.Column && c.Index <= rg.Ends.Column {
+		return []int64{c.Index}
+	}
+	return nil
+}
+
+type columnSpan struct {
+	Starts int64
+	Ends   int64
+	Step   int64
+}
+
+func (c columnSpan) Indices(rg *Range) []int64 {
+	if rg == nil || rg.Open() {
+		return nil
+	}
+	var (
+		all     []int64
+		starts  = c.Starts
+		ends    = c.Ends
+		reverse = c.Starts > c.Ends
+	)
+	if c.Step == 0 {
+		c.Step = 1
+	}
+	starts = max(starts, rg.Starts.Column)
+	starts = min(starts, rg.Ends.Column)
+	ends = max(ends, rg.Starts.Column)
+	ends = min(ends, rg.Ends.Column)
+
+	for i := starts; i <= ends; i += c.Step {
+		all = append(all, i)
+	}
+	if reverse {
+		slices.Reverse(all)
+	}
+	return all
+}
+
+type combinedRef struct {
+	list []Selection
+}
+
+func (r combinedRef) Indices(rg *Range) []int64 {
+	var all []int64
+	for i := range r.list {
+		all = slices.Concat(all, r.list[i].Indices(rg))
+	}
+	return all
 }

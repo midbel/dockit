@@ -200,11 +200,14 @@ type View struct {
 }
 
 func (v *View) Cell(pos Position) (*Cell, error) {
-	return nil, nil
+	if !v.part.Contains(pos) {
+		return nil, fmt.Errorf("position outside view range")
+	}
+	return v.sheet.Cell(pos)
 }
 
 func (v *View) Bounds() *Range {
-	return nil
+	return v.part
 }
 
 func (v *View) Cells() iter.Seq[*Cell] {
@@ -278,17 +281,13 @@ func NewSheet(name string) *Sheet {
 	return &s
 }
 
-func (s *Sheet) Select() *Sheet {
-	return s
-}
-
 func (s *Sheet) View(rg *Range) *View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
 	rg.Ends = rg.Ends.Update(bd.Ends)
 	v := View{
 		sheet: s,
-		part:  rg,
+		part:  rg.normalize(),
 	}
 	return &v
 }
