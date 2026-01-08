@@ -3,6 +3,7 @@ package oxml
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -137,20 +138,31 @@ func SelectionFromString(str string) (Selection, error) {
 		parts = strings.Split(str, ";")
 	)
 	for _, str := range parts {
-		str = strings.TrimSpace(str)
-		fst, lst, ok := strings.Cut(str, ":")
-		if ok {
-			lo, _ := parseIndex(fst)
-			hi, _ := parseIndex(lst)
-			list = append(list, columnSpan{
-				Starts: lo,
-				Ends:   hi,
-			})
-		} else {
-			ix, _ := parseIndex(fst)
+		parts := strings.Split(strings.TrimSpace(str), ":")
+		switch n := len(parts); n {
+		case 1:
+			ix, _ := parseIndex(parts[0])
 			list = append(list, columnRef{
 				Index: ix,
 			})
+		case 2, 3:
+			lo, _ := parseIndex(parts[0])
+			hi, _ := parseIndex(parts[1])
+			ref := columnSpan{
+				Starts: lo,
+				Ends:   hi,
+				Step:   1,
+			}
+			if n == 3 && parts[2] != "" {
+				st, err := strconv.ParseInt(parts[2], 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				ref.Step = st
+			}
+			list = append(list, ref)
+		default:
+			return nil, fmt.Errorf("selection: invalid syntax")
 		}
 	}
 	if len(list) == 1 {
@@ -171,7 +183,7 @@ func (c columnRef) Indices(rg *Range) []int64 {
 		return nil
 	}
 	if c.Index >= rg.Starts.Column && c.Index <= rg.Ends.Column {
-		return []int64{c.Index}
+		return []int64{c.Index - 1}
 	}
 	return nil
 }
@@ -191,21 +203,42 @@ func (c columnSpan) Indices(rg *Range) []int64 {
 		step    = c.Step
 		starts  = c.Starts
 		ends    = c.Ends
-		reverse = c.Starts > c.Ends
+		forward bool
 	)
-	if step <= 0 {
+	if step == 0 {
 		step = 1
 	}
-	starts = max(starts, rg.Starts.Column)
-	starts = min(starts, rg.Ends.Column)
-	ends = max(ends, rg.Starts.Column)
-	ends = min(ends, rg.Ends.Column)
+	forward = step > 0
 
-	for i := starts; i <= ends; i += step {
-		all = append(all, i)
+	if starts == 0 {
+		if forward {
+			starts = rg.Starts.Column
+		} else {
+			starts = rg.Ends.Column
+		}
 	}
-	if reverse {
-		slices.Reverse(all)
+	if ends == 0 {
+		if forward {
+			ends = rg.Ends.Column
+		} else {
+			ends = rg.Starts.Column
+		}
+	}
+
+	if forward {
+		starts = max(starts, rg.Starts.Column)
+		ends = min(ends, rg.Ends.Column)
+
+		for i := starts; i <= ends; i += step {
+			all = append(all, i-1)
+		}
+	} else {
+		starts = min(starts, rg.Ends.Column)
+		ends = max(ends, rg.Starts.Column)
+
+		for i := starts; i >= ends; i += step {
+			all = append(all, i-1)
+		}
 	}
 	return all
 }

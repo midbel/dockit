@@ -195,6 +195,7 @@ func (p SheetProtection) ColumnsLocked() bool {
 }
 
 type View interface {
+	Bounds() *Range
 	Cell(Position) (*Cell, error)
 	Cells() iter.Seq[*Cell]
 	Rows() iter.Seq[[]any]
@@ -207,9 +208,86 @@ type projectedView struct {
 	mapping map[int64]int64
 }
 
+func Project(view View, sel Selection) View {
+	return newProjectedView(view, sel)
+}
+
+func newProjectedView(sh View, sel Selection) View {
+	v := projectedView{
+		sheet:   sh,
+		columns: sel.Indices(sh.Bounds()),
+		mapping: make(map[int64]int64),
+	}
+	for i, c := range v.columns {
+		v.mapping[c] = int64(i)
+	}
+	return &v
+}
+
+func (v *projectedView) Bounds() *Range {
+	return nil
+}
+
+func (v *projectedView) Cell(pos Position) (*Cell, error) {
+	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
+		return nil, nil
+	}
+	mod := Position{
+		Column: v.columns[pos.Column],
+		Line:   pos.Line,
+	}
+	return v.sheet.Cell(mod)
+}
+
+func (v *projectedView) Cells() iter.Seq[*Cell] {
+	it := func(yield func(*Cell) bool) {
+		for c := range v.sheet.Cells() {
+			col, ok := v.mapping[c.Position.Column]
+			if !ok {
+				continue
+			}
+
+			c.Position.Column = col
+			if !yield(c) {
+				return
+			}
+		}
+	}
+	return it
+}
+
+func (v *projectedView) Rows() iter.Seq[[]any] {
+	it := func(yield func([]any) bool) {
+		out := make([]any, len(v.columns))
+		for row := range v.sheet.Rows() {
+			for i, col := range v.columns {
+				if int(col) < len(row) {
+					out[i] = row[col]
+				}
+			}
+			if !yield(out) {
+				return
+			}
+		}
+	}
+	return it
+}
+
+func (v *projectedView) Encode(encoder Encoder) error {
+	return encoder.EncodeSheet(v)
+}
+
 type boundedView struct {
-	sheet *Sheet
+	sheet View
 	part  *Range
+}
+
+func newBoundedView(sh View, rg *Range) View {
+	v := boundedView{
+		sheet: sh,
+		part:  rg.normalize(),
+	}
+	return &v
 }
 
 func (v *boundedView) Cell(pos Position) (*Cell, error) {
@@ -225,8 +303,8 @@ func (v *boundedView) Bounds() *Range {
 
 func (v *boundedView) Cells() iter.Seq[*Cell] {
 	it := func(yield func(*Cell) bool) {
-		for p, c := range v.sheet.cells {
-			if !v.part.Contains(p) {
+		for c := range v.sheet.Cells() {
+			if !v.part.Contains(c.Position) {
 				continue
 			}
 			if ok := yield(c); !ok {
@@ -249,8 +327,8 @@ func (v *boundedView) Rows() iter.Seq[[]any] {
 					Line:   row,
 					Column: col,
 				}
-				c, ok := v.sheet.cells[p]
-				if ok {
+				c, err := v.sheet.Cell(p)
+				if err == nil {
 					data[ix] = c.Get()
 				} else {
 					data[ix] = ""
@@ -298,11 +376,7 @@ func (s *Sheet) View(rg *Range) View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
 	rg.Ends = rg.Ends.Update(bd.Ends)
-	v := boundedView{
-		sheet: s,
-		part:  rg.normalize(),
-	}
-	return &v
+	return newBoundedView(s, rg)
 }
 
 func (s *Sheet) Sub(start, end Position) View {

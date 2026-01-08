@@ -236,10 +236,16 @@ func (s SheetRef) DumpTo(encoder oxml.Encoder, reload bool) error {
 			return err
 		}
 	}
+	var view oxml.View
 	if s.Range != nil {
-		return sh.View(s.Range).Encode(encoder)
+		view = sh.View(s.Range)
+	} else {
+		view = sh
 	}
-	return sh.Encode(encoder)
+	if s.Selection != nil {
+		view = oxml.Project(view, s.Selection)
+	}
+	return view.Encode(encoder)
 }
 
 func (s SheetRef) Remove(to string) error {
