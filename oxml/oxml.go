@@ -66,7 +66,7 @@ type Cell struct {
 	Position
 
 	rawValue    string
-	parsedValue any
+	parsedValue ScalarValue
 	dirty       bool
 	Formula     Expr
 }
@@ -76,7 +76,7 @@ func (c *Cell) Value() string {
 }
 
 func (c *Cell) Get() any {
-	return c.parsedValue
+	return c.parsedValue.Scalar()
 }
 
 func (c *Cell) Reload(ctx Context) error {
@@ -85,8 +85,8 @@ func (c *Cell) Reload(ctx Context) error {
 	}
 	value, err := Eval(c.Formula, ctx)
 	if err == nil {
-		c.parsedValue = valueToScalar(value)
-		c.rawValue = valueToString(value)
+		c.parsedValue = value.(ScalarValue)
+		c.rawValue = value.String()
 	}
 	return err
 }
@@ -225,7 +225,7 @@ func newProjectedView(sh View, sel Selection) View {
 }
 
 func (v *projectedView) Bounds() *Range {
-	return nil
+	return v.sheet.Bounds()
 }
 
 func (v *projectedView) Cell(pos Position) (*Cell, error) {
@@ -390,7 +390,7 @@ func (s *Sheet) Cell(pos Position) (*Cell, error) {
 			Type:        TypeInlineStr,
 			Position:    pos,
 			rawValue:    "",
-			parsedValue: "",
+			parsedValue: Blank{},
 		}
 	}
 	return cell, nil
@@ -489,7 +489,7 @@ func (s *Sheet) Append(data []string) error {
 		}
 		c := Cell{
 			rawValue:    d,
-			parsedValue: d,
+			parsedValue: Text(d),
 			Type:        TypeInlineStr,
 			Position:    pos,
 		}

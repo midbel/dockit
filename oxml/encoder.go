@@ -3,6 +3,7 @@ package oxml
 import (
 	"io"
 	"iter"
+	"strconv"
 
 	"github.com/midbel/dockit/csv"
 )
@@ -34,7 +35,17 @@ func (e *csvEncoder) EncodeSheet(it RowIterator) error {
 	for row := range it.Rows() {
 		var fields []string
 		for i := range row {
-			fields = append(fields, valueToString(row[i]))
+			var str string
+			switch r := row[i].(type) {
+			case float64:
+				str = strconv.FormatFloat(r, 'f', -1, 64)
+			case string:
+				str = r
+			case bool:
+				str = strconv.FormatBool(r)
+			default:
+			}
+			fields = append(fields, str)
 		}
 		if err := writer.Write(fields); err != nil {
 			return err

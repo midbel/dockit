@@ -21,36 +21,147 @@ type Expr interface {
 	cloneWithOffset(Position) Expr
 }
 
+type ValueKind int8
+
+const (
+	KindScalar ValueKind = 1 << iota
+	KindError
+	KindArray
+)
+
 type Value interface {
+	Kind() ValueKind
+	fmt.Stringer
+}
+
+type ScalarValue interface {
+	Value
+	Scalar() any
+}
+
+type ArrayValue interface {
+	Value
+	Dimension() Dimension
+	At(int, int) ScalarValue
+}
+
+type Error struct {
+	err error
+}
+
+func (Error) Kind() ValueKind {
+	return KindError
+}
+
+func (e Error) String() string {
+	return e.err.Error()
+}
+
+func (e Error) Scalar() any {
+	return e.err
+}
+
+type Blank struct{}
+
+func (Blank) Kind() ValueKind {
+	return KindScalar
+}
+
+func (Blank) String() string {
+	return ""
+}
+
+func (Blank) Scalar() any {
+	return nil
+}
+
+type Float float64
+
+func (Float) Kind() ValueKind {
+	return KindScalar
+}
+
+func (f Float) String() string {
+	return strconv.FormatFloat(float64(f), 'f', -1, 64)
+}
+
+func (f Float) Scalar() any {
+	return float64(f)
+}
+
+type Text string
+
+func (Text) Kind() ValueKind {
+	return KindScalar
+}
+
+func (t Text) String() string {
+	return string(t)
+}
+
+func (t Text) Scalar() any {
+	return string(t)
+}
+
+type Boolean bool
+
+func (Boolean) Kind() ValueKind {
+	return KindScalar
+}
+
+func (b Boolean) String() string {
+	return strconv.FormatBool(bool(b))
+}
+
+func (b Boolean) Scalar() any {
+	return bool(b)
+}
+
+type Array struct {
+	data [][]ScalarValue
+}
+
+func (Array) Kind() ValueKind {
+	return KindArray
+}
+
+func (a Array) Dimension() Dimension {
+	var (
+		d Dimension
+		n = len(a.data)
+	)
+	if n > 0 {
+		d.Lines = int64(n)
+		d.Columns = int64(len(a.data[0]))
+	}
+	return d
+}
+
+func (a Array) At(row, col int) ScalarValue {
+	if len(a.data) == 0 || row >= len(a.data) {
+		return nil
+	}
+	v := a.data[row]
+	if len(v) == 0 || col >= len(v) {
+		return nil
+	}
+	return a.data[row][col]
 }
 
 func valueToScalar(value Value) any {
-	switch v := value.(type) {
-	case string, float64, bool, error:
-		return v
-	default:
-		return nil
+	if v, ok := value.(ScalarValue); ok {
+		return v.Scalar()
 	}
+	return nil
 }
 
 func valueToString(value Value) string {
-	switch v := value.(type) {
-	case string:
-		return v
-	case float64:
-		return strconv.FormatFloat(v, 'f', -1, 64)
-	case bool:
-		return strconv.FormatBool(v)
-	case error:
-		return v.Error()
-	default:
-		return ""
-	}
+	return value.String()
 }
 
 type Context interface {
-	At(string, Position) (Value, error)
-	Range(string, Position, Position) ([]Value, error)
+	At(string, Position) (ScalarValue, error)
+	Range(string, Position, Position) (ArrayValue, error)
 }
 
 type sheetContext struct {
@@ -65,11 +176,11 @@ func SheetContext(parent Context, sheet *Sheet) Context {
 	}
 }
 
-func (c sheetContext) Range(sheet string, start, end Position) ([]Value, error) {
+func (c sheetContext) Range(sheet string, start, end Position) (ArrayValue, error) {
 	return nil, nil
 }
 
-func (c sheetContext) At(sheet string, pos Position) (Value, error) {
+func (c sheetContext) At(sheet string, pos Position) (ScalarValue, error) {
 	if sheet == "" || sheet == c.currentSheet.Name {
 		return nil, nil
 	}
@@ -86,7 +197,7 @@ func FileContext(file *File) Context {
 	}
 }
 
-func (c fileContext) Range(sheet string, start, end Position) ([]Value, error) {
+func (c fileContext) Range(sheet string, start, end Position) (ArrayValue, error) {
 	sh, err := c.sheet(sheet)
 	if err != nil {
 		return nil, err
@@ -95,7 +206,7 @@ func (c fileContext) Range(sheet string, start, end Position) ([]Value, error) {
 	return nil, nil
 }
 
-func (c fileContext) At(sheet string, pos Position) (Value, error) {
+func (c fileContext) At(sheet string, pos Position) (ScalarValue, error) {
 	sh, err := c.sheet(sheet)
 	if err != nil {
 		return nil, err
@@ -124,9 +235,9 @@ func Eval(expr Expr, ctx Context) (Value, error) {
 	case unary:
 		return evalUnary(e, ctx)
 	case literal:
-		return e.value, nil
+		return Text(e.value), nil
 	case number:
-		return e.value, nil
+		return Float(e.value), nil
 	case call:
 		return evalCall(e, ctx)
 	case cellAddr:
@@ -147,6 +258,11 @@ func evalBinary(e binary, ctx Context) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if left.Kind() != KindScalar && right.Kind() != KindScalar {
+		return nil, ErrScalar
+	}
+
 	switch e.op {
 	case Add:
 		return applyValues(left, right, func(left, right float64) (float64, error) {
@@ -175,7 +291,7 @@ func evalBinary(e binary, ctx Context) (Value, error) {
 		if !isScalar(left) || !isScalar(right) {
 			return nil, fmt.Errorf("expected scalar operand(s) for concat operator")
 		}
-		return fmt.Sprintf("%v%v", left, right), nil
+		return Text(left.String() + right.String()), nil
 	default:
 		return nil, fmt.Errorf("invalid infix operator")
 	}
@@ -188,23 +304,22 @@ func applyValues(left, right Value, do func(left, right float64) (float64, error
 	if !isNumber(right) {
 		return nil, fmt.Errorf("expected numeric operands")
 	}
-	return do(left.(float64), right.(float64))
+	ls := left.(ScalarValue)
+	rs := right.(ScalarValue)
+	res, err := do(ls.Scalar().(float64), rs.Scalar().(float64))
+	if err != nil {
+		return nil, err
+	}
+	return Float(res), nil
 }
 
 func isNumber(v Value) bool {
-	_, ok := v.(float64)
+	_, ok := v.(Float)
 	return ok
 }
 
 func isScalar(v Value) bool {
-	switch v.(type) {
-	case float64:
-	case string:
-	case bool:
-	default:
-		return false
-	}
-	return true
+	return v.Kind() == KindScalar
 }
 
 func evalUnary(e unary, ctx Context) (Value, error) {
@@ -212,7 +327,7 @@ func evalUnary(e unary, ctx Context) (Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	n, ok := val.(float64)
+	n, ok := val.(Float)
 	if !ok {
 		return nil, fmt.Errorf("expected number")
 	}
@@ -220,7 +335,7 @@ func evalUnary(e unary, ctx Context) (Value, error) {
 	case Add:
 		return n, nil
 	case Sub:
-		return -n, nil
+		return Float(float64(-n)), nil
 	default:
 		return nil, fmt.Errorf("invalid prefix operator")
 	}

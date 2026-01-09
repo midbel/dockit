@@ -247,23 +247,24 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 		if n < 0 || n >= len(r.sharedStrings) {
 			return fmt.Errorf("shared string index out of bounds")
 		}
-		cell.parsedValue = r.sharedStrings[n]
+		cell.parsedValue = Text(r.sharedStrings[n])
 	case TypeDate:
 		// date: TBW
 	case TypeInlineStr, TypeFormula:
-		cell.parsedValue = str
+		cell.parsedValue = Text(str)
 	case TypeBool:
 		b, err := strconv.ParseBool(str)
 		if err != nil {
 			return err
 		}
-		cell.parsedValue = b
+		cell.parsedValue = Boolean(b)
 	default:
+		fmt.Println(str, cell.Type)
 		n, err := strconv.ParseFloat(strings.TrimSpace(str), 64)
 		if err != nil {
 			return err
 		}
-		cell.parsedValue = n
+		cell.parsedValue = Float(n)
 	}
 	return nil
 }

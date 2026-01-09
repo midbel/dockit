@@ -16,13 +16,14 @@ func execMin(args []Value) (Value, error) {
 		if !isNumber(args[i]) {
 			return nil, fmt.Errorf("number expected")
 		}
+		v := args[i].(Float)
 		if i == 0 {
-			res = args[i].(float64)
+			res = float64(v)
 			continue
 		}
-		res = min(res, args[i].(float64))
+		res = min(res, float64(v))
 	}
-	return res, nil
+	return Float(res), nil
 }
 
 func execMax(args []Value) (Value, error) {
@@ -31,13 +32,14 @@ func execMax(args []Value) (Value, error) {
 		if !isNumber(args[i]) {
 			return nil, fmt.Errorf("number expected")
 		}
+		v := args[i].(Float)
 		if i == 0 {
-			res = args[i].(float64)
+			res = float64(v)
 			continue
 		}
-		res = max(res, args[i].(float64))
+		res = max(res, float64(v))
 	}
-	return res, nil
+	return Float(res), nil
 }
 
 func execSum(args []Value) (Value, error) {
@@ -46,23 +48,23 @@ func execSum(args []Value) (Value, error) {
 		if !isNumber(args[i]) {
 			return nil, fmt.Errorf("number expected")
 		}
-		total += args[i].(float64)
+		total += float64(args[i].(Float))
 	}
-	return total, nil
+	return Float(total), nil
 }
 
 func execAvg(args []Value) (Value, error) {
 	if len(args) == 0 {
-		return 0, nil
+		return Float(0), nil
 	}
 	var total float64
 	for i := range args {
 		if !isNumber(args[i]) {
 			return nil, fmt.Errorf("number expected")
 		}
-		total += args[i].(float64)
+		total += float64(args[i].(Float))
 	}
-	return total / float64(len(args)), nil
+	return Float(total / float64(len(args))), nil
 }
 
 func execCount(args []Value) (Value, error) {
