@@ -1,12 +1,11 @@
 package oxml
 
 import (
-	"fmt"
-
+	"github.com/midbel/dockit/formula"
 	"github.com/midbel/dockit/value"
 )
 
-var builtins = map[string]func([]value.Value) (value.Value, error){
+var builtins = map[string]formula.BuiltinFunc{
 	"sum":     execSum,
 	"average": execAvg,
 	"count":   execCount,
@@ -17,58 +16,58 @@ var builtins = map[string]func([]value.Value) (value.Value, error){
 func execMin(args []value.Value) (value.Value, error) {
 	var res float64
 	for i := range args {
-		if !isNumber(args[i]) {
-			return nil, fmt.Errorf("number expected")
+		if !formula.IsNumber(args[i]) {
+			return formula.ErrValue, nil
 		}
-		v := args[i].(Float)
+		v := args[i].(formula.Float)
 		if i == 0 {
 			res = float64(v)
 			continue
 		}
 		res = min(res, float64(v))
 	}
-	return Float(res), nil
+	return formula.Float(res), nil
 }
 
 func execMax(args []value.Value) (value.Value, error) {
 	var res float64
 	for i := range args {
-		if !isNumber(args[i]) {
-			return nil, fmt.Errorf("number expected")
+		if !formula.IsNumber(args[i]) {
+			return formula.ErrValue, nil
 		}
-		v := args[i].(Float)
+		v := args[i].(formula.Float)
 		if i == 0 {
 			res = float64(v)
 			continue
 		}
 		res = max(res, float64(v))
 	}
-	return Float(res), nil
+	return formula.Float(res), nil
 }
 
 func execSum(args []value.Value) (value.Value, error) {
 	var total float64
 	for i := range args {
-		if !isNumber(args[i]) {
-			return nil, fmt.Errorf("number expected")
+		if !formula.IsNumber(args[i]) {
+			return formula.ErrValue, nil
 		}
-		total += float64(args[i].(Float))
+		total += float64(args[i].(formula.Float))
 	}
-	return Float(total), nil
+	return formula.Float(total), nil
 }
 
 func execAvg(args []value.Value) (value.Value, error) {
 	if len(args) == 0 {
-		return Float(0), nil
+		return formula.Float(0), nil
 	}
 	var total float64
 	for i := range args {
-		if !isNumber(args[i]) {
-			return nil, fmt.Errorf("number expected")
+		if !formula.IsNumber(args[i]) {
+			return formula.ErrValue, nil
 		}
-		total += float64(args[i].(Float))
+		total += float64(args[i].(formula.Float))
 	}
-	return Float(total / float64(len(args))), nil
+	return formula.Float(total / float64(len(args))), nil
 }
 
 func execCount(args []value.Value) (value.Value, error) {

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/midbel/dockit/formula"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -71,7 +72,7 @@ type Cell struct {
 	rawValue    string
 	parsedValue value.ScalarValue
 	dirty       bool
-	Formula     Expr
+	Formula     formula.Expr
 }
 
 func (c *Cell) Value() string {
@@ -82,11 +83,11 @@ func (c *Cell) Get() any {
 	return c.parsedValue.Scalar()
 }
 
-func (c *Cell) Reload(ctx Context) error {
+func (c *Cell) Reload(ctx formula.Context) error {
 	if c.Formula == nil {
 		return nil
 	}
-	res, err := Eval(c.Formula, ctx)
+	res, err := formula.Eval(c.Formula, ctx)
 	if err == nil {
 		c.parsedValue = res.(value.ScalarValue)
 		c.rawValue = res.String()
@@ -343,7 +344,7 @@ func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
 				if err == nil {
 					data[ix] = c.parsedValue
 				} else {
-					data[ix] = Blank{}
+					data[ix] = formula.Blank{}
 				}
 				ix++
 			}
@@ -406,13 +407,13 @@ func (s *Sheet) Cell(pos layout.Position) (*Cell, error) {
 			Type:        TypeInlineStr,
 			Position:    pos,
 			rawValue:    "",
-			parsedValue: Blank{},
+			parsedValue: formula.Blank{},
 		}
 	}
 	return cell, nil
 }
 
-func (s *Sheet) Reload(ctx Context) error {
+func (s *Sheet) Reload(ctx formula.Context) error {
 	ctx = SheetContext(ctx, s)
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
@@ -505,7 +506,7 @@ func (s *Sheet) Append(data []string) error {
 		}
 		c := Cell{
 			rawValue:    d,
-			parsedValue: Text(d),
+			parsedValue: formula.Text(d),
 			Type:        TypeInlineStr,
 			Position:    pos,
 		}
