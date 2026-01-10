@@ -41,47 +41,23 @@ type ArrayValue interface {
 
 type ErrorCode string
 
-const (
-	ErrNull  = "#NULL!"
-	ErrDiv0  = "#DIV/0!"
-	ErrValue = "#VALUE!"
-	ErrRef   = "#REF!"
-	ErrName  = "#NAME?"
-	ErrNum   = "#NUM!"
-	ErrNA    = "#N/A"
+var (
+	ErrNull  = createError("#NULL!")
+	ErrDiv0  = createError("#DIV/0!")
+	ErrValue = createError("#VALUE!")
+	ErrRef   = createError("#REF!")
+	ErrName  = createError("#NAME?")
+	ErrNum   = createError("#NUM!")
+	ErrNA    = createError("#N/A")
 )
 
 type Error struct {
-	err ErrorCode
+	code string
 }
 
-func createNullError() Error {
-	return createError(ErrNull)
-}
-
-func createDiv0Error() Error {
-	return createError(ErrDiv0)
-}
-
-func createValueError() Error {
-	return createError(ErrValue)
-}
-
-func createRefError() Error {
-	return createError(ErrRef)
-}
-
-func createNameError() Error {
-	return createError(ErrName)
-}
-
-func createNAError() Error {
-	return createError(ErrNA)
-}
-
-func createError(code ErrorCode) Error {
+func createError(code string) Error {
 	return Error{
-		err: code,
+		code: code,
 	}
 }
 
@@ -90,15 +66,15 @@ func (Error) Kind() ValueKind {
 }
 
 func (e Error) Error() string {
-	return string(e.err)
+	return e.code
 }
 
 func (e Error) String() string {
-	return string(e.err)
+	return e.code
 }
 
 func (e Error) Scalar() any {
-	return e.err
+	return e.code
 }
 
 type Blank struct{}
@@ -222,14 +198,14 @@ func SheetContext(parent Context, sheet View) Context {
 
 func (c sheetContext) Range(start, end Position) (Value, error) {
 	if start.Sheet != end.Sheet {
-		return createRefError(), nil
+		return ErrRef, nil
 	}
 	var sh View
 	if start.Sheet == "" || start.Sheet == c.view.Name() {
 		sh = c.view
 	} else {
 		if c.parent == nil {
-			return createRefError(), nil
+			return ErrRef, nil
 		}
 		return c.parent.Range(start, end)
 	}
@@ -270,12 +246,12 @@ func (c sheetContext) At(pos Position) (Value, error) {
 	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
 		cell, err := c.view.Cell(pos)
 		if err != nil || cell == nil {
-			return createRefError(), nil
+			return ErrRef, nil
 		}
 		return cell.parsedValue, nil
 	}
 	if c.parent == nil {
-		return createRefError(), nil
+		return ErrRef, nil
 	}
 	return c.parent.At(pos)
 }
@@ -292,11 +268,11 @@ func FileContext(file *File) Context {
 
 func (c fileContext) Range(start, end Position) (Value, error) {
 	if start.Sheet != end.Sheet {
-		return createRefError(), nil
+		return ErrRef, nil
 	}
 	sh, err := c.sheet(start.Sheet)
 	if err != nil {
-		return createRefError(), nil
+		return ErrRef, nil
 	}
 	ctx := SheetContext(nil, sh)
 	return ctx.Range(start, end)
@@ -305,7 +281,7 @@ func (c fileContext) Range(start, end Position) (Value, error) {
 func (c fileContext) At(pos Position) (Value, error) {
 	sh, err := c.sheet(pos.Sheet)
 	if err != nil {
-		return createRefError(), nil
+		return ErrRef, nil
 	}
 	ctx := SheetContext(nil, sh)
 	return ctx.At(pos)
@@ -356,8 +332,7 @@ func evalBinary(e binary, ctx Context) (Value, error) {
 	}
 
 	if left.Kind() != KindScalar && right.Kind() != KindScalar {
-		v := createValueError()
-		return v, v
+		return ErrValue, ErrValue
 	}
 
 	switch e.op {
@@ -376,8 +351,7 @@ func evalBinary(e binary, ctx Context) (Value, error) {
 	case Div:
 		return applyValues(left, right, func(left, right float64) (float64, error) {
 			if right == 0 {
-				v := createDiv0Error()
-				return 0, v
+				return 0, ErrDiv0
 			}
 			return left / right, nil
 		})
@@ -387,24 +361,20 @@ func evalBinary(e binary, ctx Context) (Value, error) {
 		})
 	case Concat:
 		if !isScalar(left) || !isScalar(right) {
-			v := createValueError()
-			return v, v
+			return ErrValue, nil
 		}
 		return Text(left.String() + right.String()), nil
 	default:
-		v := createValueError()
-		return v, v
+		return ErrValue, nil
 	}
 }
 
 func applyValues(left, right Value, do func(left, right float64) (float64, error)) (Value, error) {
 	if !isNumber(left) {
-		v := createValueError()
-		return v, v
+		return ErrValue, nil
 	}
 	if !isNumber(right) {
-		v := createValueError()
-		return v, v
+		return ErrValue, nil
 	}
 	ls := left.(ScalarValue)
 	rs := right.(ScalarValue)
@@ -431,8 +401,7 @@ func evalUnary(e unary, ctx Context) (Value, error) {
 	}
 	n, ok := val.(Float)
 	if !ok {
-		v := createValueError()
-		return v, v
+		return ErrValue, nil
 	}
 	switch e.op {
 	case Add:
@@ -440,29 +409,26 @@ func evalUnary(e unary, ctx Context) (Value, error) {
 	case Sub:
 		return Float(float64(-n)), nil
 	default:
-		v := createValueError()
-		return v, v
+		return ErrValue, nil
 	}
 }
 
 func evalCall(e call, ctx Context) (Value, error) {
 	id, ok := e.ident.(identifier)
 	if !ok {
-		v := createNameError()
-		return nil, v
+		return ErrName, nil
 	}
 	var args []Value
 	for _, a := range e.args {
 		v, err := Eval(a, ctx)
 		if err != nil {
-			return nil, err
+			return v, err
 		}
 		args = append(args, v)
 	}
 	fn, ok := builtins[strings.ToLower(id.name)]
 	if !ok {
-		v := createNameError()
-		return nil, v
+		return ErrName, nil
 	}
 	return fn(args)
 
