@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	sax "github.com/midbel/codecs/xml"
+	"github.com/midbel/dockit/layout"
 )
 
 type reader struct {
@@ -89,7 +90,7 @@ func (r *reader) readWorkbook(file *File) {
 			Label: xs.Name,
 			Index: xs.Index,
 			State: xs.State,
-			cells: make(map[Position]*Cell),
+			cells: make(map[layout.Position]*Cell),
 		}
 		if i == root.View.ActiveTab {
 			s.Active = true
@@ -204,7 +205,7 @@ func (r *reader) invalid() bool {
 }
 
 type sharedFormula struct {
-	Position
+	layout.Position
 	Expr
 }
 
@@ -217,7 +218,7 @@ type sheetReader struct {
 
 func updateSheet(r io.Reader, sheet *Sheet, shared []string) *sheetReader {
 	if sheet.cells == nil {
-		sheet.cells = make(map[Position]*Cell)
+		sheet.cells = make(map[layout.Position]*Cell)
 	}
 	rs := sheetReader{
 		reader:         sax.NewReader(r),
@@ -275,7 +276,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		index  = el.GetAttributeValue("si")
 	)
 	if sf, ok := r.sharedFormulas[index]; shared == "shared" && ok {
-		pos := Position{
+		pos := layout.Position{
 			Line:   cell.Line - sf.Line,
 			Column: cell.Column - sf.Column,
 		}
@@ -314,7 +315,7 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 		local sax.QName
 		pos   = len(r.sheet.rows) - 1
 		cell  = &Cell{
-			Position: parsePosition(index),
+			Position: layout.ParsePosition(index),
 			Type:     kind,
 			dirty:    true,
 		}
@@ -356,8 +357,8 @@ func (r *sheetReader) onDimension(rs *sax.Reader, el sax.E) error {
 	startIx, endIx, ok := strings.Cut(el.GetAttributeValue("ref"), ":")
 	if ok {
 		var (
-			start = parsePosition(startIx)
-			end   = parsePosition(endIx)
+			start = layout.ParsePosition(startIx)
+			end   = layout.ParsePosition(endIx)
 		)
 		r.sheet.Size.Lines = (end.Line - start.Line) + 1
 		r.sheet.Size.Columns = (end.Column - start.Column) + 1

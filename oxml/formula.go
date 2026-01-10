@@ -15,7 +15,7 @@ import (
 
 type Expr interface {
 	fmt.Stringer
-	cloneWithOffset(Position) Expr
+	cloneWithOffset(layout.Position) Expr
 }
 
 type ErrorCode string
@@ -159,8 +159,8 @@ func valueToString(val value.Value) string {
 }
 
 type Context interface {
-	At(Position) (value.Value, error)
-	Range(Position, Position) (value.Value, error)
+	At(layout.Position) (value.Value, error)
+	Range(layout.Position, layout.Position) (value.Value, error)
 }
 
 type sheetContext struct {
@@ -175,7 +175,7 @@ func SheetContext(parent Context, sheet View) Context {
 	}
 }
 
-func (c sheetContext) Range(start, end Position) (value.Value, error) {
+func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return ErrRef, nil
 	}
@@ -202,7 +202,7 @@ func (c sheetContext) Range(start, end Position) (value.Value, error) {
 		data[i] = make([]value.ScalarValue, width)
 
 		for j := 0; j < width; j++ {
-			pos := Position{
+			pos := layout.Position{
 				Line:   startLine + int64(i),
 				Column: startCol + int64(j),
 			}
@@ -221,7 +221,7 @@ func (c sheetContext) Range(start, end Position) (value.Value, error) {
 	return arr, nil
 }
 
-func (c sheetContext) At(pos Position) (value.Value, error) {
+func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
 		cell, err := c.view.Cell(pos)
 		if err != nil || cell == nil {
@@ -245,7 +245,7 @@ func FileContext(file *File) Context {
 	}
 }
 
-func (c fileContext) Range(start, end Position) (value.Value, error) {
+func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return ErrRef, nil
 	}
@@ -257,7 +257,7 @@ func (c fileContext) Range(start, end Position) (value.Value, error) {
 	return ctx.Range(start, end)
 }
 
-func (c fileContext) At(pos Position) (value.Value, error) {
+func (c fileContext) At(pos layout.Position) (value.Value, error) {
 	sh, err := c.sheet(pos.Sheet)
 	if err != nil {
 		return ErrRef, nil
@@ -458,7 +458,7 @@ func (b binary) String() string {
 	return fmt.Sprintf("%s %s %s", b.left.String(), op, b.right.String())
 }
 
-func (b binary) cloneWithOffset(pos Position) Expr {
+func (b binary) cloneWithOffset(pos layout.Position) Expr {
 	x := binary{
 		left:  b.left.cloneWithOffset(pos),
 		right: b.right.cloneWithOffset(pos),
@@ -483,7 +483,7 @@ func (u unary) String() string {
 	return fmt.Sprintf("%s%s", op, u.right.String())
 }
 
-func (u unary) cloneWithOffset(pos Position) Expr {
+func (u unary) cloneWithOffset(pos layout.Position) Expr {
 	x := unary{
 		right: u.right.cloneWithOffset(pos),
 		op:    u.op,
@@ -499,7 +499,7 @@ func (i literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
 
-func (i literal) cloneWithOffset(_ Position) Expr {
+func (i literal) cloneWithOffset(_ layout.Position) Expr {
 	return i
 }
 
@@ -511,7 +511,7 @@ func (n number) String() string {
 	return strconv.FormatFloat(n.value, 'f', -1, 64)
 }
 
-func (n number) cloneWithOffset(_ Position) Expr {
+func (n number) cloneWithOffset(_ layout.Position) Expr {
 	return n
 }
 
@@ -528,7 +528,7 @@ func (c call) String() string {
 	return fmt.Sprintf("%s(%s)", c.ident.String(), strings.Join(args, ", "))
 }
 
-func (c call) cloneWithOffset(pos Position) Expr {
+func (c call) cloneWithOffset(pos layout.Position) Expr {
 	x := call{
 		ident: c.ident,
 	}
@@ -547,12 +547,12 @@ func (i identifier) String() string {
 	return i.name
 }
 
-func (i identifier) cloneWithOffset(_ Position) Expr {
+func (i identifier) cloneWithOffset(_ layout.Position) Expr {
 	return i
 }
 
 type cellAddr struct {
-	Position
+	layout.Position
 	AbsCols bool
 	AbsLine bool
 }
@@ -561,7 +561,7 @@ func (a cellAddr) String() string {
 	return formatCellAddr(a)
 }
 
-func (a cellAddr) cloneWithOffset(pos Position) Expr {
+func (a cellAddr) cloneWithOffset(pos layout.Position) Expr {
 	x := a
 	if !x.AbsLine {
 		x.Line += pos.Line
@@ -581,7 +581,7 @@ func (a rangeAddr) String() string {
 	return fmt.Sprintf("%s:%s", a.startAddr.String(), a.endAddr.String())
 }
 
-func (a rangeAddr) cloneWithOffset(pos Position) Expr {
+func (a rangeAddr) cloneWithOffset(pos layout.Position) Expr {
 	x := rangeAddr{
 		startAddr: a.startAddr.cloneWithOffset(pos).(cellAddr),
 		endAddr:   a.endAddr.cloneWithOffset(pos).(cellAddr),

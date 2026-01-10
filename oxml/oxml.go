@@ -66,7 +66,7 @@ const (
 
 type Cell struct {
 	Type string
-	Position
+	layout.Position
 
 	rawValue    string
 	parsedValue value.ScalarValue
@@ -199,8 +199,8 @@ func (p SheetProtection) ColumnsLocked() bool {
 
 type View interface {
 	Name() string
-	Bounds() *Range
-	Cell(Position) (*Cell, error)
+	Bounds() *layout.Range
+	Cell(layout.Position) (*Cell, error)
 	Cells() iter.Seq[*Cell]
 	Rows() iter.Seq[[]value.ScalarValue]
 	Encode(Encoder) error
@@ -212,11 +212,11 @@ type projectedView struct {
 	mapping map[int64]int64
 }
 
-func Project(view View, sel Selection) View {
+func Project(view View, sel layout.Selection) View {
 	return newProjectedView(view, sel)
 }
 
-func newProjectedView(sh View, sel Selection) View {
+func newProjectedView(sh View, sel layout.Selection) View {
 	v := projectedView{
 		sheet:   sh,
 		columns: sel.Indices(sh.Bounds()),
@@ -232,15 +232,15 @@ func (v *projectedView) Name() string {
 	return v.sheet.Name()
 }
 
-func (v *projectedView) Bounds() *Range {
+func (v *projectedView) Bounds() *layout.Range {
 	return v.sheet.Bounds()
 }
 
-func (v *projectedView) Cell(pos Position) (*Cell, error) {
+func (v *projectedView) Cell(pos layout.Position) (*Cell, error) {
 	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
 		return nil, nil
 	}
-	mod := Position{
+	mod := layout.Position{
 		Column: v.columns[pos.Column],
 		Line:   pos.Line,
 	}
@@ -287,13 +287,13 @@ func (v *projectedView) Encode(encoder Encoder) error {
 
 type boundedView struct {
 	sheet View
-	part  *Range
+	part  *layout.Range
 }
 
-func newBoundedView(sh View, rg *Range) View {
+func newBoundedView(sh View, rg *layout.Range) View {
 	v := boundedView{
 		sheet: sh,
-		part:  rg.normalize(),
+		part:  rg.Normalize(),
 	}
 	return &v
 }
@@ -302,14 +302,14 @@ func (v *boundedView) Name() string {
 	return v.sheet.Name()
 }
 
-func (v *boundedView) Cell(pos Position) (*Cell, error) {
+func (v *boundedView) Cell(pos layout.Position) (*Cell, error) {
 	if !v.part.Contains(pos) {
 		return nil, fmt.Errorf("position outside view range")
 	}
 	return v.sheet.Cell(pos)
 }
 
-func (v *boundedView) Bounds() *Range {
+func (v *boundedView) Bounds() *layout.Range {
 	return v.part
 }
 
@@ -335,7 +335,7 @@ func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
 		)
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
 			for col, ix := v.part.Starts.Column, 0; col <= v.part.Ends.Column; col++ {
-				p := Position{
+				p := layout.Position{
 					Line:   row,
 					Column: col,
 				}
@@ -367,7 +367,7 @@ type Sheet struct {
 	Size   layout.Dimension
 
 	rows  []*Row
-	cells map[Position]*Cell
+	cells map[layout.Position]*Cell
 
 	State     SheetState
 	Protected SheetProtection
@@ -379,7 +379,7 @@ func NewSheet(name string) *Sheet {
 		Label:  name,
 		Active: false,
 		State:  StateVisible,
-		cells:  make(map[Position]*Cell),
+		cells:  make(map[layout.Position]*Cell),
 	}
 	return &s
 }
@@ -388,18 +388,18 @@ func (s *Sheet) Name() string {
 	return s.Label
 }
 
-func (s *Sheet) View(rg *Range) View {
+func (s *Sheet) View(rg *layout.Range) View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
 	rg.Ends = rg.Ends.Update(bd.Ends)
 	return newBoundedView(s, rg)
 }
 
-func (s *Sheet) Sub(start, end Position) View {
-	return s.View(NewRange(start, end))
+func (s *Sheet) Sub(start, end layout.Position) View {
+	return s.View(layout.NewRange(start, end))
 }
 
-func (s *Sheet) Cell(pos Position) (*Cell, error) {
+func (s *Sheet) Cell(pos layout.Position) (*Cell, error) {
 	cell, ok := s.cells[pos]
 	if !ok {
 		cell = &Cell{
@@ -424,7 +424,7 @@ func (s *Sheet) Reload(ctx Context) error {
 	return nil
 }
 
-func (s *Sheet) Bounds() *Range {
+func (s *Sheet) Bounds() *layout.Range {
 	var (
 		minRow int64 = math.MaxInt64
 		maxRow int64
@@ -437,20 +437,20 @@ func (s *Sheet) Bounds() *Range {
 		minCol = min(minCol, c.Column)
 		maxCol = max(maxCol, c.Column)
 	}
-	var rg Range
+	var rg layout.Range
 	if maxRow == 0 || maxCol == 0 {
-		pos := Position{
+		pos := layout.Position{
 			Line:   1,
 			Column: 1,
 		}
 		rg.Starts = pos
 		rg.Ends = pos
 	} else {
-		rg.Starts = Position{
+		rg.Starts = layout.Position{
 			Line:   minRow,
 			Column: minCol,
 		}
-		rg.Ends = Position{
+		rg.Ends = layout.Position{
 			Line:   maxRow,
 			Column: maxCol,
 		}
@@ -499,7 +499,7 @@ func (s *Sheet) Append(data []string) error {
 	}
 	s.Size.Lines++
 	for i, d := range data {
-		pos := Position{
+		pos := layout.Position{
 			Line:   rs.Line,
 			Column: int64(i) + 1,
 		}
@@ -516,7 +516,7 @@ func (s *Sheet) Append(data []string) error {
 	return nil
 }
 
-func (s *Sheet) Insert(pos Position, data []any) error {
+func (s *Sheet) Insert(pos layout.Position, data []any) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
 	}

@@ -58,7 +58,7 @@ func (r *Range) String() string {
 	return fmt.Sprintf("%s:%s", r.Starts.Addr(), r.Ends.Addr())
 }
 
-func (r *Range) normalize() *Range {
+func (r *Range) Normalize() *Range {
 	x := NewRange(r.Starts, r.Ends)
 	x.Starts.Line = min(r.Starts.Line, r.Ends.Line)
 	x.Starts.Column = min(r.Starts.Column, r.Ends.Column)

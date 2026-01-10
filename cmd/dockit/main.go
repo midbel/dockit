@@ -12,6 +12,7 @@ import (
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/oxml"
 )
 
@@ -191,8 +192,8 @@ var unlockCmd = cli.Command{
 
 type SheetRef struct {
 	*oxml.File
-	*oxml.Range
-	oxml.Selection
+	*layout.Range
+	layout.Selection
 	Path  string
 	Sheet string
 }
@@ -211,7 +212,7 @@ func parseReference(str string) (*SheetRef, error) {
 	}
 	rest, columns, ok := strings.Cut(rest, "(")
 	if ok {
-		ref.Selection, err = oxml.SelectionFromString(columns[:len(columns)-1])
+		ref.Selection, err = layout.SelectionFromString(columns[:len(columns)-1])
 		if err != nil {
 			return nil, err
 		}
@@ -220,7 +221,7 @@ func parseReference(str string) (*SheetRef, error) {
 	ref.Sheet = rest
 	if sheet, spec, ok := strings.Cut(rest, "!"); ok {
 		ref.Sheet = sheet
-		ref.Range = oxml.RangeFromString(spec)
+		ref.Range = layout.RangeFromString(spec)
 	}
 	return &ref, nil
 }
