@@ -314,7 +314,7 @@ func (s SheetRef) MoveTo(other *SheetRef, to string) error {
 
 func (s SheetRef) appendSheetToFile(sh *oxml.Sheet) error {
 	if s.Sheet != "" {
-		sh.Name = s.Sheet
+		sh.Label = s.Sheet
 	}
 	return s.AppendSheet(sh)
 }
@@ -488,7 +488,7 @@ func (c PrintSheetCommand) Run(args []string) error {
 	return ref.DumpTo(c, c.Reload)
 }
 
-func (c PrintSheetCommand) EncodeSheet(sheet oxml.RowIterator) error {
+func (c PrintSheetCommand) EncodeSheet(sheet oxml.View) error {
 	if c.Width <= 0 {
 		c.Width = 16
 	}
@@ -597,7 +597,7 @@ func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
 	}
 	ext = fmt.Sprintf(".%s", c.Format)
 
-	w, err := os.Create(filepath.Join(c.OutDir, sh.Name+ext))
+	w, err := os.Create(filepath.Join(c.OutDir, sh.Name()+ext))
 	if err != nil {
 		return err
 	}

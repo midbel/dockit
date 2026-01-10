@@ -2,18 +2,12 @@ package oxml
 
 import (
 	"io"
-	"iter"
-	"strconv"
 
 	"github.com/midbel/dockit/csv"
 )
 
-type RowIterator interface {
-	Rows() iter.Seq[[]any]
-}
-
 type Encoder interface {
-	EncodeSheet(RowIterator) error
+	EncodeSheet(View) error
 }
 
 type csvEncoder struct {
@@ -28,24 +22,14 @@ func EncodeCSV(w io.Writer) Encoder {
 	}
 }
 
-func (e *csvEncoder) EncodeSheet(it RowIterator) error {
+func (e *csvEncoder) EncodeSheet(it View) error {
 	writer := csv.NewWriter(e.writer)
 	writer.Comma = e.comma
 	writer.ForceQuote = true
 	for row := range it.Rows() {
 		var fields []string
 		for i := range row {
-			var str string
-			switch r := row[i].(type) {
-			case float64:
-				str = strconv.FormatFloat(r, 'f', -1, 64)
-			case string:
-				str = r
-			case bool:
-				str = strconv.FormatBool(r)
-			default:
-			}
-			fields = append(fields, str)
+			fields = append(fields, row[i].String())
 		}
 		if err := writer.Write(fields); err != nil {
 			return err
@@ -65,7 +49,7 @@ func EncodeJSON(w io.Writer) Encoder {
 	}
 }
 
-func (e *jsonEncoder) EncodeSheet(it RowIterator) error {
+func (e *jsonEncoder) EncodeSheet(it View) error {
 	return nil
 }
 
@@ -79,6 +63,6 @@ func EncodeXML(w io.Writer) Encoder {
 	}
 }
 
-func (e *xmlEncoder) EncodeSheet(it RowIterator) error {
+func (e *xmlEncoder) EncodeSheet(it View) error {
 	return nil
 }

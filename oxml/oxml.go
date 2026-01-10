@@ -97,10 +97,10 @@ type Row struct {
 	Cells  []*Cell
 }
 
-func (r *Row) Data() []any {
-	var ds []any
+func (r *Row) Data() []ScalarValue {
+	var ds []ScalarValue
 	for _, c := range r.Cells {
-		ds = append(ds, c.Get())
+		ds = append(ds, c.parsedValue)
 	}
 	return ds
 }
@@ -195,10 +195,11 @@ func (p SheetProtection) ColumnsLocked() bool {
 }
 
 type View interface {
+	Name() string
 	Bounds() *Range
 	Cell(Position) (*Cell, error)
 	Cells() iter.Seq[*Cell]
-	Rows() iter.Seq[[]any]
+	Rows() iter.Seq[[]ScalarValue]
 	Encode(Encoder) error
 }
 
@@ -222,6 +223,10 @@ func newProjectedView(sh View, sel Selection) View {
 		v.mapping[c] = int64(i)
 	}
 	return &v
+}
+
+func (v *projectedView) Name() string {
+	return v.sheet.Name()
 }
 
 func (v *projectedView) Bounds() *Range {
@@ -256,9 +261,9 @@ func (v *projectedView) Cells() iter.Seq[*Cell] {
 	return it
 }
 
-func (v *projectedView) Rows() iter.Seq[[]any] {
-	it := func(yield func([]any) bool) {
-		out := make([]any, len(v.columns))
+func (v *projectedView) Rows() iter.Seq[[]ScalarValue] {
+	it := func(yield func([]ScalarValue) bool) {
+		out := make([]ScalarValue, len(v.columns))
 		for row := range v.sheet.Rows() {
 			for i, col := range v.columns {
 				if int(col) < len(row) {
@@ -290,6 +295,10 @@ func newBoundedView(sh View, rg *Range) View {
 	return &v
 }
 
+func (v *boundedView) Name() string {
+	return v.sheet.Name()
+}
+
 func (v *boundedView) Cell(pos Position) (*Cell, error) {
 	if !v.part.Contains(pos) {
 		return nil, fmt.Errorf("position outside view range")
@@ -315,11 +324,11 @@ func (v *boundedView) Cells() iter.Seq[*Cell] {
 	return it
 }
 
-func (v *boundedView) Rows() iter.Seq[[]any] {
-	it := func(yield func([]any) bool) {
+func (v *boundedView) Rows() iter.Seq[[]ScalarValue] {
+	it := func(yield func([]ScalarValue) bool) {
 		var (
 			width = v.part.Ends.Column - v.part.Starts.Column + 1
-			data  = make([]any, width)
+			data  = make([]ScalarValue, width)
 		)
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
 			for col, ix := v.part.Starts.Column, 0; col <= v.part.Ends.Column; col++ {
@@ -329,9 +338,9 @@ func (v *boundedView) Rows() iter.Seq[[]any] {
 				}
 				c, err := v.sheet.Cell(p)
 				if err == nil {
-					data[ix] = c.Get()
+					data[ix] = c.parsedValue
 				} else {
-					data[ix] = ""
+					data[ix] = Blank{}
 				}
 				ix++
 			}
@@ -349,7 +358,7 @@ func (v *boundedView) Encode(e Encoder) error {
 
 type Sheet struct {
 	Id     string
-	Name   string
+	Label  string
 	Active bool
 	Index  int
 	Size   Dimension
@@ -364,12 +373,16 @@ type Sheet struct {
 func NewSheet(name string) *Sheet {
 	name = cleanSheetName(name)
 	s := Sheet{
-		Name:   name,
+		Label:  name,
 		Active: false,
 		State:  StateVisible,
 		cells:  make(map[Position]*Cell),
 	}
 	return &s
+}
+
+func (s *Sheet) Name() string {
+	return s.Label
 }
 
 func (s *Sheet) View(rg *Range) View {
@@ -446,8 +459,8 @@ func (s *Sheet) Cells() iter.Seq[*Cell] {
 	return maps.Values(s.cells)
 }
 
-func (s *Sheet) Rows() iter.Seq[[]any] {
-	it := func(yield func([]any) bool) {
+func (s *Sheet) Rows() iter.Seq[[]ScalarValue] {
+	it := func(yield func([]ScalarValue) bool) {
 		for _, r := range s.rows {
 			row := r.Data()
 			if !yield(row) {
@@ -606,7 +619,7 @@ func (f *File) ActiveSheet() (*Sheet, error) {
 
 func (f *File) Sheet(name string) (*Sheet, error) {
 	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
-		return s.Name == name
+		return s.Name() == name
 	})
 	if ix < 0 {
 		return nil, fmt.Errorf("sheet %s %w", name, ErrFound)
@@ -658,7 +671,7 @@ func (f *File) Rename(oldName, newName string) error {
 	if err := f.Remove(oldName); err != nil {
 		return err
 	}
-	sh.Name = cleanSheetName(newName)
+	sh.Label = cleanSheetName(newName)
 	return f.AppendSheet(sh)
 }
 
@@ -685,7 +698,7 @@ func (f *File) Remove(name string) error {
 	}
 	size := len(f.sheets)
 	f.sheets = slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
-		return s.Name == name
+		return s.Name() == name
 	})
 	if n, ok := f.names[name]; ok && n == 1 && len(f.sheets) < size {
 		delete(f.names, name)
@@ -697,10 +710,10 @@ func (f *File) AppendSheet(sheet *Sheet) error {
 	if f.locked {
 		return ErrLock
 	}
-	sheet.Name = cleanSheetName(sheet.Name)
-	if n, ok := f.names[sheet.Name]; ok {
-		f.names[sheet.Name] = n + 1
-		sheet.Name = fmt.Sprintf("%s_%03d", sheet.Name, f.names[sheet.Name])
+	sheet.Label = cleanSheetName(sheet.Label)
+	if n, ok := f.names[sheet.Label]; ok {
+		f.names[sheet.Label] = n + 1
+		sheet.Label = fmt.Sprintf("%s_%03d", sheet.Label, f.names[sheet.Label])
 	}
 	sheet.Index = len(f.sheets) + 1
 	sheet.Id = fmt.Sprintf("rId%d", sheet.Index)
@@ -726,10 +739,10 @@ func (f *File) Merge(other *File) error {
 		s.Index = len(f.sheets) + i + 1
 		s.Id = fmt.Sprintf("rId%d", s.Index)
 
-		s.Name = cleanSheetName(s.Name)
-		if n, ok := f.names[s.Name]; ok {
-			f.names[s.Name] = n + 1
-			s.Name = fmt.Sprintf("%s_%03d", s.Name, f.names[s.Name])
+		s.Label = cleanSheetName(s.Label)
+		if n, ok := f.names[s.Label]; ok {
+			f.names[s.Label] = n + 1
+			s.Label = fmt.Sprintf("%s_%03d", s.Label, f.names[s.Label])
 		}
 		f.sheets = append(f.sheets, s)
 		s.resetSharedIndex(ix)

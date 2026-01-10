@@ -267,7 +267,7 @@ func (z *writer) writeWorkbook(f *File) {
 		xs := xmlSheet{
 			Id:    s.Id,
 			Index: s.Index,
-			Name:  s.Name,
+			Name:  s.Label,
 			State: s.State,
 		}
 		root.Sheets = append(root.Sheets, xs)
