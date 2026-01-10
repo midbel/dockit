@@ -7,11 +7,6 @@ import (
 	"strings"
 )
 
-type Dimension struct {
-	Lines   int64
-	Columns int64
-}
-
 type Position struct {
 	Sheet  string
 	Line   int64

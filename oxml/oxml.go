@@ -11,6 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
 
 const (
@@ -66,7 +69,7 @@ type Cell struct {
 	Position
 
 	rawValue    string
-	parsedValue ScalarValue
+	parsedValue value.ScalarValue
 	dirty       bool
 	Formula     Expr
 }
@@ -83,10 +86,10 @@ func (c *Cell) Reload(ctx Context) error {
 	if c.Formula == nil {
 		return nil
 	}
-	value, err := Eval(c.Formula, ctx)
+	res, err := Eval(c.Formula, ctx)
 	if err == nil {
-		c.parsedValue = value.(ScalarValue)
-		c.rawValue = value.String()
+		c.parsedValue = res.(value.ScalarValue)
+		c.rawValue = res.String()
 	}
 	return err
 }
@@ -97,8 +100,8 @@ type Row struct {
 	Cells  []*Cell
 }
 
-func (r *Row) Data() []ScalarValue {
-	var ds []ScalarValue
+func (r *Row) Data() []value.ScalarValue {
+	var ds []value.ScalarValue
 	for _, c := range r.Cells {
 		ds = append(ds, c.parsedValue)
 	}
@@ -199,7 +202,7 @@ type View interface {
 	Bounds() *Range
 	Cell(Position) (*Cell, error)
 	Cells() iter.Seq[*Cell]
-	Rows() iter.Seq[[]ScalarValue]
+	Rows() iter.Seq[[]value.ScalarValue]
 	Encode(Encoder) error
 }
 
@@ -261,9 +264,9 @@ func (v *projectedView) Cells() iter.Seq[*Cell] {
 	return it
 }
 
-func (v *projectedView) Rows() iter.Seq[[]ScalarValue] {
-	it := func(yield func([]ScalarValue) bool) {
-		out := make([]ScalarValue, len(v.columns))
+func (v *projectedView) Rows() iter.Seq[[]value.ScalarValue] {
+	it := func(yield func([]value.ScalarValue) bool) {
+		out := make([]value.ScalarValue, len(v.columns))
 		for row := range v.sheet.Rows() {
 			for i, col := range v.columns {
 				if int(col) < len(row) {
@@ -324,11 +327,11 @@ func (v *boundedView) Cells() iter.Seq[*Cell] {
 	return it
 }
 
-func (v *boundedView) Rows() iter.Seq[[]ScalarValue] {
-	it := func(yield func([]ScalarValue) bool) {
+func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
+	it := func(yield func([]value.ScalarValue) bool) {
 		var (
 			width = v.part.Ends.Column - v.part.Starts.Column + 1
-			data  = make([]ScalarValue, width)
+			data  = make([]value.ScalarValue, width)
 		)
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
 			for col, ix := v.part.Starts.Column, 0; col <= v.part.Ends.Column; col++ {
@@ -361,7 +364,7 @@ type Sheet struct {
 	Label  string
 	Active bool
 	Index  int
-	Size   Dimension
+	Size   layout.Dimension
 
 	rows  []*Row
 	cells map[Position]*Cell
@@ -459,8 +462,8 @@ func (s *Sheet) Cells() iter.Seq[*Cell] {
 	return maps.Values(s.cells)
 }
 
-func (s *Sheet) Rows() iter.Seq[[]ScalarValue] {
-	it := func(yield func([]ScalarValue) bool) {
+func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
+	it := func(yield func([]value.ScalarValue) bool) {
 		for _, r := range s.rows {
 			row := r.Data()
 			if !yield(row) {

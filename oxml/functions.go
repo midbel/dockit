@@ -1,8 +1,12 @@
 package oxml
 
-import "fmt"
+import (
+	"fmt"
 
-var builtins = map[string]func([]Value) (Value, error){
+	"github.com/midbel/dockit/value"
+)
+
+var builtins = map[string]func([]value.Value) (value.Value, error){
 	"sum":     execSum,
 	"average": execAvg,
 	"count":   execCount,
@@ -10,7 +14,7 @@ var builtins = map[string]func([]Value) (Value, error){
 	"max":     execMax,
 }
 
-func execMin(args []Value) (Value, error) {
+func execMin(args []value.Value) (value.Value, error) {
 	var res float64
 	for i := range args {
 		if !isNumber(args[i]) {
@@ -26,7 +30,7 @@ func execMin(args []Value) (Value, error) {
 	return Float(res), nil
 }
 
-func execMax(args []Value) (Value, error) {
+func execMax(args []value.Value) (value.Value, error) {
 	var res float64
 	for i := range args {
 		if !isNumber(args[i]) {
@@ -42,7 +46,7 @@ func execMax(args []Value) (Value, error) {
 	return Float(res), nil
 }
 
-func execSum(args []Value) (Value, error) {
+func execSum(args []value.Value) (value.Value, error) {
 	var total float64
 	for i := range args {
 		if !isNumber(args[i]) {
@@ -53,7 +57,7 @@ func execSum(args []Value) (Value, error) {
 	return Float(total), nil
 }
 
-func execAvg(args []Value) (Value, error) {
+func execAvg(args []value.Value) (value.Value, error) {
 	if len(args) == 0 {
 		return Float(0), nil
 	}
@@ -67,6 +71,6 @@ func execAvg(args []Value) (Value, error) {
 	return Float(total / float64(len(args))), nil
 }
 
-func execCount(args []Value) (Value, error) {
+func execCount(args []value.Value) (value.Value, error) {
 	return nil, nil
 }

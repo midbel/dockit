@@ -8,35 +8,14 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
 
 type Expr interface {
 	fmt.Stringer
 	cloneWithOffset(Position) Expr
-}
-
-type ValueKind int8
-
-const (
-	KindScalar ValueKind = 1 << iota
-	KindError
-	KindArray
-)
-
-type Value interface {
-	Kind() ValueKind
-	fmt.Stringer
-}
-
-type ScalarValue interface {
-	Value
-	Scalar() any
-}
-
-type ArrayValue interface {
-	Value
-	Dimension() Dimension
-	At(int, int) ScalarValue
 }
 
 type ErrorCode string
@@ -61,8 +40,8 @@ func createError(code string) Error {
 	}
 }
 
-func (Error) Kind() ValueKind {
-	return KindError
+func (Error) Kind() value.ValueKind {
+	return value.KindError
 }
 
 func (e Error) Error() string {
@@ -79,8 +58,8 @@ func (e Error) Scalar() any {
 
 type Blank struct{}
 
-func (Blank) Kind() ValueKind {
-	return KindScalar
+func (Blank) Kind() value.ValueKind {
+	return value.KindScalar
 }
 
 func (Blank) String() string {
@@ -93,8 +72,8 @@ func (Blank) Scalar() any {
 
 type Float float64
 
-func (Float) Kind() ValueKind {
-	return KindScalar
+func (Float) Kind() value.ValueKind {
+	return value.KindScalar
 }
 
 func (f Float) String() string {
@@ -107,8 +86,8 @@ func (f Float) Scalar() any {
 
 type Text string
 
-func (Text) Kind() ValueKind {
-	return KindScalar
+func (Text) Kind() value.ValueKind {
+	return value.KindScalar
 }
 
 func (t Text) String() string {
@@ -121,8 +100,8 @@ func (t Text) Scalar() any {
 
 type Boolean bool
 
-func (Boolean) Kind() ValueKind {
-	return KindScalar
+func (Boolean) Kind() value.ValueKind {
+	return value.KindScalar
 }
 
 func (b Boolean) String() string {
@@ -134,20 +113,20 @@ func (b Boolean) Scalar() any {
 }
 
 type Array struct {
-	data [][]ScalarValue
+	data [][]value.ScalarValue
 }
 
-func (Array) Kind() ValueKind {
-	return KindArray
+func (Array) Kind() value.ValueKind {
+	return value.KindArray
 }
 
 func (Array) String() string {
 	return ""
 }
 
-func (a Array) Dimension() Dimension {
+func (a Array) Dimension() layout.Dimension {
 	var (
-		d Dimension
+		d layout.Dimension
 		n = len(a.data)
 	)
 	if n > 0 {
@@ -157,7 +136,7 @@ func (a Array) Dimension() Dimension {
 	return d
 }
 
-func (a Array) At(row, col int) ScalarValue {
+func (a Array) At(row, col int) value.ScalarValue {
 	if len(a.data) == 0 || row >= len(a.data) {
 		return nil
 	}
@@ -168,20 +147,20 @@ func (a Array) At(row, col int) ScalarValue {
 	return a.data[row][col]
 }
 
-func valueToScalar(value Value) any {
-	if v, ok := value.(ScalarValue); ok {
+func valueToScalar(val value.Value) any {
+	if v, ok := val.(value.ScalarValue); ok {
 		return v.Scalar()
 	}
 	return nil
 }
 
-func valueToString(value Value) string {
-	return value.String()
+func valueToString(val value.Value) string {
+	return val.String()
 }
 
 type Context interface {
-	At(Position) (Value, error)
-	Range(Position, Position) (Value, error)
+	At(Position) (value.Value, error)
+	Range(Position, Position) (value.Value, error)
 }
 
 type sheetContext struct {
@@ -196,7 +175,7 @@ func SheetContext(parent Context, sheet View) Context {
 	}
 }
 
-func (c sheetContext) Range(start, end Position) (Value, error) {
+func (c sheetContext) Range(start, end Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return ErrRef, nil
 	}
@@ -216,11 +195,11 @@ func (c sheetContext) Range(start, end Position) (Value, error) {
 		endCol    = max(start.Column, end.Column)
 		height    = int(endLine - startLine + 1)
 		width     = int(endCol - startCol + 1)
-		data      = make([][]ScalarValue, height)
+		data      = make([][]value.ScalarValue, height)
 	)
 
 	for i := 0; i < height; i++ {
-		data[i] = make([]ScalarValue, width)
+		data[i] = make([]value.ScalarValue, width)
 
 		for j := 0; j < width; j++ {
 			pos := Position{
@@ -242,7 +221,7 @@ func (c sheetContext) Range(start, end Position) (Value, error) {
 	return arr, nil
 }
 
-func (c sheetContext) At(pos Position) (Value, error) {
+func (c sheetContext) At(pos Position) (value.Value, error) {
 	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
 		cell, err := c.view.Cell(pos)
 		if err != nil || cell == nil {
@@ -266,7 +245,7 @@ func FileContext(file *File) Context {
 	}
 }
 
-func (c fileContext) Range(start, end Position) (Value, error) {
+func (c fileContext) Range(start, end Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return ErrRef, nil
 	}
@@ -278,7 +257,7 @@ func (c fileContext) Range(start, end Position) (Value, error) {
 	return ctx.Range(start, end)
 }
 
-func (c fileContext) At(pos Position) (Value, error) {
+func (c fileContext) At(pos Position) (value.Value, error) {
 	sh, err := c.sheet(pos.Sheet)
 	if err != nil {
 		return ErrRef, nil
@@ -300,7 +279,7 @@ func (c fileContext) sheet(name string) (*Sheet, error) {
 	return sh, err
 }
 
-func Eval(expr Expr, ctx Context) (Value, error) {
+func Eval(expr Expr, ctx Context) (value.Value, error) {
 	switch e := expr.(type) {
 	case binary:
 		return evalBinary(e, ctx)
@@ -321,7 +300,7 @@ func Eval(expr Expr, ctx Context) (Value, error) {
 	}
 }
 
-func evalBinary(e binary, ctx Context) (Value, error) {
+func evalBinary(e binary, ctx Context) (value.Value, error) {
 	left, err := Eval(e.left, ctx)
 	if err != nil {
 		return nil, err
@@ -331,8 +310,8 @@ func evalBinary(e binary, ctx Context) (Value, error) {
 		return nil, err
 	}
 
-	if left.Kind() != KindScalar && right.Kind() != KindScalar {
-		return ErrValue, ErrValue
+	if !isScalar(left) && isScalar(right) {
+		return ErrValue, nil
 	}
 
 	switch e.op {
@@ -369,15 +348,15 @@ func evalBinary(e binary, ctx Context) (Value, error) {
 	}
 }
 
-func applyValues(left, right Value, do func(left, right float64) (float64, error)) (Value, error) {
+func applyValues(left, right value.Value, do func(left, right float64) (float64, error)) (value.Value, error) {
 	if !isNumber(left) {
 		return ErrValue, nil
 	}
 	if !isNumber(right) {
 		return ErrValue, nil
 	}
-	ls := left.(ScalarValue)
-	rs := right.(ScalarValue)
+	ls := left.(value.ScalarValue)
+	rs := right.(value.ScalarValue)
 	res, err := do(ls.Scalar().(float64), rs.Scalar().(float64))
 	if err != nil {
 		return nil, err
@@ -385,16 +364,16 @@ func applyValues(left, right Value, do func(left, right float64) (float64, error
 	return Float(res), nil
 }
 
-func isNumber(v Value) bool {
+func isNumber(v value.Value) bool {
 	_, ok := v.(Float)
 	return ok
 }
 
-func isScalar(v Value) bool {
-	return v.Kind() == KindScalar
+func isScalar(v value.Value) bool {
+	return v.Kind() == value.KindScalar
 }
 
-func evalUnary(e unary, ctx Context) (Value, error) {
+func evalUnary(e unary, ctx Context) (value.Value, error) {
 	val, err := Eval(e.right, ctx)
 	if err != nil {
 		return nil, err
@@ -413,12 +392,12 @@ func evalUnary(e unary, ctx Context) (Value, error) {
 	}
 }
 
-func evalCall(e call, ctx Context) (Value, error) {
+func evalCall(e call, ctx Context) (value.Value, error) {
 	id, ok := e.ident.(identifier)
 	if !ok {
 		return ErrName, nil
 	}
-	var args []Value
+	var args []value.Value
 	for _, a := range e.args {
 		v, err := Eval(a, ctx)
 		if err != nil {
@@ -434,11 +413,11 @@ func evalCall(e call, ctx Context) (Value, error) {
 
 }
 
-func evalCellAddr(e cellAddr, ctx Context) (Value, error) {
+func evalCellAddr(e cellAddr, ctx Context) (value.Value, error) {
 	return ctx.At(e.Position)
 }
 
-func evalRangeAddr(e rangeAddr, ctx Context) (Value, error) {
+func evalRangeAddr(e rangeAddr, ctx Context) (value.Value, error) {
 	return ctx.Range(e.startAddr.Position, e.endAddr.Position)
 }
 
