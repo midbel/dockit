@@ -49,6 +49,35 @@ type Row struct {
 	Cells  []*Cell
 }
 
+func (r *Row) Sparse() bool {
+	for i, c := range r.Cells {
+		if i == 0 {
+			return
+		}
+		if r.Cells[i-1].Column - c.Column > 1 {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Row) Values() []value.ScalarValue {
+	var list []value.ScalarValue
+	for i := range r.Cells {
+		list = append(list, r.Cells[i].Parsed)
+	}
+	return list
+}
+
+func (r *Row) cloneCells() []*Cell {
+	var cells []*Cell
+	for i := range r.Cells {
+		c := *r.Cells[i]
+		cells = append(cells, &c)
+	}
+	return cells
+}
+
 type Sheet struct {
 	Size layout.Dimension
 
