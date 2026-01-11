@@ -227,7 +227,7 @@ func parseReference(str string) (*SheetRef, error) {
 	return &ref, nil
 }
 
-func (s SheetRef) DumpTo(encoder oxml.Encoder, reload bool) error {
+func (s SheetRef) DumpTo(encoder grid.Encoder, reload bool) error {
 	sh, err := s.getSheetFromFile()
 	if err != nil {
 		return err
@@ -238,14 +238,14 @@ func (s SheetRef) DumpTo(encoder oxml.Encoder, reload bool) error {
 			return err
 		}
 	}
-	var view oxml.View
+	var view grid.View
 	if s.Range != nil {
 		view = sh.View(s.Range)
 	} else {
 		view = sh
 	}
 	if s.Selection != nil {
-		view = oxml.Project(view, s.Selection)
+		view = grid.NewProjectView(view, s.Selection)
 	}
 	return view.Encode(encoder)
 }
@@ -490,7 +490,7 @@ func (c PrintSheetCommand) Run(args []string) error {
 	return ref.DumpTo(c, c.Reload)
 }
 
-func (c PrintSheetCommand) EncodeSheet(sheet oxml.View) error {
+func (c PrintSheetCommand) EncodeSheet(sheet grid.View) error {
 	if c.Width <= 0 {
 		c.Width = 16
 	}
@@ -581,7 +581,7 @@ func (c ExtractSheetCommand) Extract(file *oxml.File, name string) error {
 	}
 
 	var (
-		encode func(io.Writer) oxml.Encoder
+		encode func(io.Writer) grid.Encoder
 		ext    string
 	)
 	switch c.Format {

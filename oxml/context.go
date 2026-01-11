@@ -4,16 +4,17 @@ import (
 	"fmt"
 
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
 type sheetContext struct {
-	view   View
+	view   grid.View
 	parent formula.Context
 }
 
-func SheetContext(parent formula.Context, sheet View) formula.Context {
+func SheetContext(parent formula.Context, sheet grid.View) formula.Context {
 	return sheetContext{
 		parent: parent,
 		view:   sheet,
@@ -24,7 +25,7 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return formula.ErrRef, nil
 	}
-	var sh View
+	var sh grid.View
 	if start.Sheet == "" || start.Sheet == c.view.Name() {
 		sh = c.view
 	} else {

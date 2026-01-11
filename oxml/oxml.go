@@ -13,6 +13,7 @@ import (
 	"unicode"
 
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -48,6 +49,10 @@ type Cell struct {
 	parsed  value.ScalarValue
 	formula formula.Expr
 	dirty   bool
+}
+
+func (c *Cell) At() layout.Position {
+	return c.Position
 }
 
 func (c *Cell) Display() string {
@@ -182,168 +187,6 @@ func (p SheetProtection) ColumnsLocked() bool {
 	return p&ProtectedDeleteColumns > 0 || p&ProtectedInsertColumns > 0
 }
 
-type View interface {
-	Name() string
-	Bounds() *layout.Range
-	Cell(layout.Position) (*Cell, error)
-	Cells() iter.Seq[*Cell]
-	Rows() iter.Seq[[]value.ScalarValue]
-	Encode(Encoder) error
-}
-
-type projectedView struct {
-	sheet   View
-	columns []int64
-	mapping map[int64]int64
-}
-
-func Project(view View, sel layout.Selection) View {
-	return newProjectedView(view, sel)
-}
-
-func newProjectedView(sh View, sel layout.Selection) View {
-	v := projectedView{
-		sheet:   sh,
-		columns: sel.Indices(sh.Bounds()),
-		mapping: make(map[int64]int64),
-	}
-	for i, c := range v.columns {
-		v.mapping[c] = int64(i)
-	}
-	return &v
-}
-
-func (v *projectedView) Name() string {
-	return v.sheet.Name()
-}
-
-func (v *projectedView) Bounds() *layout.Range {
-	return v.sheet.Bounds()
-}
-
-func (v *projectedView) Cell(pos layout.Position) (*Cell, error) {
-	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
-		return nil, nil
-	}
-	mod := layout.Position{
-		Column: v.columns[pos.Column],
-		Line:   pos.Line,
-	}
-	return v.sheet.Cell(mod)
-}
-
-func (v *projectedView) Cells() iter.Seq[*Cell] {
-	it := func(yield func(*Cell) bool) {
-		for c := range v.sheet.Cells() {
-			col, ok := v.mapping[c.Position.Column]
-			if !ok {
-				continue
-			}
-
-			c.Position.Column = col
-			if !yield(c) {
-				return
-			}
-		}
-	}
-	return it
-}
-
-func (v *projectedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
-		out := make([]value.ScalarValue, len(v.columns))
-		for row := range v.sheet.Rows() {
-			for i, col := range v.columns {
-				if int(col) < len(row) {
-					out[i] = row[col]
-				}
-			}
-			if !yield(out) {
-				return
-			}
-		}
-	}
-	return it
-}
-
-func (v *projectedView) Encode(encoder Encoder) error {
-	return encoder.EncodeSheet(v)
-}
-
-type boundedView struct {
-	sheet View
-	part  *layout.Range
-}
-
-func newBoundedView(sh View, rg *layout.Range) View {
-	v := boundedView{
-		sheet: sh,
-		part:  rg.Normalize(),
-	}
-	return &v
-}
-
-func (v *boundedView) Name() string {
-	return v.sheet.Name()
-}
-
-func (v *boundedView) Cell(pos layout.Position) (*Cell, error) {
-	if !v.part.Contains(pos) {
-		return nil, fmt.Errorf("position outside view range")
-	}
-	return v.sheet.Cell(pos)
-}
-
-func (v *boundedView) Bounds() *layout.Range {
-	return v.part
-}
-
-func (v *boundedView) Cells() iter.Seq[*Cell] {
-	it := func(yield func(*Cell) bool) {
-		for c := range v.sheet.Cells() {
-			if !v.part.Contains(c.Position) {
-				continue
-			}
-			if ok := yield(c); !ok {
-				return
-			}
-		}
-	}
-	return it
-}
-
-func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
-		var (
-			width = v.part.Ends.Column - v.part.Starts.Column + 1
-			data  = make([]value.ScalarValue, width)
-		)
-		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
-			for col, ix := v.part.Starts.Column, 0; col <= v.part.Ends.Column; col++ {
-				p := layout.Position{
-					Line:   row,
-					Column: col,
-				}
-				c, err := v.sheet.Cell(p)
-				if err == nil {
-					data[ix] = c.Value()
-				} else {
-					data[ix] = formula.Blank{}
-				}
-				ix++
-			}
-			if !yield(data) {
-				break
-			}
-		}
-	}
-	return it
-}
-
-func (v *boundedView) Encode(e Encoder) error {
-	return e.EncodeSheet(v)
-}
-
 type Sheet struct {
 	Id     string
 	Label  string
@@ -373,18 +216,18 @@ func (s *Sheet) Name() string {
 	return s.Label
 }
 
-func (s *Sheet) View(rg *layout.Range) View {
+func (s *Sheet) View(rg *layout.Range) grid.View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
 	rg.Ends = rg.Ends.Update(bd.Ends)
-	return newBoundedView(s, rg)
+	return grid.NewBoundedView(s, rg)
 }
 
-func (s *Sheet) Sub(start, end layout.Position) View {
+func (s *Sheet) Sub(start, end layout.Position) grid.View {
 	return s.View(layout.NewRange(start, end))
 }
 
-func (s *Sheet) Cell(pos layout.Position) (*Cell, error) {
+func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	cell, ok := s.cells[pos]
 	if !ok {
 		cell = &Cell{
@@ -416,7 +259,7 @@ func (s *Sheet) Bounds() *layout.Range {
 		minCol int64 = math.MaxInt64
 		maxCol int64
 	)
-	for c := range s.Cells() {
+	for c := range maps.Values(s.cells) {
 		minRow = min(minRow, c.Line)
 		maxRow = max(maxRow, c.Line)
 		minCol = min(minCol, c.Column)
@@ -441,10 +284,6 @@ func (s *Sheet) Bounds() *layout.Range {
 		}
 	}
 	return &rg
-}
-
-func (s *Sheet) Cells() iter.Seq[*Cell] {
-	return maps.Values(s.cells)
 }
 
 func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
@@ -508,7 +347,7 @@ func (s *Sheet) Insert(pos layout.Position, data []any) error {
 	return nil
 }
 
-func (s *Sheet) Encode(e Encoder) error {
+func (s *Sheet) Encode(e grid.Encoder) error {
 	return e.EncodeSheet(s)
 }
 
