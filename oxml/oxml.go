@@ -66,7 +66,8 @@ const (
 )
 
 type Cell struct {
-	Type string
+	Type  string
+	Style int
 	layout.Position
 
 	rawValue    string
