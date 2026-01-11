@@ -39,6 +39,7 @@ var (
 
 type Cell struct {
 	Type string
+	Style int
 	*grid.Cell
 }
 
@@ -154,14 +155,14 @@ func (s *Sheet) Copy(other *Sheet) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
 	}
-	return s.Sheet.Copy(other)
+	return s.Sheet.Copy(other.Sheet)
 }
 
 func (s *Sheet) Append(data []string) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
 	}
-	return s.Sheet.Append(data)
+	return nil
 }
 
 func (s *Sheet) Insert(pos layout.Position, data []any) error {
@@ -169,10 +170,6 @@ func (s *Sheet) Insert(pos layout.Position, data []any) error {
 		return ErrLock
 	}
 	return nil
-}
-
-func (s *Sheet) Encode(e grid.Encoder) error {
-	return e.EncodeSheet(s)
 }
 
 func (s *Sheet) Lock() {

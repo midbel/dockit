@@ -181,32 +181,6 @@ func (s *Sheet) Copy(other *Sheet) error {
 	return nil
 }
 
-func (s *Sheet) Append(data []string) error {
-	rs := Row{
-		Line: int64(len(s.rows)) + 1,
-	}
-	s.Size.Lines++
-	for i, d := range data {
-		pos := layout.Position{
-			Line:   rs.Line,
-			Column: int64(i) + 1,
-		}
-		g := Cell{
-			Position: pos,
-			Raw:      d,
-			Parsed:   formula.Text(d),
-		}
-		c := Cell{
-			Type: TypeInlineStr,
-			Cell: &g,
-		}
-		rs.Cells = append(rs.Cells, &c)
-	}
-	s.Size.Columns = max(s.Size.Columns, int64(len(data)))
-	s.rows = append(s.rows, &rs)
-	return nil
-}
-
 func (s *Sheet) Encode(e Encoder) error {
 	return e.EncodeSheet(s)
 }
