@@ -4,25 +4,22 @@ import (
 	"io"
 
 	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/grid"
 )
-
-type Encoder interface {
-	EncodeSheet(View) error
-}
 
 type csvEncoder struct {
 	writer io.Writer
 	comma  byte
 }
 
-func EncodeCSV(w io.Writer) Encoder {
+func EncodeCSV(w io.Writer) grid.Encoder {
 	return &csvEncoder{
 		writer: w,
 		comma:  ',',
 	}
 }
 
-func (e *csvEncoder) EncodeSheet(it View) error {
+func (e *csvEncoder) EncodeSheet(it grid.View) error {
 	writer := csv.NewWriter(e.writer)
 	writer.Comma = e.comma
 	writer.ForceQuote = true
@@ -43,13 +40,13 @@ type jsonEncoder struct {
 	writer io.Writer
 }
 
-func EncodeJSON(w io.Writer) Encoder {
+func EncodeJSON(w io.Writer) grid.Encoder {
 	return &jsonEncoder{
 		writer: w,
 	}
 }
 
-func (e *jsonEncoder) EncodeSheet(it View) error {
+func (e *jsonEncoder) EncodeSheet(it grid.View) error {
 	return nil
 }
 
@@ -57,12 +54,12 @@ type xmlEncoder struct {
 	writer io.Writer
 }
 
-func EncodeXML(w io.Writer) Encoder {
+func EncodeXML(w io.Writer) grid.Encoder {
 	return &xmlEncoder{
 		writer: w,
 	}
 }
 
-func (e *xmlEncoder) EncodeSheet(it View) error {
+func (e *xmlEncoder) EncodeSheet(it grid.View) error {
 	return nil
 }

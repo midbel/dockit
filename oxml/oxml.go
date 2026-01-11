@@ -4,15 +4,13 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"iter"
-	"maps"
-	"math"
 	"slices"
 	"strconv"
 	"strings"
 	"unicode"
 
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -39,91 +37,17 @@ var (
 	ErrImplemented = errors.New("not implemented")
 )
 
-type CopyMode int
-
-func CopyModeFromString(str string) (CopyMode, error) {
-	var mode CopyMode
-	switch str {
-	case "value":
-		mode |= CopyValue
-	case "formula":
-		mode |= CopyFormula
-	case "style":
-		mode |= CopyStyle
-	case "", "all":
-		mode |= CopyAll
-	default:
-		return mode, fmt.Errorf("%s invalid value for copy mode", str)
-	}
-	return mode, nil
-}
-
-const (
-	CopyValue = iota << 1
-	CopyFormula
-	CopyStyle
-	CopyAll = CopyValue | CopyFormula | CopyStyle
-)
-
 type Cell struct {
 	Type string
-	layout.Position
-
-	rawValue    string
-	parsedValue value.ScalarValue
-	dirty       bool
-	Formula     formula.Expr
+	*grid.Cell
 }
 
 func (c *Cell) Value() string {
-	return c.rawValue
+	return c.Raw
 }
 
 func (c *Cell) Get() any {
-	return c.parsedValue.Scalar()
-}
-
-func (c *Cell) Reload(ctx formula.Context) error {
-	if c.Formula == nil {
-		return nil
-	}
-	res, err := formula.Eval(c.Formula, ctx)
-	if err == nil {
-		c.parsedValue = res.(value.ScalarValue)
-		c.rawValue = res.String()
-	}
-	return err
-}
-
-type Row struct {
-	Line   int64
-	Hidden bool
-	Cells  []*Cell
-}
-
-func (r *Row) Data() []value.ScalarValue {
-	var ds []value.ScalarValue
-	for _, c := range r.Cells {
-		ds = append(ds, c.parsedValue)
-	}
-	return ds
-}
-
-func (r *Row) values() []any {
-	var list []any
-	for i := range r.Cells {
-		list = append(list, r.Cells[i].parsedValue)
-	}
-	return list
-}
-
-func (r *Row) cloneCells() []*Cell {
-	var cells []*Cell
-	for i := range r.Cells {
-		c := *r.Cells[i]
-		cells = append(cells, &c)
-	}
-	return cells
+	return c.Parsed.Scalar()
 }
 
 type SheetState int8
@@ -198,177 +122,13 @@ func (p SheetProtection) ColumnsLocked() bool {
 	return p&ProtectedDeleteColumns > 0 || p&ProtectedInsertColumns > 0
 }
 
-type View interface {
-	Name() string
-	Bounds() *layout.Range
-	Cell(layout.Position) (*Cell, error)
-	Cells() iter.Seq[*Cell]
-	Rows() iter.Seq[[]value.ScalarValue]
-	Encode(Encoder) error
-}
-
-type projectedView struct {
-	sheet   View
-	columns []int64
-	mapping map[int64]int64
-}
-
-func Project(view View, sel layout.Selection) View {
-	return newProjectedView(view, sel)
-}
-
-func newProjectedView(sh View, sel layout.Selection) View {
-	v := projectedView{
-		sheet:   sh,
-		columns: sel.Indices(sh.Bounds()),
-		mapping: make(map[int64]int64),
-	}
-	for i, c := range v.columns {
-		v.mapping[c] = int64(i)
-	}
-	return &v
-}
-
-func (v *projectedView) Name() string {
-	return v.sheet.Name()
-}
-
-func (v *projectedView) Bounds() *layout.Range {
-	return v.sheet.Bounds()
-}
-
-func (v *projectedView) Cell(pos layout.Position) (*Cell, error) {
-	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
-		return nil, nil
-	}
-	mod := layout.Position{
-		Column: v.columns[pos.Column],
-		Line:   pos.Line,
-	}
-	return v.sheet.Cell(mod)
-}
-
-func (v *projectedView) Cells() iter.Seq[*Cell] {
-	it := func(yield func(*Cell) bool) {
-		for c := range v.sheet.Cells() {
-			col, ok := v.mapping[c.Position.Column]
-			if !ok {
-				continue
-			}
-
-			c.Position.Column = col
-			if !yield(c) {
-				return
-			}
-		}
-	}
-	return it
-}
-
-func (v *projectedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
-		out := make([]value.ScalarValue, len(v.columns))
-		for row := range v.sheet.Rows() {
-			for i, col := range v.columns {
-				if int(col) < len(row) {
-					out[i] = row[col]
-				}
-			}
-			if !yield(out) {
-				return
-			}
-		}
-	}
-	return it
-}
-
-func (v *projectedView) Encode(encoder Encoder) error {
-	return encoder.EncodeSheet(v)
-}
-
-type boundedView struct {
-	sheet View
-	part  *layout.Range
-}
-
-func newBoundedView(sh View, rg *layout.Range) View {
-	v := boundedView{
-		sheet: sh,
-		part:  rg.Normalize(),
-	}
-	return &v
-}
-
-func (v *boundedView) Name() string {
-	return v.sheet.Name()
-}
-
-func (v *boundedView) Cell(pos layout.Position) (*Cell, error) {
-	if !v.part.Contains(pos) {
-		return nil, fmt.Errorf("position outside view range")
-	}
-	return v.sheet.Cell(pos)
-}
-
-func (v *boundedView) Bounds() *layout.Range {
-	return v.part
-}
-
-func (v *boundedView) Cells() iter.Seq[*Cell] {
-	it := func(yield func(*Cell) bool) {
-		for c := range v.sheet.Cells() {
-			if !v.part.Contains(c.Position) {
-				continue
-			}
-			if ok := yield(c); !ok {
-				return
-			}
-		}
-	}
-	return it
-}
-
-func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
-		var (
-			width = v.part.Ends.Column - v.part.Starts.Column + 1
-			data  = make([]value.ScalarValue, width)
-		)
-		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
-			for col, ix := v.part.Starts.Column, 0; col <= v.part.Ends.Column; col++ {
-				p := layout.Position{
-					Line:   row,
-					Column: col,
-				}
-				c, err := v.sheet.Cell(p)
-				if err == nil {
-					data[ix] = c.parsedValue
-				} else {
-					data[ix] = formula.Blank{}
-				}
-				ix++
-			}
-			if !yield(data) {
-				break
-			}
-		}
-	}
-	return it
-}
-
-func (v *boundedView) Encode(e Encoder) error {
-	return e.EncodeSheet(v)
-}
-
 type Sheet struct {
 	Id     string
 	Label  string
 	Active bool
 	Index  int
-	Size   layout.Dimension
 
-	rows  []*Row
-	cells map[layout.Position]*Cell
+	*grid.Sheet
 
 	State     SheetState
 	Protected SheetProtection
@@ -380,141 +140,28 @@ func NewSheet(name string) *Sheet {
 		Label:  name,
 		Active: false,
 		State:  StateVisible,
-		cells:  make(map[layout.Position]*Cell),
+		Sheet:  grid.Empty(name),
 	}
 	return &s
 }
 
-func (s *Sheet) Name() string {
-	return s.Label
-}
-
-func (s *Sheet) View(rg *layout.Range) View {
-	bd := s.Bounds()
-	rg.Starts = rg.Starts.Update(bd.Starts)
-	rg.Ends = rg.Ends.Update(bd.Ends)
-	return newBoundedView(s, rg)
-}
-
-func (s *Sheet) Sub(start, end layout.Position) View {
-	return s.View(layout.NewRange(start, end))
-}
-
-func (s *Sheet) Cell(pos layout.Position) (*Cell, error) {
-	cell, ok := s.cells[pos]
-	if !ok {
-		cell = &Cell{
-			Type:        TypeInlineStr,
-			Position:    pos,
-			rawValue:    "",
-			parsedValue: formula.Blank{},
-		}
-	}
-	return cell, nil
-}
-
 func (s *Sheet) Reload(ctx formula.Context) error {
 	ctx = SheetContext(ctx, s)
-	for _, r := range s.rows {
-		for _, c := range r.Cells {
-			if err := c.Reload(ctx); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (s *Sheet) Bounds() *layout.Range {
-	var (
-		minRow int64 = math.MaxInt64
-		maxRow int64
-		minCol int64 = math.MaxInt64
-		maxCol int64
-	)
-	for c := range s.Cells() {
-		minRow = min(minRow, c.Line)
-		maxRow = max(maxRow, c.Line)
-		minCol = min(minCol, c.Column)
-		maxCol = max(maxCol, c.Column)
-	}
-	var rg layout.Range
-	if maxRow == 0 || maxCol == 0 {
-		pos := layout.Position{
-			Line:   1,
-			Column: 1,
-		}
-		rg.Starts = pos
-		rg.Ends = pos
-	} else {
-		rg.Starts = layout.Position{
-			Line:   minRow,
-			Column: minCol,
-		}
-		rg.Ends = layout.Position{
-			Line:   maxRow,
-			Column: maxCol,
-		}
-	}
-	return &rg
-}
-
-func (s *Sheet) Cells() iter.Seq[*Cell] {
-	return maps.Values(s.cells)
-}
-
-func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
-		for _, r := range s.rows {
-			row := r.Data()
-			if !yield(row) {
-				break
-			}
-		}
-	}
-	return it
+	return s.Sheet.Reload(ctx)
 }
 
 func (s *Sheet) Copy(other *Sheet) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
 	}
-	for _, rs := range other.rows {
-		s.Size.Lines++
-		x := Row{
-			Line:  rs.Line,
-			Cells: rs.cloneCells(),
-		}
-		s.rows = append(other.rows, &x)
-		s.Size.Columns = max(s.Size.Columns, int64(len(x.Cells)))
-	}
-	return nil
+	return s.Sheet.Copy(other)
 }
 
 func (s *Sheet) Append(data []string) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return ErrLock
 	}
-	rs := Row{
-		Line: int64(len(s.rows)) + 1,
-	}
-	s.Size.Lines++
-	for i, d := range data {
-		pos := layout.Position{
-			Line:   rs.Line,
-			Column: int64(i) + 1,
-		}
-		c := Cell{
-			rawValue:    d,
-			parsedValue: formula.Text(d),
-			Type:        TypeInlineStr,
-			Position:    pos,
-		}
-		rs.Cells = append(rs.Cells, &c)
-	}
-	s.Size.Columns = max(s.Size.Columns, int64(len(data)))
-	s.rows = append(s.rows, &rs)
-	return nil
+	return s.Sheet.Append(data)
 }
 
 func (s *Sheet) Insert(pos layout.Position, data []any) error {
@@ -524,7 +171,7 @@ func (s *Sheet) Insert(pos layout.Position, data []any) error {
 	return nil
 }
 
-func (s *Sheet) Encode(e Encoder) error {
+func (s *Sheet) Encode(e grid.Encoder) error {
 	return e.EncodeSheet(s)
 }
 
@@ -553,9 +200,9 @@ func (s *Sheet) resetSharedIndex(ix map[int]int) {
 			if c.Type != TypeSharedStr {
 				continue
 			}
-			x, _ := strconv.Atoi(c.rawValue)
+			x, _ := strconv.Atoi(c.Raw)
 			if n, ok := ix[x]; ok {
-				c.rawValue = strconv.Itoa(n)
+				c.Raw = strconv.Itoa(n)
 			}
 		}
 	}

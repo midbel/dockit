@@ -11,6 +11,7 @@ import (
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 )
 
@@ -239,7 +240,7 @@ func (r *sheetReader) Update() error {
 }
 
 func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
-	cell.rawValue = str
+	cell.Raw = str
 	switch cell.Type {
 	case TypeSharedStr:
 		n, err := strconv.Atoi(str)
@@ -249,23 +250,23 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 		if n < 0 || n >= len(r.sharedStrings) {
 			return fmt.Errorf("shared string index out of bounds")
 		}
-		cell.parsedValue = formula.Text(r.sharedStrings[n])
+		cell.Parsed = formula.Text(r.sharedStrings[n])
 	case TypeDate:
 		// date: TBW
 	case TypeInlineStr:
-		cell.parsedValue = formula.Text(str)
+		cell.Parsed = formula.Text(str)
 	case TypeBool:
 		b, err := strconv.ParseBool(str)
 		if err != nil {
 			return err
 		}
-		cell.parsedValue = formula.Boolean(b)
+		cell.Parsed = formula.Boolean(b)
 	default:
 		n, err := strconv.ParseFloat(strings.TrimSpace(str), 64)
 		if err != nil {
-			cell.parsedValue = formula.Text(str)
+			cell.Parsed = formula.Text(str)
 		} else {
-			cell.parsedValue = formula.Float(n)
+			cell.Parsed = formula.Float(n)
 		}
 	}
 	return nil
@@ -316,9 +317,11 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 		local sax.QName
 		pos   = len(r.sheet.rows) - 1
 		cell  = &Cell{
-			Position: layout.ParsePosition(index),
-			Type:     kind,
-			dirty:    true,
+			Cell: &grid.Cell{
+				Position: layout.ParsePosition(index),
+				Dirty:    true,
+			},
+			Type: kind,
 		}
 	)
 	if kind == TypeInlineStr {

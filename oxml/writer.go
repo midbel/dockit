@@ -429,7 +429,7 @@ func (w *sheetWriter) writeInlineStrCell(cell *Cell) error {
 	w.writer.Open(cellName, attrs)
 	w.writer.Open(isName, nil)
 	w.writer.Open(valName, nil)
-	w.writer.Text(cell.rawValue)
+	w.writer.Text(cell.Raw)
 	w.writer.Close(valName)
 	w.writer.Close(isName)
 	w.writer.Close(cellName)
@@ -455,7 +455,7 @@ func (w *sheetWriter) writeDefaultCell(cell *Cell) error {
 		w.writer.Close(formName)
 	}
 	w.writer.Open(valName, nil)
-	w.writer.Text(cell.rawValue)
+	w.writer.Text(cell.Raw)
 	w.writer.Close(valName)
 	w.writer.Close(cellName)
 	return nil

@@ -4,16 +4,17 @@ import (
 	"fmt"
 
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
 type sheetContext struct {
-	view   View
+	view   grid.View
 	parent formula.Context
 }
 
-func SheetContext(parent formula.Context, sheet View) formula.Context {
+func SheetContext(parent formula.Context, sheet grid.View) formula.Context {
 	return sheetContext{
 		parent: parent,
 		view:   sheet,
@@ -24,7 +25,7 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return formula.ErrRef, nil
 	}
-	var sh View
+	var sh grid.View
 	if start.Sheet == "" || start.Sheet == c.view.Name() {
 		sh = c.view
 	} else {
@@ -51,12 +52,16 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 				Line:   startLine + int64(i),
 				Column: startCol + int64(j),
 			}
-			cell, err := sh.Cell(pos)
-			if err != nil || cell == nil {
-				data[i][j] = nil
+			val, err := sh.Cell(pos)
+			if err != nil || val == nil {
+				data[i][j] = formula.Blank{}
 				continue
 			}
-			data[i][j] = cell.parsedValue
+			if !formula.IsScalar(val) {
+				data[i][j] = formula.ErrValue
+			} else {
+				data[i][j] = val.(value.ScalarValue)
+			}
 		}
 	}
 
@@ -68,11 +73,11 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 
 func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
-		cell, err := c.view.Cell(pos)
-		if err != nil || cell == nil {
+		val, err := c.view.Cell(pos)
+		if err != nil || val == nil {
 			return formula.ErrRef, nil
 		}
-		return cell.parsedValue, nil
+		return val, nil
 	}
 	if c.parent == nil {
 		return formula.ErrRef, nil
