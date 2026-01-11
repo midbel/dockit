@@ -12,6 +12,7 @@ import (
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/oxml"
 )
@@ -343,14 +344,14 @@ func (c RemoveSheetCommand) Run(args []string) error {
 
 type CopySheetCommand struct {
 	OutFile  string
-	CopyOnly oxml.CopyMode
+	CopyOnly grid.CopyMode
 }
 
 func (c CopySheetCommand) Run(args []string) error {
 	set := cli.NewFlagSet("copy")
 	set.StringVar(&c.OutFile, "o", "", "write results to output file")
 	set.Func("c", "", func(str string) error {
-		mode, err := oxml.CopyModeFromString(str)
+		mode, err := grid.CopyModeFromString(str)
 		if err == nil {
 			c.CopyOnly = mode
 		}

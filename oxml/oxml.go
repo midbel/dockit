@@ -39,59 +39,38 @@ var (
 	ErrImplemented = errors.New("not implemented")
 )
 
-type CopyMode int
-
-func CopyModeFromString(str string) (CopyMode, error) {
-	var mode CopyMode
-	switch str {
-	case "value":
-		mode |= CopyValue
-	case "formula":
-		mode |= CopyFormula
-	case "style":
-		mode |= CopyStyle
-	case "", "all":
-		mode |= CopyAll
-	default:
-		return mode, fmt.Errorf("%s invalid value for copy mode", str)
-	}
-	return mode, nil
-}
-
-const (
-	CopyValue = iota << 1
-	CopyFormula
-	CopyStyle
-	CopyAll = CopyValue | CopyFormula | CopyStyle
-)
-
 type Cell struct {
 	Type  string
-	Style int
+	style int
 	layout.Position
 
-	rawValue    string
-	parsedValue value.ScalarValue
-	dirty       bool
-	Formula     formula.Expr
+	raw     string
+	parsed  value.ScalarValue
+	formula formula.Expr
+	dirty   bool
 }
 
-func (c *Cell) Value() string {
-	return c.rawValue
+func (c *Cell) Display() string {
+	return c.raw
 }
 
-func (c *Cell) Get() any {
-	return c.parsedValue.Scalar()
+func (c *Cell) Value() value.ScalarValue {
+	return c.parsed
 }
 
 func (c *Cell) Reload(ctx formula.Context) error {
-	if c.Formula == nil {
+	if c.formula == nil {
 		return nil
 	}
-	res, err := formula.Eval(c.Formula, ctx)
+	res, err := formula.Eval(c.formula, ctx)
 	if err == nil {
-		c.parsedValue = res.(value.ScalarValue)
-		c.rawValue = res.String()
+		if !formula.IsScalar(res) {
+			c.parsed = formula.ErrValue
+		} else {
+			c.parsed = res.(value.ScalarValue)
+		}
+		c.raw = res.String()
+		c.dirty = false
 	}
 	return err
 }
@@ -102,20 +81,24 @@ type Row struct {
 	Cells  []*Cell
 }
 
-func (r *Row) Data() []value.ScalarValue {
+func (r *Row) Values() []value.ScalarValue {
 	var ds []value.ScalarValue
 	for _, c := range r.Cells {
-		ds = append(ds, c.parsedValue)
+		ds = append(ds, c.Value())
 	}
 	return ds
 }
 
-func (r *Row) values() []any {
-	var list []any
+func (r *Row) Sparse() bool {
 	for i := range r.Cells {
-		list = append(list, r.Cells[i].parsedValue)
+		if i == 0 {
+			continue
+		}
+		if r.Cells[i].Column-r.Cells[i-1].Column > 1 {
+			return true
+		}
 	}
-	return list
+	return false
 }
 
 func (r *Row) cloneCells() []*Cell {
@@ -343,7 +326,7 @@ func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
 				}
 				c, err := v.sheet.Cell(p)
 				if err == nil {
-					data[ix] = c.parsedValue
+					data[ix] = c.Value()
 				} else {
 					data[ix] = formula.Blank{}
 				}
@@ -405,10 +388,10 @@ func (s *Sheet) Cell(pos layout.Position) (*Cell, error) {
 	cell, ok := s.cells[pos]
 	if !ok {
 		cell = &Cell{
-			Type:        TypeInlineStr,
-			Position:    pos,
-			rawValue:    "",
-			parsedValue: formula.Blank{},
+			Type:     TypeInlineStr,
+			Position: pos,
+			raw:      "",
+			parsed:   formula.Blank{},
 		}
 	}
 	return cell, nil
@@ -467,7 +450,7 @@ func (s *Sheet) Cells() iter.Seq[*Cell] {
 func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 	it := func(yield func([]value.ScalarValue) bool) {
 		for _, r := range s.rows {
-			row := r.Data()
+			row := r.Values()
 			if !yield(row) {
 				break
 			}
@@ -506,10 +489,10 @@ func (s *Sheet) Append(data []string) error {
 			Column: int64(i) + 1,
 		}
 		c := Cell{
-			rawValue:    d,
-			parsedValue: formula.Text(d),
-			Type:        TypeInlineStr,
-			Position:    pos,
+			raw:      d,
+			parsed:   formula.Text(d),
+			Type:     TypeInlineStr,
+			Position: pos,
 		}
 		rs.Cells = append(rs.Cells, &c)
 	}
@@ -554,9 +537,9 @@ func (s *Sheet) resetSharedIndex(ix map[int]int) {
 			if c.Type != TypeSharedStr {
 				continue
 			}
-			x, _ := strconv.Atoi(c.rawValue)
+			x, _ := strconv.Atoi(c.raw)
 			if n, ok := ix[x]; ok {
-				c.rawValue = strconv.Itoa(n)
+				c.raw = strconv.Itoa(n)
 			}
 		}
 	}

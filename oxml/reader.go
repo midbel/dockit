@@ -239,7 +239,7 @@ func (r *sheetReader) Update() error {
 }
 
 func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
-	cell.rawValue = str
+	cell.raw = str
 	switch cell.Type {
 	case TypeSharedStr:
 		n, err := strconv.Atoi(str)
@@ -249,23 +249,23 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 		if n < 0 || n >= len(r.sharedStrings) {
 			return fmt.Errorf("shared string index out of bounds")
 		}
-		cell.parsedValue = formula.Text(r.sharedStrings[n])
+		cell.parsed = formula.Text(r.sharedStrings[n])
 	case TypeDate:
 		// date: TBW
 	case TypeInlineStr:
-		cell.parsedValue = formula.Text(str)
+		cell.parsed = formula.Text(str)
 	case TypeBool:
 		b, err := strconv.ParseBool(str)
 		if err != nil {
 			return err
 		}
-		cell.parsedValue = formula.Boolean(b)
+		cell.parsed = formula.Boolean(b)
 	default:
 		n, err := strconv.ParseFloat(strings.TrimSpace(str), 64)
 		if err != nil {
-			cell.parsedValue = formula.Text(str)
+			cell.parsed = formula.Text(str)
 		} else {
-			cell.parsedValue = formula.Float(n)
+			cell.parsed = formula.Float(n)
 		}
 	}
 	return nil
@@ -281,7 +281,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 			Line:   cell.Line - sf.Line,
 			Column: cell.Column - sf.Column,
 		}
-		cell.Formula = sf.Expr.CloneWithOffset(pos)
+		cell.formula = sf.Expr.CloneWithOffset(pos)
 	}
 	if el.SelfClosed {
 		return nil
@@ -297,8 +297,8 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 				Expr:     formula,
 			}
 		}
-		if cell.Formula == nil {
-			cell.Formula = formula
+		if cell.formula == nil {
+			cell.formula = formula
 		}
 		return nil
 	})

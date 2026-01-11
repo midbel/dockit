@@ -56,7 +56,7 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 				data[i][j] = nil
 				continue
 			}
-			data[i][j] = cell.parsedValue
+			data[i][j] = cell.Value()
 		}
 	}
 
@@ -72,7 +72,7 @@ func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 		if err != nil || cell == nil {
 			return formula.ErrRef, nil
 		}
-		return cell.parsedValue, nil
+		return cell.Value(), nil
 	}
 	if c.parent == nil {
 		return formula.ErrRef, nil
