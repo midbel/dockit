@@ -40,10 +40,22 @@ type Row interface {
 	Sparse() bool
 }
 
+type CellType int8
+
+const (
+	TypeSharedString CellType = 1 << iota
+	TypeString
+	TypeNumber
+	TypeDate
+	TypeBool
+	TypeFormula
+)
+
 type Cell interface {
 	At() layout.Position
 	Value() value.ScalarValue
 	Reload(formula.Context) error
+	// Type() CellType
 }
 
 type Encoder interface {
