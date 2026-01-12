@@ -329,6 +329,42 @@ func (s *Sheet) Status() string {
 	return "hidden"
 }
 
+func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
+	return nil
+}
+
+func (s *Sheet) SetFormula(pos layout.Position, expr formula.Expr) error {
+	return nil
+}
+
+func (s *Sheet) ClearCell(pos layout.Position) error {
+	err := s.ClearValue(pos)
+	if err != nil {
+		return err
+	}
+	return s.ClearFormula(pos)
+}
+
+func (s *Sheet) ClearValue(pos layout.Position) error {
+	return nil
+}
+
+func (s *Sheet) ClearFormula(_pos layout.Position) error {
+	return nil
+}
+
+func (s *Sheet) AppendRow(values []value.ScalarValue) error {
+	return nil
+}
+
+func (s *Sheet) InsertRow(ix int64, values []value.ScalarValue) error {
+	return nil
+}
+
+func (s *Sheet) DeleteRow(ix int64) error {
+	return nil
+}
+
 func (s *Sheet) resetSharedIndex(ix map[int]int) {
 	for _, r := range s.rows {
 		for _, c := range r.Cells {

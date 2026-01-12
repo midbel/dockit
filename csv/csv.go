@@ -78,6 +78,38 @@ func (s *Sheet) Cell(layout.Position) (grid.Cell, error) {
 	return nil, nil
 }
 
+func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
+	return nil
+}
+
+func (s *Sheet) SetFormula(_ layout.Position, _ formula.Expr) error {
+	return grid.ErrSupported
+}
+
+func (s *Sheet) ClearCell(pos layout.Position) error {
+	return s.ClearValue(pos)
+}
+
+func (s *Sheet) ClearValue(pos layout.Position) error {
+	return nil
+}
+
+func (s *Sheet) ClearFormula(_ layout.Position) error {
+	return grid.ErrSupported
+}
+
+func (s *Sheet) AppendRow(values []value.ScalarValue) error {
+	return nil
+}
+
+func (s *Sheet) InsertRow(ix int64, values []value.ScalarValue) error {
+	return nil
+}
+
+func (s *Sheet) DeleteRow(ix int64) error {
+	return nil
+}
+
 type File struct {
 	sheet *Sheet
 }
