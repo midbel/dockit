@@ -72,13 +72,24 @@ type View interface {
 
 type MutableView interface {
 	View
+
+	SetValue(layout.Position, value.ScalarValue) error
+	SetFormula(layout.Position, formula.Expr) error
+
+	ClearCell(layout.Positon) error
+	ClearValue(layout.Positon) error
+	ClearFormula(layout.Positon) error
+
+	AppendRow([]value.ScalarValue) error
+	InsertRow(int64, []value.ScalarValue) error
+	DeleteRow(int64) error
 }
 
 type ViewInfo struct {
-	Name   string
-	Active bool
-	Hidden bool
-	Size   layout.Dimension
+	Name      string
+	Active    bool
+	Hidden    bool
+	Size      layout.Dimension
 	Protected bool
 }
 
