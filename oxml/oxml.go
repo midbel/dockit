@@ -2,7 +2,6 @@ package oxml
 
 import (
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"iter"
 	"maps"
@@ -31,13 +30,6 @@ const (
 	TypeError     = "e"
 	TypeBool      = "b"
 	TypeNumber    = "n"
-)
-
-var (
-	ErrFile        = errors.New("invalid spreadsheet")
-	ErrLock        = errors.New("spreadsheet locked")
-	ErrFound       = errors.New("not found")
-	ErrImplemented = errors.New("not implemented")
 )
 
 type Cell struct {
@@ -80,13 +72,13 @@ func (c *Cell) Reload(ctx formula.Context) error {
 	return err
 }
 
-type Row struct {
+type row struct {
 	Line   int64
 	Hidden bool
 	Cells  []*Cell
 }
 
-func (r *Row) Values() []value.ScalarValue {
+func (r *row) Values() []value.ScalarValue {
 	var ds []value.ScalarValue
 	for _, c := range r.Cells {
 		ds = append(ds, c.Value())
@@ -94,7 +86,7 @@ func (r *Row) Values() []value.ScalarValue {
 	return ds
 }
 
-func (r *Row) Sparse() bool {
+func (r *row) Sparse() bool {
 	for i := range r.Cells {
 		if i == 0 {
 			continue
@@ -106,7 +98,7 @@ func (r *Row) Sparse() bool {
 	return false
 }
 
-func (r *Row) cloneCells() []*Cell {
+func (r *row) cloneCells() []*Cell {
 	var cells []*Cell
 	for i := range r.Cells {
 		c := *r.Cells[i]
@@ -194,7 +186,7 @@ type Sheet struct {
 	Index  int
 	Size   layout.Dimension
 
-	rows  []*Row
+	rows  []*row
 	cells map[layout.Position]*Cell
 
 	State     SheetState
@@ -300,49 +292,16 @@ func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 
 func (s *Sheet) Copy(other *Sheet) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
-		return ErrLock
+		return grid.ErrLock
 	}
 	for _, rs := range other.rows {
 		s.Size.Lines++
-		x := Row{
+		x := row{
 			Line:  rs.Line,
 			Cells: rs.cloneCells(),
 		}
 		s.rows = append(other.rows, &x)
 		s.Size.Columns = max(s.Size.Columns, int64(len(x.Cells)))
-	}
-	return nil
-}
-
-func (s *Sheet) Append(data []string) error {
-	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
-		return ErrLock
-	}
-	rs := Row{
-		Line: int64(len(s.rows)) + 1,
-	}
-	s.Size.Lines++
-	for i, d := range data {
-		pos := layout.Position{
-			Line:   rs.Line,
-			Column: int64(i) + 1,
-		}
-		c := Cell{
-			raw:      d,
-			parsed:   formula.Text(d),
-			Type:     TypeInlineStr,
-			Position: pos,
-		}
-		rs.Cells = append(rs.Cells, &c)
-	}
-	s.Size.Columns = max(s.Size.Columns, int64(len(data)))
-	s.rows = append(s.rows, &rs)
-	return nil
-}
-
-func (s *Sheet) Insert(pos layout.Position, data []any) error {
-	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
-		return ErrLock
 	}
 	return nil
 }
@@ -449,7 +408,7 @@ func (f *File) Sheet(name string) (*Sheet, error) {
 		return s.Name() == name
 	})
 	if ix < 0 {
-		return nil, fmt.Errorf("sheet %s %w", name, ErrFound)
+		return nil, fmt.Errorf("sheet %s %w", name, grid.ErrFound)
 	}
 	return f.sheets[ix], nil
 }
@@ -489,7 +448,7 @@ func (f *File) UnlockSheet(name string) error {
 // rename a sheet
 func (f *File) Rename(oldName, newName string) error {
 	if f.locked {
-		return ErrLock
+		return grid.ErrLock
 	}
 	sh, err := f.Sheet(oldName)
 	if err != nil {
@@ -505,7 +464,7 @@ func (f *File) Rename(oldName, newName string) error {
 // copy a sheet
 func (f *File) Copy(oldName, newName string) error {
 	if f.locked {
-		return ErrLock
+		return grid.ErrLock
 	}
 	source, err := f.Sheet(oldName)
 	if err != nil {
@@ -521,7 +480,7 @@ func (f *File) Copy(oldName, newName string) error {
 
 func (f *File) Remove(name string) error {
 	if f.locked {
-		return ErrLock
+		return grid.ErrLock
 	}
 	size := len(f.sheets)
 	f.sheets = slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
@@ -535,7 +494,7 @@ func (f *File) Remove(name string) error {
 
 func (f *File) AppendSheet(sheet *Sheet) error {
 	if f.locked {
-		return ErrLock
+		return grid.ErrLock
 	}
 	sheet.Label = cleanSheetName(sheet.Label)
 	if n, ok := f.names[sheet.Label]; ok {
@@ -551,7 +510,7 @@ func (f *File) AppendSheet(sheet *Sheet) error {
 // append sheets of given file to current fule
 func (f *File) Merge(other *File) error {
 	if f.locked {
-		return ErrLock
+		return grid.ErrLock
 	}
 	ix := make(map[int]int)
 	for i, s := range other.sharedStrings {

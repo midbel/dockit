@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"strings"
 
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -31,15 +33,30 @@ func (c *Cell) Value() value.ScalarValue {
 }
 
 func (c *Cell) Reload(ctx formula.Context) error {
-	return nil
+	return grid.ErrSupported
+}
+
+type row struct {
+	Line  int64
+	cells []*Cell
 }
 
 type Sheet struct {
-	rows [][]*Cell
+	rows  []*row
+	cells map[layout.Position]*Cell
+	size  layout.Dimension
 }
 
 func (s *Sheet) Name() string {
 	return "sheet"
+}
+
+func (s *Sheet) View(rg *layout.Range) grid.View {
+	return nil
+}
+
+func (s *Sheet) Sub(start, end layout.Position) grid.View {
+	return s.View(layout.NewRange(start, end))
 }
 
 func (s *Sheet) Bounds() *layout.Range {
@@ -47,19 +64,22 @@ func (s *Sheet) Bounds() *layout.Range {
 }
 
 func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
-	return nil
+	it := func(yield func([]value.ScalarValue) bool) {
+
+	}
+	return it
 }
 
-func (s *Sheet) Encode(encoder Encoder) error {
-	return nil
+func (s *Sheet) Encode(encoder grid.Encoder) error {
+	return encoder.EncodeSheet(s)
 }
 
-func (s *Sheet) Cell(layout.Position) (Cell, error) {
-	return nil
+func (s *Sheet) Cell(layout.Position) (grid.Cell, error) {
+	return nil, nil
 }
 
 type File struct {
-	sheets []*Sheet
+	sheet *Sheet
 }
 
 func NewFile() *File {

@@ -11,6 +11,7 @@ import (
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 )
 
@@ -35,7 +36,7 @@ func readFile(name string) (*reader, error) {
 
 func (r *reader) Close() error {
 	if r.reader == nil {
-		return ErrFile
+		return grid.ErrFile
 	}
 	return r.reader.Close()
 }
@@ -117,7 +118,7 @@ func (r *reader) readWorksheets(file *File) {
 			return r.Id == s.Id
 		})
 		if ix < 0 {
-			r.err = ErrFile
+			r.err = grid.ErrFile
 			return
 		}
 		r.readWorksheet(s, file.sharedStrings, relations[ix].Target)
@@ -154,7 +155,7 @@ func (r *reader) readWorkbookLocation() string {
 		return strings.HasSuffix(r.Type, "relationships/officeDocument")
 	})
 	if ix < 0 {
-		r.err = ErrFile
+		r.err = grid.ErrFile
 		return ""
 	}
 	return root.Relations[ix].Target
@@ -181,7 +182,7 @@ func (r *reader) decodeXML(name string, ptr any) error {
 		return r.err
 	}
 	if err := xml.NewDecoder(rs).Decode(ptr); err != nil {
-		r.err = fmt.Errorf("%w: fail to read data from %s", ErrFile, name)
+		r.err = fmt.Errorf("%w: fail to read data from %s", grid.ErrFile, name)
 	}
 	return r.err
 }
@@ -191,7 +192,7 @@ func (r *reader) openFile(name string) (io.Reader, error) {
 		return f.Name == name
 	})
 	if ix < 0 {
-		return nil, ErrFile
+		return nil, grid.ErrFile
 	}
 	return r.reader.File[ix].Open()
 }
@@ -343,13 +344,13 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 
 func (r *sheetReader) onRow(rs *sax.Reader, el sax.E) error {
 	var (
-		row Row
+		oxr row
 		err error
 	)
-	row.Line, err = strconv.ParseInt(el.GetAttributeValue("r"), 10, 64)
-	row.Hidden = el.GetAttributeValue("hidden") == "1"
+	oxr.Line, err = strconv.ParseInt(el.GetAttributeValue("r"), 10, 64)
+	oxr.Hidden = el.GetAttributeValue("hidden") == "1"
 	if err == nil {
-		r.sheet.rows = append(r.sheet.rows, &row)
+		r.sheet.rows = append(r.sheet.rows, &oxr)
 	}
 	return err
 }

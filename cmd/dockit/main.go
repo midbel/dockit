@@ -661,16 +661,16 @@ func mergeCSV(f *oxml.File, file, sep string) error {
 		return err
 	}
 
-	for {
-		row, err := rs.Read()
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return err
-		}
-		sheet.Append(row)
-	}
+	// for {
+	// 	row, err := rs.Read()
+	// 	if err != nil {
+	// 		if errors.Is(err, io.EOF) {
+	// 			break
+	// 		}
+	// 		return err
+	// 	}
+	// 	sheet.Append(row)
+	// }
 	return f.AppendSheet(sheet)
 }
 

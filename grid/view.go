@@ -1,12 +1,20 @@
 package grid
 
 import (
+	"errors"
 	"fmt"
 	"iter"
 
 	"github.com/midbel/dockit/formula"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
+)
+
+var (
+	ErrFile      = errors.New("invalid spreadsheet")
+	ErrLock      = errors.New("spreadsheet locked")
+	ErrSupported = errors.New("operation not supported")
+	ErrFound     = errors.New("not found")
 )
 
 type CopyMode int
@@ -76,9 +84,9 @@ type MutableView interface {
 	SetValue(layout.Position, value.ScalarValue) error
 	SetFormula(layout.Position, formula.Expr) error
 
-	ClearCell(layout.Positon) error
-	ClearValue(layout.Positon) error
-	ClearFormula(layout.Positon) error
+	ClearCell(layout.Position) error
+	ClearValue(layout.Position) error
+	ClearFormula(layout.Position) error
 
 	AppendRow([]value.ScalarValue) error
 	InsertRow(int64, []value.ScalarValue) error
