@@ -72,18 +72,26 @@ type View interface {
 
 type MutableView interface {
 	View
-	AppendRow([]value.ScalarValue) error
-	DeleteRow(int) error
-	InsertRow(int, []value.ScalarValue) error
+}
+
+type ViewInfo struct {
+	Name   string
+	Active bool
+	Hidden bool
+	Size   layout.Dimension
+	Protected bool
 }
 
 type File interface {
-	Merge(File) error
-
+	Infos() []ViewInfo
 	ActiveSheet() View
+	Sheet(string) (View, error)
 	Sheets() ([]View, error)
-	Copy(View) error
-	Move(View) error
+
+	Merge(File) error
+	Rename(string, string) error
+	Copy(string, string) error
+	Remove(string) error
 }
 
 type projectedView struct {

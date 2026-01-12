@@ -6,7 +6,82 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
+
+type Cell struct {
+	layout.Position
+	raw    string
+	parsed value.ScalarValue
+}
+
+func (c *Cell) At() layout.Position {
+	return c.Position
+}
+
+func (c *Cell) Display() string {
+	return c.raw
+}
+
+func (c *Cell) Value() value.ScalarValue {
+	return c.parsed
+}
+
+func (c *Cell) Reload(ctx formula.Context) error {
+	return nil
+}
+
+type Sheet struct {
+	rows [][]*Cell
+}
+
+func (s *Sheet) Name() string {
+	return "sheet"
+}
+
+func (s *Sheet) Bounds() *layout.Range {
+	return nil
+}
+
+func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
+	return nil
+}
+
+func (s *Sheet) Encode(encoder Encoder) error {
+	return nil
+}
+
+func (s *Sheet) Cell(layout.Position) (Cell, error) {
+	return nil
+}
+
+type File struct {
+	sheets []*Sheet
+}
+
+func NewFile() *File {
+	var file File
+	return &file
+}
+
+func Open(file string) (*File, error) {
+	return nil, nil
+}
+
+func (f *File) WriteFile(file string) error {
+	return nil
+}
+
+func (f *File) ActiveSheet() (*Sheet, error) {
+	return nil, nil
+}
+
+func (f *File) Sheets() []*Sheet {
+	return nil
+}
 
 const (
 	quote = '"'

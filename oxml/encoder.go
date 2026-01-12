@@ -7,7 +7,6 @@ import (
 	"github.com/midbel/dockit/grid"
 )
 
-
 type csvEncoder struct {
 	writer io.Writer
 	comma  byte
