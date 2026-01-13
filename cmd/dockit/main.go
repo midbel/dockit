@@ -679,6 +679,8 @@ func mergeFile(f *oxml.File, file string) error {
 	return f.Merge(x)
 }
 
+const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
+
 type GetInfoCommand struct{}
 
 func (c GetInfoCommand) Run(args []string) error {
@@ -690,17 +692,13 @@ func (c GetInfoCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	var (
-		infos   = f.Infos()
-		pattern = "%d %s%s(%s): %d lines, %d columns - %s"
-	)
-	for j, i := range infos {
+	for j, i := range f.Infos() {
 		c.printInfo(i, j)
 	}
 	return nil
 }
 
-func (c GetInfoCommand) printInfo(i grid.ViewInfo, j index) {
+func (c GetInfoCommand) printInfo(i grid.ViewInfo, j int) {
 	var (
 		active string
 		state  = "visible"
@@ -718,7 +716,7 @@ func (c GetInfoCommand) printInfo(i grid.ViewInfo, j index) {
 		locked = "locked"
 	}
 
-	fmt.Fprintf(os.Stdout, pattern, j+1, active, i.Name, state, i.Size.Lines, i.Size.Columns, locked)
+	fmt.Fprintf(os.Stdout, infoPattern, j+1, active, i.Name, state, i.Size.Lines, i.Size.Columns, locked)
 	fmt.Fprintln(os.Stdout)
 }
 
