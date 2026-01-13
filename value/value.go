@@ -29,3 +29,10 @@ type ArrayValue interface {
 	Dimension() layout.Dimension
 	At(int, int) ScalarValue
 }
+
+type CastableValue interface {
+	ToString() ScalarValue
+	ToBool() ScalarValue
+	ToFloat() ScalarValue
+	// ToDate() ScalarValue
+}

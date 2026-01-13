@@ -189,11 +189,11 @@ func (f *File) WriteFile(file string) error {
 }
 
 func (f *File) ActiveSheet() (grid.View, error) {
-	return nil, nil
+	return f.sheet, nil
 }
 
 func (f *File) Sheets() []grid.View {
-	return nil
+	return []grid.View{f.sheet}
 }
 
 func (f *File) Infos() []grid.ViewInfo {

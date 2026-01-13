@@ -73,6 +73,18 @@ func (f Float) Scalar() any {
 	return float64(f)
 }
 
+func (f Float) ToString() (value.ScalarValue, error) {
+	return Text(f.String()), nil
+}
+
+func (f Float) ToBool() (value.ScalarValue, error) {
+	return Boolean(float64(f) != 0), nil
+}
+
+func (f Float) ToFloat() (value.ScalarValue, error) {
+	return f, nil
+}
+
 type Text string
 
 func (Text) Kind() value.ValueKind {
@@ -87,6 +99,22 @@ func (t Text) Scalar() any {
 	return string(t)
 }
 
+func (t Text) ToString() (value.ScalarValue, error) {
+	return t, nil
+}
+
+func (t Text) ToBool() (value.ScalarValue, error) {
+	return Boolean(string(t) != ""), nil
+}
+
+func (t Text) ToFloat() (value.ScalarValue, error) {
+	n, err := strconv.ParseFloat(string(t), 64)
+	if err != nil {
+		return ErrNA, nil
+	}
+	return Float(n), nil
+}
+
 type Boolean bool
 
 func (Boolean) Kind() value.ValueKind {
@@ -99,6 +127,26 @@ func (b Boolean) String() string {
 
 func (b Boolean) Scalar() any {
 	return bool(b)
+}
+
+func (b Boolean) ToString() (value.ScalarValue, error) {
+	s := strconv.FormatBool(bool(b))
+	return Text(s), nil
+}
+
+func (b Boolean) ToBool() (value.ScalarValue, error) {
+	return b, nil
+}
+
+func (b Boolean) ToFloat() (value.ScalarValue, error) {
+	n, err := strconv.ParseFloat(string(t), 64)
+	if err != nil {
+		return ErrNA, nil
+	}
+	if bool(b) == 0 {
+		return Float(0), nil
+	}
+	return Float(1), nil
 }
 
 type Array struct {
