@@ -413,7 +413,19 @@ func (f *File) WriteFile(file string) error {
 }
 
 func (f *File) Infos() []grid.ViewInfo {
-	return nil
+	var infos []grid.ViewInfo
+	for _, s := range f.sheets {
+		i := grid.ViewInfo{
+			Name:      s.Name(),
+			Active:    s.Active,
+			Protected: s.IsLock(),
+			Hidden:    s.State != StateVisible,
+			Size:      s.Size,
+		}
+
+		infos = append(infos, i)
+	}
+	return infos
 }
 
 func (f *File) Reload() error {
