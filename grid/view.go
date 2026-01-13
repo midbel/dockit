@@ -105,11 +105,11 @@ type ViewInfo struct {
 
 type File interface {
 	Infos() []ViewInfo
-	ActiveSheet() View
+	ActiveSheet() (View, error)
 	Sheet(string) (View, error)
-	Sheets() ([]View, error)
+	Sheets() []View
 
-	Merge(File) error
+	// Merge(File) error
 	Rename(string, string) error
 	Copy(string, string) error
 	Remove(string) error

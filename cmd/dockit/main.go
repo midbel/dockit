@@ -12,6 +12,7 @@ import (
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/doc"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/oxml"
@@ -688,35 +689,35 @@ func (c GetInfoCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	f, err := oxml.Open(set.Arg(0))
+	infos, err := doc.Infos(set.Arg(0))
 	if err != nil {
 		return err
 	}
-	for j, i := range f.Infos() {
+	for j, i := range infos {
 		c.printInfo(i, j)
 	}
 	return nil
 }
 
-func (c GetInfoCommand) printInfo(i grid.ViewInfo, j int) {
+func (c GetInfoCommand) printInfo(info grid.ViewInfo, j int) {
 	var (
 		active string
 		state  = "visible"
 		locked = "unlocked"
 	)
-	if i.Hidden {
+	if info.Hidden {
 		state = "hidden"
 	}
-	if i.Active {
+	if info.Active {
 		active = "*"
 	} else {
 		active = " "
 	}
-	if i.Protected {
+	if info.Protected {
 		locked = "locked"
 	}
 
-	fmt.Fprintf(os.Stdout, infoPattern, j+1, active, i.Name, state, i.Size.Lines, i.Size.Columns, locked)
+	fmt.Fprintf(os.Stdout, infoPattern, j+1, active, info.Name, state, info.Size.Lines, info.Size.Columns, locked)
 	fmt.Fprintln(os.Stdout)
 }
 

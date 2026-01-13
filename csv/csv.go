@@ -198,6 +198,10 @@ func (f *File) ActiveSheet() (grid.View, error) {
 	return f.sheet, nil
 }
 
+func (f *File) Sheet(_ string) (grid.View, error) {
+	return f.sheet, nil
+}
+
 func (f *File) Sheets() []grid.View {
 	return []grid.View{f.sheet}
 }
@@ -217,6 +221,19 @@ func (f *File) Infos() []grid.ViewInfo {
 	}
 	return []grid.ViewInfo{i}
 }
+
+func (*File) Rename(_, _ string) error {
+	return grid.ErrSupported
+}
+
+func (*File) Copy(_, _ string) error {
+	return grid.ErrSupported
+}
+
+func (*File) Remove(_ string) error {
+	return grid.ErrSupported
+}
+
 
 func writeSheet(w io.Writer, sh *Sheet) error {
 	ws := NewWriter(w)
