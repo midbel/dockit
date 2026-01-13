@@ -439,16 +439,7 @@ func (f *File) Reload() error {
 }
 
 func (f *File) ActiveSheet() (grid.View, error) {
-	if len(f.sheets) == 1 {
-		return f.sheets[0], nil
-	}
-	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
-		return s.Active == true
-	})
-	if ix < 0 {
-		return nil, fmt.Errorf("missing active sheet")
-	}
-	return f.sheets[ix], nil
+	return f.activeSheet()
 }
 
 func (f *File) Sheet(name string) (grid.View, error) {
@@ -584,6 +575,19 @@ func (f *File) Merge(other *File) error {
 		s.resetSharedIndex(ix)
 	}
 	return nil
+}
+
+func (f *File) activeSheet() (*Sheet, error) {
+if len(f.sheets) == 1 {
+		return f.sheets[0], nil
+	}
+	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
+		return s.Active == true
+	})
+	if ix < 0 {
+		return nil, fmt.Errorf("missing active sheet")
+	}
+	return f.sheets[ix], nil
 }
 
 func (f *File) sheetByName(name string) (*Sheet, error) {
