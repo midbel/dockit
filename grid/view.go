@@ -115,6 +115,40 @@ type File interface {
 	Remove(string) error
 }
 
+type filteredView struct {
+	sheet View
+}
+
+func FilterView(view View) View {
+	return &filteredView{
+		sheet: view,
+	}
+}
+
+func (v *filteredView) Name() string {
+	return v.sheet.Name()
+}
+
+func (v *filteredView) Bounds() *layout.Range {
+	return nil
+}
+
+func (v *filteredView) Rows() iter.Seq[[]value.ScalarValue] {
+	return nil
+}
+
+func (v *filteredView) Encode(encoder Encoder) error {
+	return encoder.EncodeSheet(v.sheet)
+}
+
+func (v *filteredView) Cell(layout.Position) (Cell, error) {
+	return nil, nil
+}
+
+func (v *filteredView) Reload(ctx formula.Context) error {
+	return v.sheet.Reload(ctx)
+}
+
 type projectedView struct {
 	sheet   View
 	columns []int64

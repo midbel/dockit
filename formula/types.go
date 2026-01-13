@@ -139,11 +139,7 @@ func (b Boolean) ToBool() (value.ScalarValue, error) {
 }
 
 func (b Boolean) ToFloat() (value.ScalarValue, error) {
-	n, err := strconv.ParseFloat(string(t), 64)
-	if err != nil {
-		return ErrNA, nil
-	}
-	if bool(b) == 0 {
+	if !bool(b) {
 		return Float(0), nil
 	}
 	return Float(1), nil
