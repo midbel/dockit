@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"os"
 	"strings"
 
 	"github.com/midbel/dockit/formula"
@@ -163,11 +164,28 @@ func NewFile() *File {
 }
 
 func Open(file string) (*File, error) {
-	return nil, nil
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	sh, err := readSheet(r)
+	if err != nil {
+		return nil, err
+	}
+	f := File{
+		sheet: sh,
+	}
+	return &f, nil
 }
 
 func (f *File) WriteFile(file string) error {
-	return nil
+	w, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	return writeSheet(w, f.sheet)
 }
 
 func (f *File) ActiveSheet() (grid.View, error) {
@@ -192,6 +210,55 @@ func (f *File) Infos() []grid.ViewInfo {
 		},
 	}
 	return []grid.ViewInfo{i}
+}
+
+func writeSheet(w io.Writer, sh *Sheet) error {
+	ws := NewWriter(w)
+	for _, r := range sh.rows {
+		row := make([]string, len(r.cells))
+		for i := range r.cells {
+			row[i] = r.cells[i].Display()
+		}
+		if err := ws.Write(row); err != nil {
+			return err
+		}
+	}
+	ws.Flush()
+	return ws.Error()
+}
+
+func readSheet(r io.Reader) (*Sheet, error) {
+	var (
+		rs = NewReader(r)
+		sh Sheet
+	)
+	for line := 1; ; line++ {
+		fields, err := rs.Read()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+		r := row{
+			Line: int64(line),
+		}
+		for col, f := range fields {
+			p := layout.Position{
+				Line:   r.Line,
+				Column: int64(col) + 1,
+			}
+			c := Cell{
+				Position: p,
+				raw:      f,
+				parsed:   formula.Text(f),
+			}
+			r.cells = append(r.cells, &c)
+			sh.cells[p] = &c
+		}
+		sh.rows = append(sh.rows, &r)
+	}
+	return &sh, nil
 }
 
 const (

@@ -578,7 +578,7 @@ func (f *File) Merge(other *File) error {
 }
 
 func (f *File) activeSheet() (*Sheet, error) {
-if len(f.sheets) == 1 {
+	if len(f.sheets) == 1 {
 		return f.sheets[0], nil
 	}
 	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
