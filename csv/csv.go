@@ -50,6 +50,12 @@ type Sheet struct {
 	size  layout.Dimension
 }
 
+func emptySheet() *Sheet {
+	return &Sheet{
+		cells: make(map[layout.Position]*Cell),
+	}
+}
+
 func (s *Sheet) Name() string {
 	return defaultSheetName
 }
@@ -158,7 +164,7 @@ type File struct {
 
 func NewFile() *File {
 	file := File{
-		sheet: new(Sheet),
+		sheet: emptySheet(),
 	}
 	return &file
 }
@@ -230,7 +236,7 @@ func writeSheet(w io.Writer, sh *Sheet) error {
 func readSheet(r io.Reader) (*Sheet, error) {
 	var (
 		rs = NewReader(r)
-		sh Sheet
+		sh = emptySheet()
 	)
 	for line := 1; ; line++ {
 		fields, err := rs.Read()
@@ -258,7 +264,7 @@ func readSheet(r io.Reader) (*Sheet, error) {
 		}
 		sh.rows = append(sh.rows, &r)
 	}
-	return &sh, nil
+	return sh, nil
 }
 
 const (
