@@ -282,6 +282,9 @@ func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 	it := func(yield func([]value.ScalarValue) bool) {
 		for _, r := range s.rows {
 			row := r.Values()
+			if len(r.Cells) == 0 {
+				continue
+			}
 			if !yield(row) {
 				break
 			}
@@ -320,13 +323,6 @@ func (s *Sheet) Unlock() {
 
 func (s *Sheet) IsLock() bool {
 	return s.Protected != 0
-}
-
-func (s *Sheet) Status() string {
-	if s.State <= StateVisible {
-		return "visible"
-	}
-	return "hidden"
 }
 
 func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
@@ -416,6 +412,10 @@ func (f *File) WriteFile(file string) error {
 	return w.WriteFile(f)
 }
 
+func (f *File) Infos() []grid.ViewInfo {
+	return nil
+}
+
 func (f *File) Reload() error {
 	ctx := FileContext(f)
 	for _, s := range f.sheets {
@@ -426,7 +426,7 @@ func (f *File) Reload() error {
 	return nil
 }
 
-func (f *File) ActiveSheet() (*Sheet, error) {
+func (f *File) ActiveSheet() (grid.View, error) {
 	if len(f.sheets) == 1 {
 		return f.sheets[0], nil
 	}
@@ -439,18 +439,20 @@ func (f *File) ActiveSheet() (*Sheet, error) {
 	return f.sheets[ix], nil
 }
 
-func (f *File) Sheet(name string) (*Sheet, error) {
-	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
-		return s.Name() == name
-	})
-	if ix < 0 {
-		return nil, fmt.Errorf("sheet %s %w", name, grid.ErrFound)
-	}
-	return f.sheets[ix], nil
+func (f *File) Sheet(name string) (grid.View, error) {
+	return f.sheetByName(name)
 }
 
-func (f *File) Sheets() []*Sheet {
-	return slices.Clone(f.sheets)
+func (f *File) Sheets() []grid.View {
+	n := len(f.sheets)
+	if n == 0 {
+		return nil
+	}
+	views := make([]grid.View, 0, n)
+	for i := range f.sheets {
+		views = append(views, f.sheets[i])
+	}
+	return views
 }
 
 func (f *File) Lock() {
@@ -460,7 +462,7 @@ func (f *File) Lock() {
 }
 
 func (f *File) LockSheet(name string) error {
-	sh, err := f.Sheet(name)
+	sh, err := f.sheetByName(name)
 	if err == nil {
 		sh.Lock()
 	}
@@ -474,7 +476,7 @@ func (f *File) Unlock() {
 }
 
 func (f *File) UnlockSheet(name string) error {
-	sh, err := f.Sheet(name)
+	sh, err := f.sheetByName(name)
 	if err == nil {
 		sh.Unlock()
 	}
@@ -486,7 +488,7 @@ func (f *File) Rename(oldName, newName string) error {
 	if f.locked {
 		return grid.ErrLock
 	}
-	sh, err := f.Sheet(oldName)
+	sh, err := f.sheetByName(oldName)
 	if err != nil {
 		return err
 	}
@@ -502,7 +504,7 @@ func (f *File) Copy(oldName, newName string) error {
 	if f.locked {
 		return grid.ErrLock
 	}
-	source, err := f.Sheet(oldName)
+	source, err := f.sheetByName(oldName)
 	if err != nil {
 		return err
 	}
@@ -572,8 +574,14 @@ func (f *File) Merge(other *File) error {
 	return nil
 }
 
-func (f *File) setSheetName(sheet *Sheet) error {
-	return nil
+func (f *File) sheetByName(name string) (*Sheet, error) {
+	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
+		return s.Name() == name
+	})
+	if ix < 0 {
+		return nil, fmt.Errorf("sheet %s %w", name, grid.ErrFound)
+	}
+	return f.sheets[ix], nil
 }
 
 func cleanSheetName(str string) string {

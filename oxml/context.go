@@ -120,9 +120,9 @@ func (c fileContext) At(pos layout.Position) (value.Value, error) {
 	return ctx.At(pos)
 }
 
-func (c fileContext) sheet(name string) (*Sheet, error) {
+func (c fileContext) sheet(name string) (grid.View, error) {
 	var (
-		sh  *Sheet
+		sh  grid.View
 		err error
 	)
 	if name == "" {

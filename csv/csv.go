@@ -14,6 +14,8 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+const defaultSheetName = "sheet1"
+
 type Cell struct {
 	layout.Position
 	raw    string
@@ -48,11 +50,18 @@ type Sheet struct {
 }
 
 func (s *Sheet) Name() string {
-	return "sheet"
+	return defaultSheetName
+}
+
+func (s *Sheet) Reload(_ formula.Context) error {
+	return grid.ErrSupported
 }
 
 func (s *Sheet) View(rg *layout.Range) grid.View {
-	return nil
+	bd := s.Bounds()
+	rg.Starts = rg.Starts.Update(bd.Starts)
+	rg.Ends = rg.Ends.Update(bd.Ends)
+	return grid.NewBoundedView(s, rg)
 }
 
 func (s *Sheet) Sub(start, end layout.Position) grid.View {
@@ -60,12 +69,36 @@ func (s *Sheet) Sub(start, end layout.Position) grid.View {
 }
 
 func (s *Sheet) Bounds() *layout.Range {
-	return nil
+	var (
+		start layout.Position
+		end   layout.Position
+	)
+	if len(s.rows) == 0 {
+		return layout.NewRange(start, end)
+	}
+	start.Line = 1
+	end.Line = int64(len(s.rows))
+	if n := len(s.rows[0].cells); n > 0 {
+		start.Column = 1
+		end.Column = int64(n)
+	}
+	return layout.NewRange(start, end)
 }
 
 func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 	it := func(yield func([]value.ScalarValue) bool) {
-
+		for _, r := range s.rows {
+			if len(r.cells) == 0 {
+				continue
+			}
+			res := make([]value.ScalarValue, len(r.cells))
+			for i, c := range r.cells {
+				res[i] = c.Value()
+			}
+			if !yield(res) {
+				return
+			}
+		}
 	}
 	return it
 }
@@ -74,8 +107,16 @@ func (s *Sheet) Encode(encoder grid.Encoder) error {
 	return encoder.EncodeSheet(s)
 }
 
-func (s *Sheet) Cell(layout.Position) (grid.Cell, error) {
-	return nil, nil
+func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
+	cell, ok := s.cells[pos]
+	if !ok {
+		cell = &Cell{
+			Position: pos,
+			raw:      "",
+			parsed:   formula.Blank{},
+		}
+	}
+	return cell, nil
 }
 
 func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
@@ -115,7 +156,9 @@ type File struct {
 }
 
 func NewFile() *File {
-	var file File
+	file := File{
+		sheet: new(Sheet),
+	}
 	return &file
 }
 
@@ -127,12 +170,28 @@ func (f *File) WriteFile(file string) error {
 	return nil
 }
 
-func (f *File) ActiveSheet() (*Sheet, error) {
+func (f *File) ActiveSheet() (grid.View, error) {
 	return nil, nil
 }
 
-func (f *File) Sheets() []*Sheet {
+func (f *File) Sheets() []grid.View {
 	return nil
+}
+
+func (f *File) Infos() []grid.ViewInfo {
+	rg := f.sheet.Bounds()
+
+	i := grid.ViewInfo{
+		Name:      f.sheet.Name(),
+		Active:    true,
+		Protected: false,
+		Hidden:    false,
+		Size: layout.Dimension{
+			Lines:   rg.Height(),
+			Columns: rg.Width(),
+		},
+	}
+	return []grid.ViewInfo{i}
 }
 
 const (

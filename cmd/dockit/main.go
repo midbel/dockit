@@ -240,7 +240,7 @@ func (s SheetRef) DumpTo(encoder grid.Encoder, reload bool) error {
 	}
 	var view grid.View
 	if s.Range != nil {
-		view = sh.View(s.Range)
+		view = grid.NewBoundedView(sh, s.Range)
 	} else {
 		view = sh
 	}
@@ -314,14 +314,11 @@ func (s SheetRef) MoveTo(other *SheetRef, to string) error {
 	return s.WriteFile(s.Path)
 }
 
-func (s SheetRef) appendSheetToFile(sh *oxml.Sheet) error {
-	if s.Sheet != "" {
-		sh.Label = s.Sheet
-	}
-	return s.AppendSheet(sh)
+func (s SheetRef) appendSheetToFile(view grid.View) error {
+	return nil
 }
 
-func (s SheetRef) getSheetFromFile() (*oxml.Sheet, error) {
+func (s SheetRef) getSheetFromFile() (grid.View, error) {
 	return s.File.Sheet(s.Sheet)
 }
 
@@ -694,25 +691,28 @@ func (c GetInfoCommand) Run(args []string) error {
 		return err
 	}
 	var (
-		sheets  = f.Sheets()
+		infos   = f.Infos()
 		pattern = "%d %s%s(%s): %d lines, %d columns - %s"
 	)
-	for _, s := range sheets {
+	for j, i := range infos {
 		var (
 			active string
-			state  = s.Status()
+			state  = "visible"
 			locked = "unlocked"
 		)
-		if s.Active {
+		if i.Hidden {
+			state = "hidden"
+		}
+		if i.Active {
 			active = "*"
 		} else {
 			active = " "
 		}
-		if s.IsLock() {
+		if i.Protected {
 			locked = "locked"
 		}
 
-		fmt.Fprintf(os.Stdout, pattern, s.Index, active, s.Name, state, s.Size.Lines, s.Size.Columns, locked)
+		fmt.Fprintf(os.Stdout, pattern, j+1, active, i.Name, state, i.Size.Lines, i.Size.Columns, locked)
 		fmt.Fprintln(os.Stdout)
 	}
 	return nil

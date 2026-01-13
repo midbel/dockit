@@ -76,6 +76,8 @@ type View interface {
 	Rows() iter.Seq[[]value.ScalarValue]
 	Encode(Encoder) error
 	Cell(layout.Position) (Cell, error)
+
+	Reload(formula.Context) error
 }
 
 type MutableView interface {
@@ -135,6 +137,10 @@ func (v *projectedView) Name() string {
 	return v.sheet.Name()
 }
 
+func (v *projectedView) Reload(ctx formula.Context) error {
+	return v.sheet.Reload(ctx)
+}
+
 func (v *projectedView) Bounds() *layout.Range {
 	return v.sheet.Bounds()
 }
@@ -186,6 +192,10 @@ func NewBoundedView(view View, rg *layout.Range) View {
 
 func (v *boundedView) Name() string {
 	return v.sheet.Name()
+}
+
+func (v *boundedView) Reload(ctx formula.Context) error {
+	return v.sheet.Reload(ctx)
 }
 
 func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
