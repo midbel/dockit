@@ -234,7 +234,6 @@ func (*File) Remove(_ string) error {
 	return grid.ErrSupported
 }
 
-
 func writeSheet(w io.Writer, sh *Sheet) error {
 	ws := NewWriter(w)
 	for _, r := range sh.rows {
