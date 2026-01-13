@@ -695,27 +695,31 @@ func (c GetInfoCommand) Run(args []string) error {
 		pattern = "%d %s%s(%s): %d lines, %d columns - %s"
 	)
 	for j, i := range infos {
-		var (
-			active string
-			state  = "visible"
-			locked = "unlocked"
-		)
-		if i.Hidden {
-			state = "hidden"
-		}
-		if i.Active {
-			active = "*"
-		} else {
-			active = " "
-		}
-		if i.Protected {
-			locked = "locked"
-		}
-
-		fmt.Fprintf(os.Stdout, pattern, j+1, active, i.Name, state, i.Size.Lines, i.Size.Columns, locked)
-		fmt.Fprintln(os.Stdout)
+		c.printInfo(i, j)
 	}
 	return nil
+}
+
+func (c GetInfoCommand) printInfo(i grid.ViewInfo, j index) {
+	var (
+		active string
+		state  = "visible"
+		locked = "unlocked"
+	)
+	if i.Hidden {
+		state = "hidden"
+	}
+	if i.Active {
+		active = "*"
+	} else {
+		active = " "
+	}
+	if i.Protected {
+		locked = "locked"
+	}
+
+	fmt.Fprintf(os.Stdout, pattern, j+1, active, i.Name, state, i.Size.Lines, i.Size.Columns, locked)
+	fmt.Fprintln(os.Stdout)
 }
 
 var magicZipBytes = [][]byte{
