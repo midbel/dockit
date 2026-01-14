@@ -127,6 +127,12 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 }
 
 func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
+	c, ok := s.cells[pos]
+	if !ok {
+		return grid.NoCell(pos)
+	}
+	c.raw = val.String()
+	c.parsed = val
 	return nil
 }
 
@@ -139,6 +145,16 @@ func (s *Sheet) ClearCell(pos layout.Position) error {
 }
 
 func (s *Sheet) ClearValue(pos layout.Position) error {
+	c, ok := s.cells[pos]
+	if !ok {
+		return grid.NoCell(pos)
+	}
+	c.raw = ""
+	c.parsed = formula.Blank{}
+	return nil
+}
+
+func (s *Sheet) ClearRange(rg *layout.Range) error {
 	return nil
 }
 

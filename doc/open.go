@@ -3,6 +3,7 @@ package doc
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 
@@ -27,7 +28,7 @@ func OpenFormat(file string, format Format) (grid.File, error) {
 		return oxml.Open(file)
 	case ODS:
 	default:
-	}	
+	}
 	return nil, fmt.Errorf("unsupported format")
 }
 

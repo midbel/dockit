@@ -17,6 +17,10 @@ var (
 	ErrFound     = errors.New("not found")
 )
 
+func NoCell(pos layout.Position) error {
+	return fmt.Errorf("%s no cell at given position", pos)
+}
+
 type CopyMode int
 
 func CopyModeFromString(str string) (CopyMode, error) {
@@ -89,6 +93,7 @@ type MutableView interface {
 	ClearCell(layout.Position) error
 	ClearValue(layout.Position) error
 	ClearFormula(layout.Position) error
+	ClearRange(*layout.Range) error
 
 	AppendRow([]value.ScalarValue) error
 	InsertRow(int64, []value.ScalarValue) error

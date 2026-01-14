@@ -682,7 +682,7 @@ func mergeFile(f *oxml.File, file string) error {
 
 const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
 
-type GetInfoCommand struct{
+type GetInfoCommand struct {
 	Format doc.Format
 }
 
