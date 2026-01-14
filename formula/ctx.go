@@ -13,12 +13,6 @@ var ErrUndefined = errors.New("undefined identifier")
 
 type BuiltinFunc func([]value.Value) (value.Value, error)
 
-type Context interface {
-	At(layout.Position) (value.Value, error)
-	Range(layout.Position, layout.Position) (value.Value, error)
-	Resolve(string) (value.Value, error)
-}
-
 type EnvContext struct{}
 
 func (c *EnvContext) Resolve(ident string) (value.Value, error) {
@@ -36,10 +30,10 @@ func (c *EnvContext) Range(_, _ layout.Position) (value.Value, error) {
 
 type VarsContext struct {
 	values map[string]value.Value
-	parent Context
+	parent value.Context
 }
 
-func Enclosed(parent Context) Context {
+func Enclosed(parent value.Context) value.Context {
 	ctx := VarsContext{
 		values: make(map[string]value.Value),
 		parent: parent,
@@ -47,7 +41,7 @@ func Enclosed(parent Context) Context {
 	return &ctx
 }
 
-func Empty() Context {
+func Empty() value.Context {
 	return Enclosed(nil)
 }
 

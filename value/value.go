@@ -16,6 +16,12 @@ const (
 	KindFunction
 )
 
+type Context interface {
+	At(layout.Position) (Value, error)
+	Range(layout.Position, layout.Position) (Value, error)
+	Resolve(string) (Value, error)
+}
+
 type Value interface {
 	Kind() ValueKind
 	fmt.Stringer

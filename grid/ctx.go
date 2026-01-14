@@ -20,7 +20,6 @@ func (c *viewValue) Get(ident string) (value.ScalarValue, error) {
 	return nil, nil
 }
 
-
 type fileValue struct {
 	file File
 }

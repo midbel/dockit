@@ -8,7 +8,7 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-func Eval(expr Expr, ctx Context) (value.Value, error) {
+func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	switch e := expr.(type) {
 	case binary:
 		return evalBinary(e, ctx)
@@ -29,7 +29,7 @@ func Eval(expr Expr, ctx Context) (value.Value, error) {
 	}
 }
 
-func evalBinary(e binary, ctx Context) (value.Value, error) {
+func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 	left, err := Eval(e.left, ctx)
 	if err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func evalBinary(e binary, ctx Context) (value.Value, error) {
 	}
 }
 
-func evalUnary(e unary, ctx Context) (value.Value, error) {
+func evalUnary(e unary, ctx value.Context) (value.Value, error) {
 	val, err := Eval(e.right, ctx)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func evalUnary(e unary, ctx Context) (value.Value, error) {
 	}
 }
 
-func evalCall(e call, ctx Context) (value.Value, error) {
+func evalCall(e call, ctx value.Context) (value.Value, error) {
 	id, ok := e.ident.(identifier)
 	if !ok {
 		return ErrName, nil
@@ -109,19 +109,15 @@ func evalCall(e call, ctx Context) (value.Value, error) {
 		}
 		args = append(args, v)
 	}
-	fn, err := ctx.ResolveFunc(strings.ToLower(id.name))
-	if err != nil {
-		return ErrName, nil
-	}
-	return fn(args)
+	return nil, nil
 
 }
 
-func evalCellAddr(e cellAddr, ctx Context) (value.Value, error) {
+func evalCellAddr(e cellAddr, ctx value.Context) (value.Value, error) {
 	return ctx.At(e.Position)
 }
 
-func evalRangeAddr(e rangeAddr, ctx Context) (value.Value, error) {
+func evalRangeAddr(e rangeAddr, ctx value.Context) (value.Value, error) {
 	return ctx.Range(e.startAddr.Position, e.endAddr.Position)
 }
 
