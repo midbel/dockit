@@ -12,6 +12,7 @@ const (
 	KindScalar ValueKind = 1 << iota
 	KindError
 	KindArray
+	KindObject
 )
 
 type Value interface {
@@ -28,6 +29,11 @@ type ArrayValue interface {
 	Value
 	Dimension() layout.Dimension
 	At(int, int) ScalarValue
+}
+
+type ObjectValue interface {
+	Value
+	Get(string) (ScalarValue, error)
 }
 
 type CastableValue interface {
