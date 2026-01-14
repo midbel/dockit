@@ -682,10 +682,15 @@ func mergeFile(f *oxml.File, file string) error {
 
 const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
 
-type GetInfoCommand struct{}
+type GetInfoCommand struct{
+	Format doc.Format
+}
 
 func (c GetInfoCommand) Run(args []string) error {
 	set := cli.NewFlagSet("info")
+	set.Func("f", "format", func(str string) error {
+		return nil
+	})
 	if err := set.Parse(args); err != nil {
 		return err
 	}

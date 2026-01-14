@@ -19,11 +19,7 @@ func Infos(file string) ([]grid.ViewInfo, error) {
 	return f.Infos(), nil
 }
 
-func Open(file string) (grid.File, error) {
-	format, err := detectFormat(file)
-	if err != nil {
-		return nil, err
-	}
+func OpenFormat(file string, format Format) (grid.File, error) {
 	switch format {
 	case CSV:
 		return csv.Open(file)
@@ -31,8 +27,16 @@ func Open(file string) (grid.File, error) {
 		return oxml.Open(file)
 	case ODS:
 	default:
+	}	
+	return nil, fmt.Errorf("unsupported format")
+}
+
+func Open(file string) (grid.File, error) {
+	format, err := detectFormat(file)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	return OpenFormat(file, format)
 }
 
 type Format int
@@ -41,6 +45,9 @@ const (
 	CSV Format = iota << 1
 	OXML
 	ODS
+	// Delimited
+	// Json
+	// Xml
 	Unknown
 )
 
