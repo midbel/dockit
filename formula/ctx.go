@@ -11,11 +11,12 @@ import (
 
 var ErrUndefined = errors.New("undefined identifier")
 
+type BuiltinFunc func([]value.Value) (value.Value, error)
+
 type Context interface {
 	At(layout.Position) (value.Value, error)
 	Range(layout.Position, layout.Position) (value.Value, error)
-	Resolve(ident string) (value.Value, error)
-	ResolveFunc(ident string) (BuiltinFunc, error)
+	Resolve(string) (value.Value, error)
 }
 
 type EnvContext struct{}
@@ -30,10 +31,6 @@ func (c *EnvContext) At(_ layout.Position) (value.Value, error) {
 }
 
 func (c *EnvContext) Range(_, _ layout.Position) (value.Value, error) {
-	return nil, nil
-}
-
-func (c *EnvContext) ResolveFunc(_ string) (BuiltinFunc, error) {
 	return nil, nil
 }
 
@@ -70,9 +67,5 @@ func (c *VarsContext) At(_ layout.Position) (value.Value, error) {
 }
 
 func (c *VarsContext) Range(_, _ layout.Position) (value.Value, error) {
-	return nil, nil
-}
-
-func (c *VarsContext) ResolveFunc(_ string) (BuiltinFunc, error) {
 	return nil, nil
 }

@@ -8,8 +8,6 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-type BuiltinFunc func([]value.Value) (value.Value, error)
-
 func Eval(expr Expr, ctx Context) (value.Value, error) {
 	switch e := expr.(type) {
 	case binary:

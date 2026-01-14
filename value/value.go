@@ -13,6 +13,7 @@ const (
 	KindError
 	KindArray
 	KindObject
+	KindFunction
 )
 
 type Value interface {
@@ -34,6 +35,11 @@ type ArrayValue interface {
 type ObjectValue interface {
 	Value
 	Get(string) (ScalarValue, error)
+}
+
+type FunctionValue interface {
+	Value
+	Call([]Value) (Value, error)
 }
 
 type CastableValue interface {
