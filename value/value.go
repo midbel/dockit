@@ -1,13 +1,10 @@
 package value
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/midbel/dockit/layout"
 )
-
-var ErrUndefined = errors.New("undefined identifier")
 
 type ValueKind int8
 
@@ -38,32 +35,4 @@ type CastableValue interface {
 	ToBool() ScalarValue
 	ToFloat() ScalarValue
 	// ToDate() ScalarValue
-}
-
-type Context struct {
-	values map[string]Value
-	parent *Context
-}
-
-func Enclosed(parent *Context) *Context {
-	ctx := Context{
-		values: make(map[string]Value),
-		parent: parent,
-	}
-	return &ctx
-}
-
-func Empty() *Context {
-	return Enclosed(nil)
-}
-
-func (c *Context) Resolve(ident string) (Value, error) {
-	v, ok := c.values[ident]
-	if ok {
-		return v, nil
-	}
-	if c.parent == nil {
-		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
-	}
-	return c.parent.Resolve(ident)
 }

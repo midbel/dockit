@@ -21,6 +21,10 @@ func SheetContext(parent formula.Context, sheet grid.View) formula.Context {
 	}
 }
 
+func (c sheetContext) Resolve(_ string) (value.Value, error) {
+	return nil, grid.ErrSupported
+}
+
 func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return formula.ErrRef, nil
@@ -99,6 +103,19 @@ func FileContext(file *File) formula.Context {
 	}
 }
 
+func (c fileContext) Resolve(_ string) (value.Value, error) {
+	return nil, grid.ErrSupported
+}
+
+func (c fileContext) At(pos layout.Position) (value.Value, error) {
+	sh, err := c.sheet(pos.Sheet)
+	if err != nil {
+		return formula.ErrRef, nil
+	}
+	ctx := SheetContext(nil, sh)
+	return ctx.At(pos)
+}
+
 func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return formula.ErrRef, nil
@@ -111,13 +128,12 @@ func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
 	return ctx.Range(start, end)
 }
 
-func (c fileContext) At(pos layout.Position) (value.Value, error) {
-	sh, err := c.sheet(pos.Sheet)
-	if err != nil {
-		return formula.ErrRef, nil
+func (c fileContext) ResolveFunc(name string) (formula.BuiltinFunc, error) {
+	fn, ok := builtins[name]
+	if !ok {
+		return nil, fmt.Errorf("%s not defined", name)
 	}
-	ctx := SheetContext(nil, sh)
-	return ctx.At(pos)
+	return fn, nil
 }
 
 func (c fileContext) sheet(name string) (grid.View, error) {
@@ -131,12 +147,4 @@ func (c fileContext) sheet(name string) (grid.View, error) {
 		sh, err = c.File.Sheet(name)
 	}
 	return sh, err
-}
-
-func (c fileContext) ResolveFunc(name string) (formula.BuiltinFunc, error) {
-	fn, ok := builtins[name]
-	if !ok {
-		return nil, fmt.Errorf("%s not defined", name)
-	}
-	return fn, nil
 }

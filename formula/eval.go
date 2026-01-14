@@ -5,17 +5,10 @@ import (
 	"math"
 	"strings"
 
-	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
 type BuiltinFunc func([]value.Value) (value.Value, error)
-
-type Context interface {
-	At(layout.Position) (value.Value, error)
-	Range(layout.Position, layout.Position) (value.Value, error)
-	ResolveFunc(ident string) (BuiltinFunc, error)
-}
 
 func Eval(expr Expr, ctx Context) (value.Value, error) {
 	switch e := expr.(type) {
