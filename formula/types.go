@@ -2,6 +2,7 @@ package formula
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -57,6 +58,33 @@ func (Blank) String() string {
 
 func (Blank) Scalar() any {
 	return nil
+}
+
+type Date time.Time
+
+func (Date) Kind() value.ValueKind {
+	return value.KindScalar
+}
+
+func (d Date) String() string {
+	return time.Time(d).Format("2006-01-02")
+}
+
+func (d Date) Scalar() any {
+	return time.Time(d)
+}
+
+func (d Date) ToString() (value.ScalarValue, error) {
+	return Text(d.String()), nil
+}
+
+func (d Date) ToBool() (value.ScalarValue, error) {
+	return Boolean(!time.Time(d).IsZero()), nil
+}
+
+func (d Date) ToFloat() (value.ScalarValue, error) {
+	unix := time.Time(d).Unix()
+	return Float(float64(unix)), nil
 }
 
 type Float float64
