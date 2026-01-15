@@ -114,6 +114,8 @@ type File interface {
 	Sheet(string) (View, error)
 	Sheets() []View
 
+	Reload() error
+
 	// Merge(File) error
 	Rename(string, string) error
 	Copy(string, string) error
