@@ -55,7 +55,7 @@ func (c *Cell) Value() value.ScalarValue {
 	return c.parsed
 }
 
-func (c *Cell) Reload(ctx formula.Context) error {
+func (c *Cell) Reload(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
 	}
@@ -232,7 +232,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	return cell, nil
 }
 
-func (s *Sheet) Reload(ctx formula.Context) error {
+func (s *Sheet) Reload(ctx value.Context) error {
 	ctx = SheetContext(ctx, s)
 	for _, r := range s.rows {
 		for _, c := range r.Cells {

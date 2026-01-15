@@ -11,10 +11,10 @@ import (
 
 type sheetContext struct {
 	view   grid.View
-	parent formula.Context
+	parent value.Context
 }
 
-func SheetContext(parent formula.Context, sheet grid.View) formula.Context {
+func SheetContext(parent value.Context, sheet grid.View) value.Context {
 	return sheetContext{
 		parent: parent,
 		view:   sheet,
@@ -97,7 +97,7 @@ type fileContext struct {
 	*File
 }
 
-func FileContext(file *File) formula.Context {
+func FileContext(file *File) value.Context {
 	return fileContext{
 		File: file,
 	}

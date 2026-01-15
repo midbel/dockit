@@ -66,7 +66,7 @@ const (
 type Cell interface {
 	At() layout.Position
 	Value() value.ScalarValue
-	Reload(formula.Context) error
+	Reload(value.Context) error
 	// Type() CellType
 }
 
@@ -81,7 +81,7 @@ type View interface {
 	Encode(Encoder) error
 	Cell(layout.Position) (Cell, error)
 
-	Reload(formula.Context) error
+	Reload(value.Context) error
 }
 
 type MutableView interface {
@@ -150,7 +150,7 @@ func (v *filteredView) Cell(layout.Position) (Cell, error) {
 	return nil, nil
 }
 
-func (v *filteredView) Reload(ctx formula.Context) error {
+func (v *filteredView) Reload(ctx value.Context) error {
 	return v.sheet.Reload(ctx)
 }
 
@@ -176,7 +176,7 @@ func (v *projectedView) Name() string {
 	return v.sheet.Name()
 }
 
-func (v *projectedView) Reload(ctx formula.Context) error {
+func (v *projectedView) Reload(ctx value.Context) error {
 	return v.sheet.Reload(ctx)
 }
 
@@ -233,7 +233,7 @@ func (v *boundedView) Name() string {
 	return v.sheet.Name()
 }
 
-func (v *boundedView) Reload(ctx formula.Context) error {
+func (v *boundedView) Reload(ctx value.Context) error {
 	return v.sheet.Reload(ctx)
 }
 

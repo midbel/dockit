@@ -35,7 +35,7 @@ func (c *Cell) Value() value.ScalarValue {
 	return c.parsed
 }
 
-func (c *Cell) Reload(ctx formula.Context) error {
+func (c *Cell) Reload(ctx value.Context) error {
 	return grid.ErrSupported
 }
 
@@ -60,7 +60,7 @@ func (s *Sheet) Name() string {
 	return defaultSheetName
 }
 
-func (s *Sheet) Reload(_ formula.Context) error {
+func (s *Sheet) Reload(_ value.Context) error {
 	return grid.ErrSupported
 }
 
