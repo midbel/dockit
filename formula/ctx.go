@@ -13,28 +13,28 @@ var ErrUndefined = errors.New("undefined identifier")
 
 type BuiltinFunc func([]value.Value) (value.Value, error)
 
-type EnvContext struct{}
+type envValue struct{}
 
-func (c *EnvContext) Resolve(ident string) (value.Value, error) {
-	str := os.Getenv(ident)
+func (*envValue) Kind() value.ValueKind {
+	return value.KindObject
+}
+
+func (*envValue) String() string {
+	return "env"
+}
+
+func (v *envValue) Get(name string) (value.ScalarValue, error) {
+	str := os.Getenv(name)
 	return Text(str), nil
 }
 
-func (c *EnvContext) At(_ layout.Position) (value.Value, error) {
-	return nil, nil
-}
-
-func (c *EnvContext) Range(_, _ layout.Position) (value.Value, error) {
-	return nil, nil
-}
-
-type VarsContext struct {
+type varsContext struct {
 	values map[string]value.Value
 	parent value.Context
 }
 
 func Enclosed(parent value.Context) value.Context {
-	ctx := VarsContext{
+	ctx := varsContext{
 		values: make(map[string]value.Value),
 		parent: parent,
 	}
@@ -45,7 +45,7 @@ func Empty() value.Context {
 	return Enclosed(nil)
 }
 
-func (c *VarsContext) Resolve(ident string) (value.Value, error) {
+func (c *varsContext) Resolve(ident string) (value.Value, error) {
 	v, ok := c.values[ident]
 	if ok {
 		return v, nil
@@ -56,10 +56,10 @@ func (c *VarsContext) Resolve(ident string) (value.Value, error) {
 	return c.parent.Resolve(ident)
 }
 
-func (c *VarsContext) At(_ layout.Position) (value.Value, error) {
+func (c *varsContext) At(_ layout.Position) (value.Value, error) {
 	return nil, nil
 }
 
-func (c *VarsContext) Range(_, _ layout.Position) (value.Value, error) {
+func (c *varsContext) Range(_, _ layout.Position) (value.Value, error) {
 	return nil, nil
 }

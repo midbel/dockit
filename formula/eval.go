@@ -3,7 +3,6 @@ package formula
 import (
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/midbel/dockit/value"
 )
@@ -109,6 +108,7 @@ func evalCall(e call, ctx value.Context) (value.Value, error) {
 		}
 		args = append(args, v)
 	}
+	_ = id
 	return nil, nil
 
 }

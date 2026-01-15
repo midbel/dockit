@@ -28,7 +28,7 @@ func (*fileValue) Kind() value.ValueKind {
 	return value.KindObject
 }
 
-func (c *fileValue) String() string {
+func (*fileValue) String() string {
 	return "workbook"
 }
 
