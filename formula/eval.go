@@ -1,10 +1,16 @@
 package formula
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
 	"github.com/midbel/dockit/value"
+)
+
+var (
+	ErrEval = errors.New("expression can not be evaluated")
+	ErrCallable = errors.New("expression is not callable")
 )
 
 func Eval(expr Expr, ctx value.Context) (value.Value, error) {
@@ -24,7 +30,7 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	case rangeAddr:
 		return evalRangeAddr(e, ctx)
 	default:
-		return nil, fmt.Errorf("unuspported expression type: %T", expr)
+		return nil, ErrEval
 	}
 }
 
@@ -113,7 +119,7 @@ func evalCall(e call, ctx value.Context) (value.Value, error) {
 		return nil, err
 	}
 	if fn.Kind() != value.KindFunction {
-		return nil, fmt.Errorf("%s is not callable", id)
+		return nil, fmt.Errorf("%s: %w", id.name, ErrCallable)
 	}
 	call, ok := fn.(value.FunctionValue)
 	return call.Call(args)
