@@ -40,7 +40,7 @@ type ArrayValue interface {
 
 type ObjectValue interface {
 	Value
-	Get(string) (ScalarValue, error)
+	Get(string) (Value, error)
 }
 
 type FunctionValue interface {

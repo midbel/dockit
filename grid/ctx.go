@@ -12,6 +12,12 @@ type viewValue struct {
 	view View
 }
 
+func valueFromView(view View) value.Value {
+	return &viewValue{
+		view: view,
+	}
+}
+
 func (*viewValue) Kind() value.ValueKind {
 	return value.KindObject
 }
@@ -20,7 +26,7 @@ func (c *viewValue) String() string {
 	return c.view.Name()
 }
 
-func (c *viewValue) Get(ident string) (value.ScalarValue, error) {
+func (c *viewValue) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "name":
 		return formula.Text(c.view.Name()), nil
@@ -48,6 +54,10 @@ func (c *viewValue) Get(ident string) (value.ScalarValue, error) {
 		return formula.Boolean(locked), nil
 	case "readonly":
 		return formula.Boolean(false), nil
+	case "active":
+		return formula.Boolean(false), nil
+	case "index":
+		return formula.Float(float64(0)), nil
 	default:
 		return nil, fmt.Errorf("%s: %w", ident, formula.ErrUndefined)
 	}
@@ -65,13 +75,19 @@ func (*fileValue) String() string {
 	return "workbook"
 }
 
-func (c *fileValue) Get(ident string) (value.ScalarValue, error) {
+func (c *fileValue) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "sheets":
 		x := c.file.Sheets()
 		return formula.Float(float64(len(x))), nil
 	case "protected":
 		return formula.Boolean(false), nil
+	case "active":
+		sh, err := c.file.ActiveSheet()
+		if err != nil {
+			return formula.ErrValue, nil
+		}
+		return valueFromView(sh), nil
 	default:
 		return nil, fmt.Errorf("%s: %w", ident, formula.ErrUndefined)
 	}
