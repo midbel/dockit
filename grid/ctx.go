@@ -1,6 +1,8 @@
 package grid
 
 import (
+	"fmt"
+
 	"github.com/midbel/dockit/formula"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -19,7 +21,36 @@ func (c *viewValue) String() string {
 }
 
 func (c *viewValue) Get(ident string) (value.ScalarValue, error) {
-	return nil, nil
+	switch ident {
+	case "name":
+		return formula.Text(c.view.Name()), nil
+	case "lines":
+		rg := c.view.Bounds()
+		lines := rg.Ends.Line - rg.Starts.Line
+		return formula.Float(float64(lines)), nil
+	case "columns":
+		rg := c.view.Bounds()
+		lines := rg.Ends.Column - rg.Starts.Column
+		return formula.Float(float64(lines)), nil
+	case "cells":
+		var count int
+		for x := range c.view.Rows() {
+			count += len(x)
+		}
+		return formula.Float(float64(count)), nil
+	case "empty":
+		return formula.Float(float64(0)), nil
+	case "protected":
+		var locked bool
+		if k, ok := c.view.(interface{ IsLock() bool }); ok {
+			locked = k.IsLock()
+		}
+		return formula.Boolean(locked), nil
+	case "readonly":
+		return formula.Boolean(false), nil
+	default:
+		return nil, fmt.Errorf("%s: %w", ident, formula.ErrUndefined)
+	}
 }
 
 type fileValue struct {
@@ -35,7 +66,15 @@ func (*fileValue) String() string {
 }
 
 func (c *fileValue) Get(ident string) (value.ScalarValue, error) {
-	return nil, nil
+	switch ident {
+	case "sheets":
+		x := c.file.Sheets()
+		return formula.Float(float64(len(x))), nil
+	case "protected":
+		return formula.Boolean(false), nil
+	default:
+		return nil, fmt.Errorf("%s: %w", ident, formula.ErrUndefined)
+	}
 }
 
 type sheetContext struct {
