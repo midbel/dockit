@@ -233,7 +233,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 }
 
 func (s *Sheet) Reload(ctx value.Context) error {
-	ctx = SheetContext(ctx, s)
+	ctx = grid.SheetContext(ctx, s)
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
 			if err := c.Reload(ctx); err != nil {
@@ -463,9 +463,9 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Reload() error {
-	ctx := FileContext(f)
+	ctx := grid.FileContext(nil, f)
 	for _, s := range f.sheets {
-		if err := s.Reload(SheetContext(ctx, s)); err != nil {
+		if err := s.Reload(grid.SheetContext(ctx, s)); err != nil {
 			return err
 		}
 	}
