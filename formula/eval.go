@@ -108,8 +108,15 @@ func evalCall(e call, ctx value.Context) (value.Value, error) {
 		}
 		args = append(args, v)
 	}
-	_ = id
-	return nil, nil
+	fn, err := ctx.Resolve(id.name)
+	if err != nil {
+		return nil, err
+	}
+	if fn.Kind() != value.KindFunction {
+		return nil, fmt.Errorf("%s is not callable", id)
+	}
+	call, ok := fn.(value.FunctionValue)
+	return call.Call(args)
 
 }
 
