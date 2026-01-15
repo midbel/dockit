@@ -207,3 +207,27 @@ func (a Array) At(row, col int) value.ScalarValue {
 	}
 	return a.Data[row][col]
 }
+
+type Function struct {
+	name string
+	fn   BuiltinFunc
+}
+
+func NewFunction(name string, fn BuiltinFunc) value.FunctionValue {
+	return Function{
+		name: name,
+		fn:   fn,
+	}
+}
+
+func (Function) Kind() value.ValueKind {
+	return value.KindFunction
+}
+
+func (f Function) String() string {
+	return f.name
+}
+
+func (f Function) Call(args []value.Value) (value.Value, error) {
+	return f.fn(args)
+}

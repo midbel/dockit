@@ -2,6 +2,7 @@ package oxml
 
 import (
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
 )
 
@@ -11,6 +12,20 @@ var builtins = map[string]formula.BuiltinFunc{
 	"count":   execCount,
 	"min":     execMin,
 	"max":     execMax,
+}
+
+var rootContext value.Context
+
+func init() {
+	root := formula.Empty()
+	for n, f := range builtins {
+		root.Define(n, formula.NewFunction(n, f))
+	}
+	rootContext = root
+}
+
+func FileContext(file grid.File) value.Context {
+	return grid.FileContext(rootContext, file)
 }
 
 func execMin(args []value.Value) (value.Value, error) {

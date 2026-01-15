@@ -233,7 +233,7 @@ func (s SheetRef) DumpTo(encoder grid.Encoder, reload bool) error {
 	if err != nil {
 		return err
 	}
-	ctx := grid.FileContext(nil, s.File)
+	ctx := oxml.FileContext(s.File)
 	if reload {
 		if err := sh.Reload(ctx); err != nil {
 			return err

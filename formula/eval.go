@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrEval = errors.New("expression can not be evaluated")
+	ErrEval     = errors.New("expression can not be evaluated")
 	ErrCallable = errors.New("expression is not callable")
 )
 

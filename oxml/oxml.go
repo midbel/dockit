@@ -463,7 +463,7 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Reload() error {
-	ctx := grid.FileContext(nil, f)
+	ctx := FileContext(f)
 	for _, s := range f.sheets {
 		if err := s.Reload(grid.SheetContext(ctx, s)); err != nil {
 			return err
