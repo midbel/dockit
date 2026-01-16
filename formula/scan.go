@@ -7,13 +7,16 @@ import (
 )
 
 const (
-	Invalid rune = -(1 << iota)
-	EOF
+	Invalid rune = 0
+
+	EOF rune = -(1 << iota)
 	Eol
 	Keyword
 	Ident
 	Number
 	Literal
+	Comment
+	Assign
 	Add
 	Sub
 	Mul
@@ -34,7 +37,15 @@ const (
 	EndBlock
 	RangeRef
 	SheetRef
-	Assign
+)
+
+const (
+	AddAssign    = Add | Assign
+	DivAssign    = Div | Assign
+	SubAssign    = Sub | Assign
+	MulAssign    = Mul | Assign
+	PowAssign    = Pow | Assign
+	ConcatAssign = Concat | Assign
 )
 
 const (
@@ -108,6 +119,10 @@ func (s *Scanner) Scan() Token {
 	}
 	defer s.reset()
 	switch {
+	case isNL(s.char) && s.mode == ModeScript:
+		s.scanNL(&tok)
+	case isComment(s.char) && s.mode == ModeScript:
+		s.scanComment(&tok)
 	case isOperator(s.char):
 		s.scanOperator(&tok)
 	case isDelimiter(s.char):
@@ -120,6 +135,23 @@ func (s *Scanner) Scan() Token {
 		s.scanIdent(&tok)
 	}
 	return tok
+}
+
+func (s *Scanner) scanNL(tok *Token) {
+	s.skipNL()
+	tok.Type = Eol
+}
+
+func (s *Scanner) scanComment(tok *Token) {
+	s.read()
+	s.skipBlanks()
+	for !s.done() && !isNL(s.char) {
+		s.write()
+		s.read()
+	}
+	s.skipNL()
+	tok.Type = Comment
+	tok.Literal = s.literal()
 }
 
 func (s *Scanner) scanIdent(tok *Token) {
@@ -174,18 +206,42 @@ func (s *Scanner) scanOperator(tok *Token) {
 	switch s.char {
 	case amper:
 		tok.Type = Concat
+		if s.peek() == equal && s.mode == ModeScript {
+			s.read()
+			tok.Type = ConcatAssign
+		}
 	case percent:
 		tok.Type = Percent
 	case plus:
 		tok.Type = Add
+		if s.peek() == equal && s.mode == ModeScript {
+			s.read()
+			tok.Type = AddAssign
+		}
 	case minus:
 		tok.Type = Sub
+		if s.peek() == equal && s.mode == ModeScript {
+			s.read()
+			tok.Type = SubAssign
+		}
 	case star:
 		tok.Type = Mul
+		if s.peek() == equal && s.mode == ModeScript {
+			s.read()
+			tok.Type = MulAssign
+		}
 	case slash:
 		tok.Type = Div
+		if s.peek() == equal && s.mode == ModeScript {
+			s.read()
+			tok.Type = DivAssign
+		}
 	case caret:
 		tok.Type = Pow
+		if s.peek() == equal && s.mode == ModeScript {
+			s.read()
+			tok.Type = PowAssign
+		}
 	case langle:
 		tok.Type = Lt
 		s.read()
@@ -267,6 +323,12 @@ func (s *Scanner) done() bool {
 	return s.pos >= len(s.input) && s.char == 0
 }
 
+func (s *Scanner) skipNL() {
+	for isNL(s.char) {
+		s.read()
+	}
+}
+
 func (s *Scanner) skipBlanks() {
 	for isBlank(s.char) {
 		s.read()
@@ -299,7 +361,14 @@ const (
 	amper      = '&'
 	percent    = '%'
 	dollar     = '$'
+	nl         = '\n'
+	cr         = '\r'
+	pound      = '#'
 )
+
+func isComment(c rune) bool {
+	return c == pound
+}
 
 func isQuote(c rune) bool {
 	return c == squote || c == dquote
@@ -327,6 +396,10 @@ func isAlpha(c rune) bool {
 
 func isBlank(c rune) bool {
 	return c == space || c == tab
+}
+
+func isNL(c rune) bool {
+	return c == nl || c == cr
 }
 
 func isDelimiter(c rune) bool {

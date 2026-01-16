@@ -146,10 +146,8 @@ func FormulaGrammar() *Grammar {
 func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
 
-	g.RegisterBinding(Assign, powAssign)
 	g.RegisterPrefix(BegBlock, parseBlock)
 	g.RegisterPrefix(Keyword, parseKeyword)
-	g.RegisterInfix(Assign, parseAssign)
 
 	g.RegisterPrefixKeyword(kwLet, parseLet)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
