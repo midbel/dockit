@@ -9,6 +9,7 @@ import (
 const (
 	Invalid rune = -(1 << iota)
 	EOF
+	Eol
 	Keyword
 	Ident
 	Number
@@ -33,13 +34,13 @@ const (
 	EndBlock
 	RangeRef
 	SheetRef
+	Assign
 )
 
 const (
 	kwView   = "view"
 	kwSheet  = "sheet"
 	kwLet    = "let"
-	kwSet    = "set"
 	kwImport = "import"
 	kwPrint  = "print"
 )
@@ -49,7 +50,6 @@ func isKeyword(str string) bool {
 	case kwView:
 	case kwSheet:
 	case kwLet:
-	case kwSet:
 	case kwImport:
 	case kwPrint:
 	default:

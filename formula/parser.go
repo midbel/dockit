@@ -3,12 +3,14 @@ package formula
 import (
 	"fmt"
 	"io"
+	"maps"
 	"strconv"
 	"strings"
 )
 
 const (
 	powLowest = iota
+	powAssign
 	powEq
 	powCmp
 	powConcat
@@ -46,6 +48,9 @@ type Grammar struct {
 	prefix   map[rune]PrefixFunc
 	infix    map[rune]InfixFunc
 	bindings map[rune]int
+
+	kwPrefix map[string]PrefixFunc
+	kwInfix  map[string]InfixFunc
 }
 
 func (g *Grammar) Pow(kind rune) int {
@@ -56,16 +61,30 @@ func (g *Grammar) Pow(kind rune) int {
 	return pow
 }
 
-func (g *Grammar) Prefix(kind rune) (PrefixFunc, error) {
-	fn, ok := g.prefix[kind]
+func (g *Grammar) Prefix(tok Token) (PrefixFunc, error) {
+	if tok.Type == Keyword {
+		fn, ok := g.kwPrefix[tok.Literal]
+		if !ok {
+			return nil, fmt.Errorf("%s: unknown keyword", tok.Literal)
+		}
+		return fn, nil
+	}
+	fn, ok := g.prefix[tok.Type]
 	if !ok {
 		return nil, fmt.Errorf("unsupported prefix operator")
 	}
 	return fn, nil
 }
 
-func (g *Grammar) Infix(kind rune) (InfixFunc, error) {
-	fn, ok := g.infix[kind]
+func (g *Grammar) Infix(tok Token) (InfixFunc, error) {
+	if tok.Type == Keyword {
+		fn, ok := g.kwInfix[tok.Literal]
+		if !ok {
+			return nil, fmt.Errorf("%s: unknown keyword", tok.Literal)
+		}
+		return fn, nil
+	}
+	fn, ok := g.infix[tok.Type]
 	if !ok {
 		return nil, fmt.Errorf("unsupported infix operator")
 	}
@@ -76,15 +95,29 @@ func (g *Grammar) RegisterInfix(kd rune, fn InfixFunc) {
 	g.infix[kd] = fn
 }
 
+func (g *Grammar) RegisterInfixKeyword(kw string, fn InfixFunc) {
+	g.kwInfix[kw] = fn
+}
+
 func (g *Grammar) RegisterPrefix(kd rune, fn PrefixFunc) {
 	g.prefix[kd] = fn
+}
+
+func (g *Grammar) RegisterPrefixKeyword(kw string, fn PrefixFunc) {
+	g.kwPrefix[kw] = fn
+}
+
+func (g *Grammar) RegisterBinding(kd rune, pow int) {
+	g.bindings[kd] = pow
 }
 
 func FormulaGrammar() *Grammar {
 	g := Grammar{
 		prefix:   make(map[rune]PrefixFunc),
+		kwPrefix: make(map[string]PrefixFunc),
 		infix:    make(map[rune]InfixFunc),
-		bindings: defaultBindings,
+		kwInfix:  make(map[string]InfixFunc),
+		bindings: maps.Clone(defaultBindings),
 	}
 	g.RegisterPrefix(Ident, parseAdressOrIdentifier)
 	g.RegisterPrefix(Number, parseNumber)
@@ -112,6 +145,16 @@ func FormulaGrammar() *Grammar {
 
 func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
+
+	g.RegisterBinding(Assign, powAssign)
+	g.RegisterPrefix(BegBlock, parseBlock)
+	g.RegisterPrefix(Keyword, parseKeyword)
+	g.RegisterInfix(Assign, parseAssign)
+
+	g.RegisterPrefixKeyword(kwLet, parseLet)
+	g.RegisterPrefixKeyword(kwPrint, parsePrint)
+	g.RegisterPrefixKeyword(kwImport, parseImport)
+
 	return g
 }
 
@@ -150,7 +193,7 @@ func (p *Parser) Parse(r io.Reader) (Expr, error) {
 }
 
 func (p *Parser) parse(pow int) (Expr, error) {
-	fn, err := p.grammar.Prefix(p.curr.Type)
+	fn, err := p.grammar.Prefix(p.curr)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +202,7 @@ func (p *Parser) parse(pow int) (Expr, error) {
 		return nil, err
 	}
 	for !p.done() && pow < p.grammar.Pow(p.curr.Type) {
-		fn, err := p.grammar.Infix(p.curr.Type)
+		fn, err := p.grammar.Infix(p.curr)
 		if err != nil {
 			return nil, err
 		}
@@ -290,4 +333,28 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	}
 	a.Sheet = sheet
 	return a, nil
+}
+
+func parseBlock(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
+func parseKeyword(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
+func parseAssign(p *Parser, left Expr) (Expr, error) {
+	return nil, nil
+}
+
+func parseLet(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
+func parsePrint(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
+func parseImport(p *Parser) (Expr, error) {
+	return nil, nil
 }
