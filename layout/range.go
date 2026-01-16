@@ -44,11 +44,11 @@ func (r *Range) Contains(pos Position) bool {
 }
 
 func (r *Range) Width() int64 {
-	return r.Ends.Line - r.Starts.Line
+	return r.Ends.Column - r.Starts.Column
 }
 
 func (r *Range) Height() int64 {
-	return r.Ends.Column - r.Starts.Column
+	return r.Ends.Line - r.Starts.Line
 }
 
 func (r *Range) String() string {
@@ -65,6 +65,18 @@ func (r *Range) Normalize() *Range {
 	x.Ends.Line = max(r.Starts.Line, r.Ends.Line)
 	x.Ends.Column = max(r.Starts.Column, r.Ends.Column)
 	return x
+}
+
+func (r *Range) Range() *Range {
+	start := Position{
+		Line:   1,
+		Column: 1,
+	}
+	end := Position{
+		Line:   r.Height(),
+		Column: r.Width(),
+	}
+	return NewRange(start, end)
 }
 
 type RangeSet struct {

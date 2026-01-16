@@ -9,7 +9,7 @@ import (
 const (
 	Invalid rune = 0
 
-	EOF rune = -(1 << iota)
+	EOF rune = 1 << iota
 	Eol
 	Keyword
 	Ident

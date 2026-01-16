@@ -183,7 +183,20 @@ func (v *projectedView) Reload(ctx value.Context) error {
 }
 
 func (v *projectedView) Bounds() *layout.Range {
-	return v.sheet.Bounds()
+	rg := v.sheet.Bounds()
+
+	start := layout.Position{
+		Line:   1,
+		Column: 1,
+	}
+	if rg.Width() == 0 && rg.Height() == 0 {
+		return layout.NewRange(start, start)
+	}
+	end := layout.Position{
+		Line:   rg.Height(),
+		Column: max(1, int64(len(v.columns))),
+	}
+	return layout.NewRange(start, end)
 }
 
 func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
@@ -247,7 +260,7 @@ func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
 }
 
 func (v *boundedView) Bounds() *layout.Range {
-	return v.part
+	return v.part.Range()
 }
 
 func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
