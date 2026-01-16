@@ -23,6 +23,12 @@ const (
 )
 
 var defaultBindings = map[rune]int{
+	AddAssign: powAssign,
+	SubAssign: powAssign,
+	MulAssign: powAssign,
+	DivAssign: powAssign,
+	PowAssign: powAssign,
+	ConcatAssign: powAssign,
 	Add:     powAdd,
 	Sub:     powAdd,
 	Mul:     powMul,
