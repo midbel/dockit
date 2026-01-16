@@ -8,7 +8,8 @@ import (
 
 const (
 	Invalid rune = -(1 << iota)
-	Eol
+	EOF
+	Keyword
 	Ident
 	Number
 	Literal
@@ -28,10 +29,40 @@ const (
 	Comma
 	BegGrp
 	EndGrp
-	BegArr
-	EndArr
+	BegBlock
+	EndBlock
 	RangeRef
 	SheetRef
+)
+
+const (
+	kwView   = "view"
+	kwSheet  = "sheet"
+	kwLet    = "let"
+	kwSet    = "set"
+	kwImport = "import"
+	kwPrint  = "print"
+)
+
+func isKeyword(str string) bool {
+	switch str {
+	case kwView:
+	case kwSheet:
+	case kwLet:
+	case kwSet:
+	case kwImport:
+	case kwPrint:
+	default:
+		return false
+	}
+	return true
+}
+
+type ScanMode int8
+
+const (
+	ModeBasic ScanMode = 1 << iota
+	ModeScript
 )
 
 type Token struct {
@@ -46,14 +77,16 @@ type Scanner struct {
 	next  int
 	char  rune
 
-	buf bytes.Buffer
+	buf  bytes.Buffer
+	mode ScanMode
 }
 
-func Scan(r io.Reader) (*Scanner, error) {
+func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
 	var (
 		scan Scanner
 		err  error
 	)
+	scan.mode = mode
 	scan.input, err = io.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -62,7 +95,6 @@ func Scan(r io.Reader) (*Scanner, error) {
 	if scan.char == equal {
 		scan.read()
 	}
-	// scan.read()
 	return &scan, nil
 }
 
@@ -71,7 +103,7 @@ func (s *Scanner) Scan() Token {
 
 	var tok Token
 	if s.done() {
-		tok.Type = Eol
+		tok.Type = EOF
 		return tok
 	}
 	defer s.reset()
@@ -97,6 +129,9 @@ func (s *Scanner) scanIdent(tok *Token) {
 	}
 	tok.Type = Ident
 	tok.Literal = s.literal()
+	if s.allowKeywords() && isKeyword(tok.Literal) {
+		tok.Type = Keyword
+	}
 }
 
 func (s *Scanner) scanNumber(tok *Token) {
@@ -186,12 +221,16 @@ func (s *Scanner) scanDelimiter(tok *Token) {
 	case rparen:
 		tok.Type = EndGrp
 	case lcurly:
-		tok.Type = BegArr
+		tok.Type = BegBlock
 	case rcurly:
-		tok.Type = EndArr
+		tok.Type = EndBlock
 	default:
 	}
 	s.read()
+}
+
+func (s *Scanner) allowKeywords() bool {
+	return s.mode == ModeScript
 }
 
 func (s *Scanner) literal() string {

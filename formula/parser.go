@@ -20,7 +20,7 @@ const (
 	powCall
 )
 
-var bindings = map[rune]int{
+var defaultBindings = map[rune]int{
 	Add:     powAdd,
 	Sub:     powAdd,
 	Mul:     powMul,
@@ -37,46 +37,100 @@ var bindings = map[rune]int{
 	BegGrp:  powCall,
 }
 
+type (
+	PrefixFunc func(*Parser) (Expr, error)
+	InfixFunc  func(*Parser, Expr) (Expr, error)
+)
+
+type Grammar struct {
+	prefix   map[rune]PrefixFunc
+	infix    map[rune]InfixFunc
+	bindings map[rune]int
+}
+
+func (g *Grammar) Pow(kind rune) int {
+	pow, ok := g.bindings[kind]
+	if !ok {
+		pow = powLowest
+	}
+	return pow
+}
+
+func (g *Grammar) Prefix(kind rune) (PrefixFunc, error) {
+	fn, ok := g.prefix[kind]
+	if !ok {
+		return nil, fmt.Errorf("unsupported prefix operator")
+	}
+	return fn, nil
+}
+
+func (g *Grammar) Infix(kind rune) (InfixFunc, error) {
+	fn, ok := g.infix[kind]
+	if !ok {
+		return nil, fmt.Errorf("unsupported infix operator")
+	}
+	return fn, nil
+}
+
+func (g *Grammar) RegisterInfix(kd rune, fn InfixFunc) {
+	g.infix[kd] = fn
+}
+
+func (g *Grammar) RegisterPrefix(kd rune, fn PrefixFunc) {
+	g.prefix[kd] = fn
+}
+
+func FormulaGrammar() *Grammar {
+	g := Grammar{
+		prefix:   make(map[rune]PrefixFunc),
+		infix:    make(map[rune]InfixFunc),
+		bindings: defaultBindings,
+	}
+	g.RegisterPrefix(Ident, parseAdressOrIdentifier)
+	g.RegisterPrefix(Number, parseNumber)
+	g.RegisterPrefix(Literal, parseLiteral)
+	g.RegisterPrefix(Sub, parseUnary)
+	g.RegisterPrefix(Add, parseUnary)
+	g.RegisterPrefix(BegGrp, parseGroup)
+
+	g.RegisterInfix(BegGrp, parseCall)
+	g.RegisterInfix(Add, parseBinary)
+	g.RegisterInfix(Sub, parseBinary)
+	g.RegisterInfix(Mul, parseBinary)
+	g.RegisterInfix(Div, parseBinary)
+	g.RegisterInfix(Concat, parseBinary)
+	g.RegisterInfix(Pow, parseBinary)
+	g.RegisterInfix(Eq, parseBinary)
+	g.RegisterInfix(Ne, parseBinary)
+	g.RegisterInfix(Lt, parseBinary)
+	g.RegisterInfix(Le, parseBinary)
+	g.RegisterInfix(Gt, parseBinary)
+	g.RegisterInfix(Ge, parseBinary)
+
+	return &g
+}
+
+func ScriptGrammar() *Grammar {
+	g := FormulaGrammar()
+	return g
+}
+
 type Parser struct {
 	scan *Scanner
 	curr Token
 	peek Token
 
-	prefix map[rune]func() (Expr, error)
-	infix  map[rune]func(Expr) (Expr, error)
+	grammar *Grammar
 }
-
-var defaultParser = Parse()
 
 func ParseFormula(str string) (Expr, error) {
-	return defaultParser.ParseString(str)
+	p := NewParser(FormulaGrammar())
+	return p.ParseString(str)
 }
 
-func Parse() *Parser {
+func NewParser(g *Grammar) *Parser {
 	var p Parser
-	p.prefix = map[rune]func() (Expr, error){
-		Ident:   p.parseAdressOrIdentifier,
-		Number:  p.parseNumber,
-		Literal: p.parseLiteral,
-		Sub:     p.parseUnary,
-		Add:     p.parseUnary,
-		BegGrp:  p.parseGroup,
-	}
-	p.infix = map[rune]func(Expr) (Expr, error){
-		BegGrp: p.parseCall,
-		Add:    p.parseBinary,
-		Sub:    p.parseBinary,
-		Mul:    p.parseBinary,
-		Div:    p.parseBinary,
-		Concat: p.parseBinary,
-		Pow:    p.parseBinary,
-		Eq:     p.parseBinary,
-		Ne:     p.parseBinary,
-		Lt:     p.parseBinary,
-		Le:     p.parseBinary,
-		Gt:     p.parseBinary,
-		Ge:     p.parseBinary,
-	}
+	p.grammar = g
 	return &p
 }
 
@@ -85,7 +139,7 @@ func (p *Parser) ParseString(str string) (Expr, error) {
 }
 
 func (p *Parser) Parse(r io.Reader) (Expr, error) {
-	scan, err := Scan(r)
+	scan, err := Scan(r, ModeBasic)
 	if err != nil {
 		return nil, err
 	}
@@ -96,20 +150,20 @@ func (p *Parser) Parse(r io.Reader) (Expr, error) {
 }
 
 func (p *Parser) parse(pow int) (Expr, error) {
-	fn, ok := p.prefix[p.curr.Type]
-	if !ok {
-		return nil, fmt.Errorf("unexpected prefix")
-	}
-	left, err := fn()
+	fn, err := p.grammar.Prefix(p.curr.Type)
 	if err != nil {
 		return nil, err
 	}
-	for !p.done() && pow < bindings[p.curr.Type] {
-		fn, ok := p.infix[p.curr.Type]
-		if !ok {
-			return nil, fmt.Errorf("unexpected infix operator")
+	left, err := fn(p)
+	if err != nil {
+		return nil, err
+	}
+	for !p.done() && pow < p.grammar.Pow(p.curr.Type) {
+		fn, err := p.grammar.Infix(p.curr.Type)
+		if err != nil {
+			return nil, err
 		}
-		left, err = fn(left)
+		left, err = fn(p, left)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +171,16 @@ func (p *Parser) parse(pow int) (Expr, error) {
 	return left, nil
 }
 
-func (p *Parser) parseCall(expr Expr) (Expr, error) {
+func (p *Parser) next() {
+	p.curr = p.peek
+	p.peek = p.scan.Scan()
+}
+
+func (p *Parser) done() bool {
+	return p.curr.Type == EOF
+}
+
+func parseCall(p *Parser, expr Expr) (Expr, error) {
 	p.next()
 	c := call{
 		ident: expr,
@@ -143,13 +206,13 @@ func (p *Parser) parseCall(expr Expr) (Expr, error) {
 	return c, nil
 }
 
-func (p *Parser) parseBinary(left Expr) (Expr, error) {
+func parseBinary(p *Parser, left Expr) (Expr, error) {
 	bin := binary{
 		left: left,
 		op:   p.curr.Type,
 	}
 	p.next()
-	right, err := p.parse(bindings[bin.op])
+	right, err := p.parse(p.grammar.Pow(bin.op))
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +220,7 @@ func (p *Parser) parseBinary(left Expr) (Expr, error) {
 	return bin, nil
 }
 
-func (p *Parser) parseUnary() (Expr, error) {
+func parseUnary(p *Parser) (Expr, error) {
 	una := unary{
 		op: p.curr.Type,
 	}
@@ -170,7 +233,7 @@ func (p *Parser) parseUnary() (Expr, error) {
 	return una, nil
 }
 
-func (p *Parser) parseGroup() (Expr, error) {
+func parseGroup(p *Parser) (Expr, error) {
 	p.next()
 	expr, err := p.parse(powLowest)
 	if err != nil {
@@ -183,7 +246,7 @@ func (p *Parser) parseGroup() (Expr, error) {
 	return expr, nil
 }
 
-func (p *Parser) parseNumber() (Expr, error) {
+func parseNumber(p *Parser) (Expr, error) {
 	defer p.next()
 
 	x, err := strconv.ParseFloat(p.curr.Literal, 64)
@@ -196,7 +259,7 @@ func (p *Parser) parseNumber() (Expr, error) {
 	return n, nil
 }
 
-func (p *Parser) parseLiteral() (Expr, error) {
+func parseLiteral(p *Parser) (Expr, error) {
 	defer p.next()
 	i := literal{
 		value: p.curr.Literal,
@@ -204,7 +267,7 @@ func (p *Parser) parseLiteral() (Expr, error) {
 	return i, nil
 }
 
-func (p *Parser) parseAdressOrIdentifier() (Expr, error) {
+func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	defer p.next()
 	if p.peek.Type == BegGrp {
 		i := identifier{
@@ -227,13 +290,4 @@ func (p *Parser) parseAdressOrIdentifier() (Expr, error) {
 	}
 	a.Sheet = sheet
 	return a, nil
-}
-
-func (p *Parser) next() {
-	p.curr = p.peek
-	p.peek = p.scan.Scan()
-}
-
-func (p *Parser) done() bool {
-	return p.curr.Type == Eol
 }
