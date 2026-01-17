@@ -349,15 +349,7 @@ func parseBlock(p *Parser) (Expr, error) {
 	return nil, nil
 }
 
-func parseKeyword(p *Parser) (Expr, error) {
-	return nil, nil
-}
-
 func parseAssignment(p *Parser, left Expr) (Expr, error) {
-	return nil, nil
-}
-
-func parseLet(p *Parser) (Expr, error) {
 	return nil, nil
 }
 

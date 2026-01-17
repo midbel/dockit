@@ -53,20 +53,24 @@ const (
 const (
 	kwView   = "view"
 	kwSheet  = "sheet"
-	kwLet    = "let"
 	kwImport = "import"
 	kwFrom   = "from"
 	kwPrint  = "print"
+	kwIn     = "in"
+	kwSave   = "save"
+	kwExport = "export"
 )
 
 func isKeyword(str string) bool {
 	switch str {
 	case kwView:
 	case kwSheet:
-	case kwLet:
 	case kwImport:
 	case kwFrom:
 	case kwPrint:
+	case kwIn:
+	case kwSave:
+	case kwExport:
 	default:
 		return false
 	}

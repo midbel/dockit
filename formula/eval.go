@@ -29,9 +29,15 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 		return evalCellAddr(e, ctx)
 	case rangeAddr:
 		return evalRangeAddr(e, ctx)
+	case importf:
+		return evalImport(e, ctx)
 	default:
 		return nil, ErrEval
 	}
+}
+
+func evalImport(e importf, ctx value.Context) (value.Value, error) {
+	return nil, nil
 }
 
 func evalBinary(e binary, ctx value.Context) (value.Value, error) {

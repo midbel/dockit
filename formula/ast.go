@@ -13,6 +13,19 @@ type Expr interface {
 	CloneWithOffset(layout.Position) Expr
 }
 
+type importf struct {
+	file string
+	sheet string
+}
+
+func (i importf) String() string {
+	return fmt.Sprintf("import(%s:%s)", i.file, i.sheet)
+}
+
+func (i importf) CloneWithOffset(_ layout.Position) Expr {
+	return i
+}
+
 type binary struct {
 	left  Expr
 	right Expr
