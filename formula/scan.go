@@ -2,6 +2,7 @@ package formula
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"unicode/utf8"
 )
@@ -31,6 +32,7 @@ const (
 	Gt
 	Ge
 	Comma
+	Dot
 	BegGrp
 	EndGrp
 	BegBlock
@@ -53,6 +55,7 @@ const (
 	kwSheet  = "sheet"
 	kwLet    = "let"
 	kwImport = "import"
+	kwFrom   = "from"
 	kwPrint  = "print"
 )
 
@@ -62,6 +65,7 @@ func isKeyword(str string) bool {
 	case kwSheet:
 	case kwLet:
 	case kwImport:
+	case kwFrom:
 	case kwPrint:
 	default:
 		return false
@@ -80,6 +84,85 @@ type Token struct {
 	Literal  string
 	Type     rune
 	Position int
+}
+
+func (t Token) String() string {
+	var str string
+	switch t.Type {
+	case Invalid:
+		return "<invalid>"
+	case EOF:
+		return "<eof>"
+	case Eol:
+		return "<eol>"
+	case Keyword:
+		str = "keyword"
+	case Ident:
+		str = "identifier"
+	case Number:
+		str = "number"
+	case Literal:
+		str = "literal"
+	case Comment:
+		str = "comment"
+	case Assign:
+		return "<assignment>"
+	case Add:
+		return "<add>"
+	case Sub:
+		return "<subtract>"
+	case Mul:
+		return "<multiply>"
+	case Div:
+		return "<divide>"
+	case Percent:
+		return "<percent>"
+	case Pow:
+		return "<power>"
+	case Concat:
+		return "<concat>"
+	case Eq:
+		return "<equal>"
+	case Ne:
+		return "<notequal>"
+	case Lt:
+		return "<lesser>"
+	case Le:
+		return "<lesseq>"
+	case Gt:
+		return "<greater>"
+	case Ge:
+		return "<greateq>"
+	case Comma:
+		return "<comma>"
+	case Dot:
+		return "<dot>"
+	case BegGrp:
+		return "<beg-group>"
+	case EndGrp:
+		return "<end-group>"
+	case BegBlock:
+		return "<beg-block>"
+	case EndBlock:
+		return "<end-block>"
+	case RangeRef:
+		return "<range>"
+	case SheetRef:
+		return "<sheet>"
+	case AddAssign:
+		return "<add-assign>"
+	case DivAssign:
+		return "<div-assign>"
+	case SubAssign:
+		return "<sub-assign>"
+	case MulAssign:
+		return "<mul-assign>"
+	case PowAssign:
+		return "<pow-assign>"
+	case ConcatAssign:
+		return "<concat-assign>"
+	}
+	return fmt.Sprintf("%s(%s)", str, t.Literal)
 }
 
 type Scanner struct {
@@ -204,6 +287,8 @@ func (s *Scanner) scanLiteral(tok *Token) {
 func (s *Scanner) scanOperator(tok *Token) {
 	tok.Type = Invalid
 	switch s.char {
+	case dot:
+		tok.Type = Dot
 	case amper:
 		tok.Type = Concat
 		if s.peek() == equal && s.mode == ModeScript {
@@ -260,6 +345,10 @@ func (s *Scanner) scanOperator(tok *Token) {
 		tok.Type = Eq
 	case colon:
 		tok.Type = RangeRef
+		if s.peek() == equal && s.mode == ModeScript {
+			s.read()
+			tok.Type = Assign
+		}
 	case bang:
 		tok.Type = SheetRef
 	default:
@@ -320,7 +409,7 @@ func (s *Scanner) peek() rune {
 }
 
 func (s *Scanner) done() bool {
-	return s.pos >= len(s.input) && s.char == 0
+	return s.pos >= len(s.input) || s.char == 0
 }
 
 func (s *Scanner) skipNL() {
@@ -410,5 +499,6 @@ func isDelimiter(c rune) bool {
 func isOperator(c rune) bool {
 	return c == plus || c == minus || c == slash || c == star ||
 		c == langle || c == rangle || c == colon || c == bang ||
-		c == equal || c == caret || c == amper || c == percent
+		c == equal || c == caret || c == amper || c == percent ||
+		c == dot
 }

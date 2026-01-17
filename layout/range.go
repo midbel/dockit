@@ -73,7 +73,7 @@ func (r *Range) Range() *Range {
 		Column: 1,
 	}
 	if r.Width() == 0 && r.Height() == 0 {
-		return layout.NewRange(start, start)	
+		return NewRange(start, start)
 	}
 	end := Position{
 		Line:   r.Height(),

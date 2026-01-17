@@ -153,7 +153,13 @@ func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
 
 	g.RegisterPrefix(BegBlock, parseBlock)
-	g.RegisterPrefix(Keyword, parseKeyword)
+
+	g.RegisterInfix(Assign, parseAssignment)
+	g.RegisterInfix(AddAssign, parseAssignment)
+	g.RegisterInfix(SubAssign, parseAssignment)
+	g.RegisterInfix(MulAssign, parseAssignment)
+	g.RegisterInfix(PowAssign, parseAssignment)
+	g.RegisterInfix(DivAssign, parseAssignment)
 
 	g.RegisterPrefixKeyword(kwLet, parseLet)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
@@ -347,7 +353,7 @@ func parseKeyword(p *Parser) (Expr, error) {
 	return nil, nil
 }
 
-func parseAssign(p *Parser, left Expr) (Expr, error) {
+func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	return nil, nil
 }
 
