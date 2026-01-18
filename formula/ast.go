@@ -14,7 +14,7 @@ type Expr interface {
 }
 
 type importf struct {
-	file string
+	file  string
 	sheet string
 }
 
@@ -24,6 +24,19 @@ func (i importf) String() string {
 
 func (i importf) CloneWithOffset(_ layout.Position) Expr {
 	return i
+}
+
+type assignment struct {
+	ident identifier
+	expr  Expr
+}
+
+func (a assignment) String() string {
+	return fmt.Sprintf("%s := %s", a.ident.String(), a.expr.String())
+}
+
+func (a assignment) CloneWithOffset(pos layout.Position) Expr {
+	return a
 }
 
 type binary struct {

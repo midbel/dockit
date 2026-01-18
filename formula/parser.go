@@ -29,6 +29,7 @@ var defaultBindings = map[rune]int{
 	DivAssign:    powAssign,
 	PowAssign:    powAssign,
 	ConcatAssign: powAssign,
+	Assign:       powAssign,
 	Add:          powAdd,
 	Sub:          powAdd,
 	Mul:          powMul,
@@ -349,7 +350,68 @@ func parseBlock(p *Parser) (Expr, error) {
 }
 
 func parseAssignment(p *Parser, left Expr) (Expr, error) {
-	return nil, nil
+	id, ok := left.(identifier)
+	if !ok {
+		return nil, fmt.Errorf("identifier expected")
+	}
+	a := assignment{
+		ident: id,
+	}
+	op := p.curr.Type
+	p.next()
+
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	switch op {
+	case Assign:
+	case AddAssign:
+		b := binary{
+			left:  left,
+			right: expr,
+			op:    Add,
+		}
+		expr = b
+	case SubAssign:
+		b := binary{
+			left:  left,
+			right: expr,
+			op:    Sub,
+		}
+		expr = b
+	case MulAssign:
+		b := binary{
+			left:  left,
+			right: expr,
+			op:    Mul,
+		}
+		expr = b
+	case DivAssign:
+		b := binary{
+			left:  left,
+			right: expr,
+			op:    Div,
+		}
+		expr = b
+	case PowAssign:
+		b := binary{
+			left:  left,
+			right: expr,
+			op:    Pow,
+		}
+		expr = b
+	case ConcatAssign:
+		b := binary{
+			left:  left,
+			right: expr,
+			op:    Concat,
+		}
+		expr = b
+	default:
+	}
+	a.expr = expr
+	return a, nil
 }
 
 func parsePrint(p *Parser) (Expr, error) {
