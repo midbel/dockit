@@ -29,14 +29,20 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 		return evalCellAddr(e, ctx)
 	case rangeAddr:
 		return evalRangeAddr(e, ctx)
-	case importf:
+	case importFile:
 		return evalImport(e, ctx)
+	case printRef:
+		return nil, nil
+	case exportRef:
+		return nil, nil
+	case saveRef:
+		return nil, nil
 	default:
 		return nil, ErrEval
 	}
 }
 
-func evalImport(e importf, ctx value.Context) (value.Value, error) {
+func evalImport(e importFile, ctx value.Context) (value.Value, error) {
 	return nil, nil
 }
 

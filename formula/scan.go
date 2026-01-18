@@ -33,12 +33,25 @@ const (
 	Ge
 	Comma
 	Dot
-	BegGrp
-	EndGrp
-	BegBlock
-	EndBlock
+	Begin
+	End
 	RangeRef
 	SheetRef
+)
+
+const (
+	groupTok rune = 1 << iota
+	blockTok
+	propTok
+)
+
+const (
+	BegBlock = blockTok | Begin
+	EndBlock = blockTok | End
+	BegGrp   = groupTok | Begin
+	EndGrp   = groupTok | End
+	BegProp  = propTok | Begin
+	EndProp  = propTok | End
 )
 
 const (
@@ -56,9 +69,11 @@ const (
 	kwImport = "import"
 	kwFrom   = "from"
 	kwPrint  = "print"
-	kwIn     = "in"
 	kwSave   = "save"
 	kwExport = "export"
+	kwIn     = "in"
+	kwAs     = "as"
+	kwTo     = "to"
 )
 
 func isKeyword(str string) bool {
@@ -68,9 +83,11 @@ func isKeyword(str string) bool {
 	case kwImport:
 	case kwFrom:
 	case kwPrint:
-	case kwIn:
 	case kwSave:
 	case kwExport:
+	case kwIn:
+	case kwAs:
+	case kwTo:
 	default:
 		return false
 	}
@@ -145,6 +162,10 @@ func (t Token) String() string {
 		return "<beg-group>"
 	case EndGrp:
 		return "<end-group>"
+	case BegProp:
+		return "<beg-prop>"
+	case EndProp:
+		return "<end-prop>"
 	case BegBlock:
 		return "<beg-block>"
 	case EndBlock:
@@ -373,6 +394,10 @@ func (s *Scanner) scanDelimiter(tok *Token) {
 		tok.Type = BegBlock
 	case rcurly:
 		tok.Type = EndBlock
+	case lsquare:
+		tok.Type = BegProp
+	case rsquare:
+		tok.Type = EndProp
 	default:
 	}
 	s.read()
@@ -457,6 +482,8 @@ const (
 	nl         = '\n'
 	cr         = '\r'
 	pound      = '#'
+	lsquare    = '['
+	rsquare    = ']'
 )
 
 func isComment(c rune) bool {
@@ -497,7 +524,8 @@ func isNL(c rune) bool {
 
 func isDelimiter(c rune) bool {
 	return c == semi || c == lparen || c == rparen ||
-		c == lcurly || c == rcurly || c == comma
+		c == lcurly || c == rcurly || c == comma ||
+		c == lsquare || c == rsquare
 }
 
 func isOperator(c rune) bool {

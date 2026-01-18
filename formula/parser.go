@@ -19,6 +19,7 @@ const (
 	powPow
 	powUnary
 	powPercent
+	powProp
 	powCall
 )
 
@@ -44,6 +45,7 @@ var defaultBindings = map[rune]int{
 	Gt:           powCmp,
 	Ge:           powCmp,
 	BegGrp:       powCall,
+	BegProp:      powProp,
 }
 
 type (
@@ -155,6 +157,7 @@ func ScriptGrammar() *Grammar {
 
 	g.RegisterPrefix(BegBlock, parseBlock)
 
+	g.RegisterInfix(BegProp, parseAccess)
 	g.RegisterInfix(Assign, parseAssignment)
 	g.RegisterInfix(AddAssign, parseAssignment)
 	g.RegisterInfix(SubAssign, parseAssignment)
@@ -164,6 +167,8 @@ func ScriptGrammar() *Grammar {
 
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
+	g.RegisterPrefixKeyword(kwSave, parseSave)
+	g.RegisterPrefixKeyword(kwExport, parseExport)
 
 	return g
 }
@@ -349,6 +354,10 @@ func parseBlock(p *Parser) (Expr, error) {
 	return nil, nil
 }
 
+func parseAccess(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
 func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	id, ok := left.(identifier)
 	if !ok {
@@ -415,6 +424,61 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 }
 
 func parsePrint(p *Parser) (Expr, error) {
+	p.next()
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	_ = expr
+	if p.curr.Type != Eol {
+		return nil, fmt.Errorf("expected eol")
+	}
+	p.next()
+	return nil, nil
+}
+
+func parseSave(p *Parser) (Expr, error) {
+	p.next()
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	_ = expr
+	if p.curr.Type != Eol {
+		return nil, fmt.Errorf("expected eol")
+	}
+	p.next()
+	return nil, nil
+}
+
+func parseExport(p *Parser) (Expr, error) {
+	p.next()
+	ident, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	_ = ident
+	if p.curr.Type != Keyword && p.curr.Literal != kwTo {
+		return nil, fmt.Errorf("keyword 'to' expected")
+	}
+	p.next()
+	file, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	_ = file
+	if p.curr.Type == Keyword && p.curr.Literal == kwAs {
+		p.next()
+		format, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		_ = format
+	}
+	if p.curr.Type != Eol {
+		return nil, fmt.Errorf("expected eol")
+	}
+	p.next()
 	return nil, nil
 }
 

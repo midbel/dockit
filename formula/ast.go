@@ -13,17 +13,69 @@ type Expr interface {
 	CloneWithOffset(layout.Position) Expr
 }
 
-type importf struct {
+type importFile struct {
 	file  string
 	sheet string
 }
 
-func (i importf) String() string {
+func (i importFile) String() string {
 	return fmt.Sprintf("import(%s:%s)", i.file, i.sheet)
 }
 
-func (i importf) CloneWithOffset(_ layout.Position) Expr {
+func (i importFile) CloneWithOffset(_ layout.Position) Expr {
 	return i
+}
+
+type printRef struct {
+	expr Expr
+}
+
+func (p printRef) String() string {
+	return fmt.Sprintf("print %s", p.expr.String())
+}
+
+func (p printRef) CloneWithOffset(_ layout.Position) Expr {
+	return p
+}
+
+type exportRef struct {
+	expr   Expr
+	file   Expr
+	Format Expr
+}
+
+func (p exportRef) String() string {
+	return fmt.Sprintf("export %s", p.expr.String())
+}
+
+func (p exportRef) CloneWithOffset(_ layout.Position) Expr {
+	return p
+}
+
+type saveRef struct {
+	expr Expr
+}
+
+func (p saveRef) String() string {
+	return fmt.Sprintf("save %s", p.expr.String())
+}
+
+func (p saveRef) CloneWithOffset(_ layout.Position) Expr {
+	return p
+}
+
+type macroDef struct {
+	ident identifier
+	args  []Expr
+	body  Expr
+}
+
+func (d macroDef) String() string {
+	return fmt.Sprintf("macro")
+}
+
+func (d macroDef) CloneWithOffset(pos layout.Position) Expr {
+	return d
 }
 
 type assignment struct {
