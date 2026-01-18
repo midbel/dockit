@@ -161,7 +161,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterInfix(PowAssign, parseAssignment)
 	g.RegisterInfix(DivAssign, parseAssignment)
 
-	g.RegisterPrefixKeyword(kwLet, parseLet)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 
