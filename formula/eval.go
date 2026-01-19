@@ -71,6 +71,9 @@ func Exec(r io.Reader, env *Environment) (value.Value, error) {
 		phase = phaseUse
 		ps    = NewParser(ScriptGrammar())
 	)
+	if err := ps.Init(r); err != nil {
+		return nil, err
+	}
 	for {
 		expr, err := ps.ParseNext()
 		if errors.Is(err, io.EOF) {
@@ -91,6 +94,8 @@ func Exec(r io.Reader, env *Environment) (value.Value, error) {
 
 func exec(expr Expr, ctx *Environment) (value.Value, error) {
 	switch e := expr.(type) {
+	case useFile:
+	case importFile:
 	case literal:
 		return Text(e.value), nil
 	case number:

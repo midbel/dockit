@@ -202,18 +202,25 @@ func (p *Parser) ParseString(str string) (Expr, error) {
 }
 
 func (p *Parser) Parse(r io.Reader) (Expr, error) {
+	if err := p.Init(r); err != nil {
+		return nil, err
+	}
+	return p.parse(powLowest)
+}
+
+func (p *Parser) Init(r io.Reader) error {
 	scan, err := Scan(r, p.grammar.mode)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	p.scan = scan
 	p.next()
 	p.next()
-	return p.parse(powLowest)
+	return nil
 }
 
 func (p *Parser) ParseNext() (Expr, error) {
-	return nil, nil
+	return p.parse(powLowest)
 }
 
 func (p *Parser) parse(pow int) (Expr, error) {
