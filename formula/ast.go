@@ -14,12 +14,12 @@ type Expr interface {
 }
 
 type importFile struct {
-	file  string
-	sheet string
+	file  Expr
+	alias Expr
 }
 
 func (i importFile) String() string {
-	return fmt.Sprintf("import(%s:%s)", i.file, i.sheet)
+	return fmt.Sprintf("import(%s)", i.file.String())
 }
 
 func (i importFile) CloneWithOffset(_ layout.Position) Expr {

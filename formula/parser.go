@@ -235,7 +235,19 @@ func (p *Parser) next() {
 }
 
 func (p *Parser) done() bool {
-	return p.curr.Type == EOF
+	return p.is(EOF)
+}
+
+func (p *Parser) is(kind rune) bool {
+	return p.curr.Type == kind
+}
+
+func (p *Parser) isEOL() bool {
+	return p.is(Eol)
+}
+
+func (p *Parser) currentLiteral() string {
+	return p.currentLiteral()
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
@@ -307,7 +319,7 @@ func parseGroup(p *Parser) (Expr, error) {
 func parseNumber(p *Parser) (Expr, error) {
 	defer p.next()
 
-	x, err := strconv.ParseFloat(p.curr.Literal, 64)
+	x, err := strconv.ParseFloat(p.currentLiteral(), 64)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +332,7 @@ func parseNumber(p *Parser) (Expr, error) {
 func parseLiteral(p *Parser) (Expr, error) {
 	defer p.next()
 	i := literal{
-		value: p.curr.Literal,
+		value: p.currentLiteral(),
 	}
 	return i, nil
 }
@@ -329,17 +341,17 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	defer p.next()
 	if p.peek.Type == BegGrp {
 		i := identifier{
-			name: p.curr.Literal,
+			name: p.currentLiteral(),
 		}
 		return i, nil
 	}
 	var sheet string
 	if p.peek.Type == SheetRef {
-		sheet = p.curr.Literal
+		sheet = p.currentLiteral()
 		p.next()
 		p.next()
 	}
-	a, err := parseCellAddr(p.curr.Literal)
+	a, err := parseCellAddr(p.currentLiteral())
 	if err != nil {
 		return nil, err
 	}
@@ -430,7 +442,7 @@ func parsePrint(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	_ = expr
-	if p.curr.Type != Eol {
+	if !p.isEOL() {
 		return nil, fmt.Errorf("expected eol")
 	}
 	p.next()
@@ -444,7 +456,7 @@ func parseSave(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	_ = expr
-	if p.curr.Type != Eol {
+	if !p.isEOL() {
 		return nil, fmt.Errorf("expected eol")
 	}
 	p.next()
@@ -458,7 +470,7 @@ func parseExport(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	_ = ident
-	if p.curr.Type != Keyword && p.curr.Literal != kwTo {
+	if !p.is(Keyword) && p.currentLiteral() != kwTo {
 		return nil, fmt.Errorf("keyword 'to' expected")
 	}
 	p.next()
@@ -467,7 +479,7 @@ func parseExport(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	_ = file
-	if p.curr.Type == Keyword && p.curr.Literal == kwAs {
+	if p.is(Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		format, err := p.parse(powLowest)
 		if err != nil {
@@ -475,7 +487,7 @@ func parseExport(p *Parser) (Expr, error) {
 		}
 		_ = format
 	}
-	if p.curr.Type != Eol {
+	if !p.isEOL() {
 		return nil, fmt.Errorf("expected eol")
 	}
 	p.next()
@@ -483,5 +495,33 @@ func parseExport(p *Parser) (Expr, error) {
 }
 
 func parseImport(p *Parser) (Expr, error) {
-	return nil, nil
+	p.next()
+	var ref importFile
+	switch {
+	case p.is(Ident):
+		ref.file = identifier{
+			name: p.currentLiteral(),
+		}
+	case p.is(Literal):
+		ref.file = literal{
+			value: p.currentLiteral(),
+		}
+	default:
+		return nil, fmt.Errorf("unexpected token %s", p.curr)
+	}
+	if p.is(Keyword) && p.currentLiteral() == kwAs {
+		p.next()
+		if !p.is(Ident) {
+			return nil, fmt.Errorf("unexpected token %s", p.curr)
+		}
+		ref.alias = identifier{
+			name: p.currentLiteral(),
+		}
+		p.next()
+	}
+	if !p.isEOL() {
+		return nil, fmt.Errorf("expected eol")
+	}
+	p.next()
+	return ref, nil
 }
