@@ -64,9 +64,8 @@ const (
 )
 
 const (
-	kwView   = "view"
-	kwSheet  = "sheet"
 	kwImport = "import"
+	kwUse    = "use"
 	kwFrom   = "from"
 	kwPrint  = "print"
 	kwSave   = "save"
@@ -78,9 +77,8 @@ const (
 
 func isKeyword(str string) bool {
 	switch str {
-	case kwView:
-	case kwSheet:
 	case kwImport:
+	case kwUse:
 	case kwFrom:
 	case kwPrint:
 	case kwSave:

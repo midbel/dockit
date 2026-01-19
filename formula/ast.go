@@ -13,6 +13,35 @@ type Expr interface {
 	CloneWithOffset(layout.Position) Expr
 }
 
+type Kind int8
+
+const (
+	KindStmt Kind = 1 << iota
+	KindImport
+	KindUse
+)
+
+type ExprKind interface {
+	Kind() Kind
+}
+
+type useFile struct {
+	file    Expr
+	symbols []Expr
+}
+
+func (i useFile) String() string {
+	return fmt.Sprintf("use(%s)", i.file.String())
+}
+
+func (i useFile) CloneWithOffset(_ layout.Position) Expr {
+	return i
+}
+
+func (useFile) Kind() Kind {
+	return KindUse
+}
+
 type importFile struct {
 	file  Expr
 	alias Expr
@@ -24,6 +53,10 @@ func (i importFile) String() string {
 
 func (i importFile) CloneWithOffset(_ layout.Position) Expr {
 	return i
+}
+
+func (importFile) Kind() Kind {
+	return KindImport
 }
 
 type printRef struct {

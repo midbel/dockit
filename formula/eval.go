@@ -3,6 +3,7 @@ package formula
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math"
 
 	"github.com/midbel/dockit/value"
@@ -13,7 +14,90 @@ var (
 	ErrCallable = errors.New("expression is not callable")
 )
 
-func Exec(expr Expr, env *Environment) (value.Value, error) {
+type scriptPhase int8
+
+const (
+	phaseStmt scriptPhase = 1 << iota
+	phaseUse
+	phaseImport
+)
+
+func (p scriptPhase) Allows(k Kind) bool {
+	switch p {
+	case phaseStmt:
+		return k == KindStmt
+	case phaseUse:
+		return k == KindStmt || k == KindUse || k == KindImport
+	case phaseImport:
+		return k == KindStmt || k == KindImport
+	default:
+		return false
+	}
+}
+
+func (p scriptPhase) Next(k Kind) scriptPhase {
+	switch {
+	case p == phaseUse && k == KindUse:
+		return p
+	case p == phaseUse && k == KindImport:
+		return phaseImport
+	case p == phaseUse && k == KindStmt:
+		return phaseStmt
+	case p == phaseImport && k == KindImport:
+		return p
+	case p == phaseImport && k == KindStmt:
+		return phaseStmt
+	case p == phaseStmt && k == KindStmt:
+		return p
+	default:
+		return p
+	}
+}
+
+func execPhase(expr Expr, phase scriptPhase) (scriptPhase, error) {
+	currKind := KindStmt
+	if ek, ok := expr.(ExprKind); ok {
+		currKind = ek.Kind()
+	}
+	if !phase.Allows(currKind) {
+		return phase, fmt.Errorf("unknown script phase!")
+	}
+	return phase.Next(currKind), nil
+}
+
+func Exec(r io.Reader, env *Environment) (value.Value, error) {
+	var (
+		val   value.Value
+		phase = phaseUse
+		ps    = NewParser(ScriptGrammar())
+	)
+	for {
+		expr, err := ps.ParseNext()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if phase, err = execPhase(expr, phase); err != nil {
+			return nil, err
+		}
+		if val, err = exec(expr, env); err != nil {
+			return nil, err
+		}
+	}
+	return val, nil
+}
+
+func exec(expr Expr, ctx *Environment) (value.Value, error) {
+	switch e := expr.(type) {
+	case literal:
+		return Text(e.value), nil
+	case number:
+		return Float(e.value), nil
+	default:
+		return nil, ErrEval
+	}
 	return nil, nil
 }
 

@@ -54,6 +54,8 @@ type (
 )
 
 type Grammar struct {
+	mode ScanMode
+
 	prefix   map[rune]PrefixFunc
 	infix    map[rune]InfixFunc
 	bindings map[rune]int
@@ -122,6 +124,7 @@ func (g *Grammar) RegisterBinding(kd rune, pow int) {
 
 func FormulaGrammar() *Grammar {
 	g := Grammar{
+		mode:     ModeBasic,
 		prefix:   make(map[rune]PrefixFunc),
 		kwPrefix: make(map[string]PrefixFunc),
 		infix:    make(map[rune]InfixFunc),
@@ -154,6 +157,7 @@ func FormulaGrammar() *Grammar {
 
 func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
+	g.mode = ModeScript
 
 	g.RegisterPrefix(BegBlock, parseBlock)
 
@@ -165,8 +169,9 @@ func ScriptGrammar() *Grammar {
 	g.RegisterInfix(PowAssign, parseAssignment)
 	g.RegisterInfix(DivAssign, parseAssignment)
 
-	g.RegisterPrefixKeyword(kwPrint, parsePrint)
+	g.RegisterPrefixKeyword(kwUse, parseUse)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
+	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwSave, parseSave)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
 
@@ -197,7 +202,7 @@ func (p *Parser) ParseString(str string) (Expr, error) {
 }
 
 func (p *Parser) Parse(r io.Reader) (Expr, error) {
-	scan, err := Scan(r, ModeBasic)
+	scan, err := Scan(r, p.grammar.mode)
 	if err != nil {
 		return nil, err
 	}
@@ -205,6 +210,10 @@ func (p *Parser) Parse(r io.Reader) (Expr, error) {
 	p.next()
 	p.next()
 	return p.parse(powLowest)
+}
+
+func (p *Parser) ParseNext() (Expr, error) {
+	return nil, nil
 }
 
 func (p *Parser) parse(pow int) (Expr, error) {
@@ -491,6 +500,10 @@ func parseExport(p *Parser) (Expr, error) {
 		return nil, fmt.Errorf("expected eol")
 	}
 	p.next()
+	return nil, nil
+}
+
+func parseUse(p *Parser) (Expr, error) {
 	return nil, nil
 }
 
