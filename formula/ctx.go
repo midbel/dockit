@@ -16,6 +16,22 @@ var (
 
 type BuiltinFunc func([]value.Value) (value.Value, error)
 
+type rangeValue struct {
+	rg *layout.Range
+}
+
+func (*rangeValue) Kind() value.ValueKind {
+	return value.KindObject
+}
+
+func (v *rangeValue) String() string {
+	return v.rg.String()
+}
+
+func (v *rangeValue) Get(name string) (value.ScalarValue, error) {
+	return nil, nil
+}
+
 type envValue struct{}
 
 func (*envValue) Kind() value.ValueKind {

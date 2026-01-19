@@ -354,7 +354,7 @@ func parseBlock(p *Parser) (Expr, error) {
 	return nil, nil
 }
 
-func parseAccess(p *Parser) (Expr, error) {
+func parseAccess(p *Parser, left Expr) (Expr, error) {
 	return nil, nil
 }
 

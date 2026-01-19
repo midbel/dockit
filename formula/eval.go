@@ -13,6 +13,10 @@ var (
 	ErrCallable = errors.New("expression is not callable")
 )
 
+func Exec(expr Expr, env *Environment) (value.Value, error) {
+	return nil, nil
+}
+
 func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	switch e := expr.(type) {
 	case binary:
@@ -29,14 +33,6 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 		return evalCellAddr(e, ctx)
 	case rangeAddr:
 		return evalRangeAddr(e, ctx)
-	case importFile:
-		return evalImport(e, ctx)
-	case printRef:
-		return nil, nil
-	case exportRef:
-		return nil, nil
-	case saveRef:
-		return nil, nil
 	default:
 		return nil, ErrEval
 	}
