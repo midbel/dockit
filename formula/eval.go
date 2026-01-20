@@ -79,6 +79,7 @@ func Exec(r io.Reader, env *Environment) (value.Value, error) {
 		if errors.Is(err, io.EOF) {
 			break
 		}
+		fmt.Printf("%+v\n", expr)
 		if err != nil {
 			return nil, err
 		}
@@ -96,6 +97,8 @@ func exec(expr Expr, ctx *Environment) (value.Value, error) {
 	switch e := expr.(type) {
 	case useFile:
 	case importFile:
+	case printRef:
+	case chain:
 	case literal:
 		return Text(e.value), nil
 	case number:

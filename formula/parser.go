@@ -46,6 +46,7 @@ var defaultBindings = map[rune]int{
 	Ge:           powCmp,
 	BegGrp:       powCall,
 	BegProp:      powProp,
+	Dot:          powProp,
 }
 
 type (
@@ -82,7 +83,7 @@ func (g *Grammar) Prefix(tok Token) (PrefixFunc, error) {
 	}
 	fn, ok := g.prefix[tok.Type]
 	if !ok {
-		return nil, fmt.Errorf("unsupported prefix operator")
+		return nil, fmt.Errorf("unsupported prefix operator (%s)", tok)
 	}
 	return fn, nil
 }
@@ -97,7 +98,7 @@ func (g *Grammar) Infix(tok Token) (InfixFunc, error) {
 	}
 	fn, ok := g.infix[tok.Type]
 	if !ok {
-		return nil, fmt.Errorf("unsupported infix operator")
+		return nil, fmt.Errorf("unsupported infix operator (%s)", tok)
 	}
 	return fn, nil
 }
@@ -162,6 +163,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(BegBlock, parseBlock)
 
 	g.RegisterInfix(BegProp, parseAccess)
+	g.RegisterInfix(Dot, parseChain)
 	g.RegisterInfix(Assign, parseAssignment)
 	g.RegisterInfix(AddAssign, parseAssignment)
 	g.RegisterInfix(SubAssign, parseAssignment)
@@ -220,6 +222,13 @@ func (p *Parser) Init(r io.Reader) error {
 }
 
 func (p *Parser) ParseNext() (Expr, error) {
+	if p.done() {
+		return nil, io.EOF
+	}
+	if p.is(Comment) {
+		p.next()
+		return p.ParseNext()
+	}
 	return p.parse(powLowest)
 }
 
@@ -263,7 +272,7 @@ func (p *Parser) isEOL() bool {
 }
 
 func (p *Parser) currentLiteral() string {
-	return p.currentLiteral()
+	return p.curr.Literal
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
@@ -355,7 +364,7 @@ func parseLiteral(p *Parser) (Expr, error) {
 
 func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	defer p.next()
-	if p.peek.Type == BegGrp {
+	if p.peek.Type == BegGrp || p.peek.Type == Dot || p.peek.Type == Eol || p.peek.Type == EOF {
 		i := identifier{
 			name: p.currentLiteral(),
 		}
@@ -384,6 +393,19 @@ func parseBlock(p *Parser) (Expr, error) {
 
 func parseAccess(p *Parser, left Expr) (Expr, error) {
 	return nil, nil
+}
+
+func parseChain(p *Parser, left Expr) (Expr, error) {
+	p.next()
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	c := chain{
+		expr:   left,
+		member: expr,
+	}
+	return c, nil
 }
 
 func parseAssignment(p *Parser, left Expr) (Expr, error) {
@@ -457,12 +479,14 @@ func parsePrint(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = expr
+	stmt := printRef{
+		expr: expr,
+	}
 	if !p.isEOL() {
 		return nil, fmt.Errorf("expected eol")
 	}
 	p.next()
-	return nil, nil
+	return stmt, nil
 }
 
 func parseSave(p *Parser) (Expr, error) {
@@ -516,32 +540,33 @@ func parseUse(p *Parser) (Expr, error) {
 
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
-	var ref importFile
+	var stmt importFile
 	switch {
 	case p.is(Ident):
-		ref.file = identifier{
+		stmt.file = identifier{
 			name: p.currentLiteral(),
 		}
 	case p.is(Literal):
-		ref.file = literal{
+		stmt.file = literal{
 			value: p.currentLiteral(),
 		}
 	default:
 		return nil, fmt.Errorf("unexpected token %s", p.curr)
 	}
+	p.next()
 	if p.is(Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		if !p.is(Ident) {
 			return nil, fmt.Errorf("unexpected token %s", p.curr)
 		}
-		ref.alias = identifier{
+		stmt.alias = identifier{
 			name: p.currentLiteral(),
 		}
 		p.next()
 	}
 	if !p.isEOL() {
-		return nil, fmt.Errorf("expected eol")
+		return nil, fmt.Errorf("expected eol at end of import")
 	}
 	p.next()
-	return ref, nil
+	return stmt, nil
 }

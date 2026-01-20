@@ -111,6 +111,19 @@ func (d macroDef) CloneWithOffset(pos layout.Position) Expr {
 	return d
 }
 
+type chain struct {
+	expr   Expr
+	member Expr
+}
+
+func (c chain) String() string {
+	return fmt.Sprintf("%s.%s", c.expr.String(), c.member.String())
+}
+
+func (c chain) CloneWithOffset(pos layout.Position) Expr {
+	return c
+}
+
 type assignment struct {
 	ident identifier
 	expr  Expr
