@@ -363,11 +363,9 @@ func parseLiteral(p *Parser) (Expr, error) {
 }
 
 func parseAdressOrIdentifier(p *Parser) (Expr, error) {
-	str := p.currentLiteral()
-
 	if p.peek.Type == BegGrp || p.peek.Type == Dot {
 		id := identifier{
-			name: str,
+			name: p.currentLiteral(),
 		}
 		p.next()
 		return id, nil
@@ -375,16 +373,15 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 
 	var sheet string
 	if p.peek.Type == SheetRef {
-		sheet = str
+		sheet = p.currentLiteral()
 		p.next() 
 		p.next() 
-		str = p.currentLiteral()
 	}
 
-	start, err := parseCellAddr(str)
+	start, err := parseCellAddr(p.currentLiteral())
 	if err != nil {
 		id := identifier{
-			name: str,
+			name: p.currentLiteral(),
 		}
 		p.next()
 		return id, nil
