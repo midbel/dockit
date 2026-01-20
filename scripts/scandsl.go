@@ -19,6 +19,7 @@ func main() {
 	}
 	defer r.Close()
 
+	// scan(r)
 	_, err = formula.Exec(r, formula.Empty())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

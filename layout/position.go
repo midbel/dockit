@@ -37,7 +37,7 @@ func (p Position) Addr() string {
 }
 
 func (p Position) String() string {
-	return p.String()
+	return p.Addr()
 }
 
 func (p Position) Update(other Position) Position {

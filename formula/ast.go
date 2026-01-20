@@ -307,24 +307,37 @@ func formatCellAddr(addr cellAddr) string {
 func parseCellAddr(addr string) (cellAddr, error) {
 	var (
 		pos    cellAddr
+		err    error
 		offset int
 		size   int
 	)
+	if addr == "" {
+		return pos, fmt.Errorf("empty cell address")
+	}
 	if offset < len(addr) && addr[offset] == dollar {
 		pos.AbsCols = true
 		offset++
 	}
 	pos.Column, size = parseIndex(addr[offset:])
+	if size == 0 {
+		return pos, fmt.Errorf("invalid cell address - missing column")
+	}
 	offset += size
+	if offset >= len(addr) {
+		return pos, fmt.Errorf("invalid cell address - missing row")
+	}
 
 	if offset < len(addr) && addr[offset] == dollar {
 		pos.AbsLine = true
 		offset++
 	}
 	if offset < len(addr) {
-		pos.Line, _ = strconv.ParseInt(addr[offset:], 10, 64)
+		pos.Line, err = strconv.ParseInt(addr[offset:], 10, 64)
+		if err != nil {
+			return pos, fmt.Errorf("invalid cell address - invalid row number")
+		}
 	}
-	return pos, nil
+	return pos, err
 }
 
 func parseIndex(str string) (int64, int) {

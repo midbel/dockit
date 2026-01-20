@@ -13,7 +13,11 @@ type fakeContext struct {
 }
 
 func (c fakeContext) At(pos layout.Position) (value.Value, error) {
-	return nil, nil
+	val, ok := c.cells[pos.String()]
+	if !ok {
+		return ErrValue, nil
+	}
+	return val, nil
 }
 
 func (c fakeContext) Range(start, end layout.Position) (value.Value, error) {
@@ -36,15 +40,15 @@ func fake() value.Context {
 		parent: root,
 		cells:  make(map[string]value.Value),
 	}
-	ctx.cells["1:1"] = Float(0)
-	ctx.cells["1:2"] = Text("foo")
-	ctx.cells["1:3"] = Float(11)
-	ctx.cells["2:1"] = Float(0)
-	ctx.cells["2:2"] = Text("bar")
-	ctx.cells["2:3"] = Float(42)
-	ctx.cells["3:1"] = Float(0)
-	ctx.cells["3:2"] = Text("qux")
-	ctx.cells["3:3"] = Float(67)
+	ctx.cells["A1"] = Float(0)
+	ctx.cells["B1"] = Text("foo")
+	ctx.cells["C1"] = Float(11)
+	ctx.cells["A2"] = Float(0)
+	ctx.cells["B2"] = Text("bar")
+	ctx.cells["C2"] = Float(42)
+	ctx.cells["A3"] = Float(0)
+	ctx.cells["B3"] = Text("qux")
+	ctx.cells["C3"] = Float(67)
 
 	return ctx
 }
@@ -72,11 +76,11 @@ func TestBasicFormula(t *testing.T) {
 			Want: "1",
 		},
 		{
-			Expr: "$A$2",
+			Expr: "$B$1",
 			Want: "foo",
 		},
 		{
-			Expr: "$A$2 & B2",
+			Expr: "$B$1 & B2",
 			Want: "foobar",
 		},
 	}
@@ -89,6 +93,10 @@ func TestBasicFormula(t *testing.T) {
 		got, err := Eval(expr, ctx)
 		if err != nil {
 			t.Errorf("%s: error while evaluating formula: %s", c.Expr, err)
+			continue
+		}
+		if got == nil {
+			t.Errorf("%s: nil value", c.Expr)
 			continue
 		}
 		if got.String() != c.Want {

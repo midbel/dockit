@@ -363,29 +363,55 @@ func parseLiteral(p *Parser) (Expr, error) {
 }
 
 func parseAdressOrIdentifier(p *Parser) (Expr, error) {
-	defer p.next()
-	if p.peek.Type == BegGrp || p.peek.Type == Dot || p.peek.Type == Eol || p.peek.Type == EOF {
-		i := identifier{
-			name: p.currentLiteral(),
+	str := p.currentLiteral()
+
+	if p.peek.Type == BegGrp || p.peek.Type == Dot {
+		id := identifier{
+			name: str,
 		}
-		return i, nil
+		p.next()
+		return id, nil
 	}
+
 	var sheet string
 	if p.peek.Type == SheetRef {
-		sheet = p.currentLiteral()
-		p.next()
-		p.next()
+		sheet = str
+		p.next() 
+		p.next() 
+		str = p.currentLiteral()
 	}
-	a, err := parseCellAddr(p.currentLiteral())
+
+	start, err := parseCellAddr(str)
 	if err != nil {
-		return nil, err
-	}
-	if p.curr.Type == RangeRef {
+		id := identifier{
+			name: str,
+		}
 		p.next()
+		return id, nil
 	}
-	a.Sheet = sheet
-	return a, nil
+
+	start.Sheet = sheet
+	p.next()
+
+	if p.is(RangeRef) {
+		p.next()
+
+		end, err := parseCellAddr(p.currentLiteral())
+		if err != nil {
+			return nil, err
+		}
+		end.Sheet = sheet
+		p.next()
+
+		rg := rangeAddr{
+			startAddr: start,
+			endAddr:   end,
+		}
+		return rg, nil
+	}
+	return start, nil
 }
+
 
 func parseBlock(p *Parser) (Expr, error) {
 	return nil, nil
