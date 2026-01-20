@@ -9,6 +9,7 @@ import (
 
 type fakeContext struct {
 	parent value.Context
+	cells  map[string]value.Value
 }
 
 func (c fakeContext) At(pos layout.Position) (value.Value, error) {
@@ -33,11 +34,22 @@ func fake() value.Context {
 
 	ctx := fakeContext{
 		parent: root,
+		cells:  make(map[string]value.Value),
 	}
+	ctx.cells["1:1"] = Float(0)
+	ctx.cells["1:2"] = Text("foo")
+	ctx.cells["1:3"] = Float(11)
+	ctx.cells["2:1"] = Float(0)
+	ctx.cells["2:2"] = Text("bar")
+	ctx.cells["2:3"] = Float(42)
+	ctx.cells["3:1"] = Float(0)
+	ctx.cells["3:2"] = Text("qux")
+	ctx.cells["3:3"] = Float(67)
+
 	return ctx
 }
 
-func TestBasic(t *testing.T) {
+func TestBasicFormula(t *testing.T) {
 	ctx := fake()
 	tests := []struct {
 		Expr string
@@ -59,6 +71,14 @@ func TestBasic(t *testing.T) {
 			Expr: "one()/1",
 			Want: "1",
 		},
+		{
+			Expr: "$A$2",
+			Want: "foo",
+		},
+		{
+			Expr: "$A$2 & B2",
+			Want: "foobar",
+		},
 	}
 	for _, c := range tests {
 		expr, err := ParseFormula(c.Expr)
@@ -72,6 +92,55 @@ func TestBasic(t *testing.T) {
 			continue
 		}
 		if got.String() != c.Want {
+			t.Errorf("%s: result mismatched! want %s, got %s", c.Expr, c.Want, got)
+		}
+	}
+}
+
+func TestFormulaAst(t *testing.T) {
+	tests := []struct {
+		Expr string
+		Want string
+	}{
+		{
+			Expr: "foobar",
+			Want: "identifier(foobar)",
+		},
+		{
+			Expr: "'foobar'",
+			Want: "literal(foobar)",
+		},
+		{
+			Expr: "42",
+			Want: "number(42)",
+		},
+		{
+			Expr: "-42",
+			Want: "unary(number(42), -)",
+		},
+		{
+			Expr: "'foo' & 'bar'",
+			Want: "binary(literal(foo), literal(bar), &)",
+		},
+		{
+			Expr: "1+1*2",
+			Want: "binary(number(1), binary(number(1), number(2), *), +)",
+		},
+		{
+			Expr: "one()",
+			Want: "call(identifier(one), args: )",
+		},
+		{
+			Expr: "test(1+1, 42)",
+			Want: "call(identifier(test), args: binary(number(1), number(1), +), number(42))",
+		},
+	}
+	for _, c := range tests {
+		expr, err := ParseFormula(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expression: %s", c.Expr, err)
+		}
+		if got := DumpExpr(expr); got != c.Want {
 			t.Errorf("%s: result mismatched! want %s, got %s", c.Expr, c.Want, got)
 		}
 	}

@@ -1,7 +1,9 @@
 package formula
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
@@ -144,33 +146,7 @@ type binary struct {
 }
 
 func (b binary) String() string {
-	var op string
-	switch b.op {
-	case Add:
-		op = "+"
-	case Sub:
-		op = "-"
-	case Mul:
-		op = "*"
-	case Div:
-		op = "/"
-	case Pow:
-		op = "^"
-	case Concat:
-		op = "&"
-	case Eq:
-		op = "="
-	case Ne:
-		op = "<>"
-	case Lt:
-		op = "<"
-	case Le:
-		op = "<="
-	case Gt:
-		op = ">"
-	case Ge:
-		op = ">="
-	}
+	op := binaryOpString[b.op]
 	return fmt.Sprintf("%s %s %s", b.left.String(), op, b.right.String())
 }
 
@@ -189,13 +165,7 @@ type unary struct {
 }
 
 func (u unary) String() string {
-	var op string
-	switch u.op {
-	case Add:
-		op = "+"
-	case Sub:
-		op = "-"
-	}
+	op := unaryOpString[u.op]
 	return fmt.Sprintf("%s%s", op, u.right.String())
 }
 
@@ -374,4 +344,77 @@ func parseIndex(str string) (int64, int) {
 		offset++
 	}
 	return int64(index), offset
+}
+
+var binaryOpString = map[rune]string{
+	Add:     "+",
+	Sub:     "-",
+	Mul:     "*",
+	Pow:     "^",
+	Div:     "/",
+	Percent: "%",
+	Concat:  "&",
+	Eq:      "=",
+	Ne:      "<>",
+	Lt:      "<",
+	Le:      "<=",
+	Gt:      ">",
+	Ge:      ">=",
+}
+
+var unaryOpString = map[rune]string{
+	Add: "+",
+	Sub: "-",
+}
+
+func DumpExpr(expr Expr) string {
+	var buf bytes.Buffer
+	dumpExpr(&buf, expr)
+	return buf.String()
+}
+
+func dumpExpr(w io.Writer, expr Expr) {
+	switch e := expr.(type) {
+	case identifier:
+		io.WriteString(w, "identifier(")
+		io.WriteString(w, e.name)
+		io.WriteString(w, ")")
+	case literal:
+		io.WriteString(w, "literal(")
+		io.WriteString(w, e.value)
+		io.WriteString(w, ")")
+	case number:
+		io.WriteString(w, "number(")
+		io.WriteString(w, strconv.FormatFloat(e.value, 'f', -1, 64))
+		io.WriteString(w, ")")
+	case binary:
+		io.WriteString(w, "binary(")
+		dumpExpr(w, e.left)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.right)
+		io.WriteString(w, ", ")
+		io.WriteString(w, binaryOpString[e.op])
+		io.WriteString(w, ")")
+	case unary:
+		io.WriteString(w, "unary(")
+		dumpExpr(w, e.right)
+		io.WriteString(w, ", ")
+		io.WriteString(w, unaryOpString[e.op])
+		io.WriteString(w, ")")
+	case call:
+		io.WriteString(w, "call(")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ", args: ")
+		for i := range e.args {
+			if i > 0 {
+				io.WriteString(w, ", ")
+			}
+			dumpExpr(w, e.args[i])
+		}
+		io.WriteString(w, ")")
+	case cellAddr:
+	case rangeAddr:
+	default:
+		io.WriteString(w, "unknown")
+	}
 }
