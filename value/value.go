@@ -52,9 +52,13 @@ type ObjectValue interface {
 	Get(string) (Value, error)
 }
 
+type Arg interface {
+    Eval(Context) (Value, error)
+}
+
 type FunctionValue interface {
 	Value
-	Call([]Value) (Value, error)
+	Call([]Arg, Context) (Value, error)
 }
 
 type CastableValue interface {

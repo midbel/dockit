@@ -275,6 +275,38 @@ func (a Array) At(row, col int) value.ScalarValue {
 	return a.Data[row][col]
 }
 
+type Reducer struct {
+	name string
+	fn BuiltinFunc
+}
+
+func NewReducer(name string, fn BuiltinFunc) value.FunctionValue {
+	return Reducer{
+		name: name,
+		fn:   fn,
+	}
+}
+
+func (Reducer) Kind() value.ValueKind {
+	return value.KindFunction
+}
+
+func (f Reducer) String() string {
+	return f.name
+}
+
+func (f Reducer) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
+	var values []value.Value
+	for i := range args {
+		a, err := args[i].Eval(ctx)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, a)
+	}
+	return f.fn(values)
+}
+
 type Function struct {
 	name string
 	fn   BuiltinFunc
@@ -295,6 +327,14 @@ func (f Function) String() string {
 	return f.name
 }
 
-func (f Function) Call(args []value.Value) (value.Value, error) {
-	return f.fn(args)
+func (f Function) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
+	var values []value.Value
+	for i := range args {
+		a, err := args[i].Eval(ctx)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, a)
+	}
+	return f.fn(values)
 }

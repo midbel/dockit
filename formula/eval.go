@@ -245,13 +245,9 @@ func evalCall(e call, ctx value.Context) (value.Value, error) {
 	if !ok {
 		return ErrName, nil
 	}
-	var args []value.Value
-	for _, a := range e.args {
-		v, err := Eval(a, ctx)
-		if err != nil {
-			return v, err
-		}
-		args = append(args, v)
+	var args []value.Arg
+	for i := range e.args {
+		args = append(args, makeArg(e.args[i]))
 	}
 	fn, err := ctx.Resolve(id.name)
 	if err != nil {
@@ -261,8 +257,7 @@ func evalCall(e call, ctx value.Context) (value.Value, error) {
 		return nil, fmt.Errorf("%s: %w", id.name, ErrCallable)
 	}
 	call, ok := fn.(value.FunctionValue)
-	return call.Call(args)
-
+	return call.Call(args, ctx)
 }
 
 func evalCellAddr(e cellAddr, ctx value.Context) (value.Value, error) {
@@ -314,4 +309,18 @@ func doCmp(left, right value.Value, do func(left value.Comparable, right value.V
 		return ErrValue, nil
 	}
 	return Boolean(ok), nil
+}
+
+type arg struct {
+	expr Expr
+}
+
+func makeArg(expr Expr) value.Arg {
+	return arg{
+		expr: expr,
+	}
+}
+
+func (a arg) Eval(ctx value.Context) (value.Value, error) {
+	return Eval(a.expr, ctx)
 }
