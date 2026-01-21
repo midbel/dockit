@@ -311,7 +311,7 @@ func doCmp(left, right value.Value, do func(left value.Comparable, right value.V
 	}
 	ok, err := do(left.(value.Comparable), right)
 	if err != nil {
-		return nil, err
+		return ErrValue, nil
 	}
 	return Boolean(ok), nil
 }
