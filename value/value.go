@@ -53,7 +53,7 @@ type ObjectValue interface {
 }
 
 type Arg interface {
-    Eval(Context) (Value, error)
+	Eval(Context) (Value, error)
 }
 
 type FunctionValue interface {

@@ -277,7 +277,7 @@ func (a Array) At(row, col int) value.ScalarValue {
 
 type Reducer struct {
 	name string
-	fn BuiltinFunc
+	fn   BuiltinFunc
 }
 
 func NewReducer(name string, fn BuiltinFunc) value.FunctionValue {
@@ -296,15 +296,7 @@ func (f Reducer) String() string {
 }
 
 func (f Reducer) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
-	var values []value.Value
-	for i := range args {
-		a, err := args[i].Eval(ctx)
-		if err != nil {
-			return nil, err
-		}
-		values = append(values, a)
-	}
-	return f.fn(values)
+	return nil, nil
 }
 
 type Function struct {

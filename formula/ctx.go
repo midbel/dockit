@@ -15,9 +15,9 @@ var (
 )
 
 type Builtin interface {
-    Call(args []Value) (Value, error)
-    Arity() int
-    Variadic() bool
+	Call(args []value.Value) (value.Value, error)
+	Arity() int
+	Variadic() bool
 }
 
 type BuiltinFunc func([]value.Value) (value.Value, error)
