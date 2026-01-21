@@ -22,6 +22,10 @@ type Context interface {
 	Resolve(string) (Value, error)
 }
 
+type Predicate interface {
+	Test(ScalarValue) (bool, error)
+}
+
 type Value interface {
 	Kind() ValueKind
 	fmt.Stringer
