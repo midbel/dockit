@@ -374,8 +374,8 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	var sheet string
 	if p.peek.Type == SheetRef {
 		sheet = p.currentLiteral()
-		p.next() 
-		p.next() 
+		p.next()
+		p.next()
 	}
 
 	start, err := parseCellAddr(p.currentLiteral())
@@ -408,7 +408,6 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	}
 	return start, nil
 }
-
 
 func parseBlock(p *Parser) (Expr, error) {
 	return nil, nil

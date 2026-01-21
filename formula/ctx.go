@@ -34,15 +34,15 @@ func (v *rangeValue) Get(name string) (value.ScalarValue, error) {
 
 type envValue struct{}
 
-func (*envValue) Kind() value.ValueKind {
+func (envValue) Kind() value.ValueKind {
 	return value.KindObject
 }
 
-func (*envValue) String() string {
+func (envValue) String() string {
 	return "env"
 }
 
-func (v *envValue) Get(name string) (value.ScalarValue, error) {
+func (v envValue) Get(name string) (value.ScalarValue, error) {
 	str := os.Getenv(name)
 	return Text(str), nil
 }

@@ -177,6 +177,45 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 			return ErrValue, nil
 		}
 		return Text(left.String() + right.String()), nil
+	case Eq:
+		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
+			return left.Equal(right)
+		})
+	case Ne:
+		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
+			ok, err := left.Equal(right)
+			return !ok, err
+		})
+	case Lt:
+		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
+			return left.Less(right)
+		})
+	case Le:
+		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
+			if ok, err := left.Equal(right); err == nil && ok {
+				return ok, nil
+			}
+			return left.Less(right)
+		})
+	case Gt:
+		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
+			if ok, err := left.Equal(right); err == nil && ok {
+				return !ok, nil
+			}
+			ok, err := left.Less(right)
+			if !ok && err == nil {
+				ok = !ok
+			}
+			return ok, err
+		})
+	case Ge:
+		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
+			if ok, err := left.Equal(right); err == nil && ok {
+				return ok, nil
+			}
+			ok, err := left.Less(right)
+			return !ok, err
+		})
 	default:
 		return ErrValue, nil
 	}
@@ -234,6 +273,11 @@ func evalRangeAddr(e rangeAddr, ctx value.Context) (value.Value, error) {
 	return ctx.Range(e.startAddr.Position, e.endAddr.Position)
 }
 
+func IsComparable(v value.Value) bool {
+	_, ok := v.(value.Comparable)
+	return ok
+}
+
 func IsNumber(v value.Value) bool {
 	_, ok := v.(Float)
 	return ok
@@ -250,11 +294,24 @@ func doMath(left, right value.Value, do func(left, right float64) (float64, erro
 	if !IsNumber(right) {
 		return ErrValue, nil
 	}
-	ls := left.(value.ScalarValue)
-	rs := right.(value.ScalarValue)
+	var (
+		ls = left.(value.ScalarValue)
+		rs = right.(value.ScalarValue)
+	)
 	res, err := do(ls.Scalar().(float64), rs.Scalar().(float64))
 	if err != nil {
 		return nil, err
 	}
 	return Float(res), nil
+}
+
+func doCmp(left, right value.Value, do func(left value.Comparable, right value.Value) (bool, error)) (value.Value, error) {
+	if !IsComparable(left) {
+		return ErrValue, nil
+	}
+	ok, err := do(left.(value.Comparable), right)
+	if err != nil {
+		return nil, err
+	}
+	return Boolean(ok), nil
 }

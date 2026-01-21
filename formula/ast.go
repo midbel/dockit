@@ -426,7 +426,19 @@ func dumpExpr(w io.Writer, expr Expr) {
 		}
 		io.WriteString(w, ")")
 	case cellAddr:
+		io.WriteString(w, "cell(")
+		io.WriteString(w, e.Position.String())
+		io.WriteString(w, ", ")
+		io.WriteString(w, strconv.FormatBool(e.AbsCols))
+		io.WriteString(w, ", ")
+		io.WriteString(w, strconv.FormatBool(e.AbsLine))
+		io.WriteString(w, ")")
 	case rangeAddr:
+		io.WriteString(w, "range(")
+		dumpExpr(w, e.startAddr)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.endAddr)
+		io.WriteString(w, ")")
 	default:
 		io.WriteString(w, "unknown")
 	}

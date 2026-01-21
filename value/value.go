@@ -27,6 +27,11 @@ type Value interface {
 	fmt.Stringer
 }
 
+type Comparable interface {
+	Equal(Value) (bool, error)
+	Less(Value) (bool, error)
+}
+
 type ScalarValue interface {
 	Value
 	Scalar() any

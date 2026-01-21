@@ -83,6 +83,38 @@ func TestBasicFormula(t *testing.T) {
 			Expr: "$B$1 & B2",
 			Want: "foobar",
 		},
+		{
+			Expr: "1 < 2",
+			Want: "true",
+		},
+		{
+			Expr: "1 = 2",
+			Want: "false",
+		},
+		{
+			Expr: "1 <> 2",
+			Want: "true",
+		},
+		{
+			Expr: "2 > 1",
+			Want: "true",
+		},
+		{
+			Expr: "1 >= 1",
+			Want: "true",
+		},
+		{
+			Expr: "1 >= 2",
+			Want: "false",
+		},
+		{
+			Expr: "'foo' = 'foo'",
+			Want: "true",
+		},
+		{
+			Expr: "true <> false",
+			Want: "true",
+		},
 	}
 	for _, c := range tests {
 		expr, err := ParseFormula(c.Expr)
@@ -141,6 +173,22 @@ func TestFormulaAst(t *testing.T) {
 		{
 			Expr: "test(1+1, 42)",
 			Want: "call(identifier(test), args: binary(number(1), number(1), +), number(42))",
+		},
+		{
+			Expr: "A2",
+			Want: "cell(A2, false, false)",
+		},
+		{
+			Expr: "$A2",
+			Want: "cell(A2, true, false)",
+		},
+		{
+			Expr: "$A$2",
+			Want: "cell(A2, true, true)",
+		},
+		{
+			Expr: "A1:A1000",
+			Want: "range(cell(A1, false, false), cell(A1000, false, false))",
 		},
 	}
 	for _, c := range tests {

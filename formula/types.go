@@ -1,12 +1,15 @@
 package formula
 
 import (
+	"errors"
 	"strconv"
 	"time"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
+
+var ErrCompatible = errors.New("incompatible type")
 
 type ErrorCode string
 
@@ -87,6 +90,22 @@ func (d Date) ToFloat() (value.ScalarValue, error) {
 	return Float(float64(unix)), nil
 }
 
+func (d Date) Equal(other value.Value) (bool, error) {
+	x, ok := other.(Date)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return time.Time(d).Equal(time.Time(x)), nil
+}
+
+func (d Date) Less(other value.Value) (bool, error) {
+	x, ok := other.(Date)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return time.Time(d).Before(time.Time(x)), nil
+}
+
 type Float float64
 
 func (Float) Kind() value.ValueKind {
@@ -111,6 +130,22 @@ func (f Float) ToBool() (value.ScalarValue, error) {
 
 func (f Float) ToFloat() (value.ScalarValue, error) {
 	return f, nil
+}
+
+func (f Float) Equal(other value.Value) (bool, error) {
+	x, ok := other.(Float)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return float64(f) == float64(x), nil
+}
+
+func (f Float) Less(other value.Value) (bool, error) {
+	x, ok := other.(Float)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return float64(f) < float64(x), nil
 }
 
 type Text string
@@ -143,6 +178,22 @@ func (t Text) ToFloat() (value.ScalarValue, error) {
 	return Float(n), nil
 }
 
+func (t Text) Equal(other value.Value) (bool, error) {
+	x, ok := other.(Text)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return string(t) == string(x), nil
+}
+
+func (t Text) Less(other value.Value) (bool, error) {
+	x, ok := other.(Text)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return string(t) < string(x), nil
+}
+
 type Boolean bool
 
 func (Boolean) Kind() value.ValueKind {
@@ -171,6 +222,22 @@ func (b Boolean) ToFloat() (value.ScalarValue, error) {
 		return Float(0), nil
 	}
 	return Float(1), nil
+}
+
+func (b Boolean) Equal(other value.Value) (bool, error) {
+	x, ok := other.(Boolean)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return bool(b) == bool(x), nil
+}
+
+func (b Boolean) Less(other value.Value) (bool, error) {
+	x, ok := other.(Boolean)
+	if !ok {
+		return false, ErrCompatible
+	}
+	return bool(b) && !bool(x), nil
 }
 
 type Array struct {
