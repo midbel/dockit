@@ -98,7 +98,7 @@ func (c *Environment) Range(_, _ layout.Position) (value.Value, error) {
 type truePredicate struct{}
 
 func (truePredicate) Test(value.Context, value.ScalarValue) (bool, error) {
-    return true, nil
+	return true, nil
 }
 
 type cmpPredicate struct {
