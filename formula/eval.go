@@ -325,24 +325,24 @@ func (a arg) Eval(ctx value.Context) (value.Value, error) {
 	return Eval(a.expr, ctx)
 }
 
-func (a arg) asPredicate(ctx value.Context) (*value.Filter, error) {
+func (a arg) asFilter(ctx value.Context) (*value.Filter, bool, error) {
 	var src value.Filter
 
 	b, ok := a.expr.(binary)
 	if !ok {
-		return nil, fmt.Errorf("argument can not be used as a predicate")
+		return nil, false, fmt.Errorf("argument can not be used as a predicate")
 	}
 	v, err := Eval(b.right, ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	src.Predicate, err = createPredicate(b.op, v)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	src.Value, err = Eval(b.left, ctx)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return &src, err
+	return &src, true, err
 }

@@ -95,6 +95,12 @@ func (c *Environment) Range(_, _ layout.Position) (value.Value, error) {
 	return nil, ErrAvailable
 }
 
+type truePredicate struct{}
+
+func (truePredicate) Test(value.Context, value.ScalarValue) (bool, error) {
+    return true, nil
+}
+
 type cmpPredicate struct {
 	op     rune
 	scalar value.ScalarValue

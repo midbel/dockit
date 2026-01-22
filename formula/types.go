@@ -301,16 +301,24 @@ func (f Reducer) Call(args []value.Arg, ctx value.Context) (value.Value, error) 
 		return ErrValue, fmt.Errorf("%s only accepts one argument", f.name)
 	}
 	p, ok := args[0].(interface {
-		asPredicate(value.Context) (*value.Filter, error)
+		asFilter(value.Context) (*value.Filter, bool, error)
 	})
 	if !ok {
 		return nil, fmt.Errorf("argument can not be used as argument")
 	}
-	src, err := p.asPredicate(ctx)
-	if err != nil {
+	if src, ok, err := p.asFilter(ctx); err == nil {
+		if ok {
+			return f.fn(src.Predicate, src.Value)
+		}
+		val, err := args[0].Eval(ctx)
+		if err != nil {
+			return nil, err
+		}
+		var p truePredicate
+		return f.fn(p, val)
+	} else {
 		return ErrNA, err
 	}
-	return f.fn(src.Predicate, src.Value)
 }
 
 type Function struct {
