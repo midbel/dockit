@@ -119,9 +119,19 @@ func (p cmpPredicate) Test(ctx value.Context, other value.ScalarValue) (bool, er
 		ok, err = c.Equal(other)
 		ok = !ok
 	case Lt:
+		return c.Less(other)
 	case Le:
+		ok, err = c.Equal(other)
+		if ok && err == nil {
+			break
+		}
+		o, err = c.Less(other)
 	case Gt:
 	case Ge:
+		ok, err = c.Equal(other)
+		if ok && err == nil {
+			break
+		}
 	default:
 	}
 	return ok, err

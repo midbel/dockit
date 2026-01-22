@@ -304,7 +304,7 @@ func (f Reducer) Call(args []value.Arg, ctx value.Context) (value.Value, error) 
 		asFilter(value.Context) (*value.Filter, bool, error)
 	})
 	if !ok {
-		return nil, fmt.Errorf("argument can not be used as argument")
+		return ErrNA, fmt.Errorf("argument can not be used as argument")
 	}
 	if src, ok, err := p.asFilter(ctx); err == nil {
 		if ok {
