@@ -324,3 +324,25 @@ func makeArg(expr Expr) value.Arg {
 func (a arg) Eval(ctx value.Context) (value.Value, error) {
 	return Eval(a.expr, ctx)
 }
+
+func (a arg) asPredicate(ctx value.Context) (*value.Filter, error) {
+	var src value.Filter
+
+	b, ok := a.expr.(binary)
+	if !ok {
+		return nil, fmt.Errorf("argument can not be used as a predicate")
+	}
+	v, err := Eval(b.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+	src.Predicate, err = createPredicate(b.op, v)
+	if err != nil {
+		return nil, err
+	}
+	src.Value, err = Eval(b.left, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &src, err
+}

@@ -2,6 +2,7 @@ package formula
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -277,10 +278,10 @@ func (a Array) At(row, col int) value.ScalarValue {
 
 type Reducer struct {
 	name string
-	fn   BuiltinFunc
+	fn   ReducerFunc
 }
 
-func NewReducer(name string, fn BuiltinFunc) value.FunctionValue {
+func NewReducer(name string, fn ReducerFunc) value.FunctionValue {
 	return Reducer{
 		name: name,
 		fn:   fn,
@@ -296,7 +297,20 @@ func (f Reducer) String() string {
 }
 
 func (f Reducer) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
-	return nil, nil
+	if len(args) != 1 {
+		return ErrValue, fmt.Errorf("%s only accepts one argument", f.name)
+	}
+	p, ok := args[0].(interface {
+		asPredicate(value.Context) (*value.Filter, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("argument can not be used as argument")
+	}
+	src, err := p.asPredicate(ctx)
+	if err != nil {
+		return ErrNA, err
+	}
+	return f.fn(src.Predicate, src.Value)
 }
 
 type Function struct {

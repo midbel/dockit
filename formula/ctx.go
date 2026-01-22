@@ -20,6 +20,8 @@ type Builtin interface {
 	Variadic() bool
 }
 
+type ReducerFunc func(value.Predicate, value.Value) (value.Value, error)
+
 type BuiltinFunc func([]value.Value) (value.Value, error)
 
 type rangeValue struct {
@@ -91,4 +93,60 @@ func (c *Environment) At(_ layout.Position) (value.Value, error) {
 
 func (c *Environment) Range(_, _ layout.Position) (value.Value, error) {
 	return nil, ErrAvailable
+}
+
+type cmpPredicate struct {
+	op     rune
+	scalar value.ScalarValue
+}
+
+func (p cmpPredicate) Test(ctx value.Context, other value.ScalarValue) (bool, error) {
+	c, ok := p.scalar.(value.Comparable)
+	if !ok {
+		return false, fmt.Errorf("value is not comparable")
+	}
+	var err error
+	switch p.op {
+	case Eq:
+		ok, err = c.Equal(other)
+	case Ne:
+		ok, err = c.Equal(other)
+		ok = !ok
+	case Lt:
+	case Le:
+	case Gt:
+	case Ge:
+	default:
+	}
+	return ok, err
+}
+
+func createPredicate(op rune, val value.Value) (value.Predicate, error) {
+	scalar, ok := val.(value.ScalarValue)
+	if !ok {
+		return nil, fmt.Errorf("predicate can only operate on scalar value")
+	}
+	var p value.Predicate
+	switch op {
+	case Eq, Ne, Lt, Le, Gt, Ge:
+		p = cmpPredicate{
+			op:     op,
+			scalar: scalar,
+		}
+	default:
+		return nil, fmt.Errorf("unsupported predicate type")
+	}
+	return p, nil
+}
+
+func callAny(predicate value.Predicate, rg value.Value) (value.Value, error) {
+	return Boolean(false), nil
+}
+
+func callAll(predicate value.Predicate, rg value.Value) (value.Value, error) {
+	return Boolean(false), nil
+}
+
+func callCount(predicate value.Predicate, rg value.Value) (value.Value, error) {
+	return Float(0), nil
 }

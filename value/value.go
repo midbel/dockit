@@ -23,12 +23,17 @@ type Context interface {
 }
 
 type Predicate interface {
-	Test(ScalarValue) (bool, error)
+	Test(Context, ScalarValue) (bool, error)
 }
 
 type Value interface {
 	Kind() ValueKind
 	fmt.Stringer
+}
+
+type Filter struct {
+	Predicate
+	Value
 }
 
 type Comparable interface {
