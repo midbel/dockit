@@ -97,7 +97,7 @@ func (c *Environment) Range(_, _ layout.Position) (value.Value, error) {
 
 type truePredicate struct{}
 
-func (truePredicate) Test(value.Context, value.ScalarValue) (bool, error) {
+func (truePredicate) Test(value.ScalarValue) (bool, error) {
 	return true, nil
 }
 
@@ -106,7 +106,7 @@ type cmpPredicate struct {
 	scalar value.ScalarValue
 }
 
-func (p cmpPredicate) Test(ctx value.Context, other value.ScalarValue) (bool, error) {
+func (p cmpPredicate) Test(other value.ScalarValue) (bool, error) {
 	c, ok := p.scalar.(value.Comparable)
 	if !ok {
 		return false, fmt.Errorf("value is not comparable")
@@ -125,7 +125,7 @@ func (p cmpPredicate) Test(ctx value.Context, other value.ScalarValue) (bool, er
 		if ok && err == nil {
 			break
 		}
-		o, err = c.Less(other)
+		ok, err = c.Less(other)
 	case Gt:
 	case Ge:
 		ok, err = c.Equal(other)

@@ -23,7 +23,7 @@ type Context interface {
 }
 
 type Predicate interface {
-	Test(Context, ScalarValue) (bool, error)
+	Test(ScalarValue) (bool, error)
 }
 
 type Value interface {
