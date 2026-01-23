@@ -29,7 +29,7 @@ type ExprKind interface {
 
 type useFile struct {
 	file    Expr
-	symbols []Expr
+	alias   Expr      
 }
 
 func (i useFile) String() string {
