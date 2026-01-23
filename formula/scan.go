@@ -64,17 +64,18 @@ const (
 )
 
 const (
-	kwImport = "import"
-	kwUse    = "use"
-	kwWith   = "with"
-	kwPrint  = "print"
-	kwSave   = "save"
-	kwExport = "export"
-	kwFrom   = "from"
-	kwIn     = "in"
-	kwAs     = "as"
-	kwTo     = "to"
-	kwEnd    = "end"
+	kwImport  = "import"
+	kwUse     = "use"
+	kwWith    = "with"
+	kwPrint   = "print"
+	kwSave    = "save"
+	kwExport  = "export"
+	kwDefault = "default"
+	kwFrom    = "from"
+	kwIn      = "in"
+	kwAs      = "as"
+	kwTo      = "to"
+	kwEnd     = "end"
 )
 
 const (
@@ -93,6 +94,7 @@ func isKeyword(str string) bool {
 	case kwPrint:
 	case kwSave:
 	case kwExport:
+	case kwDefault:
 	case kwIn:
 	case kwAs:
 	case kwTo:

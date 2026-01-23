@@ -28,8 +28,8 @@ type ExprKind interface {
 }
 
 type useFile struct {
-	file    Expr
-	alias   Expr      
+	file  Expr
+	alias Expr
 }
 
 func (i useFile) String() string {
@@ -97,6 +97,18 @@ func (p saveRef) String() string {
 
 func (p saveRef) CloneWithOffset(_ layout.Position) Expr {
 	return p
+}
+
+type defaultRef struct {
+	expr Expr
+}
+
+func (d defaultRef) String() string {
+	return fmt.Sprintf("default %s", d.expr.String())
+}
+
+func (d defaultRef) CloneWithOffset(_ layout.Position) Expr {
+	return d
 }
 
 type macroDef struct {
@@ -533,6 +545,16 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.endAddr)
 		io.WriteString(w, ")")
+	case importFile:
+	case useFile:
+	case printRef:
+	case exportRef:
+	case defaultRef:
+	case saveRef:
+	case pivotExpr:
+	case sheetExpr:
+	case chartExpr:
+	case filterExpr:
 	default:
 		io.WriteString(w, "unknown")
 	}

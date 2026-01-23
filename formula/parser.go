@@ -185,6 +185,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwSave, parseSave)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
 	g.RegisterPrefixKeyword(kwWith, parseWith)
+	g.RegisterPrefixKeyword(kwDefault, parseDefault)
 
 	return g
 }
@@ -615,6 +616,18 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	}
 	a.expr = expr
 	return a, nil
+}
+
+func parseDefault(p *Parser) (Expr, error) {
+	p.next()
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	stmt := defaultRef{
+		expr: expr,
+	}
+	return stmt, nil
 }
 
 func parsePrint(p *Parser) (Expr, error) {
