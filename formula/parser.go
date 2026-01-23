@@ -55,6 +55,7 @@ type (
 )
 
 type Grammar struct {
+	name string
 	mode ScanMode
 
 	prefix   map[rune]PrefixFunc
@@ -63,6 +64,10 @@ type Grammar struct {
 
 	kwPrefix map[string]PrefixFunc
 	kwInfix  map[string]InfixFunc
+}
+
+func (g *Grammar) Context() string {
+	return g.name
 }
 
 func (g *Grammar) Pow(kind rune) int {
@@ -125,6 +130,7 @@ func (g *Grammar) RegisterBinding(kd rune, pow int) {
 
 func FormulaGrammar() *Grammar {
 	g := Grammar{
+		name:     "formula",
 		mode:     ModeBasic,
 		prefix:   make(map[rune]PrefixFunc),
 		kwPrefix: make(map[string]PrefixFunc),
@@ -158,12 +164,14 @@ func FormulaGrammar() *Grammar {
 
 func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
+	g.name = "script"
 	g.mode = ModeScript
 
 	g.RegisterPrefix(BegBlock, parseBlock)
+	g.RegisterPrefix(Eq, parseLambda)
 
-	g.RegisterInfix(BegProp, parseAccess)
-	g.RegisterInfix(Dot, parseChain)
+	// g.RegisterInfix(BegProp, parseIndex)
+	g.RegisterInfix(Dot, parseAccess)
 	g.RegisterInfix(Assign, parseAssignment)
 	g.RegisterInfix(AddAssign, parseAssignment)
 	g.RegisterInfix(SubAssign, parseAssignment)
@@ -176,8 +184,69 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwSave, parseSave)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
+	g.RegisterPrefixKeyword(kwWith, parseWith)
 
 	return g
+}
+
+type GrammarStack []*Grammar
+
+func (gs *GrammarStack) Top() *Grammar {
+	n := len(*gs)
+	return (*gs)[n-1]
+}
+
+func (gs *GrammarStack) Mode() ScanMode {
+	return gs.Top().mode
+}
+
+func (gs *GrammarStack) Context() string {
+	return gs.Top().Context()
+}
+
+func (gs *GrammarStack) Pow(kind rune) int {
+	for i := len(*gs) - 1; i >= 0; i-- {
+		pow := (*gs)[i].Pow(kind)
+		if pow > powLowest {
+			return pow
+		}
+	}
+	return powLowest
+}
+
+func (gs *GrammarStack) Prefix(tok Token) (PrefixFunc, error) {
+	var lastErr error
+	for i := len(*gs) - 1; i >= 0; i-- {
+		fn, err := (*gs)[i].Prefix(tok)
+		if err == nil {
+			return fn, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+func (gs *GrammarStack) Infix(tok Token) (InfixFunc, error) {
+	var lastErr error
+	for i := len(*gs) - 1; i >= 0; i-- {
+		fn, err := (*gs)[i].Infix(tok)
+		if err == nil {
+			return fn, err
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+func (gs *GrammarStack) Pop() {
+	n := len(*gs)
+	if n > 1 {
+		*gs = (*gs)[:n-1]
+	}
+}
+
+func (gs *GrammarStack) Push(g *Grammar) {
+	*gs = append(*gs, g)
 }
 
 type Parser struct {
@@ -185,7 +254,7 @@ type Parser struct {
 	curr Token
 	peek Token
 
-	grammar *Grammar
+	stack *GrammarStack
 }
 
 func ParseFormula(str string) (Expr, error) {
@@ -195,7 +264,8 @@ func ParseFormula(str string) (Expr, error) {
 
 func NewParser(g *Grammar) *Parser {
 	var p Parser
-	p.grammar = g
+	p.stack = new(GrammarStack)
+	p.pushGrammar(g)
 	return &p
 }
 
@@ -211,7 +281,7 @@ func (p *Parser) Parse(r io.Reader) (Expr, error) {
 }
 
 func (p *Parser) Init(r io.Reader) error {
-	scan, err := Scan(r, p.grammar.mode)
+	scan, err := Scan(r, p.stack.Mode())
 	if err != nil {
 		return err
 	}
@@ -232,8 +302,20 @@ func (p *Parser) ParseNext() (Expr, error) {
 	return p.parse(powLowest)
 }
 
+func (p *Parser) parseUntil(ok func() bool) ([]Expr, error) {
+	var body []Expr
+	for !p.done() && ok() {
+		e, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, e)
+	}
+	return body, nil
+}
+
 func (p *Parser) parse(pow int) (Expr, error) {
-	fn, err := p.grammar.Prefix(p.curr)
+	fn, err := p.prefix()
 	if err != nil {
 		return nil, err
 	}
@@ -241,8 +323,8 @@ func (p *Parser) parse(pow int) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	for !p.done() && pow < p.grammar.Pow(p.curr.Type) {
-		fn, err := p.grammar.Infix(p.curr)
+	for !p.done() && pow < p.pow(p.curr.Type) {
+		fn, err := p.infix()
 		if err != nil {
 			return nil, err
 		}
@@ -275,6 +357,34 @@ func (p *Parser) currentLiteral() string {
 	return p.curr.Literal
 }
 
+func (p *Parser) pow(kind rune) int {
+	return p.currGrammar().Pow(kind)
+}
+
+func (p *Parser) prefix() (PrefixFunc, error) {
+	return p.currGrammar().Prefix(p.curr)
+}
+
+func (p *Parser) infix() (InfixFunc, error) {
+	return p.currGrammar().Infix(p.curr)
+}
+
+func (p *Parser) pushGrammar(g *Grammar) {
+	p.stack.Push(g)
+}
+
+func (p *Parser) popGrammar() {
+	p.stack.Pop()
+}
+
+func (p *Parser) currGrammar() *Grammar {
+	return p.stack.Top()
+}
+
+func (p *Parser) makeError(msg string) error {
+	return fmt.Errorf("%s: %s", p.currGrammar().Context(), msg)
+}
+
 func parseCall(p *Parser, expr Expr) (Expr, error) {
 	p.next()
 	c := call{
@@ -290,12 +400,12 @@ func parseCall(p *Parser, expr Expr) (Expr, error) {
 			p.next()
 		case EndGrp:
 		default:
-			return nil, fmt.Errorf("unexpected character in function call")
+			return nil, p.makeError("unexpected character in function call")
 		}
 		c.args = append(c.args, arg)
 	}
 	if p.curr.Type != EndGrp {
-		return nil, fmt.Errorf("unexpected character in function call")
+		return nil, p.makeError("unexpected character in function call")
 	}
 	p.next()
 	return c, nil
@@ -307,7 +417,7 @@ func parseBinary(p *Parser, left Expr) (Expr, error) {
 		op:   p.curr.Type,
 	}
 	p.next()
-	right, err := p.parse(p.grammar.Pow(bin.op))
+	right, err := p.parse(p.pow(bin.op))
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +445,7 @@ func parseGroup(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	if p.curr.Type != EndGrp {
-		return nil, fmt.Errorf("missing ')' at end of expression")
+		return nil, p.makeError("missing ')' at end of expression")
 	}
 	p.next()
 	return expr, nil
@@ -413,27 +523,39 @@ func parseBlock(p *Parser) (Expr, error) {
 	return nil, nil
 }
 
-func parseAccess(p *Parser, left Expr) (Expr, error) {
-	return nil, nil
-}
-
-func parseChain(p *Parser, left Expr) (Expr, error) {
+func parseLambda(p *Parser) (Expr, error) {
 	p.next()
 	expr, err := p.parse(powLowest)
 	if err != nil {
 		return nil, err
 	}
-	c := chain{
+	e := lambda{
+		expr: expr,
+	}
+	return e, nil
+}
+
+// func parseIndex(p *Parser, left Expr) (Expr, error) {
+// 	return nil, nil
+// }
+
+func parseAccess(p *Parser, left Expr) (Expr, error) {
+	p.next()
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	a := access{
 		expr:   left,
 		member: expr,
 	}
-	return c, nil
+	return a, nil
 }
 
 func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	id, ok := left.(identifier)
 	if !ok {
-		return nil, fmt.Errorf("identifier expected")
+		return nil, p.makeError("identifier expected")
 	}
 	a := assignment{
 		ident: id,
@@ -505,7 +627,7 @@ func parsePrint(p *Parser) (Expr, error) {
 		expr: expr,
 	}
 	if !p.isEOL() {
-		return nil, fmt.Errorf("expected eol")
+		return nil, p.makeError("expected eol")
 	}
 	p.next()
 	return stmt, nil
@@ -519,7 +641,7 @@ func parseSave(p *Parser) (Expr, error) {
 	}
 	_ = expr
 	if !p.isEOL() {
-		return nil, fmt.Errorf("expected eol")
+		return nil, p.makeError("expected eol")
 	}
 	p.next()
 	return nil, nil
@@ -533,7 +655,7 @@ func parseExport(p *Parser) (Expr, error) {
 	}
 	_ = ident
 	if !p.is(Keyword) && p.currentLiteral() != kwTo {
-		return nil, fmt.Errorf("keyword 'to' expected")
+		return nil, p.makeError("keyword 'to' expected")
 	}
 	p.next()
 	file, err := p.parse(powLowest)
@@ -550,7 +672,7 @@ func parseExport(p *Parser) (Expr, error) {
 		_ = format
 	}
 	if !p.isEOL() {
-		return nil, fmt.Errorf("expected eol")
+		return nil, p.makeError("expected eol")
 	}
 	p.next()
 	return nil, nil
@@ -573,13 +695,15 @@ func parseImport(p *Parser) (Expr, error) {
 			value: p.currentLiteral(),
 		}
 	default:
-		return nil, fmt.Errorf("unexpected token %s", p.curr)
+		msg := fmt.Sprintf("unexpected token %s", p.curr)
+		return nil, p.makeError(msg)
 	}
 	p.next()
 	if p.is(Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		if !p.is(Ident) {
-			return nil, fmt.Errorf("unexpected token %s", p.curr)
+			msg := fmt.Sprintf("unexpected token %s", p.curr)
+			return nil, p.makeError(msg)
 		}
 		stmt.alias = identifier{
 			name: p.currentLiteral(),
@@ -587,8 +711,72 @@ func parseImport(p *Parser) (Expr, error) {
 		p.next()
 	}
 	if !p.isEOL() {
-		return nil, fmt.Errorf("expected eol at end of import")
+		return nil, p.makeError("expected eol at end of import")
 	}
 	p.next()
 	return stmt, nil
+}
+
+func chartGrammar() *Grammar {
+	return nil
+}
+
+func pivotGrammar() *Grammar {
+	return nil
+}
+
+func sheetGrammar() *Grammar {
+	return nil
+}
+
+func filterGrammar() *Grammar {
+	return nil
+}
+
+func parseWith(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(Keyword) {
+		return nil, p.makeError("keyword expected")
+	}
+	var get func([]Expr) Expr
+	switch p.currentLiteral() {
+	case kwSheet:
+		p.pushGrammar(sheetGrammar())
+		get = makeSheetExpr
+	case kwChart:
+		p.pushGrammar(chartGrammar())
+		get = makeChartExpr
+	case kwPivot:
+		p.pushGrammar(pivotGrammar())
+		get = makePivotExpr
+	case kwFilter:
+		p.pushGrammar(filterGrammar())
+		get = makeFilterExpr
+	default:
+		msg := fmt.Sprintf("unexpected keyword: %s", p.currentLiteral())
+		return nil, p.makeError(msg)
+	}
+	defer p.popGrammar()
+	p.next()
+
+	if !p.isEOL() {
+		return nil, p.makeError("expected eol")
+	}
+	p.next()
+
+	body, err := p.parseUntil(func() bool {
+		isEnd := p.is(Keyword) && p.currentLiteral() == kwEnd
+		return !isEnd
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !p.is(Keyword) && p.currentLiteral() != kwEnd {
+		return nil, p.makeError("expected 'end' keyword")
+	}
+	p.next()
+	if !p.isEOL() {
+		return nil, p.makeError("expected eol")
+	}
+	return get(body), nil
 }

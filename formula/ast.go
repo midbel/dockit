@@ -113,17 +113,29 @@ func (d macroDef) CloneWithOffset(pos layout.Position) Expr {
 	return d
 }
 
-type chain struct {
+type access struct {
 	expr   Expr
 	member Expr
 }
 
-func (c chain) String() string {
-	return fmt.Sprintf("%s.%s", c.expr.String(), c.member.String())
+func (a access) String() string {
+	return fmt.Sprintf("%s.%s", a.expr.String(), a.member.String())
 }
 
-func (c chain) CloneWithOffset(pos layout.Position) Expr {
-	return c
+func (a access) CloneWithOffset(pos layout.Position) Expr {
+	return a
+}
+
+type lambda struct {
+	expr Expr
+}
+
+func (f lambda) String() string {
+	return fmt.Sprintf("=%s", f.expr.String())
+}
+
+func (f lambda) CloneWithOffset(pos layout.Position) Expr {
+	return f
 }
 
 type assignment struct {
@@ -137,6 +149,78 @@ func (a assignment) String() string {
 
 func (a assignment) CloneWithOffset(pos layout.Position) Expr {
 	return a
+}
+
+type pivotExpr struct {
+	body []Expr
+}
+
+func makePivotExpr(body []Expr) Expr {
+	return pivotExpr{
+		body: body,
+	}
+}
+
+func (e pivotExpr) String() string {
+	return "<pivot>"
+}
+
+func (e pivotExpr) CloneWithOffset(pos layout.Position) Expr {
+	return e
+}
+
+type chartExpr struct {
+	body []Expr
+}
+
+func makeChartExpr(body []Expr) Expr {
+	return chartExpr{
+		body: body,
+	}
+}
+
+func (e chartExpr) String() string {
+	return "<chart>"
+}
+
+func (e chartExpr) CloneWithOffset(pos layout.Position) Expr {
+	return e
+}
+
+type sheetExpr struct {
+	body []Expr
+}
+
+func makeSheetExpr(body []Expr) Expr {
+	return sheetExpr{
+		body: body,
+	}
+}
+
+func (e sheetExpr) String() string {
+	return "<sheet>"
+}
+
+func (e sheetExpr) CloneWithOffset(pos layout.Position) Expr {
+	return e
+}
+
+type filterExpr struct {
+	body []Expr
+}
+
+func makeFilterExpr(body []Expr) Expr {
+	return filterExpr{
+		body: body,
+	}
+}
+
+func (e filterExpr) String() string {
+	return "<filter>"
+}
+
+func (e filterExpr) CloneWithOffset(pos layout.Position) Expr {
+	return e
 }
 
 type binary struct {
@@ -413,6 +497,16 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.right)
 		io.WriteString(w, ", ")
 		io.WriteString(w, unaryOpString[e.op])
+		io.WriteString(w, ")")
+	case access:
+		io.WriteString(w, "access(")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.member)
+		io.WriteString(w, ")")
+	case lambda:
+		io.WriteString(w, "formula(")
+		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
 	case call:
 		io.WriteString(w, "call(")

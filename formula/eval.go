@@ -98,7 +98,7 @@ func exec(expr Expr, ctx *Environment) (value.Value, error) {
 	case useFile:
 	case importFile:
 	case printRef:
-	case chain:
+	case access:
 	case literal:
 		return Text(e.value), nil
 	case number:

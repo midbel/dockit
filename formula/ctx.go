@@ -40,6 +40,22 @@ func (v *rangeValue) Get(name string) (value.ScalarValue, error) {
 	return nil, nil
 }
 
+type lambdaValue struct {
+	expr Expr
+}
+
+func (*lambdaValue) Kind() value.ValueKind {
+	return value.KindFunction
+}
+
+func (*lambdaValue) String() string {
+	return "<formula>"
+}
+
+func (v *lambdaValue) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
+	return Eval(v.expr, ctx)
+}
+
 type envValue struct{}
 
 func (envValue) Kind() value.ValueKind {

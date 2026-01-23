@@ -66,19 +66,29 @@ const (
 const (
 	kwImport = "import"
 	kwUse    = "use"
-	kwFrom   = "from"
+	kwWith   = "with"
 	kwPrint  = "print"
 	kwSave   = "save"
 	kwExport = "export"
+	kwFrom   = "from"
 	kwIn     = "in"
 	kwAs     = "as"
 	kwTo     = "to"
+	kwEnd    = "end"
+)
+
+const (
+	kwSheet  = "sheet"
+	kwChart  = "chart"
+	kwPivot  = "pivot"
+	kwFilter = "filter"
 )
 
 func isKeyword(str string) bool {
 	switch str {
 	case kwImport:
 	case kwUse:
+	case kwWith:
 	case kwFrom:
 	case kwPrint:
 	case kwSave:
@@ -86,6 +96,11 @@ func isKeyword(str string) bool {
 	case kwIn:
 	case kwAs:
 	case kwTo:
+	case kwEnd:
+	case kwSheet:
+	case kwChart:
+	case kwPivot:
+	case kwFilter:
 	default:
 		return false
 	}
