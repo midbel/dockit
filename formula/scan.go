@@ -112,7 +112,7 @@ func isKeyword(str string) bool {
 type ScanMode int8
 
 const (
-	ModeBasic ScanMode = 1 << iota
+	ModeFormula ScanMode = 1 << iota
 	ModeScript
 )
 

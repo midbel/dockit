@@ -1,6 +1,7 @@
 package formula
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -53,6 +54,16 @@ type (
 	PrefixFunc func(*Parser) (Expr, error)
 	InfixFunc  func(*Parser, Expr) (Expr, error)
 )
+
+var errForbidden = fmt.Errorf("not allowed")
+
+func forbiddenInfix(_ *Parser, _ Expr) (Expr, error) {
+	return nil, fmt.Errorf("%w: infix operator/keyword", errForbidden)
+}
+
+func forbiddenPrefix(_ *Parser, _ Expr) (Expr, error) {
+	return nil, fmt.Errorf("%w: prefix operator/keyword", errForbidden)
+}
 
 type Grammar struct {
 	name string
@@ -112,16 +123,32 @@ func (g *Grammar) RegisterInfix(kd rune, fn InfixFunc) {
 	g.infix[kd] = fn
 }
 
+func (g *Grammar) UnregisterInfix(kd rune) {
+	g.infix[kd] = fobiddenInfix
+}
+
 func (g *Grammar) RegisterInfixKeyword(kw string, fn InfixFunc) {
 	g.kwInfix[kw] = fn
+}
+
+func (g *Grammar) UnregisterInfixKeyword(kw string) {
+	g.kwInfix[kw] = fobiddenInfix
 }
 
 func (g *Grammar) RegisterPrefix(kd rune, fn PrefixFunc) {
 	g.prefix[kd] = fn
 }
 
+func (g *Grammar) UnregisterPrefix(kd rune) {
+	g.prefix[kd] = forbiddenPrefix
+}
+
 func (g *Grammar) RegisterPrefixKeyword(kw string, fn PrefixFunc) {
 	g.kwPrefix[kw] = fn
+}
+
+func (g *Grammar) UnregisterPrefixKeyword(kw string) {
+	g.kwPrefix[kw] = fobiddenPrefix
 }
 
 func (g *Grammar) RegisterBinding(kd rune, pow int) {
@@ -131,7 +158,7 @@ func (g *Grammar) RegisterBinding(kd rune, pow int) {
 func FormulaGrammar() *Grammar {
 	g := Grammar{
 		name:     "formula",
-		mode:     ModeBasic,
+		mode:     ModeFormula,
 		prefix:   make(map[rune]PrefixFunc),
 		kwPrefix: make(map[string]PrefixFunc),
 		infix:    make(map[rune]InfixFunc),
@@ -278,7 +305,10 @@ func (p *Parser) Parse(r io.Reader) (Expr, error) {
 	if err := p.Init(r); err != nil {
 		return nil, err
 	}
-	return p.parse(powLowest)
+	if p.stack.Mode() == ModeFormula {
+		return p.parseFormula()
+	}
+	return p.parseScript()
 }
 
 func (p *Parser) Init(r io.Reader) error {
@@ -301,6 +331,34 @@ func (p *Parser) ParseNext() (Expr, error) {
 		return p.ParseNext()
 	}
 	return p.parse(powLowest)
+}
+
+func (p *Parser) parseFormula() (Expr, error) {
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	if !p.done() {
+		return nil, p.makeError("invalid formula given")
+	}
+	return expr, nil
+}
+
+func (p *Parser) parseScript() (Expr, error) {
+	var list []Expr
+	for !p.done() {
+		if p.is(Comment) {
+			p.next()
+			continue
+		}
+		e, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, e)
+	}
+	_ = list
+	return nil, nil
 }
 
 func (p *Parser) parseUntil(ok func() bool) ([]Expr, error) {
