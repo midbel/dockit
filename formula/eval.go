@@ -6,8 +6,8 @@ import (
 	"io"
 	"math"
 
-	"github.com/midbel/dockit/value"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/value"
 )
 
 var (

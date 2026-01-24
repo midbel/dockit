@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"iter"
 
-	"github.com/midbel/dockit/formula"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -88,7 +87,7 @@ type MutableView interface {
 	View
 
 	SetValue(layout.Position, value.ScalarValue) error
-	SetFormula(layout.Position, formula.Expr) error
+	// SetFormula(layout.Position, formula.Expr) error
 
 	ClearCell(layout.Position) error
 	ClearValue(layout.Position) error
@@ -278,8 +277,6 @@ func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
 				c, err := v.sheet.Cell(p)
 				if err == nil {
 					data[ix] = c.Value()
-				} else {
-					data[ix] = formula.Blank{}
 				}
 				ix++
 			}

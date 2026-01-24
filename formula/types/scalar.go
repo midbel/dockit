@@ -1,8 +1,8 @@
 package types
 
 import (
-	"time"
 	"fmt"
+	"time"
 
 	"github.com/mibel/dockit/value"
 )

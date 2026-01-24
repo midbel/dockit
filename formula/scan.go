@@ -117,7 +117,7 @@ const (
 )
 
 type Position struct {
-	Line int
+	Line   int
 	Column int
 }
 
@@ -126,8 +126,8 @@ func (p Position) String() string {
 }
 
 type Token struct {
-	Literal  string
-	Type     rune
+	Literal string
+	Type    rune
 	Position
 }
 
