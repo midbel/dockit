@@ -1,10 +1,12 @@
 package formula
 
 import (
-	"github.com/midbel/dockit/layout"
-	"github.com/midbel/dockit/grid"
-	"github.com/midbel/dockit/value"
+	"fmt"
+
 	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
 
 type sheetContext struct {

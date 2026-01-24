@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"

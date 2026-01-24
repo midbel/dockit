@@ -1,6 +1,7 @@
 package value
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/midbel/dockit/layout"
@@ -51,6 +52,8 @@ type ArrayValue interface {
 	Dimension() layout.Dimension
 	At(int, int) ScalarValue
 }
+
+var ErrProp = errors.New("undefined property")
 
 type ObjectValue interface {
 	Value

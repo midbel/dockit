@@ -2,7 +2,6 @@ package builtins
 
 import (
 	"github.com/midbel/dockit/formula/types"
-	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
 )
 

@@ -2,9 +2,6 @@ package types
 
 import (
 	"errors"
-	"fmt"
-	"strconv"
-	"time"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"

@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -40,7 +41,7 @@ func (c *fileValue) Get(ident string) (value.Value, error) {
 		}
 		return NewViewValue(sh), nil
 	default:
-		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
+		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
 	}
 }
 
@@ -95,7 +96,7 @@ func (c *viewValue) Get(ident string) (value.Value, error) {
 	case "index":
 		return Float(float64(0)), nil
 	default:
-		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
+		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
 	}
 }
 

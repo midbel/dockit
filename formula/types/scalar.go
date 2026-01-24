@@ -1,7 +1,7 @@
 package types
 
 import (
-	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/midbel/dockit/value"

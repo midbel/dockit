@@ -300,7 +300,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		if _, ok := r.sharedFormulas[index]; shared == "shared" && !ok {
 			r.sharedFormulas[index] = sharedFormula{
 				Position: cell.Position,
-				Callable:     formula,
+				Callable: formula,
 			}
 		}
 		if cell.formula == nil {
