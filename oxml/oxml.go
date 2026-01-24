@@ -11,6 +11,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/midbel/dockit/formula/env"
+	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -39,7 +41,7 @@ type Cell struct {
 
 	raw     string
 	parsed  value.ScalarValue
-	formula grid.Callable
+	formula value.Formula
 	dirty   bool
 }
 
@@ -59,7 +61,7 @@ func (c *Cell) Reload(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
 	}
-	res, err := c.formula.Call(ctx)
+	res, err := c.formula.Eval(ctx)
 	if err == nil {
 		if !types.IsScalar(res) {
 			c.parsed = types.ErrValue
@@ -235,7 +237,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 }
 
 func (s *Sheet) Reload(ctx value.Context) error {
-	ctx = grid.SheetContext(ctx, s)
+	ctx = eval.SheetContext(ctx, s)
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
 			if err := c.Reload(ctx); err != nil {
@@ -341,7 +343,7 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	return nil
 }
 
-func (s *Sheet) SetFormula(pos layout.Position, expr grid.Callable) error {
+func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		return grid.NoCell(pos)
@@ -465,9 +467,9 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Reload() error {
-	ctx := FileContext(f)
+	ctx := eval.FileContext(env.Empty(), f)
 	for _, s := range f.sheets {
-		if err := s.Reload(grid.SheetContext(ctx, s)); err != nil {
+		if err := s.Reload(eval.SheetContext(ctx, s)); err != nil {
 			return err
 		}
 	}

@@ -65,6 +65,12 @@ type Array struct {
 	Data [][]value.ScalarValue
 }
 
+func NewArray(data [][]value.ScalarValue) value.ArrayValue {
+	return Array{
+		Data: data,
+	}
+}
+
 func (Array) Kind() value.ValueKind {
 	return value.KindArray
 }

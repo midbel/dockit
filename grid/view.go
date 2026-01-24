@@ -91,7 +91,7 @@ type MutableView interface {
 	View
 
 	SetValue(layout.Position, value.ScalarValue) error
-	SetFormula(layout.Position, Callable) error
+	SetFormula(layout.Position, value.Formula) error
 
 	ClearCell(layout.Position) error
 	ClearValue(layout.Position) error

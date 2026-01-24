@@ -9,6 +9,7 @@ import (
 
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
 
 type Expr interface {
@@ -17,6 +18,17 @@ type Expr interface {
 
 type Clonable interface {
 	CloneWithOffset(layout.Position) Expr
+}
+
+func CloneWithOffset(expr value.Formula, pos layout.Position) value.Formula {
+	e, ok := expr.(formula)
+	if !ok {
+		return expr
+	}
+	if c, ok := e.Expr.(Clonable); ok {
+		e.Expr = c.CloneWithOffset(pos)
+	}
+	return e
 }
 
 type Kind int8
@@ -189,6 +201,18 @@ func makeFilterExpr(body []Expr) Expr {
 
 func (e filterExpr) String() string {
 	return "<filter>"
+}
+
+type formula struct {
+	Expr
+}
+
+func (f formula) Eval(ctx value.Context) (value.Value, error) {
+	return Eval(f.Expr, ctx)
+}
+
+func (f formula) String() string {
+	return f.Expr.String()
 }
 
 type binary struct {

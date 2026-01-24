@@ -449,9 +449,9 @@ func (w *sheetWriter) writeDefaultCell(cell *Cell) error {
 		attrs = append(attrs, createAttr("t", cell.Type))
 	}
 	w.writer.Open(cellName, attrs)
-	if cell.formula != nil {
+	if s, ok := cell.formula.(fmt.Stringer); ok {
 		w.writer.Open(formName, nil)
-		w.writer.Text(cell.formula.String())
+		w.writer.Text(s.String())
 		w.writer.Close(formName)
 	}
 	w.writer.Open(valName, nil)

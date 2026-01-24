@@ -8,10 +8,11 @@ import (
 	"os"
 
 	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/oxml"
 )
 
-func Infos(file string) ([]ViewInfo, error) {
+func Infos(file string) ([]grid.ViewInfo, error) {
 	f, err := Open(file)
 	if err != nil {
 		return nil, err
@@ -19,7 +20,7 @@ func Infos(file string) ([]ViewInfo, error) {
 	return f.Infos(), nil
 }
 
-func OpenFormat(file string, format Format) (File, error) {
+func OpenFormat(file string, format Format) (grid.File, error) {
 	switch format {
 	case CSV:
 		return csv.Open(file)
@@ -31,7 +32,7 @@ func OpenFormat(file string, format Format) (File, error) {
 	return nil, fmt.Errorf("unsupported format")
 }
 
-func Open(file string) (File, error) {
+func Open(file string) (grid.File, error) {
 	format, err := detectFormat(file)
 	if err != nil {
 		return nil, err
@@ -45,9 +46,6 @@ const (
 	CSV Format = iota << 1
 	OXML
 	ODS
-	// Delimited
-	// Json
-	// Xml
 	Unknown
 )
 

@@ -70,11 +70,7 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 			data[i][j] = cell.Value()
 		}
 	}
-
-	arr := types.Array{
-		Data: data,
-	}
-	return arr, nil
+	return types.NewArray(data), nil
 }
 
 func (c sheetContext) At(pos layout.Position) (value.Value, error) {

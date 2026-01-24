@@ -12,6 +12,9 @@ import (
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/doc"
+	"github.com/midbel/dockit/formula/env"
+	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/oxml"
@@ -232,7 +235,7 @@ func (s SheetRef) DumpTo(encoder grid.Encoder, reload bool) error {
 	if err != nil {
 		return err
 	}
-	ctx := oxml.FileContext(s.File)
+	ctx := eval.FileContext(env.Empty(), s.File)
 	if reload {
 		if err := sh.Reload(ctx); err != nil {
 			return err
@@ -682,7 +685,7 @@ func mergeFile(f *oxml.File, file string) error {
 const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
 
 type GetInfoCommand struct {
-	Format grid.Format
+	Format doc.Format
 }
 
 func (c GetInfoCommand) Run(args []string) error {
@@ -693,7 +696,7 @@ func (c GetInfoCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	infos, err := grid.Infos(set.Arg(0))
+	infos, err := doc.Infos(set.Arg(0))
 	if err != nil {
 		return err
 	}

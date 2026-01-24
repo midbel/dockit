@@ -23,6 +23,10 @@ type Context interface {
 	Resolve(string) (Value, error)
 }
 
+type Formula interface {
+	Eval(Context) (Value, error)
+}
+
 type Predicate interface {
 	Test(ScalarValue) (bool, error)
 }

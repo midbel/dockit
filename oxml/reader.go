@@ -14,6 +14,7 @@ import (
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
 
 type reader struct {
@@ -209,7 +210,7 @@ func (r *reader) invalid() bool {
 
 type sharedFormula struct {
 	layout.Position
-	grid.Callable
+	Expr value.Formula
 }
 
 type sheetReader struct {
@@ -283,11 +284,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 			Line:   cell.Line - sf.Line,
 			Column: cell.Column - sf.Column,
 		}
-		if c, ok := sf.Callable.(eval.Clonable); ok {
-			cell.formula = c.CloneWithOffset(pos)
-		} else {
-			cell.formula = sf.Expr
-		}
+		cell.formula = eval.CloneWithOffset(sf.Expr, pos)
 	}
 	if el.SelfClosed {
 		return nil
@@ -300,7 +297,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		if _, ok := r.sharedFormulas[index]; shared == "shared" && !ok {
 			r.sharedFormulas[index] = sharedFormula{
 				Position: cell.Position,
-				Callable: formula,
+				Expr:     formula,
 			}
 		}
 		if cell.formula == nil {
