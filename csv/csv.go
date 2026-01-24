@@ -150,7 +150,7 @@ func (s *Sheet) ClearValue(pos layout.Position) error {
 		return grid.NoCell(pos)
 	}
 	c.raw = ""
-	c.parsed = formula.Blank{}
+	c.parsed = types.Blank{}
 	return nil
 }
 
@@ -293,7 +293,7 @@ func readSheet(r io.Reader) (*Sheet, error) {
 			c := Cell{
 				Position: p,
 				raw:      f,
-				parsed:   formula.Text(f),
+				parsed:   types.Text(f),
 			}
 			r.cells = append(r.cells, &c)
 			sh.cells[p] = &c

@@ -1,4 +1,4 @@
-package formula
+package eval
 
 import (
 	"errors"
@@ -9,6 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/midbel/dockit/formula/env"
+	"github.com/midbel/dockit/formula/op"
+	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
 )
@@ -96,9 +99,10 @@ func NewEngine() *Engine {
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
+	return &e
 }
 
-func (e *Engine) Exec(r io.Reader, env *Environment) (value.Value, error) {
+func (e *Engine) Exec(r io.Reader, ctx *env.Environment) (value.Value, error) {
 	var (
 		val   value.Value
 		phase = phaseUse
@@ -112,31 +116,30 @@ func (e *Engine) Exec(r io.Reader, env *Environment) (value.Value, error) {
 		if errors.Is(err, io.EOF) {
 			break
 		}
-		fmt.Printf("%+v\n", expr)
 		if err != nil {
 			return nil, err
 		}
 		if phase, err = execPhase(expr, phase); err != nil {
 			return nil, err
 		}
-		if val, err = e.exec(expr, env); err != nil {
+		if val, err = e.exec(expr, ctx); err != nil {
 			return nil, err
 		}
 	}
 	return val, nil
 }
 
-func (e *Engine) exec(expr Expr, ctx *Environment) (value.Value, error) {
-	switch e := expr.(type) {
+func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
+	switch expr := expr.(type) {
 	case importFile:
-		return evalImport(e, ctx, e.Loader)
+		return evalImport(expr, ctx, e.Loader)
 	case useFile:
 	case printRef:
 	case access:
 	case literal:
-		return Text(e.value), nil
+		return types.Text(expr.value), nil
 	case number:
-		return Float(e.value), nil
+		return types.Float(expr.value), nil
 	default:
 		return nil, ErrEval
 	}
@@ -150,9 +153,9 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	case unary:
 		return evalUnary(e, ctx)
 	case literal:
-		return Text(e.value), nil
+		return types.Text(e.value), nil
 	case number:
-		return Float(e.value), nil
+		return types.Float(e.value), nil
 	case call:
 		return evalCall(e, ctx)
 	case cellAddr:
@@ -164,7 +167,7 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	}
 }
 
-func evalImport(e importFile, ctx *Environment, doc Loader) (value.Value, error) {
+func evalImport(e importFile, ctx *env.Environment, doc Loader) (value.Value, error) {
 	file, err := doc.Open(e.file)
 	if err != nil {
 		return nil, err
@@ -183,7 +186,7 @@ func evalImport(e importFile, ctx *Environment, doc Loader) (value.Value, error)
 		}
 		e.alias = alias
 	}
-	ctx.Define(e.alias, NewFileValue(file))
+	ctx.Define(e.alias, types.NewFileValue(file))
 	return nil, nil
 }
 
@@ -197,60 +200,60 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 		return nil, err
 	}
 
-	if !IsScalar(left) && IsScalar(right) {
-		return ErrValue, nil
+	if !types.IsScalar(left) && types.IsScalar(right) {
+		return types.ErrValue, nil
 	}
 
 	switch e.op {
-	case Add:
+	case op.Add:
 		return doMath(left, right, func(left, right float64) (float64, error) {
 			return left + right, nil
 		})
-	case Sub:
+	case op.Sub:
 		return doMath(left, right, func(left, right float64) (float64, error) {
 			return left - right, nil
 		})
-	case Mul:
+	case op.Mul:
 		return doMath(left, right, func(left, right float64) (float64, error) {
 			return left * right, nil
 		})
-	case Div:
+	case op.Div:
 		return doMath(left, right, func(left, right float64) (float64, error) {
 			if right == 0 {
-				return 0, ErrDiv0
+				return 0, types.ErrDiv0
 			}
 			return left / right, nil
 		})
-	case Pow:
+	case op.Pow:
 		return doMath(left, right, func(left, right float64) (float64, error) {
 			return math.Pow(left, right), nil
 		})
-	case Concat:
-		if !IsScalar(left) || !IsScalar(right) {
-			return ErrValue, nil
+	case op.Concat:
+		if !types.IsScalar(left) || !types.IsScalar(right) {
+			return types.ErrValue, nil
 		}
-		return Text(left.String() + right.String()), nil
-	case Eq:
+		return types.Text(left.String() + right.String()), nil
+	case op.Eq:
 		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
 			return left.Equal(right)
 		})
-	case Ne:
+	case op.Ne:
 		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
 			ok, err := left.Equal(right)
 			return !ok, err
 		})
-	case Lt:
+	case op.Lt:
 		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
 			return left.Less(right)
 		})
-	case Le:
+	case op.Le:
 		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
 			if ok, err := left.Equal(right); err == nil && ok {
 				return ok, nil
 			}
 			return left.Less(right)
 		})
-	case Gt:
+	case op.Gt:
 		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
 			if ok, err := left.Equal(right); err == nil && ok {
 				return !ok, nil
@@ -261,7 +264,7 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 			}
 			return ok, err
 		})
-	case Ge:
+	case op.Ge:
 		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
 			if ok, err := left.Equal(right); err == nil && ok {
 				return ok, nil
@@ -270,7 +273,7 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 			return !ok, err
 		})
 	default:
-		return ErrValue, nil
+		return types.ErrValue, nil
 	}
 }
 
@@ -279,24 +282,24 @@ func evalUnary(e unary, ctx value.Context) (value.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	n, ok := val.(Float)
+	n, ok := val.(types.Float)
 	if !ok {
-		return ErrValue, nil
+		return types.ErrValue, nil
 	}
 	switch e.op {
-	case Add:
+	case op.Add:
 		return n, nil
-	case Sub:
-		return Float(float64(-n)), nil
+	case op.Sub:
+		return types.Float(float64(-n)), nil
 	default:
-		return ErrValue, nil
+		return types.ErrValue, nil
 	}
 }
 
 func evalCall(e call, ctx value.Context) (value.Value, error) {
 	id, ok := e.ident.(identifier)
 	if !ok {
-		return ErrName, nil
+		return types.ErrName, nil
 	}
 	var args []value.Arg
 	for i := range e.args {
@@ -322,11 +325,11 @@ func evalRangeAddr(e rangeAddr, ctx value.Context) (value.Value, error) {
 }
 
 func doMath(left, right value.Value, do func(left, right float64) (float64, error)) (value.Value, error) {
-	if !IsNumber(left) {
-		return ErrValue, nil
+	if !types.IsNumber(left) {
+		return types.ErrValue, nil
 	}
-	if !IsNumber(right) {
-		return ErrValue, nil
+	if !types.IsNumber(right) {
+		return types.ErrValue, nil
 	}
 	var (
 		ls = left.(value.ScalarValue)
@@ -336,18 +339,18 @@ func doMath(left, right value.Value, do func(left, right float64) (float64, erro
 	if err != nil {
 		return nil, err
 	}
-	return Float(res), nil
+	return types.Float(res), nil
 }
 
 func doCmp(left, right value.Value, do func(left value.Comparable, right value.Value) (bool, error)) (value.Value, error) {
-	if !IsComparable(left) {
-		return ErrValue, nil
+	if !types.IsComparable(left) {
+		return types.ErrValue, nil
 	}
 	ok, err := do(left.(value.Comparable), right)
 	if err != nil {
-		return ErrValue, nil
+		return types.ErrValue, nil
 	}
-	return Boolean(ok), nil
+	return types.Boolean(ok), nil
 }
 
 type arg struct {
@@ -375,7 +378,7 @@ func (a arg) asFilter(ctx value.Context) (*value.Filter, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	src.Predicate, err = createPredicate(b.op, v)
+	src.Predicate, err = types.NewPredicate(b.op, v)
 	if err != nil {
 		return nil, false, err
 	}

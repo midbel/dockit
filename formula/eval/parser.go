@@ -1,4 +1,4 @@
-package formula
+package eval
 
 import (
 	"fmt"
@@ -6,184 +6,40 @@ import (
 	"maps"
 	"strconv"
 	"strings"
+
+	"github.com/midbel/dockit/formula/op"
 )
-
-const (
-	powLowest = iota
-	powAssign
-	powEq
-	powCmp
-	powConcat
-	powAdd
-	powMul
-	powPow
-	powUnary
-	powPercent
-	powProp
-	powCall
-)
-
-var defaultBindings = map[rune]int{
-	AddAssign:    powAssign,
-	SubAssign:    powAssign,
-	MulAssign:    powAssign,
-	DivAssign:    powAssign,
-	PowAssign:    powAssign,
-	ConcatAssign: powAssign,
-	Assign:       powAssign,
-	Add:          powAdd,
-	Sub:          powAdd,
-	Mul:          powMul,
-	Div:          powMul,
-	Percent:      powPercent,
-	Pow:          powPow,
-	Concat:       powConcat,
-	Eq:           powEq,
-	Ne:           powEq,
-	Lt:           powCmp,
-	Le:           powCmp,
-	Gt:           powCmp,
-	Ge:           powCmp,
-	BegGrp:       powCall,
-	BegProp:      powProp,
-	Dot:          powProp,
-}
-
-type (
-	PrefixFunc func(*Parser) (Expr, error)
-	InfixFunc  func(*Parser, Expr) (Expr, error)
-)
-
-var errForbidden = fmt.Errorf("not allowed")
-
-func forbiddenInfix(_ *Parser, _ Expr) (Expr, error) {
-	return nil, fmt.Errorf("%w: infix operator/keyword", errForbidden)
-}
-
-func forbiddenPrefix(_ *Parser) (Expr, error) {
-	return nil, fmt.Errorf("%w: prefix operator/keyword", errForbidden)
-}
-
-type Grammar struct {
-	name string
-	mode ScanMode
-
-	prefix   map[rune]PrefixFunc
-	infix    map[rune]InfixFunc
-	bindings map[rune]int
-
-	kwPrefix map[string]PrefixFunc
-	kwInfix  map[string]InfixFunc
-}
-
-func (g *Grammar) Context() string {
-	return g.name
-}
-
-func (g *Grammar) Pow(kind rune) int {
-	pow, ok := g.bindings[kind]
-	if !ok {
-		pow = powLowest
-	}
-	return pow
-}
-
-func (g *Grammar) Prefix(tok Token) (PrefixFunc, error) {
-	if tok.Type == Keyword {
-		fn, ok := g.kwPrefix[tok.Literal]
-		if !ok {
-			return nil, fmt.Errorf("(%s) %s: unknown keyword %s", tok.Position, g.name, tok.Literal)
-		}
-		return fn, nil
-	}
-	fn, ok := g.prefix[tok.Type]
-	if !ok {
-		return nil, fmt.Errorf("(%s) %s: unsupported prefix operator (%s)", tok.Position, g.name, tok)
-	}
-	return fn, nil
-}
-
-func (g *Grammar) Infix(tok Token) (InfixFunc, error) {
-	if tok.Type == Keyword {
-		fn, ok := g.kwInfix[tok.Literal]
-		if !ok {
-			return nil, fmt.Errorf("(%s) %s: unknown keyword %s", tok.Position, g.name, tok.Literal)
-		}
-		return fn, nil
-	}
-	fn, ok := g.infix[tok.Type]
-	if !ok {
-		return nil, fmt.Errorf("(%s) %s: unsupported infix operator (%s)", tok.Position, g.name, tok)
-	}
-	return fn, nil
-}
-
-func (g *Grammar) RegisterInfix(kd rune, fn InfixFunc) {
-	g.infix[kd] = fn
-}
-
-func (g *Grammar) UnregisterInfix(kd rune) {
-	g.infix[kd] = forbiddenInfix
-}
-
-func (g *Grammar) RegisterInfixKeyword(kw string, fn InfixFunc) {
-	g.kwInfix[kw] = fn
-}
-
-func (g *Grammar) UnregisterInfixKeyword(kw string) {
-	g.kwInfix[kw] = forbiddenInfix
-}
-
-func (g *Grammar) RegisterPrefix(kd rune, fn PrefixFunc) {
-	g.prefix[kd] = fn
-}
-
-func (g *Grammar) UnregisterPrefix(kd rune) {
-	g.prefix[kd] = forbiddenPrefix
-}
-
-func (g *Grammar) RegisterPrefixKeyword(kw string, fn PrefixFunc) {
-	g.kwPrefix[kw] = fn
-}
-
-func (g *Grammar) UnregisterPrefixKeyword(kw string) {
-	g.kwPrefix[kw] = forbiddenPrefix
-}
-
-func (g *Grammar) RegisterBinding(kd rune, pow int) {
-	g.bindings[kd] = pow
-}
 
 func FormulaGrammar() *Grammar {
 	g := Grammar{
 		name:     "formula",
 		mode:     ModeFormula,
-		prefix:   make(map[rune]PrefixFunc),
+		prefix:   make(map[op.Op]PrefixFunc),
 		kwPrefix: make(map[string]PrefixFunc),
-		infix:    make(map[rune]InfixFunc),
+		infix:    make(map[op.Op]InfixFunc),
 		kwInfix:  make(map[string]InfixFunc),
 		bindings: maps.Clone(defaultBindings),
 	}
-	g.RegisterPrefix(Ident, parseAdressOrIdentifier)
-	g.RegisterPrefix(Number, parseNumber)
-	g.RegisterPrefix(Literal, parseLiteral)
-	g.RegisterPrefix(Sub, parseUnary)
-	g.RegisterPrefix(Add, parseUnary)
-	g.RegisterPrefix(BegGrp, parseGroup)
+	g.RegisterPrefix(op.Ident, parseAdressOrIdentifier)
+	g.RegisterPrefix(op.Number, parseNumber)
+	g.RegisterPrefix(op.Literal, parseLiteral)
+	g.RegisterPrefix(op.Sub, parseUnary)
+	g.RegisterPrefix(op.Add, parseUnary)
+	g.RegisterPrefix(op.BegGrp, parseGroup)
 
-	g.RegisterInfix(BegGrp, parseCall)
-	g.RegisterInfix(Add, parseBinary)
-	g.RegisterInfix(Sub, parseBinary)
-	g.RegisterInfix(Mul, parseBinary)
-	g.RegisterInfix(Div, parseBinary)
-	g.RegisterInfix(Concat, parseBinary)
-	g.RegisterInfix(Pow, parseBinary)
-	g.RegisterInfix(Eq, parseBinary)
-	g.RegisterInfix(Ne, parseBinary)
-	g.RegisterInfix(Lt, parseBinary)
-	g.RegisterInfix(Le, parseBinary)
-	g.RegisterInfix(Gt, parseBinary)
-	g.RegisterInfix(Ge, parseBinary)
+	g.RegisterInfix(op.BegGrp, parseCall)
+	g.RegisterInfix(op.Add, parseBinary)
+	g.RegisterInfix(op.Sub, parseBinary)
+	g.RegisterInfix(op.Mul, parseBinary)
+	g.RegisterInfix(op.Div, parseBinary)
+	g.RegisterInfix(op.Concat, parseBinary)
+	g.RegisterInfix(op.Pow, parseBinary)
+	g.RegisterInfix(op.Eq, parseBinary)
+	g.RegisterInfix(op.Ne, parseBinary)
+	g.RegisterInfix(op.Lt, parseBinary)
+	g.RegisterInfix(op.Le, parseBinary)
+	g.RegisterInfix(op.Gt, parseBinary)
+	g.RegisterInfix(op.Ge, parseBinary)
 
 	return &g
 }
@@ -193,17 +49,17 @@ func ScriptGrammar() *Grammar {
 	g.name = "script"
 	g.mode = ModeScript
 
-	g.RegisterPrefix(BegBlock, parseBlock)
-	g.RegisterPrefix(Eq, parseLambda)
+	g.RegisterPrefix(op.BegBlock, parseBlock)
+	g.RegisterPrefix(op.Eq, parseLambda)
 
 	// g.RegisterInfix(BegProp, parseIndex)
-	g.RegisterInfix(Dot, parseAccess)
-	g.RegisterInfix(Assign, parseAssignment)
-	g.RegisterInfix(AddAssign, parseAssignment)
-	g.RegisterInfix(SubAssign, parseAssignment)
-	g.RegisterInfix(MulAssign, parseAssignment)
-	g.RegisterInfix(PowAssign, parseAssignment)
-	g.RegisterInfix(DivAssign, parseAssignment)
+	g.RegisterInfix(op.Dot, parseAccess)
+	g.RegisterInfix(op.Assign, parseAssignment)
+	g.RegisterInfix(op.AddAssign, parseAssignment)
+	g.RegisterInfix(op.SubAssign, parseAssignment)
+	g.RegisterInfix(op.MulAssign, parseAssignment)
+	g.RegisterInfix(op.PowAssign, parseAssignment)
+	g.RegisterInfix(op.DivAssign, parseAssignment)
 
 	g.RegisterPrefixKeyword(kwUse, parseUse)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
@@ -214,66 +70,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwDefault, parseDefault)
 
 	return g
-}
-
-type GrammarStack []*Grammar
-
-func (gs *GrammarStack) Top() *Grammar {
-	n := len(*gs)
-	return (*gs)[n-1]
-}
-
-func (gs *GrammarStack) Mode() ScanMode {
-	return gs.Top().mode
-}
-
-func (gs *GrammarStack) Context() string {
-	return gs.Top().Context()
-}
-
-func (gs *GrammarStack) Pow(kind rune) int {
-	for i := len(*gs) - 1; i >= 0; i-- {
-		pow := (*gs)[i].Pow(kind)
-		if pow > powLowest {
-			return pow
-		}
-	}
-	return powLowest
-}
-
-func (gs *GrammarStack) Prefix(tok Token) (PrefixFunc, error) {
-	var lastErr error
-	for i := len(*gs) - 1; i >= 0; i-- {
-		fn, err := (*gs)[i].Prefix(tok)
-		if err == nil {
-			return fn, nil
-		}
-		lastErr = err
-	}
-	return nil, lastErr
-}
-
-func (gs *GrammarStack) Infix(tok Token) (InfixFunc, error) {
-	var lastErr error
-	for i := len(*gs) - 1; i >= 0; i-- {
-		fn, err := (*gs)[i].Infix(tok)
-		if err == nil {
-			return fn, err
-		}
-		lastErr = err
-	}
-	return nil, lastErr
-}
-
-func (gs *GrammarStack) Pop() {
-	n := len(*gs)
-	if n > 1 {
-		*gs = (*gs)[:n-1]
-	}
-}
-
-func (gs *GrammarStack) Push(g *Grammar) {
-	*gs = append(*gs, g)
 }
 
 type Parser struct {
@@ -325,10 +121,7 @@ func (p *Parser) ParseNext() (Expr, error) {
 	if p.done() {
 		return nil, io.EOF
 	}
-	if p.is(Comment) {
-		p.next()
-		return p.ParseNext()
-	}
+	p.skipComment()
 	return p.parse(powLowest)
 }
 
@@ -400,15 +193,15 @@ func (p *Parser) next() {
 }
 
 func (p *Parser) done() bool {
-	return p.is(EOF)
+	return p.is(op.EOF)
 }
 
-func (p *Parser) is(kind rune) bool {
+func (p *Parser) is(kind op.Op) bool {
 	return p.curr.Type == kind
 }
 
 func (p *Parser) isEOL() bool {
-	return p.is(Eol)
+	return p.is(op.Eol)
 }
 
 func (p *Parser) skipEOL() {
@@ -418,7 +211,7 @@ func (p *Parser) skipEOL() {
 }
 
 func (p *Parser) skipComment() {
-	for p.is(Comment) {
+	for p.is(op.Comment) {
 		p.next()
 	}
 }
@@ -427,7 +220,7 @@ func (p *Parser) currentLiteral() string {
 	return p.curr.Literal
 }
 
-func (p *Parser) pow(kind rune) int {
+func (p *Parser) pow(kind op.Op) int {
 	return p.currGrammar().Pow(kind)
 }
 
@@ -460,21 +253,21 @@ func parseCall(p *Parser, expr Expr) (Expr, error) {
 	c := call{
 		ident: expr,
 	}
-	for !p.done() && p.curr.Type != EndGrp {
+	for !p.done() && !p.is(op.EndGrp) {
 		arg, err := p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
 		switch p.curr.Type {
-		case Comma:
+		case op.Comma:
 			p.next()
-		case EndGrp:
+		case op.EndGrp:
 		default:
 			return nil, p.makeError("unexpected character in function call")
 		}
 		c.args = append(c.args, arg)
 	}
-	if p.curr.Type != EndGrp {
+	if !p.is(op.EndGrp) {
 		return nil, p.makeError("unexpected character in function call")
 	}
 	p.next()
@@ -514,7 +307,7 @@ func parseGroup(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.curr.Type != EndGrp {
+	if !p.is(op.EndGrp) {
 		return nil, p.makeError("missing ')' at end of expression")
 	}
 	p.next()
@@ -543,7 +336,7 @@ func parseLiteral(p *Parser) (Expr, error) {
 }
 
 func parseAdressOrIdentifier(p *Parser) (Expr, error) {
-	if p.peek.Type == BegGrp || p.peek.Type == Dot {
+	if p.peek.Type == op.BegGrp || p.peek.Type == op.Dot {
 		id := identifier{
 			name: p.currentLiteral(),
 		}
@@ -552,7 +345,7 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	}
 
 	var sheet string
-	if p.peek.Type == SheetRef {
+	if p.peek.Type == op.SheetRef {
 		sheet = p.currentLiteral()
 		p.next()
 		p.next()
@@ -570,7 +363,7 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 	start.Sheet = sheet
 	p.next()
 
-	if p.is(RangeRef) {
+	if p.is(op.RangeRef) {
 		p.next()
 
 		end, err := parseCellAddr(p.currentLiteral())
@@ -630,55 +423,55 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	a := assignment{
 		ident: id,
 	}
-	op := p.curr.Type
+	oper := p.curr.Type
 	p.next()
 
 	expr, err := p.parse(powLowest)
 	if err != nil {
 		return nil, err
 	}
-	switch op {
-	case Assign:
-	case AddAssign:
+	switch oper {
+	case op.Assign:
+	case op.AddAssign:
 		b := binary{
 			left:  left,
 			right: expr,
-			op:    Add,
+			op:    op.Add,
 		}
 		expr = b
-	case SubAssign:
+	case op.SubAssign:
 		b := binary{
 			left:  left,
 			right: expr,
-			op:    Sub,
+			op:    op.Sub,
 		}
 		expr = b
-	case MulAssign:
+	case op.MulAssign:
 		b := binary{
 			left:  left,
 			right: expr,
-			op:    Mul,
+			op:    op.Mul,
 		}
 		expr = b
-	case DivAssign:
+	case op.DivAssign:
 		b := binary{
 			left:  left,
 			right: expr,
-			op:    Div,
+			op:    op.Div,
 		}
 		expr = b
-	case PowAssign:
+	case op.PowAssign:
 		b := binary{
 			left:  left,
 			right: expr,
-			op:    Pow,
+			op:    op.Pow,
 		}
 		expr = b
-	case ConcatAssign:
+	case op.ConcatAssign:
 		b := binary{
 			left:  left,
 			right: expr,
-			op:    Concat,
+			op:    op.Concat,
 		}
 		expr = b
 	default:
@@ -748,14 +541,14 @@ func parseExport(p *Parser) (Expr, error) {
 	if stmt.expr, err = p.parse(powLowest); err != nil {
 		return nil, err
 	}
-	if !p.is(Keyword) && p.currentLiteral() != kwTo {
+	if !p.is(op.Keyword) && p.currentLiteral() != kwTo {
 		return nil, p.makeError("keyword 'to' expected")
 	}
 	p.next()
 	if stmt.file, err = p.parse(powLowest); err != nil {
 		return nil, err
 	}
-	if p.is(Keyword) && p.currentLiteral() == kwAs {
+	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		stmt.format, err = p.parse(powLowest)
 		if err != nil {
@@ -772,15 +565,15 @@ func parseExport(p *Parser) (Expr, error) {
 func parseUse(p *Parser) (Expr, error) {
 	p.next()
 	var stmt useFile
-	if !p.is(Literal) {
+	if !p.is(op.Literal) {
 		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
 		return nil, p.makeError(msg)
 	}
 	stmt.file = p.currentLiteral()
 	p.next()
-	if p.is(Keyword) && p.currentLiteral() == kwAs {
+	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
 		p.next()
-		if !p.is(Ident) {
+		if !p.is(op.Ident) {
 			msg := fmt.Sprintf("literal/identifier expected instead of %s", p.curr)
 			return nil, p.makeError(msg)
 		}
@@ -797,15 +590,15 @@ func parseUse(p *Parser) (Expr, error) {
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
 	var stmt importFile
-	if !p.is(Literal) {
+	if !p.is(op.Literal) {
 		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
 		return nil, p.makeError(msg)
 	}
 	stmt.file = p.currentLiteral()
 	p.next()
-	if p.is(Keyword) && p.currentLiteral() == kwAs {
+	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
 		p.next()
-		if !p.is(Ident) {
+		if !p.is(op.Ident) {
 			msg := fmt.Sprintf("literal/identifier expected instead of %s", p.curr)
 			return nil, p.makeError(msg)
 		}
@@ -837,7 +630,7 @@ func filterGrammar() *Grammar {
 
 func parseWith(p *Parser) (Expr, error) {
 	p.next()
-	if !p.is(Keyword) {
+	if !p.is(op.Keyword) {
 		return nil, p.makeError("keyword expected")
 	}
 	var get func([]Expr) Expr
@@ -867,13 +660,13 @@ func parseWith(p *Parser) (Expr, error) {
 	p.next()
 
 	body, err := p.parseUntil(func() bool {
-		isEnd := p.is(Keyword) && p.currentLiteral() == kwEnd
+		isEnd := p.is(op.Keyword) && p.currentLiteral() == kwEnd
 		return !isEnd
 	})
 	if err != nil {
 		return nil, err
 	}
-	if !p.is(Keyword) && p.currentLiteral() != kwEnd {
+	if !p.is(op.Keyword) && p.currentLiteral() != kwEnd {
 		return nil, p.makeError("expected 'end' keyword")
 	}
 	p.next()

@@ -1,66 +1,11 @@
-package formula
+package eval
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"unicode/utf8"
-)
 
-const (
-	Invalid rune = 0
-
-	EOF rune = 1 << iota
-	Eol
-	Keyword
-	Ident
-	Number
-	Literal
-	Comment
-	Assign
-	Add
-	Sub
-	Mul
-	Div
-	Percent
-	Pow
-	Concat
-	Eq
-	Ne
-	Lt
-	Le
-	Gt
-	Ge
-	Comma
-	Dot
-	Begin
-	End
-	RangeRef
-	SheetRef
-)
-
-const (
-	groupTok rune = 1 << iota
-	blockTok
-	propTok
-)
-
-const (
-	BegBlock = blockTok | Begin
-	EndBlock = blockTok | End
-	BegGrp   = groupTok | Begin
-	EndGrp   = groupTok | End
-	BegProp  = propTok | Begin
-	EndProp  = propTok | End
-)
-
-const (
-	AddAssign    = Add | Assign
-	DivAssign    = Div | Assign
-	SubAssign    = Sub | Assign
-	MulAssign    = Mul | Assign
-	PowAssign    = Pow | Assign
-	ConcatAssign = Concat | Assign
+	"github.com/midbel/dockit/formula/op"
 )
 
 const (
@@ -116,104 +61,6 @@ const (
 	ModeScript
 )
 
-type Position struct {
-	Line   int
-	Column int
-}
-
-func (p Position) String() string {
-	return fmt.Sprintf("%d:%d", p.Line, p.Column)
-}
-
-type Token struct {
-	Literal string
-	Type    rune
-	Position
-}
-
-func (t Token) String() string {
-	var str string
-	switch t.Type {
-	case Invalid:
-		return "<invalid>"
-	case EOF:
-		return "<eof>"
-	case Eol:
-		return "<eol>"
-	case Keyword:
-		str = "keyword"
-	case Ident:
-		str = "identifier"
-	case Number:
-		str = "number"
-	case Literal:
-		str = "literal"
-	case Comment:
-		str = "comment"
-	case Assign:
-		return "<assignment>"
-	case Add:
-		return "<add>"
-	case Sub:
-		return "<subtract>"
-	case Mul:
-		return "<multiply>"
-	case Div:
-		return "<divide>"
-	case Percent:
-		return "<percent>"
-	case Pow:
-		return "<power>"
-	case Concat:
-		return "<concat>"
-	case Eq:
-		return "<equal>"
-	case Ne:
-		return "<notequal>"
-	case Lt:
-		return "<lesser>"
-	case Le:
-		return "<lesseq>"
-	case Gt:
-		return "<greater>"
-	case Ge:
-		return "<greateq>"
-	case Comma:
-		return "<comma>"
-	case Dot:
-		return "<dot>"
-	case BegGrp:
-		return "<beg-group>"
-	case EndGrp:
-		return "<end-group>"
-	case BegProp:
-		return "<beg-prop>"
-	case EndProp:
-		return "<end-prop>"
-	case BegBlock:
-		return "<beg-block>"
-	case EndBlock:
-		return "<end-block>"
-	case RangeRef:
-		return "<range>"
-	case SheetRef:
-		return "<sheet>"
-	case AddAssign:
-		return "<add-assign>"
-	case DivAssign:
-		return "<div-assign>"
-	case SubAssign:
-		return "<sub-assign>"
-	case MulAssign:
-		return "<mul-assign>"
-	case PowAssign:
-		return "<pow-assign>"
-	case ConcatAssign:
-		return "<concat-assign>"
-	}
-	return fmt.Sprintf("%s(%s)", str, t.Literal)
-}
-
 type Scanner struct {
 	input []byte
 	pos   int
@@ -250,7 +97,7 @@ func (s *Scanner) Scan() Token {
 	var tok Token
 	tok.Position = s.Position
 	if s.done() {
-		tok.Type = EOF
+		tok.Type = op.EOF
 		return tok
 	}
 	defer s.reset()
@@ -275,7 +122,7 @@ func (s *Scanner) Scan() Token {
 
 func (s *Scanner) scanNL(tok *Token) {
 	s.skipNL()
-	tok.Type = Eol
+	tok.Type = op.Eol
 }
 
 func (s *Scanner) scanComment(tok *Token) {
@@ -286,7 +133,7 @@ func (s *Scanner) scanComment(tok *Token) {
 		s.read()
 	}
 	s.skipNL()
-	tok.Type = Comment
+	tok.Type = op.Comment
 	tok.Literal = s.literal()
 }
 
@@ -295,15 +142,15 @@ func (s *Scanner) scanIdent(tok *Token) {
 		s.write()
 		s.read()
 	}
-	tok.Type = Ident
+	tok.Type = op.Ident
 	tok.Literal = s.literal()
 	if s.allowKeywords() && isKeyword(tok.Literal) {
-		tok.Type = Keyword
+		tok.Type = op.Keyword
 	}
 }
 
 func (s *Scanner) scanNumber(tok *Token) {
-	tok.Type = Number
+	tok.Type = op.Number
 	for !s.done() && isDigit(s.char) {
 		s.write()
 		s.read()
@@ -328,104 +175,104 @@ func (s *Scanner) scanLiteral(tok *Token) {
 		s.write()
 		s.read()
 	}
-	tok.Type = Literal
+	tok.Type = op.Literal
 	tok.Literal = s.literal()
 	if isQuote(s.char) && quote == s.char {
 		s.read()
 	} else {
-		tok.Type = Invalid
+		tok.Type = op.Invalid
 	}
 }
 
 func (s *Scanner) scanOperator(tok *Token) {
-	tok.Type = Invalid
+	tok.Type = op.Invalid
 	switch s.char {
 	case dot:
-		tok.Type = Dot
+		tok.Type = op.Dot
 	case amper:
-		tok.Type = Concat
+		tok.Type = op.Concat
 		if s.peek() == equal && s.mode == ModeScript {
 			s.read()
-			tok.Type = ConcatAssign
+			tok.Type = op.ConcatAssign
 		}
 	case percent:
-		tok.Type = Percent
+		tok.Type = op.Percent
 	case plus:
-		tok.Type = Add
+		tok.Type = op.Add
 		if s.peek() == equal && s.mode == ModeScript {
 			s.read()
-			tok.Type = AddAssign
+			tok.Type = op.AddAssign
 		}
 	case minus:
-		tok.Type = Sub
+		tok.Type = op.Sub
 		if s.peek() == equal && s.mode == ModeScript {
 			s.read()
-			tok.Type = SubAssign
+			tok.Type = op.SubAssign
 		}
 	case star:
-		tok.Type = Mul
+		tok.Type = op.Mul
 		if s.peek() == equal && s.mode == ModeScript {
 			s.read()
-			tok.Type = MulAssign
+			tok.Type = op.MulAssign
 		}
 	case slash:
-		tok.Type = Div
+		tok.Type = op.Div
 		if s.peek() == equal && s.mode == ModeScript {
 			s.read()
-			tok.Type = DivAssign
+			tok.Type = op.DivAssign
 		}
 	case caret:
-		tok.Type = Pow
+		tok.Type = op.Pow
 		if s.peek() == equal && s.mode == ModeScript {
 			s.read()
-			tok.Type = PowAssign
+			tok.Type = op.PowAssign
 		}
 	case langle:
-		tok.Type = Lt
+		tok.Type = op.Lt
 		s.read()
 		if s.char == equal {
-			tok.Type = Le
+			tok.Type = op.Le
 		} else if s.char == rangle {
-			tok.Type = Ne
+			tok.Type = op.Ne
 		}
 	case rangle:
-		tok.Type = Gt
+		tok.Type = op.Gt
 		s.read()
 		if s.char == equal {
-			tok.Type = Ge
+			tok.Type = op.Ge
 		}
 	case equal:
-		tok.Type = Eq
+		tok.Type = op.Eq
 	case colon:
-		tok.Type = RangeRef
+		tok.Type = op.RangeRef
 		if s.peek() == equal && s.mode == ModeScript {
 			s.read()
-			tok.Type = Assign
+			tok.Type = op.Assign
 		}
 	case bang:
-		tok.Type = SheetRef
+		tok.Type = op.SheetRef
 	default:
 	}
 	s.read()
 }
 
 func (s *Scanner) scanDelimiter(tok *Token) {
-	tok.Type = Invalid
+	tok.Type = op.Invalid
 	switch s.char {
 	case semi, comma:
-		tok.Type = Comma
+		tok.Type = op.Comma
 	case lparen:
-		tok.Type = BegGrp
+		tok.Type = op.BegGrp
 	case rparen:
-		tok.Type = EndGrp
+		tok.Type = op.EndGrp
 	case lcurly:
-		tok.Type = BegBlock
+		tok.Type = op.BegBlock
 	case rcurly:
-		tok.Type = EndBlock
+		tok.Type = op.EndBlock
 	case lsquare:
-		tok.Type = BegProp
+		tok.Type = op.BegProp
 	case rsquare:
-		tok.Type = EndProp
+		tok.Type = op.EndProp
 	default:
 	}
 	s.read()

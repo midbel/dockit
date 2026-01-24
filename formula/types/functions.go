@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 
+	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/value"
 )
 
@@ -94,7 +95,7 @@ func (truePredicate) Test(value.ScalarValue) (bool, error) {
 }
 
 type cmpPredicate struct {
-	op     rune
+	op.Op
 	scalar value.ScalarValue
 }
 
@@ -104,22 +105,22 @@ func (p cmpPredicate) Test(other value.ScalarValue) (bool, error) {
 		return false, fmt.Errorf("value is not comparable")
 	}
 	var err error
-	switch p.op {
-	case Eq:
+	switch p.Op {
+	case op.Eq:
 		ok, err = c.Equal(other)
-	case Ne:
+	case op.Ne:
 		ok, err = c.Equal(other)
 		ok = !ok
-	case Lt:
+	case op.Lt:
 		return c.Less(other)
-	case Le:
+	case op.Le:
 		ok, err = c.Equal(other)
 		if ok && err == nil {
 			break
 		}
 		ok, err = c.Less(other)
-	case Gt:
-	case Ge:
+	case op.Gt:
+	case op.Ge:
 		ok, err = c.Equal(other)
 		if ok && err == nil {
 			break
@@ -129,16 +130,16 @@ func (p cmpPredicate) Test(other value.ScalarValue) (bool, error) {
 	return ok, err
 }
 
-func createPredicate(op rune, val value.Value) (value.Predicate, error) {
+func NewPredicate(oper op.Op, val value.Value) (value.Predicate, error) {
 	scalar, ok := val.(value.ScalarValue)
 	if !ok {
 		return nil, fmt.Errorf("predicate can only operate on scalar value")
 	}
 	var p value.Predicate
-	switch op {
-	case Eq, Ne, Lt, Le, Gt, Ge:
+	switch oper {
+	case op.Eq, op.Ne, op.Lt, op.Le, op.Gt, op.Ge:
 		p = cmpPredicate{
-			op:     op,
+			Op:     oper,
 			scalar: scalar,
 		}
 	default:

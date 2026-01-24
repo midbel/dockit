@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	sax "github.com/midbel/codecs/xml"
-	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -283,7 +283,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 			Line:   cell.Line - sf.Line,
 			Column: cell.Column - sf.Column,
 		}
-		if c, ok := sf.Callable.(formula.Clonable); ok {
+		if c, ok := sf.Callable.(eval.Clonable); ok {
 			cell.formula = c.CloneWithOffset(pos)
 		} else {
 			cell.formula = sf.Expr
@@ -293,7 +293,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		return nil
 	}
 	rs.OnText(func(_ *sax.Reader, str string) error {
-		formula, err := formula.ParseFormula(str)
+		formula, err := eval.ParseFormula(str)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
-package formula
+package eval
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/midbel/dockit/formula/types"
@@ -9,12 +10,14 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+var ErrSupported = errors.New("not supported")
+
 type sheetContext struct {
 	view   grid.View
 	parent value.Context
 }
 
-func SheetContext(parent value.Context, sheet View) value.Context {
+func SheetContext(parent value.Context, sheet grid.View) value.Context {
 	return sheetContext{
 		parent: parent,
 		view:   sheet,
@@ -32,12 +35,12 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
 		return nil, fmt.Errorf("cross sheet range not allowed")
 	}
-	var sh View
+	var sh grid.View
 	if start.Sheet == "" || start.Sheet == c.view.Name() {
 		sh = c.view
 	} else {
 		if c.parent == nil {
-			return nil, ErrUndefined
+			return types.ErrRef, nil
 		}
 		return c.parent.Range(start, end)
 	}
@@ -78,12 +81,12 @@ func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
 		cell, err := c.view.Cell(pos)
 		if err != nil || cell == nil {
-			return nil, err
+			return types.ErrRef, nil
 		}
 		return cell.Value(), nil
 	}
 	if c.parent == nil {
-		return nil, err
+		return types.ErrRef, nil
 	}
 	return c.parent.At(pos)
 }
@@ -93,7 +96,7 @@ type fileContext struct {
 	parent value.Context
 }
 
-func FileContext(parent value.Context, file File) value.Context {
+func FileContext(parent value.Context, file grid.File) value.Context {
 	return fileContext{
 		file:   file,
 		parent: parent,
@@ -118,17 +121,17 @@ func (c fileContext) At(pos layout.Position) (value.Value, error) {
 
 func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
-		return nil, err
+		return nil, fmt.Errorf("cross sheet range not allowed")
 	}
 	sh, err := c.sheet(start.Sheet)
 	if err != nil {
-		return nil, err
+		return types.ErrRef, nil
 	}
 	ctx := SheetContext(c, sh)
 	return ctx.Range(start, end)
 }
 
-func (c fileContext) sheet(name string) (View, error) {
+func (c fileContext) sheet(name string) (grid.View, error) {
 	if name == "" {
 		return c.file.ActiveSheet()
 	} else {

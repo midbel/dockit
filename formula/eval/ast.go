@@ -1,4 +1,4 @@
-package formula
+package eval
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/layout"
 )
 
@@ -193,12 +194,12 @@ func (e filterExpr) String() string {
 type binary struct {
 	left  Expr
 	right Expr
-	op    rune
+	op    op.Op
 }
 
 func (b binary) String() string {
-	op := binaryOpString[b.op]
-	return fmt.Sprintf("%s %s %s", b.left.String(), op, b.right.String())
+	oper := op.Symbol(b.op)
+	return fmt.Sprintf("%s %s %s", b.left.String(), oper, b.right.String())
 }
 
 func (b binary) CloneWithOffset(pos layout.Position) Expr {
@@ -222,12 +223,12 @@ func (b binary) CloneWithOffset(pos layout.Position) Expr {
 
 type unary struct {
 	right Expr
-	op    rune
+	op    op.Op
 }
 
 func (u unary) String() string {
-	op := unaryOpString[u.op]
-	return fmt.Sprintf("%s%s", op, u.right.String())
+	oper := op.Symbol(u.op)
+	return fmt.Sprintf("%s%s", oper, u.right.String())
 }
 
 func (u unary) CloneWithOffset(pos layout.Position) Expr {
@@ -415,27 +416,6 @@ func parseIndex(str string) (int64, int) {
 	return int64(index), offset
 }
 
-var binaryOpString = map[rune]string{
-	Add:     "+",
-	Sub:     "-",
-	Mul:     "*",
-	Pow:     "^",
-	Div:     "/",
-	Percent: "%",
-	Concat:  "&",
-	Eq:      "=",
-	Ne:      "<>",
-	Lt:      "<",
-	Le:      "<=",
-	Gt:      ">",
-	Ge:      ">=",
-}
-
-var unaryOpString = map[rune]string{
-	Add: "+",
-	Sub: "-",
-}
-
 func DumpExpr(expr Expr) string {
 	var buf bytes.Buffer
 	dumpExpr(&buf, expr)
@@ -462,13 +442,13 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.right)
 		io.WriteString(w, ", ")
-		io.WriteString(w, binaryOpString[e.op])
+		io.WriteString(w, op.Symbol(e.op))
 		io.WriteString(w, ")")
 	case unary:
 		io.WriteString(w, "unary(")
 		dumpExpr(w, e.right)
 		io.WriteString(w, ", ")
-		io.WriteString(w, unaryOpString[e.op])
+		io.WriteString(w, op.Symbol(e.op))
 		io.WriteString(w, ")")
 	case access:
 		io.WriteString(w, "access(")
