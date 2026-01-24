@@ -12,6 +12,17 @@ import (
 	"github.com/midbel/dockit/oxml"
 )
 
+type Loader struct{}
+
+func NewLoader() *Loader {
+	x := Loader{}
+	return &x
+}
+
+func (*Loader) Open(file string) (grid.File, error) {
+	return Open(file)
+}
+
 func Infos(file string) ([]grid.ViewInfo, error) {
 	f, err := Open(file)
 	if err != nil {

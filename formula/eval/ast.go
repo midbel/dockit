@@ -122,12 +122,12 @@ func (d macroDef) String() string {
 }
 
 type access struct {
-	expr   Expr
-	member Expr
+	expr Expr
+	prop string
 }
 
 func (a access) String() string {
-	return fmt.Sprintf("%s.%s", a.expr.String(), a.member.String())
+	return fmt.Sprintf("%s.%s", a.expr.String(), a.prop)
 }
 
 type lambda struct {
@@ -478,7 +478,7 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "access(")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ", ")
-		dumpExpr(w, e.member)
+		io.WriteString(w, e.prop)
 		io.WriteString(w, ")")
 	case lambda:
 		io.WriteString(w, "formula(")

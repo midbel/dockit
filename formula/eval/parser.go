@@ -412,14 +412,14 @@ func parseLambda(p *Parser) (Expr, error) {
 
 func parseAccess(p *Parser, left Expr) (Expr, error) {
 	p.next()
-	expr, err := p.parse(powLowest)
-	if err != nil {
-		return nil, err
+	if !p.is(op.Ident) {
+		return nil, p.makeError("identifier expected")
 	}
 	a := access{
-		expr:   left,
-		member: expr,
+		expr: left,
+		prop: p.currentLiteral(),
 	}
+	p.next()
 	return a, nil
 }
 

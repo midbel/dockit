@@ -21,6 +21,27 @@ var (
 	ErrCallable = errors.New("expression is not callable")
 )
 
+func Eval(expr Expr, ctx value.Context) (value.Value, error) {
+	switch e := expr.(type) {
+	case binary:
+		return evalBinary(e, ctx)
+	case unary:
+		return evalUnary(e, ctx)
+	case literal:
+		return types.Text(e.value), nil
+	case number:
+		return types.Float(e.value), nil
+	case call:
+		return evalCall(e, ctx)
+	case cellAddr:
+		return evalCellAddr(e, ctx)
+	case rangeAddr:
+		return evalRangeAddr(e, ctx)
+	default:
+		return nil, ErrEval
+	}
+}
+
 type scriptPhase int8
 
 const (
@@ -74,7 +95,6 @@ func execPhase(expr Expr, phase scriptPhase) (scriptPhase, error) {
 
 type Loader interface {
 	Open(string) (grid.File, error)
-	// Use(string) error
 }
 
 type noopLoader struct{}
@@ -93,9 +113,9 @@ type Engine struct {
 	Stderr io.Writer
 }
 
-func NewEngine() *Engine {
+func NewEngine(loader Loader) *Engine {
 	e := Engine{
-		Loader: defaultLoader(),
+		Loader: loader,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}
@@ -132,10 +152,12 @@ func (e *Engine) Exec(r io.Reader, ctx *env.Environment) (value.Value, error) {
 func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	switch expr := expr.(type) {
 	case importFile:
-		return evalImport(expr, ctx, e.Loader)
+		return evalImport(e, expr, ctx)
 	case useFile:
 	case printRef:
+		return evalPrint(e, expr, ctx)
 	case access:
+		return evalAccess(e, expr, ctx)
 	case literal:
 		return types.Text(expr.value), nil
 	case number:
@@ -146,29 +168,8 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	return nil, nil
 }
 
-func Eval(expr Expr, ctx value.Context) (value.Value, error) {
-	switch e := expr.(type) {
-	case binary:
-		return evalBinary(e, ctx)
-	case unary:
-		return evalUnary(e, ctx)
-	case literal:
-		return types.Text(e.value), nil
-	case number:
-		return types.Float(e.value), nil
-	case call:
-		return evalCall(e, ctx)
-	case cellAddr:
-		return evalCellAddr(e, ctx)
-	case rangeAddr:
-		return evalRangeAddr(e, ctx)
-	default:
-		return nil, ErrEval
-	}
-}
-
-func evalImport(e importFile, ctx *env.Environment, doc Loader) (value.Value, error) {
-	file, err := doc.Open(e.file)
+func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, error) {
+	file, err := eg.Loader.Open(e.file)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +188,28 @@ func evalImport(e importFile, ctx *env.Environment, doc Loader) (value.Value, er
 		e.alias = alias
 	}
 	ctx.Define(e.alias, types.NewFileValue(file))
-	return nil, nil
+	return types.Empty(), nil
+}
+
+func evalPrint(eg *Engine, e printRef, ctx *env.Environment) (value.Value, error) {
+	v, err := eg.exec(e.expr, ctx)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Fprintln(eg.Stdout, v.String())
+	return types.Empty(), nil
+}
+
+func evalAccess(eg *Engine, e access, ctx *env.Environment) (value.Value, error) {
+	obj, err := eg.exec(e.expr, ctx)
+	if err != nil {
+		return nil, err
+	}
+	g, ok := obj.(value.ObjectValue)
+	if !ok {
+		return nil, fmt.Errorf("object expected")
+	}
+	return g.Get(e.prop)
 }
 
 func evalBinary(e binary, ctx value.Context) (value.Value, error) {

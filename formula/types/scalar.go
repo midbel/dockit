@@ -9,6 +9,10 @@ import (
 
 type Blank struct{}
 
+func Empty() value.ScalarValue {
+	return Blank{}
+}
+
 func (Blank) Kind() value.ValueKind {
 	return value.KindScalar
 }
