@@ -345,16 +345,17 @@ func (p *Parser) parseFormula() (Expr, error) {
 
 func (p *Parser) parseScript() (Expr, error) {
 	var script Script
-	for !p.done() {
-		if p.is(Comment) {
-			p.next()
-			continue
+	for {
+		p.skipComment()
+		if p.done() {
+			break
 		}
 		e, err := p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
 		script.Body = append(script.Body, e)
+		p.skipEOL()
 	}
 	return script, nil
 }
@@ -408,6 +409,18 @@ func (p *Parser) is(kind rune) bool {
 
 func (p *Parser) isEOL() bool {
 	return p.is(Eol)
+}
+
+func (p *Parser) skipEOL() {
+	for p.isEOL() {
+		p.next()
+	}
+}
+
+func (p *Parser) skipComment() {
+	for p.is(Comment) {
+		p.next()
+	}
 }
 
 func (p *Parser) currentLiteral() string {
@@ -687,6 +700,10 @@ func parseDefault(p *Parser) (Expr, error) {
 	stmt := defaultRef{
 		expr: expr,
 	}
+	if !p.isEOL() {
+		return nil, p.makeError("expected eol")
+	}
+	p.next()
 	return stmt, nil
 }
 
@@ -712,43 +729,44 @@ func parseSave(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = expr
+	stmt := saveRef{
+		expr: expr,
+	}
 	if !p.isEOL() {
 		return nil, p.makeError("expected eol")
 	}
 	p.next()
-	return nil, nil
+	return stmt, nil
 }
 
 func parseExport(p *Parser) (Expr, error) {
 	p.next()
-	ident, err := p.parse(powLowest)
-	if err != nil {
+	var (
+		stmt exportRef
+		err  error
+	)
+	if stmt.expr, err = p.parse(powLowest); err != nil {
 		return nil, err
 	}
-	_ = ident
 	if !p.is(Keyword) && p.currentLiteral() != kwTo {
 		return nil, p.makeError("keyword 'to' expected")
 	}
 	p.next()
-	file, err := p.parse(powLowest)
-	if err != nil {
+	if stmt.file, err = p.parse(powLowest); err != nil {
 		return nil, err
 	}
-	_ = file
 	if p.is(Keyword) && p.currentLiteral() == kwAs {
 		p.next()
-		format, err := p.parse(powLowest)
+		stmt.format, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
-		_ = format
 	}
 	if !p.isEOL() {
 		return nil, p.makeError("expected eol")
 	}
 	p.next()
-	return nil, nil
+	return stmt, nil
 }
 
 func parseUse(p *Parser) (Expr, error) {

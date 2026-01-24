@@ -75,7 +75,7 @@ func (p printRef) String() string {
 type exportRef struct {
 	expr   Expr
 	file   Expr
-	Format Expr
+	format Expr
 }
 
 func (p exportRef) String() string {
