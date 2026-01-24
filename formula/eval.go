@@ -7,6 +7,7 @@ import (
 	"math"
 
 	"github.com/midbel/dockit/value"
+	"github.com/midbel/dockit/grid"
 )
 
 var (
@@ -95,8 +96,9 @@ func Exec(r io.Reader, env *Environment) (value.Value, error) {
 
 func exec(expr Expr, ctx *Environment) (value.Value, error) {
 	switch e := expr.(type) {
-	case useFile:
 	case importFile:
+		return evalImport(e, ctx)
+	case useFile:
 	case printRef:
 	case access:
 	case literal:
@@ -130,7 +132,26 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	}
 }
 
-func evalImport(e importFile, ctx value.Context) (value.Value, error) {
+func evalImport(e importFile, ctx *Environment) (value.Value, error) {
+	file, err := grid.Open(e.file)
+	if err != nil {
+		return nil, err
+	}
+	if e.alias == "" {
+		var (
+			alias string
+			file  = e.file
+		)
+		for {
+			ext := filepath.Ext(file)
+			if ext == "" {
+				break
+			}
+			alias = strings.TrimSuffix(file, ext)
+		}
+		e.alias = alias
+	}
+	ctx.Define(e.alias, NewFileValue(file))
 	return nil, nil
 }
 

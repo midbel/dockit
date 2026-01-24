@@ -772,33 +772,23 @@ func parseExport(p *Parser) (Expr, error) {
 func parseUse(p *Parser) (Expr, error) {
 	p.next()
 	var stmt useFile
-	switch {
-	case p.is(Ident):
-		stmt.file = identifier{
-			name: p.currentLiteral(),
-		}
-	case p.is(Literal):
-		stmt.file = literal{
-			value: p.currentLiteral(),
-		}
-	default:
-		msg := fmt.Sprintf("unexpected token %s", p.curr)
+	if !p.is(Literal) {
+		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
 		return nil, p.makeError(msg)
 	}
+	stmt.file = p.currentLiteral()
 	p.next()
 	if p.is(Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		if !p.is(Ident) {
-			msg := fmt.Sprintf("unexpected token %s", p.curr)
+			msg := fmt.Sprintf("literal/identifier expected instead of %s", p.curr)
 			return nil, p.makeError(msg)
 		}
-		stmt.alias = identifier{
-			name: p.currentLiteral(),
-		}
+		stmt.alias = p.currentLiteral()
 		p.next()
 	}
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol at end of use")
+		return nil, p.makeError("eol expected")
 	}
 	p.next()
 	return stmt, nil
@@ -807,33 +797,23 @@ func parseUse(p *Parser) (Expr, error) {
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
 	var stmt importFile
-	switch {
-	case p.is(Ident):
-		stmt.file = identifier{
-			name: p.currentLiteral(),
-		}
-	case p.is(Literal):
-		stmt.file = literal{
-			value: p.currentLiteral(),
-		}
-	default:
-		msg := fmt.Sprintf("unexpected token %s", p.curr)
+	if !p.is(Literal) {
+		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
 		return nil, p.makeError(msg)
 	}
+	stmt.file = p.currentLiteral()
 	p.next()
 	if p.is(Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		if !p.is(Ident) {
-			msg := fmt.Sprintf("unexpected token %s", p.curr)
+			msg := fmt.Sprintf("literal/identifier expected instead of %s", p.curr)
 			return nil, p.makeError(msg)
 		}
-		stmt.alias = identifier{
-			name: p.currentLiteral(),
-		}
+		stmt.alias = p.currentLiteral()
 		p.next()
 	}
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol at end of import")
+		return nil, p.makeError("eol expected")
 	}
 	p.next()
 	return stmt, nil

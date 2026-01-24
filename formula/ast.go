@@ -39,12 +39,12 @@ func (Script) String() string {
 }
 
 type useFile struct {
-	file  Expr
-	alias Expr
+	file  string
+	alias string
 }
 
 func (i useFile) String() string {
-	return fmt.Sprintf("use(%s)", i.file.String())
+	return fmt.Sprintf("use(%s)", i.file)
 }
 
 func (useFile) Kind() Kind {
@@ -52,12 +52,12 @@ func (useFile) Kind() Kind {
 }
 
 type importFile struct {
-	file  Expr
-	alias Expr
+	file  string
+	alias string
 }
 
 func (i importFile) String() string {
-	return fmt.Sprintf("import(%s)", i.file.String())
+	return fmt.Sprintf("import(%s)", i.file)
 }
 
 func (importFile) Kind() Kind {
