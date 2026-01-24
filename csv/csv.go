@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -120,7 +120,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 		cell = &Cell{
 			Position: pos,
 			raw:      "",
-			parsed:   formula.Blank{},
+			parsed:   types.Blank{},
 		}
 	}
 	return cell, nil

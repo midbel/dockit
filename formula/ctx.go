@@ -25,144 +25,6 @@ type ReducerFunc func(value.Predicate, value.Value) (value.Value, error)
 
 type BuiltinFunc func([]value.Value) (value.Value, error)
 
-type fileValue struct {
-	file grid.File
-}
-
-func NewFileValue(file grid.File) value.Value {
-	return &fileValue{
-		file: file,
-	}
-}
-
-func (*fileValue) Kind() value.ValueKind {
-	return value.KindObject
-}
-
-func (*fileValue) String() string {
-	return "workbook"
-}
-
-func (c *fileValue) Get(ident string) (value.Value, error) {
-	switch ident {
-	case "sheets":
-		x := c.file.Sheets()
-		return Float(float64(len(x))), nil
-	case "protected":
-		return Boolean(false), nil
-	case "active":
-		sh, err := c.file.ActiveSheet()
-		if err != nil {
-			return ErrValue, nil
-		}
-		return NewViewValue(sh), nil
-	default:
-		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
-	}
-}
-
-type viewValue struct {
-	view View
-}
-
-func NewViewValue(view View) value.Value {
-	return &viewValue{
-		view: view,
-	}
-}
-
-func (*viewValue) Kind() value.ValueKind {
-	return value.KindObject
-}
-
-func (c *viewValue) String() string {
-	return c.view.Name()
-}
-
-func (c *viewValue) Get(ident string) (value.Value, error) {
-	switch ident {
-	case "name":
-		return Text(c.view.Name()), nil
-	case "lines":
-		rg := c.view.Bounds()
-		lines := rg.Ends.Line - rg.Starts.Line
-		return Float(float64(lines)), nil
-	case "columns":
-		rg := c.view.Bounds()
-		lines := rg.Ends.Column - rg.Starts.Column
-		return Float(float64(lines)), nil
-	case "cells":
-		var count int
-		for x := range c.view.Rows() {
-			count += len(x)
-		}
-		return Float(float64(count)), nil
-	case "empty":
-		return Float(float64(0)), nil
-	case "protected":
-		var locked bool
-		if k, ok := c.view.(interface{ IsLock() bool }); ok {
-			locked = k.IsLock()
-		}
-		return Boolean(locked), nil
-	case "readonly":
-		return Boolean(false), nil
-	case "active":
-		return Boolean(false), nil
-	case "index":
-		return Float(float64(0)), nil
-	default:
-		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
-	}
-}
-
-type rangeValue struct {
-	rg *layout.Range
-}
-
-func (*rangeValue) Kind() value.ValueKind {
-	return value.KindObject
-}
-
-func (v *rangeValue) String() string {
-	return v.rg.String()
-}
-
-func (v *rangeValue) Get(name string) (value.ScalarValue, error) {
-	return nil, nil
-}
-
-type lambdaValue struct {
-	expr Expr
-}
-
-func (*lambdaValue) Kind() value.ValueKind {
-	return value.KindFunction
-}
-
-func (*lambdaValue) String() string {
-	return "<formula>"
-}
-
-func (v *lambdaValue) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
-	return Eval(v.expr, ctx)
-}
-
-type envValue struct{}
-
-func (envValue) Kind() value.ValueKind {
-	return value.KindObject
-}
-
-func (envValue) String() string {
-	return "env"
-}
-
-func (v envValue) Get(name string) (value.ScalarValue, error) {
-	str := os.Getenv(name)
-	return Text(str), nil
-}
-
 type Environment struct {
 	values map[string]value.Value
 	parent value.Context
@@ -201,6 +63,133 @@ func (c *Environment) At(_ layout.Position) (value.Value, error) {
 
 func (c *Environment) Range(_, _ layout.Position) (value.Value, error) {
 	return nil, ErrAvailable
+}
+
+type sheetContext struct {
+	view   grid.View
+	parent value.Context
+}
+
+func SheetContext(parent value.Context, sheet View) value.Context {
+	return sheetContext{
+		parent: parent,
+		view:   sheet,
+	}
+}
+
+func (c sheetContext) Resolve(name string) (value.Value, error) {
+	if c.parent != nil {
+		return c.parent.Resolve(name)
+	}
+	return nil, ErrSupported
+}
+
+func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
+	if start.Sheet != end.Sheet {
+		return nil, err, nil
+	}
+	var sh View
+	if start.Sheet == "" || start.Sheet == c.view.Name() {
+		sh = c.view
+	} else {
+		if c.parent == nil {
+			return nil, err, nil
+		}
+		return c.parent.Range(start, end)
+	}
+	var (
+		startLine = min(start.Line, end.Line)
+		endLine   = max(start.Line, end.Line)
+		startCol  = min(start.Column, end.Column)
+		endCol    = max(start.Column, end.Column)
+		height    = int(endLine - startLine + 1)
+		width     = int(endCol - startCol + 1)
+		data      = make([][]value.ScalarValue, height)
+	)
+
+	for i := 0; i < height; i++ {
+		data[i] = make([]value.ScalarValue, width)
+
+		for j := 0; j < width; j++ {
+			pos := layout.Position{
+				Line:   startLine + int64(i),
+				Column: startCol + int64(j),
+			}
+			cell, err := sh.Cell(pos)
+			if err != nil || cell == nil {
+				data[i][j] = nil
+				continue
+			}
+			data[i][j] = cell.Value()
+		}
+	}
+
+	arr := types.Array{
+		Data: data,
+	}
+	return arr, nil
+}
+
+func (c sheetContext) At(pos layout.Position) (value.Value, error) {
+	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
+		cell, err := c.view.Cell(pos)
+		if err != nil || cell == nil {
+			return nil, err, nil
+		}
+		return cell.Value(), nil
+	}
+	if c.parent == nil {
+		return nil, err, nil
+	}
+	return c.parent.At(pos)
+}
+
+type fileContext struct {
+	file   grid.File
+	parent value.Context
+}
+
+func FileContext(parent value.Context, file File) value.Context {
+	return fileContext{
+		file:   file,
+		parent: parent,
+	}
+}
+
+func (c fileContext) Resolve(name string) (value.Value, error) {
+	if c.parent != nil {
+		return c.parent.Resolve(name)
+	}
+	return nil, ErrSupported
+}
+
+func (c fileContext) At(pos layout.Position) (value.Value, error) {
+	sh, err := c.sheet(pos.Sheet)
+	if err != nil {
+		return nil, err, nil
+	}
+	ctx := SheetContext(c, sh)
+	return ctx.At(pos)
+}
+
+func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
+	if start.Sheet != end.Sheet {
+		return nil, err, nil
+	}
+	sh, err := c.sheet(start.Sheet)
+	if err != nil {
+		return nil, err, nil
+	}
+	ctx := SheetContext(c, sh)
+	return ctx.Range(start, end)
+}
+
+func (c fileContext) sheet(name string) (View, error) {
+	if name == "" {
+		return c.file.ActiveSheet()
+	} else {
+	}
+	return c.file.Sheet(name)
 }
 
 type truePredicate struct{}
