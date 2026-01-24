@@ -186,6 +186,8 @@ type Sheet struct {
 	Index  int
 	Size   layout.Dimension
 
+	Charts []*grid.Chart
+
 	rows  []*row
 	cells map[layout.Position]*Cell
 
