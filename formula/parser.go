@@ -92,13 +92,13 @@ func (g *Grammar) Prefix(tok Token) (PrefixFunc, error) {
 	if tok.Type == Keyword {
 		fn, ok := g.kwPrefix[tok.Literal]
 		if !ok {
-			return nil, fmt.Errorf("%s: unknown keyword", tok.Literal)
+			return nil, fmt.Errorf("(%s) %s: unknown keyword %s", tok.Position, g.name, tok.Literal)
 		}
 		return fn, nil
 	}
 	fn, ok := g.prefix[tok.Type]
 	if !ok {
-		return nil, fmt.Errorf("unsupported prefix operator (%s)", tok)
+		return nil, fmt.Errorf("(%s) %s: unsupported prefix operator (%s)", tok.Position, g.name, tok)
 	}
 	return fn, nil
 }
@@ -107,13 +107,13 @@ func (g *Grammar) Infix(tok Token) (InfixFunc, error) {
 	if tok.Type == Keyword {
 		fn, ok := g.kwInfix[tok.Literal]
 		if !ok {
-			return nil, fmt.Errorf("%s: unknown keyword", tok.Literal)
+			return nil, fmt.Errorf("(%s) %s: unknown keyword %s", tok.Position, g.name, tok.Literal)
 		}
 		return fn, nil
 	}
 	fn, ok := g.infix[tok.Type]
 	if !ok {
-		return nil, fmt.Errorf("unsupported infix operator (%s)", tok)
+		return nil, fmt.Errorf("(%s) %s: unsupported infix operator (%s)", tok.Position, g.name, tok)
 	}
 	return fn, nil
 }
@@ -344,7 +344,7 @@ func (p *Parser) parseFormula() (Expr, error) {
 }
 
 func (p *Parser) parseScript() (Expr, error) {
-	var list []Expr
+	var script Script
 	for !p.done() {
 		if p.is(Comment) {
 			p.next()
@@ -354,10 +354,9 @@ func (p *Parser) parseScript() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		list = append(list, e)
+		script.Body = append(script.Body, e)
 	}
-	_ = list
-	return nil, nil
+	return script, nil
 }
 
 func (p *Parser) parseUntil(ok func() bool) ([]Expr, error) {
@@ -440,7 +439,7 @@ func (p *Parser) currGrammar() *Grammar {
 }
 
 func (p *Parser) makeError(msg string) error {
-	return fmt.Errorf("%s: %s", p.currGrammar().Context(), msg)
+	return fmt.Errorf("(%s) %s: %s", p.currGrammar().Context(), p.curr.Position, msg)
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
@@ -672,6 +671,10 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	default:
 	}
 	a.expr = expr
+	if !p.isEOL() {
+		return nil, p.makeError("expected eol")
+	}
+	p.next()
 	return a, nil
 }
 

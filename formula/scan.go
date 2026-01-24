@@ -116,10 +116,19 @@ const (
 	ModeScript
 )
 
+type Position struct {
+	Line int
+	Column int
+}
+
+func (p Position) String() string {
+	return fmt.Sprintf("%d:%d", p.Line, p.Column)
+}
+
 type Token struct {
 	Literal  string
 	Type     rune
-	Position int
+	Position
 }
 
 func (t Token) String() string {
@@ -211,6 +220,8 @@ type Scanner struct {
 	next  int
 	char  rune
 
+	Position
+
 	buf  bytes.Buffer
 	mode ScanMode
 }
@@ -225,6 +236,7 @@ func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
 	if err != nil {
 		return nil, err
 	}
+	scan.Position.Line = 1
 	scan.read()
 	if scan.char == equal {
 		scan.read()
@@ -236,6 +248,7 @@ func (s *Scanner) Scan() Token {
 	s.skipBlanks()
 
 	var tok Token
+	tok.Position = s.Position
 	if s.done() {
 		tok.Type = EOF
 		return tok
@@ -445,6 +458,12 @@ func (s *Scanner) read() {
 		s.next = len(s.input)
 	}
 	s.char, s.pos, s.next = r, s.next, s.next+n
+
+	if s.char == nl {
+		s.Line += 1
+		s.Column = 0
+	}
+	s.Column++
 }
 
 func (s *Scanner) peek() rune {

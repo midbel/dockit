@@ -19,11 +19,18 @@ func main() {
 	}
 	defer r.Close()
 
-	// scan(r)
-	_, err = formula.Exec(r, formula.Empty())
+	ps := formula.NewParser(formula.ScriptGrammar())
+	expr, err := ps.Parse(r)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+	script, ok := expr.(formula.Script)
+	if !ok {
+		return
+	}
+	for _, e := range script.Body {
+		fmt.Println(e)
 	}
 }
 
