@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 
+	"github.com/midbel/dockit/doc"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
 )
@@ -133,7 +134,7 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 }
 
 func evalImport(e importFile, ctx *Environment) (value.Value, error) {
-	file, err := grid.Open(e.file)
+	file, err := doc.Open(e.file)
 	if err != nil {
 		return nil, err
 	}
@@ -287,20 +288,6 @@ func evalCellAddr(e cellAddr, ctx value.Context) (value.Value, error) {
 
 func evalRangeAddr(e rangeAddr, ctx value.Context) (value.Value, error) {
 	return ctx.Range(e.startAddr.Position, e.endAddr.Position)
-}
-
-func IsComparable(v value.Value) bool {
-	_, ok := v.(value.Comparable)
-	return ok
-}
-
-func IsNumber(v value.Value) bool {
-	_, ok := v.(Float)
-	return ok
-}
-
-func IsScalar(v value.Value) bool {
-	return v.Kind() == value.KindScalar
 }
 
 func doMath(left, right value.Value, do func(left, right float64) (float64, error)) (value.Value, error) {

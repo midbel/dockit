@@ -10,6 +10,20 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+func IsComparable(v value.Value) bool {
+	_, ok := v.(value.Comparable)
+	return ok
+}
+
+func IsNumber(v value.Value) bool {
+	_, ok := v.(Float)
+	return ok
+}
+
+func IsScalar(v value.Value) bool {
+	return v.Kind() == value.KindScalar
+}
+
 var ErrCompatible = errors.New("incompatible type")
 
 type ErrorCode string

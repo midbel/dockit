@@ -136,7 +136,7 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	return nil
 }
 
-func (s *Sheet) SetFormula(_ layout.Position, _ formula.Expr) error {
+func (s *Sheet) SetFormula(_ layout.Position, _ grid.Callable) error {
 	return grid.ErrSupported
 }
 

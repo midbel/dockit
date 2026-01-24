@@ -73,6 +73,10 @@ type Encoder interface {
 	EncodeSheet(View) error
 }
 
+type Callable interface {
+	Call(value.Context) (value.Value, error)
+}
+
 type View interface {
 	Name() string
 	Bounds() *layout.Range
@@ -87,7 +91,7 @@ type MutableView interface {
 	View
 
 	SetValue(layout.Position, value.ScalarValue) error
-	// SetFormula(layout.Position, formula.Expr) error
+	SetFormula(layout.Position, Callable) error
 
 	ClearCell(layout.Position) error
 	ClearValue(layout.Position) error

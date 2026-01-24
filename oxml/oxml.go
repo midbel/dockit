@@ -11,7 +11,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -39,7 +39,7 @@ type Cell struct {
 
 	raw     string
 	parsed  value.ScalarValue
-	formula formula.Expr
+	formula grid.Callable
 	dirty   bool
 }
 
@@ -59,10 +59,10 @@ func (c *Cell) Reload(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
 	}
-	res, err := formula.Eval(c.formula, ctx)
+	res, err := c.formula.Call(ctx)
 	if err == nil {
-		if !formula.IsScalar(res) {
-			c.parsed = formula.ErrValue
+		if !types.IsScalar(res) {
+			c.parsed = types.ErrValue
 		} else {
 			c.parsed = res.(value.ScalarValue)
 		}
@@ -228,7 +228,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 			Type:     TypeInlineStr,
 			Position: pos,
 			raw:      "",
-			parsed:   formula.Blank{},
+			parsed:   types.Blank{},
 		}
 	}
 	return cell, nil
@@ -341,14 +341,14 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	return nil
 }
 
-func (s *Sheet) SetFormula(pos layout.Position, expr formula.Expr) error {
+func (s *Sheet) SetFormula(pos layout.Position, expr grid.Callable) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		return grid.NoCell(pos)
 	}
 	c.formula = expr
 	c.raw = ""
-	c.parsed = formula.Blank{}
+	c.parsed = types.Blank{}
 	c.dirty = true
 	return nil
 }
@@ -367,7 +367,7 @@ func (s *Sheet) ClearValue(pos layout.Position) error {
 		return grid.NoCell(pos)
 	}
 	c.raw = ""
-	c.parsed = formula.Blank{}
+	c.parsed = types.Blank{}
 	c.dirty = false
 	return nil
 }

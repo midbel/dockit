@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mibel/dockit/value"
+	"github.com/midbel/dockit/value"
 )
 
 type Blank struct{}
