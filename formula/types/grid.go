@@ -45,10 +45,10 @@ func (c *fileValue) Get(ident string) (value.Value, error) {
 }
 
 type viewValue struct {
-	view View
+	view grid.View
 }
 
-func NewViewValue(view View) value.Value {
+func NewViewValue(view grid.View) value.Value {
 	return &viewValue{
 		view: view,
 	}
@@ -115,21 +115,21 @@ func (v *rangeValue) Get(name string) (value.ScalarValue, error) {
 	return nil, nil
 }
 
-type lambdaValue struct {
-	expr Expr
-}
+// type lambdaValue struct {
+// 	expr Expr
+// }
 
-func (*lambdaValue) Kind() value.ValueKind {
-	return value.KindFunction
-}
+// func (*lambdaValue) Kind() value.ValueKind {
+// 	return value.KindFunction
+// }
 
-func (*lambdaValue) String() string {
-	return "<formula>"
-}
+// func (*lambdaValue) String() string {
+// 	return "<formula>"
+// }
 
-func (v *lambdaValue) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
-	return Eval(v.expr, ctx)
-}
+// func (v *lambdaValue) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
+// 	return Eval(v.expr, ctx)
+// }
 
 type envValue struct{}
 

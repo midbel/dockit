@@ -1,13 +1,14 @@
-package grid
+package formula
 
 import (
 	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
 	"github.com/midbel/dockit/formula/types"
 )
 
 type sheetContext struct {
-	view   View
+	view   grid.View
 	parent value.Context
 }
 
@@ -86,7 +87,7 @@ func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 }
 
 type fileContext struct {
-	file   File
+	file   grid.File
 	parent value.Context
 }
 
