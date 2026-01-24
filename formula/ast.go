@@ -12,6 +12,9 @@ import (
 
 type Expr interface {
 	fmt.Stringer
+}
+
+type Clonable interface {
 	CloneWithOffset(layout.Position) Expr
 }
 
@@ -27,6 +30,14 @@ type ExprKind interface {
 	Kind() Kind
 }
 
+type Script struct {
+	Body []Expr
+}
+
+func (Script) String() string {
+	return "<script>"
+}
+
 type useFile struct {
 	file  Expr
 	alias Expr
@@ -34,10 +45,6 @@ type useFile struct {
 
 func (i useFile) String() string {
 	return fmt.Sprintf("use(%s)", i.file.String())
-}
-
-func (i useFile) CloneWithOffset(_ layout.Position) Expr {
-	return i
 }
 
 func (useFile) Kind() Kind {
@@ -53,10 +60,6 @@ func (i importFile) String() string {
 	return fmt.Sprintf("import(%s)", i.file.String())
 }
 
-func (i importFile) CloneWithOffset(_ layout.Position) Expr {
-	return i
-}
-
 func (importFile) Kind() Kind {
 	return KindImport
 }
@@ -69,10 +72,6 @@ func (p printRef) String() string {
 	return fmt.Sprintf("print %s", p.expr.String())
 }
 
-func (p printRef) CloneWithOffset(_ layout.Position) Expr {
-	return p
-}
-
 type exportRef struct {
 	expr   Expr
 	file   Expr
@@ -83,10 +82,6 @@ func (p exportRef) String() string {
 	return fmt.Sprintf("export %s", p.expr.String())
 }
 
-func (p exportRef) CloneWithOffset(_ layout.Position) Expr {
-	return p
-}
-
 type saveRef struct {
 	expr Expr
 }
@@ -95,20 +90,12 @@ func (p saveRef) String() string {
 	return fmt.Sprintf("save %s", p.expr.String())
 }
 
-func (p saveRef) CloneWithOffset(_ layout.Position) Expr {
-	return p
-}
-
 type defaultRef struct {
 	expr Expr
 }
 
 func (d defaultRef) String() string {
 	return fmt.Sprintf("default %s", d.expr.String())
-}
-
-func (d defaultRef) CloneWithOffset(_ layout.Position) Expr {
-	return d
 }
 
 type macroDef struct {
@@ -121,10 +108,6 @@ func (d macroDef) String() string {
 	return fmt.Sprintf("macro")
 }
 
-func (d macroDef) CloneWithOffset(pos layout.Position) Expr {
-	return d
-}
-
 type access struct {
 	expr   Expr
 	member Expr
@@ -132,10 +115,6 @@ type access struct {
 
 func (a access) String() string {
 	return fmt.Sprintf("%s.%s", a.expr.String(), a.member.String())
-}
-
-func (a access) CloneWithOffset(pos layout.Position) Expr {
-	return a
 }
 
 type lambda struct {
@@ -146,10 +125,6 @@ func (f lambda) String() string {
 	return fmt.Sprintf("=%s", f.expr.String())
 }
 
-func (f lambda) CloneWithOffset(pos layout.Position) Expr {
-	return f
-}
-
 type assignment struct {
 	ident identifier
 	expr  Expr
@@ -157,10 +132,6 @@ type assignment struct {
 
 func (a assignment) String() string {
 	return fmt.Sprintf("%s := %s", a.ident.String(), a.expr.String())
-}
-
-func (a assignment) CloneWithOffset(pos layout.Position) Expr {
-	return a
 }
 
 type pivotExpr struct {
@@ -177,10 +148,6 @@ func (e pivotExpr) String() string {
 	return "<pivot>"
 }
 
-func (e pivotExpr) CloneWithOffset(pos layout.Position) Expr {
-	return e
-}
-
 type chartExpr struct {
 	body []Expr
 }
@@ -193,10 +160,6 @@ func makeChartExpr(body []Expr) Expr {
 
 func (e chartExpr) String() string {
 	return "<chart>"
-}
-
-func (e chartExpr) CloneWithOffset(pos layout.Position) Expr {
-	return e
 }
 
 type sheetExpr struct {
@@ -213,10 +176,6 @@ func (e sheetExpr) String() string {
 	return "<sheet>"
 }
 
-func (e sheetExpr) CloneWithOffset(pos layout.Position) Expr {
-	return e
-}
-
 type filterExpr struct {
 	body []Expr
 }
@@ -231,10 +190,6 @@ func (e filterExpr) String() string {
 	return "<filter>"
 }
 
-func (e filterExpr) CloneWithOffset(pos layout.Position) Expr {
-	return e
-}
-
 type binary struct {
 	left  Expr
 	right Expr
@@ -247,9 +202,19 @@ func (b binary) String() string {
 }
 
 func (b binary) CloneWithOffset(pos layout.Position) Expr {
+	var (
+		left  = b.left
+		right = b.right
+	)
+	if c, ok := b.left.(Clonable); ok {
+		left = c.CloneWithOffset(pos)
+	}
+	if c, ok := b.right.(Clonable); ok {
+		right = c.CloneWithOffset(pos)
+	}
 	x := binary{
-		left:  b.left.CloneWithOffset(pos),
-		right: b.right.CloneWithOffset(pos),
+		left:  left,
+		right: right,
 		op:    b.op,
 	}
 	return x
@@ -266,8 +231,12 @@ func (u unary) String() string {
 }
 
 func (u unary) CloneWithOffset(pos layout.Position) Expr {
+	right := u.right
+	if c, ok := u.right.(Clonable); ok {
+		right = c.CloneWithOffset(pos)
+	}
 	x := unary{
-		right: u.right.CloneWithOffset(pos),
+		right: right,
 		op:    u.op,
 	}
 	return x
@@ -281,20 +250,12 @@ func (i literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
 
-func (i literal) CloneWithOffset(_ layout.Position) Expr {
-	return i
-}
-
 type number struct {
 	value float64
 }
 
 func (n number) String() string {
 	return strconv.FormatFloat(n.value, 'f', -1, 64)
-}
-
-func (n number) CloneWithOffset(_ layout.Position) Expr {
-	return n
 }
 
 type call struct {
@@ -315,7 +276,10 @@ func (c call) CloneWithOffset(pos layout.Position) Expr {
 		ident: c.ident,
 	}
 	for i := range c.args {
-		a := c.args[i].CloneWithOffset(pos)
+		a := c.args[i]
+		if c, ok := a.(Clonable); ok {
+			a = c.CloneWithOffset(pos)
+		}
 		x.args = append(x.args, a)
 	}
 	return x
@@ -327,10 +291,6 @@ type identifier struct {
 
 func (i identifier) String() string {
 	return i.name
-}
-
-func (i identifier) CloneWithOffset(_ layout.Position) Expr {
-	return i
 }
 
 type cellAddr struct {

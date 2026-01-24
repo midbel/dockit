@@ -282,7 +282,11 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 			Line:   cell.Line - sf.Line,
 			Column: cell.Column - sf.Column,
 		}
-		cell.formula = sf.Expr.CloneWithOffset(pos)
+		if c, ok := sf.Expr.(formula.Clonable); ok {
+			cell.formula = c.CloneWithOffset(pos)
+		} else {
+			cell.formula = sf.Expr
+		}
 	}
 	if el.SelfClosed {
 		return nil

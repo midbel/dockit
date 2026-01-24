@@ -1,7 +1,6 @@
 package formula
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -61,7 +60,7 @@ func forbiddenInfix(_ *Parser, _ Expr) (Expr, error) {
 	return nil, fmt.Errorf("%w: infix operator/keyword", errForbidden)
 }
 
-func forbiddenPrefix(_ *Parser, _ Expr) (Expr, error) {
+func forbiddenPrefix(_ *Parser) (Expr, error) {
 	return nil, fmt.Errorf("%w: prefix operator/keyword", errForbidden)
 }
 
@@ -124,7 +123,7 @@ func (g *Grammar) RegisterInfix(kd rune, fn InfixFunc) {
 }
 
 func (g *Grammar) UnregisterInfix(kd rune) {
-	g.infix[kd] = fobiddenInfix
+	g.infix[kd] = forbiddenInfix
 }
 
 func (g *Grammar) RegisterInfixKeyword(kw string, fn InfixFunc) {
@@ -132,7 +131,7 @@ func (g *Grammar) RegisterInfixKeyword(kw string, fn InfixFunc) {
 }
 
 func (g *Grammar) UnregisterInfixKeyword(kw string) {
-	g.kwInfix[kw] = fobiddenInfix
+	g.kwInfix[kw] = forbiddenInfix
 }
 
 func (g *Grammar) RegisterPrefix(kd rune, fn PrefixFunc) {
@@ -148,7 +147,7 @@ func (g *Grammar) RegisterPrefixKeyword(kw string, fn PrefixFunc) {
 }
 
 func (g *Grammar) UnregisterPrefixKeyword(kw string) {
-	g.kwPrefix[kw] = fobiddenPrefix
+	g.kwPrefix[kw] = forbiddenPrefix
 }
 
 func (g *Grammar) RegisterBinding(kd rune, pow int) {
