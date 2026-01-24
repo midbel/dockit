@@ -3,6 +3,7 @@ package grid
 import (
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
+	"github.com/midbel/dockit/formula/types"
 )
 
 type sheetContext struct {
@@ -26,14 +27,14 @@ func (c sheetContext) Resolve(name string) (value.Value, error) {
 
 func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet != end.Sheet {
-		return nil, err
+		return nil, fmt.Errorf("cross sheet range not allowed")
 	}
 	var sh View
 	if start.Sheet == "" || start.Sheet == c.view.Name() {
 		sh = c.view
 	} else {
 		if c.parent == nil {
-			return nil, err
+			return nil, ErrUndefined
 		}
 		return c.parent.Range(start, end)
 	}

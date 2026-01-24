@@ -11,6 +11,7 @@ import (
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 )
@@ -208,7 +209,7 @@ func (r *reader) invalid() bool {
 
 type sharedFormula struct {
 	layout.Position
-	formula.Expr
+	grid.Callable
 }
 
 type sheetReader struct {
@@ -250,23 +251,23 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 		if n < 0 || n >= len(r.sharedStrings) {
 			return fmt.Errorf("shared string index out of bounds")
 		}
-		cell.parsed = formula.Text(r.sharedStrings[n])
+		cell.parsed = types.Text(r.sharedStrings[n])
 	case TypeDate:
 		// date: TBW
 	case TypeInlineStr:
-		cell.parsed = formula.Text(str)
+		cell.parsed = types.Text(str)
 	case TypeBool:
 		b, err := strconv.ParseBool(str)
 		if err != nil {
 			return err
 		}
-		cell.parsed = formula.Boolean(b)
+		cell.parsed = types.Boolean(b)
 	default:
 		n, err := strconv.ParseFloat(strings.TrimSpace(str), 64)
 		if err != nil {
-			cell.parsed = formula.Text(str)
+			cell.parsed = types.Text(str)
 		} else {
-			cell.parsed = formula.Float(n)
+			cell.parsed = types.Float(n)
 		}
 	}
 	return nil
@@ -282,7 +283,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 			Line:   cell.Line - sf.Line,
 			Column: cell.Column - sf.Column,
 		}
-		if c, ok := sf.Expr.(formula.Clonable); ok {
+		if c, ok := sf.Callable.(formula.Clonable); ok {
 			cell.formula = c.CloneWithOffset(pos)
 		} else {
 			cell.formula = sf.Expr
@@ -299,7 +300,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		if _, ok := r.sharedFormulas[index]; shared == "shared" && !ok {
 			r.sharedFormulas[index] = sharedFormula{
 				Position: cell.Position,
-				Expr:     formula,
+				Callable:     formula,
 			}
 		}
 		if cell.formula == nil {

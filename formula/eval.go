@@ -6,7 +6,6 @@ import (
 	"io"
 	"math"
 
-	"github.com/midbel/dockit/doc"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
 )
@@ -67,7 +66,36 @@ func execPhase(expr Expr, phase scriptPhase) (scriptPhase, error) {
 	return phase.Next(currKind), nil
 }
 
-func Exec(r io.Reader, env *Environment) (value.Value, error) {
+type Loader interface {
+	Open(string) (grid.File, error)
+	// Use(string) error
+}
+
+type noopLoader struct{}
+
+func (noopLoader) Open(_ string) (grid.File, error) {
+	return nil, fmt.Errorf("noop loader can not open file")
+}
+
+func defaultLoader() Loader {
+	return noopLoader{}
+}
+
+type Engine struct {
+	Loader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+func NewEngine() *Engine {
+	e := Engine{
+		Loader: defaultLoader(),
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+}
+
+func (e *Engine) Exec(r io.Reader, env *Environment) (value.Value, error) {
 	var (
 		val   value.Value
 		phase = phaseUse
@@ -88,17 +116,17 @@ func Exec(r io.Reader, env *Environment) (value.Value, error) {
 		if phase, err = execPhase(expr, phase); err != nil {
 			return nil, err
 		}
-		if val, err = exec(expr, env); err != nil {
+		if val, err = e.exec(expr, env); err != nil {
 			return nil, err
 		}
 	}
 	return val, nil
 }
 
-func exec(expr Expr, ctx *Environment) (value.Value, error) {
+func (e *Engine) exec(expr Expr, ctx *Environment) (value.Value, error) {
 	switch e := expr.(type) {
 	case importFile:
-		return evalImport(e, ctx)
+		return evalImport(e, ctx, e.Loader)
 	case useFile:
 	case printRef:
 	case access:
@@ -133,7 +161,7 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	}
 }
 
-func evalImport(e importFile, ctx *Environment) (value.Value, error) {
+func evalImport(e importFile, ctx *Environment, doc Loader) (value.Value, error) {
 	file, err := doc.Open(e.file)
 	if err != nil {
 		return nil, err
