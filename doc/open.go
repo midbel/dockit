@@ -12,10 +12,14 @@ import (
 	"github.com/midbel/dockit/oxml"
 )
 
-type Loader struct{}
+type Loader struct {
+	base string
+}
 
-func NewLoader() *Loader {
-	x := Loader{}
+func NewLoader(dir string) *Loader {
+	x := Loader{
+		base: dir,
+	}
 	return &x
 }
 

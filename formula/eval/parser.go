@@ -209,7 +209,7 @@ func (p *Parser) is(kind op.Op) bool {
 }
 
 func (p *Parser) isEOL() bool {
-	return p.is(op.Eol)
+	return p.is(op.Eol) || p.is(op.EOF)
 }
 
 func (p *Parser) skipEOL() {

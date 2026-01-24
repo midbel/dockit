@@ -162,6 +162,8 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 		return types.Text(expr.value), nil
 	case number:
 		return types.Float(expr.value), nil
+	case identifier:
+		return ctx.Resolve(expr.name)
 	default:
 		return nil, ErrEval
 	}
