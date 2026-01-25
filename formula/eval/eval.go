@@ -183,7 +183,15 @@ func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value
 }
 
 func evalSheetFrom(eg *Engine, e sheetFromRef, ctx *env.Environment) (value.Value, error) {
-	return nil, nil
+	f, err := ctx.Resolve(e.file)
+	if err != nil {
+		return nil, err
+	}
+	file, ok := f.(*types.File)
+	if !ok {
+		return nil, fmt.Errorf("workbook expected")
+	}
+	return file.Sheet(e.ident)
 }
 
 func evalRangeFrom(eg *Engine, e rangeFromRef, ctx *env.Environment) (value.Value, error) {

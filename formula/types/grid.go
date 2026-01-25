@@ -27,6 +27,14 @@ func (*File) String() string {
 	return "workbook"
 }
 
+func (c *File) Sheet(ident string) (value.Value, error) {
+	v, err := c.file.Sheet(ident)
+	if err != nil {
+		return nil, err
+	}
+	return NewViewValue(v), nil
+}
+
 func (c *File) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "sheets":
