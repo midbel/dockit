@@ -494,13 +494,13 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 
 func parseDefault(p *Parser) (Expr, error) {
 	p.next()
-	expr, err := p.parse(powLowest)
-	if err != nil {
-		return nil, err
+	if !p.is(op.Ident) {
+		return nil, p.makeError("identifier expected")
 	}
 	stmt := defaultRef{
-		expr: expr,
+		ident: p.currentLiteral(),
 	}
+	p.next()
 	if !p.isEOL() {
 		return nil, p.makeError("expected eol")
 	}

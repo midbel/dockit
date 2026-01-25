@@ -104,11 +104,11 @@ func (p saveRef) String() string {
 }
 
 type defaultRef struct {
-	expr Expr
+	ident string
 }
 
 func (d defaultRef) String() string {
-	return fmt.Sprintf("default %s", d.expr.String())
+	return fmt.Sprintf("default %s", d.ident)
 }
 
 type macroDef struct {

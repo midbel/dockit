@@ -9,25 +9,25 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-type fileValue struct {
+type File struct {
 	file grid.File
 }
 
 func NewFileValue(file grid.File) value.Value {
-	return &fileValue{
+	return &File{
 		file: file,
 	}
 }
 
-func (*fileValue) Kind() value.ValueKind {
+func (*File) Kind() value.ValueKind {
 	return value.KindObject
 }
 
-func (*fileValue) String() string {
+func (*File) String() string {
 	return "workbook"
 }
 
-func (c *fileValue) Get(ident string) (value.Value, error) {
+func (c *File) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "sheets":
 		x := c.file.Sheets()
@@ -45,25 +45,25 @@ func (c *fileValue) Get(ident string) (value.Value, error) {
 	}
 }
 
-type viewValue struct {
+type View struct {
 	view grid.View
 }
 
 func NewViewValue(view grid.View) value.Value {
-	return &viewValue{
+	return &View{
 		view: view,
 	}
 }
 
-func (*viewValue) Kind() value.ValueKind {
+func (*View) Kind() value.ValueKind {
 	return value.KindObject
 }
 
-func (c *viewValue) String() string {
+func (c *View) String() string {
 	return c.view.Name()
 }
 
-func (c *viewValue) Get(ident string) (value.Value, error) {
+func (c *View) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "name":
 		return Text(c.view.Name()), nil
@@ -100,36 +100,36 @@ func (c *viewValue) Get(ident string) (value.Value, error) {
 	}
 }
 
-type rangeValue struct {
+type Range struct {
 	rg *layout.Range
 }
 
-func (*rangeValue) Kind() value.ValueKind {
+func (*Range) Kind() value.ValueKind {
 	return value.KindObject
 }
 
-func (v *rangeValue) String() string {
+func (v *Range) String() string {
 	return v.rg.String()
 }
 
-func (v *rangeValue) Get(name string) (value.ScalarValue, error) {
+func (v *Range) Get(name string) (value.ScalarValue, error) {
 	return nil, nil
 }
 
-// type lambdaValue struct {
-// 	expr Expr
+// type Lambda struct {
+// 	expr eval.Expr
 // }
 
-// func (*lambdaValue) Kind() value.ValueKind {
+// func (*Lambda) Kind() value.ValueKind {
 // 	return value.KindFunction
 // }
 
-// func (*lambdaValue) String() string {
+// func (*Lambda) String() string {
 // 	return "<formula>"
 // }
 
-// func (v *lambdaValue) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
-// 	return Eval(v.expr, ctx)
+// func (v *Lambda) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
+// 	return eval.Eval(v.expr, ctx)
 // }
 
 type envValue struct{}

@@ -156,6 +156,8 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case useFile:
 	case printRef:
 		return evalPrint(e, expr, ctx)
+	case defaultRef:
+		return evalDefault(e, expr, ctx)
 	case access:
 		return evalAccess(e, expr, ctx)
 	case literal:
@@ -190,6 +192,19 @@ func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, er
 		e.alias = alias
 	}
 	ctx.Define(e.alias, types.NewFileValue(file))
+	return types.Empty(), nil
+}
+
+func evalDefault(eg *Engine, e defaultRef, ctx *env.Environment) (value.Value, error) {
+	v, err := ctx.Resolve(e.ident)
+	if err != nil {
+		return nil, err
+	}
+	wb, ok := v.(*types.File)
+	if !ok {
+		return nil, fmt.Errorf("default can only be used with workbook")
+	}
+	ctx.SetDefault(wb)
 	return types.Empty(), nil
 }
 

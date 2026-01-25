@@ -22,6 +22,8 @@ type Builtin interface {
 type Environment struct {
 	values map[string]value.Value
 	parent value.Context
+
+	defaultFile value.Value
 }
 
 func Enclosed(parent value.Context) *Environment {
@@ -45,6 +47,14 @@ func (c *Environment) Resolve(ident string) (value.Value, error) {
 		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
 	}
 	return c.parent.Resolve(ident)
+}
+
+func (c *Environment) SetDefault(file value.Value) {
+	c.defaultFile = file
+}
+
+func (c *Environment) Default() value.Value {
+	return c.defaultFile
 }
 
 func (c *Environment) Define(ident string, val value.Value) {
