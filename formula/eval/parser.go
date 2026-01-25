@@ -70,6 +70,10 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwWith, parseWith)
 	g.RegisterPrefixKeyword(kwDefault, parseDefault)
 
+	g.RegisterPrefixKeyword(kwSheet, parseSheetFrom)
+	g.RegisterPrefixKeyword(kwRange, parseRangeFrom)
+	g.RegisterPrefixKeyword(kwSelect, parseSelectFrom)
+
 	return g
 }
 
@@ -618,6 +622,59 @@ func parseImport(p *Parser) (Expr, error) {
 	}
 	p.next()
 	return stmt, nil
+}
+
+func parseSheetFrom(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(op.Ident) {
+		return nil, p.makeError("identifier expected")
+	}
+	ref := sheetFromRef{
+		ident: p.currentLiteral(),
+	}
+	p.next()
+	if p.is(op.Keyword) && p.currentLiteral() == kwFrom {
+		p.next()
+		if !p.is(op.Ident) {
+			return nil, p.makeError("identifier expected")
+		}
+		ref.file = p.currentLiteral()
+		p.next()
+	}
+	if !p.isEOL() {
+		return nil, p.makeError("eol expected")
+	}
+	p.next()
+	return ref, nil
+}
+
+func parseRangeFrom(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(op.Ident) {
+		return nil, p.makeError("identifier expected")
+	}
+	ref := rangeFromRef{
+		ident: p.currentLiteral(),
+	}
+	p.next()
+	if p.is(op.Keyword) && p.currentLiteral() == kwFrom {
+		p.next()
+		if !p.is(op.Ident) {
+			return nil, p.makeError("identifier expected")
+		}
+		ref.file = p.currentLiteral()
+		p.next()
+	}
+	if !p.isEOL() {
+		return nil, p.makeError("eol expected")
+	}
+	p.next()
+	return ref, nil
+}
+
+func parseSelectFrom(p *Parser) (Expr, error) {
+	p.next()
+	return nil, nil
 }
 
 func chartGrammar() *Grammar {

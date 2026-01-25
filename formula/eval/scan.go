@@ -25,6 +25,8 @@ const (
 
 const (
 	kwSheet  = "sheet"
+	kwRange  = "range"
+	kwSelect = "select"
 	kwChart  = "chart"
 	kwPivot  = "pivot"
 	kwFilter = "filter"
@@ -45,6 +47,8 @@ func isKeyword(str string) bool {
 	case kwTo:
 	case kwEnd:
 	case kwSheet:
+	case kwRange:
+	case kwSelect:
 	case kwChart:
 	case kwPivot:
 	case kwFilter:

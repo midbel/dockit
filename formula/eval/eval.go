@@ -158,6 +158,12 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 		return evalPrint(e, expr, ctx)
 	case defaultRef:
 		return evalDefault(e, expr, ctx)
+	case sheetFromRef:
+		return evalSheetFrom(e, expr, ctx)
+	case rangeFromRef:
+		return evalRangeFrom(e, expr, ctx)
+	case assignment:
+		return evalAssignment(e, expr, ctx)
 	case access:
 		return evalAccess(e, expr, ctx)
 	case literal:
@@ -169,6 +175,18 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	default:
 		return nil, ErrEval
 	}
+	return nil, nil
+}
+
+func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value, error) {
+	return nil, nil
+}
+
+func evalSheetFrom(eg *Engine, e sheetFromRef, ctx *env.Environment) (value.Value, error) {
+	return nil, nil
+}
+
+func evalRangeFrom(eg *Engine, e rangeFromRef, ctx *env.Environment) (value.Value, error) {
 	return nil, nil
 }
 

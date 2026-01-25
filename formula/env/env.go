@@ -23,7 +23,7 @@ type Environment struct {
 	values map[string]value.Value
 	parent value.Context
 
-	defaultFile value.Value
+	currentVal value.Value
 }
 
 func Enclosed(parent value.Context) *Environment {
@@ -43,18 +43,24 @@ func (c *Environment) Resolve(ident string) (value.Value, error) {
 	if ok {
 		return v, nil
 	}
+	if x, ok := c.currentVal.(value.ObjectValue); ok {
+		v, err := x.Get(ident)
+		if err == nil {
+			return v, nil
+		}
+	}
 	if c.parent == nil {
 		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
 	}
 	return c.parent.Resolve(ident)
 }
 
-func (c *Environment) SetDefault(file value.Value) {
-	c.defaultFile = file
+func (c *Environment) SetDefault(val value.Value) {
+	c.currentVal = val
 }
 
 func (c *Environment) Default() value.Value {
-	return c.defaultFile
+	return c.currentVal
 }
 
 func (c *Environment) Define(ident string, val value.Value) {

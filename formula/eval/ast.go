@@ -111,6 +111,24 @@ func (d defaultRef) String() string {
 	return fmt.Sprintf("default %s", d.ident)
 }
 
+type sheetFromRef struct {
+	ident string
+	file  string
+}
+
+func (sheetFromRef) String() string {
+	return "<sheet>"
+}
+
+type rangeFromRef struct {
+	ident string
+	file  string
+}
+
+func (rangeFromRef) String() string {
+	return "<range>"
+}
+
 type macroDef struct {
 	ident identifier
 	args  []Expr
@@ -519,6 +537,8 @@ func dumpExpr(w io.Writer, expr Expr) {
 	case sheetExpr:
 	case chartExpr:
 	case filterExpr:
+	case sheetFromRef:
+	case rangeFromRef:
 	default:
 		io.WriteString(w, "unknown")
 	}
