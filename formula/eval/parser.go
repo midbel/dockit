@@ -70,10 +70,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwWith, parseWith)
 	g.RegisterPrefixKeyword(kwDefault, parseDefault)
 
-	g.RegisterPrefixKeyword(kwSheet, parseSheetFrom)
-	g.RegisterPrefixKeyword(kwRange, parseRangeFrom)
-	g.RegisterPrefixKeyword(kwSelect, parseSelectFrom)
-
 	return g
 }
 
@@ -624,119 +620,6 @@ func parseImport(p *Parser) (Expr, error) {
 	return stmt, nil
 }
 
-func parseSheetFrom(p *Parser) (Expr, error) {
-	p.next()
-	if !p.is(op.Ident) {
-		return nil, p.makeError("identifier expected")
-	}
-	ref := sheetFromRef{
-		ident: p.currentLiteral(),
-	}
-	p.next()
-	if p.is(op.Keyword) && p.currentLiteral() == kwFrom {
-		p.next()
-		if !p.is(op.Ident) {
-			return nil, p.makeError("identifier expected")
-		}
-		ref.file = p.currentLiteral()
-		p.next()
-	}
-	if !p.isEOL() {
-		return nil, p.makeError("eol expected")
-	}
-	p.next()
-	return ref, nil
-}
-
-func parseRangeFrom(p *Parser) (Expr, error) {
-	p.next()
-	if !p.is(op.Ident) {
-		return nil, p.makeError("identifier expected")
-	}
-	ref := rangeFromRef{
-		ident: p.currentLiteral(),
-	}
-	p.next()
-	if p.is(op.Keyword) && p.currentLiteral() == kwFrom {
-		p.next()
-		if !p.is(op.Ident) {
-			return nil, p.makeError("identifier expected")
-		}
-		ref.file = p.currentLiteral()
-		p.next()
-	}
-	if !p.isEOL() {
-		return nil, p.makeError("eol expected")
-	}
-	p.next()
-	return ref, nil
-}
-
-func parseSelectFrom(p *Parser) (Expr, error) {
-	p.next()
-	return nil, nil
-}
-
-func chartGrammar() *Grammar {
-	return nil
-}
-
-func pivotGrammar() *Grammar {
-	return nil
-}
-
-func sheetGrammar() *Grammar {
-	return nil
-}
-
-func filterGrammar() *Grammar {
-	return nil
-}
-
 func parseWith(p *Parser) (Expr, error) {
-	p.next()
-	if !p.is(op.Keyword) {
-		return nil, p.makeError("keyword expected")
-	}
-	var get func([]Expr) Expr
-	switch p.currentLiteral() {
-	case kwSheet:
-		p.pushGrammar(sheetGrammar())
-		get = makeSheetExpr
-	case kwChart:
-		p.pushGrammar(chartGrammar())
-		get = makeChartExpr
-	case kwPivot:
-		p.pushGrammar(pivotGrammar())
-		get = makePivotExpr
-	case kwFilter:
-		p.pushGrammar(filterGrammar())
-		get = makeFilterExpr
-	default:
-		msg := fmt.Sprintf("unexpected keyword: %s", p.currentLiteral())
-		return nil, p.makeError(msg)
-	}
-	defer p.popGrammar()
-	p.next()
-
-	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
-	}
-	p.next()
-
-	body, err := p.parseUntil(func() bool {
-		isEnd := p.is(op.Keyword) && p.currentLiteral() == kwEnd
-		return !isEnd
-	})
-	if err != nil {
-		return nil, err
-	}
-	if !p.is(op.Keyword) && p.currentLiteral() != kwEnd {
-		return nil, p.makeError("expected 'end' keyword")
-	}
-	p.next()
-	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
-	}
-	return get(body), nil
+	return nil, nil
 }

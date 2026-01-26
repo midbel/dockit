@@ -111,24 +111,6 @@ func (d defaultRef) String() string {
 	return fmt.Sprintf("default %s", d.ident)
 }
 
-type sheetFromRef struct {
-	ident string
-	file  string
-}
-
-func (sheetFromRef) String() string {
-	return "<sheet>"
-}
-
-type rangeFromRef struct {
-	ident string
-	file  string
-}
-
-func (rangeFromRef) String() string {
-	return "<range>"
-}
-
 type macroDef struct {
 	ident identifier
 	args  []Expr
@@ -163,62 +145,6 @@ type assignment struct {
 
 func (a assignment) String() string {
 	return fmt.Sprintf("%s := %s", a.ident.String(), a.expr.String())
-}
-
-type pivotExpr struct {
-	body []Expr
-}
-
-func makePivotExpr(body []Expr) Expr {
-	return pivotExpr{
-		body: body,
-	}
-}
-
-func (e pivotExpr) String() string {
-	return "<pivot>"
-}
-
-type chartExpr struct {
-	body []Expr
-}
-
-func makeChartExpr(body []Expr) Expr {
-	return chartExpr{
-		body: body,
-	}
-}
-
-func (e chartExpr) String() string {
-	return "<chart>"
-}
-
-type sheetExpr struct {
-	body []Expr
-}
-
-func makeSheetExpr(body []Expr) Expr {
-	return sheetExpr{
-		body: body,
-	}
-}
-
-func (e sheetExpr) String() string {
-	return "<sheet>"
-}
-
-type filterExpr struct {
-	body []Expr
-}
-
-func makeFilterExpr(body []Expr) Expr {
-	return filterExpr{
-		body: body,
-	}
-}
-
-func (e filterExpr) String() string {
-	return "<filter>"
 }
 
 type formula struct {
@@ -528,17 +454,33 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.endAddr)
 		io.WriteString(w, ")")
 	case importFile:
+		io.WriteString(w, "import(")
+		io.WriteString(w, e.file)
+		if e.alias != "" {
+			io.WriteString(w, ", alias: ")
+			io.WriteString(w, e.alias)
+		}
+		io.WriteString(w, ")")
 	case useFile:
+		io.WriteString(w, "use(")
+		io.WriteString(w, e.file)
+		if e.alias != "" {
+			io.WriteString(w, ", alias: ")
+			io.WriteString(w, e.alias)
+		}
+		io.WriteString(w, ")")
 	case printRef:
+		io.WriteString(w, "print(")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ")")
 	case exportRef:
 	case defaultRef:
+		io.WriteString(w, "default(")
+		io.WriteString(w, e.ident)
+		io.WriteString(w, ")")
 	case saveRef:
-	case pivotExpr:
-	case sheetExpr:
-	case chartExpr:
-	case filterExpr:
-	case sheetFromRef:
-	case rangeFromRef:
+		io.WriteString(w, "save(")
+		io.WriteString(w, ")")
 	default:
 		io.WriteString(w, "unknown")
 	}
