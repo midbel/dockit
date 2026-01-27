@@ -37,6 +37,8 @@ func (c *File) Sheet(ident string) (value.Value, error) {
 
 func (c *File) Get(ident string) (value.Value, error) {
 	switch ident {
+	case "names":
+		return Float(0), nil
 	case "sheets":
 		x := c.file.Sheets()
 		return Float(float64(len(x))), nil

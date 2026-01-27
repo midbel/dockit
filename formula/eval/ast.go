@@ -52,7 +52,7 @@ func (Script) String() string {
 }
 
 type useRef struct {
-	ident  string
+	ident string
 }
 
 func (i useRef) String() string {
@@ -118,12 +118,24 @@ func (a access) String() string {
 	return fmt.Sprintf("%s.%s", a.expr.String(), a.prop)
 }
 
+type template struct {
+	expr []Expr
+}
+
+func (t template) String() string {
+	return "<template>"
+}
+
 type lambda struct {
 	expr Expr
 }
 
 func (f lambda) String() string {
 	return fmt.Sprintf("=%s", f.expr.String())
+}
+
+func (f lambda) Eval(ctx value.Context) (value.Value, error) {
+	return Eval(f.expr, ctx)
 }
 
 type assignment struct {
@@ -391,6 +403,15 @@ func dumpExpr(w io.Writer, expr Expr) {
 	case number:
 		io.WriteString(w, "number(")
 		io.WriteString(w, strconv.FormatFloat(e.value, 'f', -1, 64))
+		io.WriteString(w, ")")
+	case template:
+		io.WriteString(w, "template(")
+		for i := range e.expr {
+			if i > 0 {
+				io.WriteString(w, ", ")
+			}
+			dumpExpr(w, e.expr[i])
+		}
 		io.WriteString(w, ")")
 	case binary:
 		io.WriteString(w, "binary(")

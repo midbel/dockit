@@ -1,3 +1,10 @@
 import "projects.csv" as projects default
 
+use sheet1
+
 print projects.sheets
+print "active sheet: ${projects.active.name}"
+
+# print sheet properties
+print sheet1.lines
+print sheet1.columns

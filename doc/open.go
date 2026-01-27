@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"path/filepath"
 	"os"
+	"path/filepath"
 
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/grid"

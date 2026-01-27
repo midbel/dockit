@@ -336,10 +336,45 @@ func parseNumber(p *Parser) (Expr, error) {
 
 func parseLiteral(p *Parser) (Expr, error) {
 	defer p.next()
-	i := literal{
-		value: p.currentLiteral(),
+	lit := p.currentLiteral()
+	if strings.Index(lit, "${") < 0 {
+		i := literal{
+			value: lit,
+		}
+		return i, nil
 	}
-	return i, nil
+	var (
+		offset int
+		list   []Expr
+	)
+	for {
+		ix := strings.Index(lit[offset:], "${")
+		if ix < 0 {
+			i := literal{
+				value: lit[offset:],
+			}
+			list = append(list, i)
+			break
+		}
+		i := literal{
+			value: lit[offset : offset+ix],
+		}
+		list = append(list, i)
+		offset += ix + 2
+		if ix = strings.Index(lit[offset:], "}"); ix <= 0 {
+			return nil, fmt.Errorf("invalid template string")
+		}
+		expr, err := parseExprFromString(list[offset : offset+ix])
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, expr)
+		lit = lit[offset+ix:]
+	}
+	t := template{
+		expr: list,
+	}
+	return t, nil
 }
 
 func parseAdressOrIdentifier(p *Parser) (Expr, error) {

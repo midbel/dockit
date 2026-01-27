@@ -154,13 +154,26 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 		return evalAccess(e, expr, ctx)
 	case literal:
 		return types.Text(expr.value), nil
+	case template:
+		return evalTemplate(expr, ctx)
 	case number:
 		return types.Float(expr.value), nil
 	case identifier:
 		return ctx.Resolve(expr.name)
+	case binary:
+		return evalBinary(expr, ctx)
+	case unary:
+		return evalUnary(expr, ctx)
+	case call:
+	case cellAddr:
+	case rangeAddr:
 	default:
 		return nil, ErrEval
 	}
+	return nil, nil
+}
+
+func evalTemplate(expr template, ctx *env.Environment) (value.Value, error) {
 	return nil, nil
 }
 
@@ -168,7 +181,9 @@ func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value
 	switch e.expr.(type) {
 	case cellAddr:
 	case rangeAddr:
+	case identifier:
 	default:
+		return nil, fmt.Errorf("value can not be assigned to %s", e.expr)
 	}
 	return nil, nil
 }
