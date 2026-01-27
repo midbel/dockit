@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"path/filepath"
 	"os"
 
 	"github.com/midbel/dockit/csv"
@@ -23,8 +24,8 @@ func NewLoader(dir string) *Loader {
 	return &x
 }
 
-func (*Loader) Open(file string) (grid.File, error) {
-	return Open(file)
+func (r *Loader) Open(file string) (grid.File, error) {
+	return Open(filepath.Join(r.base, file))
 }
 
 func Infos(file string) ([]grid.ViewInfo, error) {

@@ -51,9 +51,9 @@ func ScriptGrammar() *Grammar {
 	g.mode = ModeScript
 
 	g.RegisterPrefix(op.BegBlock, parseBlock)
+	g.RegisterPrefix(op.BegProp, parseSlice)
 	g.RegisterPrefix(op.Eq, parseLambda)
 
-	// g.RegisterInfix(BegProp, parseIndex)
 	g.RegisterInfix(op.Dot, parseAccess)
 	g.RegisterInfix(op.Assign, parseAssignment)
 	g.RegisterInfix(op.AddAssign, parseAssignment)
@@ -403,6 +403,10 @@ func parseLambda(p *Parser) (Expr, error) {
 		expr: expr,
 	}
 	return e, nil
+}
+
+func parseSlice(p *Parser) (Expr, error) {
+	return nil, nil
 }
 
 func parseAccess(p *Parser, left Expr) (Expr, error) {

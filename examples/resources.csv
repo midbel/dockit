@@ -1,0 +1,6 @@
+ResourceID,Name,Type,HourlyRate,Availability
+1,John,Engineer,50,Full
+2,Sarah,Engineer,55,Part
+3,Alice,Manager,80,Full
+4,Bob,Technician,40,Part
+5,Tom,Analyst,60,Full
