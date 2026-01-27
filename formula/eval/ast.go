@@ -51,22 +51,18 @@ func (Script) String() string {
 	return "<script>"
 }
 
-type useFile struct {
-	file  string
-	alias string
+type useRef struct {
+	ident  string
 }
 
-func (i useFile) String() string {
-	return fmt.Sprintf("use(%s)", i.file)
-}
-
-func (useFile) Kind() Kind {
-	return KindUse
+func (i useRef) String() string {
+	return fmt.Sprintf("use(%s)", i.ident)
 }
 
 type importFile struct {
-	file  string
-	alias string
+	file        string
+	alias       string
+	defaultFile bool
 }
 
 func (i importFile) String() string {
@@ -103,14 +99,6 @@ func (p saveRef) String() string {
 	return fmt.Sprintf("save %s", p.expr.String())
 }
 
-type defaultRef struct {
-	ident string
-}
-
-func (d defaultRef) String() string {
-	return fmt.Sprintf("default %s", d.ident)
-}
-
 type macroDef struct {
 	ident identifier
 	args  []Expr
@@ -139,7 +127,7 @@ func (f lambda) String() string {
 }
 
 type assignment struct {
-	ident identifier
+	ident Expr
 	expr  Expr
 }
 
@@ -461,23 +449,15 @@ func dumpExpr(w io.Writer, expr Expr) {
 			io.WriteString(w, e.alias)
 		}
 		io.WriteString(w, ")")
-	case useFile:
+	case useRef:
 		io.WriteString(w, "use(")
-		io.WriteString(w, e.file)
-		if e.alias != "" {
-			io.WriteString(w, ", alias: ")
-			io.WriteString(w, e.alias)
-		}
+		io.WriteString(w, e.ident)
 		io.WriteString(w, ")")
 	case printRef:
 		io.WriteString(w, "print(")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
 	case exportRef:
-	case defaultRef:
-		io.WriteString(w, "default(")
-		io.WriteString(w, e.ident)
-		io.WriteString(w, ")")
 	case saveRef:
 		io.WriteString(w, "save(")
 		io.WriteString(w, ")")

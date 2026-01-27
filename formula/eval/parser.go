@@ -68,7 +68,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwSave, parseSave)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
 	g.RegisterPrefixKeyword(kwWith, parseWith)
-	g.RegisterPrefixKeyword(kwDefault, parseDefault)
 
 	return g
 }
@@ -406,10 +405,6 @@ func parseLambda(p *Parser) (Expr, error) {
 	return e, nil
 }
 
-// func parseIndex(p *Parser, left Expr) (Expr, error) {
-// 	return nil, nil
-// }
-
 func parseAccess(p *Parser, left Expr) (Expr, error) {
 	p.next()
 	if !p.is(op.Ident) {
@@ -424,12 +419,8 @@ func parseAccess(p *Parser, left Expr) (Expr, error) {
 }
 
 func parseAssignment(p *Parser, left Expr) (Expr, error) {
-	id, ok := left.(identifier)
-	if !ok {
-		return nil, p.makeError("identifier expected")
-	}
 	a := assignment{
-		ident: id,
+		ident: left,
 	}
 	oper := p.curr.Type
 	p.next()
@@ -492,12 +483,12 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	return a, nil
 }
 
-func parseDefault(p *Parser) (Expr, error) {
+func parseUse(p *Parser) (Expr, error) {
 	p.next()
 	if !p.is(op.Ident) {
 		return nil, p.makeError("identifier expected")
 	}
-	stmt := defaultRef{
+	stmt := useRef{
 		ident: p.currentLiteral(),
 	}
 	p.next()
@@ -570,31 +561,6 @@ func parseExport(p *Parser) (Expr, error) {
 	return stmt, nil
 }
 
-func parseUse(p *Parser) (Expr, error) {
-	p.next()
-	var stmt useFile
-	if !p.is(op.Literal) {
-		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
-		return nil, p.makeError(msg)
-	}
-	stmt.file = p.currentLiteral()
-	p.next()
-	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
-		p.next()
-		if !p.is(op.Ident) {
-			msg := fmt.Sprintf("literal/identifier expected instead of %s", p.curr)
-			return nil, p.makeError(msg)
-		}
-		stmt.alias = p.currentLiteral()
-		p.next()
-	}
-	if !p.isEOL() {
-		return nil, p.makeError("eol expected")
-	}
-	p.next()
-	return stmt, nil
-}
-
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
 	var stmt importFile
@@ -612,6 +578,10 @@ func parseImport(p *Parser) (Expr, error) {
 		}
 		stmt.alias = p.currentLiteral()
 		p.next()
+	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwDefault {
+		p.next()
+		stmt.defaultFile = true
 	}
 	if !p.isEOL() {
 		return nil, p.makeError("eol expected")

@@ -46,7 +46,6 @@ type scriptPhase int8
 
 const (
 	phaseStmt scriptPhase = 1 << iota
-	phaseUse
 	phaseImport
 )
 
@@ -54,8 +53,6 @@ func (p scriptPhase) Allows(k Kind) bool {
 	switch p {
 	case phaseStmt:
 		return k == KindStmt
-	case phaseUse:
-		return k == KindStmt || k == KindUse || k == KindImport
 	case phaseImport:
 		return k == KindStmt || k == KindImport
 	default:
@@ -65,12 +62,6 @@ func (p scriptPhase) Allows(k Kind) bool {
 
 func (p scriptPhase) Next(k Kind) scriptPhase {
 	switch {
-	case p == phaseUse && k == KindUse:
-		return p
-	case p == phaseUse && k == KindImport:
-		return phaseImport
-	case p == phaseUse && k == KindStmt:
-		return phaseStmt
 	case p == phaseImport && k == KindImport:
 		return p
 	case p == phaseImport && k == KindStmt:
@@ -125,7 +116,7 @@ func NewEngine(loader Loader) *Engine {
 func (e *Engine) Exec(r io.Reader, ctx *env.Environment) (value.Value, error) {
 	var (
 		val   value.Value
-		phase = phaseUse
+		phase = phaseImport
 		ps    = NewParser(ScriptGrammar())
 	)
 	if err := ps.Init(r); err != nil {
@@ -153,11 +144,10 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	switch expr := expr.(type) {
 	case importFile:
 		return evalImport(e, expr, ctx)
-	case useFile:
 	case printRef:
 		return evalPrint(e, expr, ctx)
-	case defaultRef:
-		return evalDefault(e, expr, ctx)
+	case useRef:
+		return evalUse(e, expr, ctx)
 	case assignment:
 		return evalAssignment(e, expr, ctx)
 	case access:
@@ -175,6 +165,11 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 }
 
 func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value, error) {
+	switch e.expr.(type) {
+	case cellAddr:
+	case rangeAddr:
+	default:
+	}
 	return nil, nil
 }
 
@@ -197,11 +192,15 @@ func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, er
 		}
 		e.alias = alias
 	}
-	ctx.Define(e.alias, types.NewFileValue(file))
+	book := types.NewFileValue(file)
+	ctx.Define(e.alias, book)
+	if e.defaultFile {
+		ctx.SetDefault(book)
+	}
 	return types.Empty(), nil
 }
 
-func evalDefault(eg *Engine, e defaultRef, ctx *env.Environment) (value.Value, error) {
+func evalUse(eg *Engine, e useRef, ctx *env.Environment) (value.Value, error) {
 	v, err := ctx.Resolve(e.ident)
 	if err != nil {
 		return nil, err
