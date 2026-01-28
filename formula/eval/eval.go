@@ -155,7 +155,7 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case literal:
 		return types.Text(expr.value), nil
 	case template:
-		return evalTemplate(expr, ctx)
+		return evalTemplate(e, expr, ctx)
 	case number:
 		return types.Float(expr.value), nil
 	case identifier:
@@ -173,15 +173,28 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	return nil, nil
 }
 
-func evalTemplate(expr template, ctx *env.Environment) (value.Value, error) {
-	return nil, nil
+func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value, error) {
+	var str strings.Builder
+	for i := range expr.expr {
+		v, err := eg.exec(expr.expr[i], ctx)
+		if err != nil {
+			return nil, err
+		}
+		str.WriteString(v.String())
+	}
+	return types.Text(str.String()), nil
 }
 
 func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value, error) {
-	switch e.expr.(type) {
+	switch id := e.ident.(type) {
 	case cellAddr:
 	case rangeAddr:
 	case identifier:
+		value, err := eg.exec(e.expr, ctx)
+		if err != nil {
+			return nil, err
+		}
+		ctx.Define(id.name, value)
 	default:
 		return nil, fmt.Errorf("value can not be assigned to %s", e.expr)
 	}
@@ -233,7 +246,9 @@ func evalPrint(eg *Engine, e printRef, ctx *env.Environment) (value.Value, error
 	if err != nil {
 		return nil, err
 	}
-	fmt.Fprintln(eg.Stdout, v.String())
+	if v != nil {
+		fmt.Fprintln(eg.Stdout, v.String())
+	}
 	return types.Empty(), nil
 }
 

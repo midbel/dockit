@@ -99,6 +99,19 @@ func NewParser(g *Grammar) *Parser {
 	return &p
 }
 
+func parseExprFromString(str string) (Expr, error) {
+	p := NewParser(ScriptGrammar())
+	x, err := p.ParseString(str)
+	if err != nil {
+		return nil, err
+	}
+	s, ok := x.(Script)
+	if !ok || len(s.Body) != 1 {
+		return nil, fmt.Errorf("invalid script string")
+	}
+	return s.Body[0], nil
+}
+
 func (p *Parser) ParseString(str string) (Expr, error) {
 	return p.Parse(strings.NewReader(str))
 }
@@ -212,7 +225,7 @@ func (p *Parser) isEOL() bool {
 }
 
 func (p *Parser) skipEOL() {
-	for p.isEOL() {
+	for p.isEOL() && !p.done() {
 		p.next()
 	}
 }
@@ -335,8 +348,8 @@ func parseNumber(p *Parser) (Expr, error) {
 }
 
 func parseLiteral(p *Parser) (Expr, error) {
-	defer p.next()
 	lit := p.currentLiteral()
+	p.next()
 	if strings.Index(lit, "${") < 0 {
 		i := literal{
 			value: lit,
@@ -347,13 +360,9 @@ func parseLiteral(p *Parser) (Expr, error) {
 		offset int
 		list   []Expr
 	)
-	for {
+	for len(lit) > 0 {
 		ix := strings.Index(lit[offset:], "${")
 		if ix < 0 {
-			i := literal{
-				value: lit[offset:],
-			}
-			list = append(list, i)
 			break
 		}
 		i := literal{
@@ -364,12 +373,19 @@ func parseLiteral(p *Parser) (Expr, error) {
 		if ix = strings.Index(lit[offset:], "}"); ix <= 0 {
 			return nil, fmt.Errorf("invalid template string")
 		}
-		expr, err := parseExprFromString(list[offset : offset+ix])
+		expr, err := parseExprFromString(lit[offset : offset+ix])
 		if err != nil {
 			return nil, err
 		}
 		list = append(list, expr)
-		lit = lit[offset+ix:]
+		offset += ix + 1
+		lit = lit[offset:]
+	}
+	if len(lit) > 0 {
+		i := literal{
+			value: lit,
+		}
+		list = append(list, i)
 	}
 	t := template{
 		expr: list,
@@ -378,7 +394,7 @@ func parseLiteral(p *Parser) (Expr, error) {
 }
 
 func parseAdressOrIdentifier(p *Parser) (Expr, error) {
-	if p.peek.Type == op.BegGrp || p.peek.Type == op.Dot {
+	if p.peek.Type == op.BegGrp || p.peek.Type == op.Dot || p.peek.Type == op.EOF {
 		id := identifier{
 			name: p.currentLiteral(),
 		}
