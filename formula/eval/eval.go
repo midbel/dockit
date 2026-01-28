@@ -188,6 +188,38 @@ func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value,
 func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value, error) {
 	switch id := e.ident.(type) {
 	case cellAddr:
+		obj := ctx.Default()
+		if obj == nil {
+			return nil, fmt.Errorf("no default defined")
+		}
+		switch x := obj.(type) {
+		case *File:
+			var (
+				sheet value.Value
+				err error
+			)
+			if id.Sheet == "" {
+				sheet, err = x.Sheet(id.Sheet)
+			} else {
+				sheet, err = x.Active()
+			}
+			if err != nil {
+				return nil, err
+			}
+			if mv, ok := sheet.(*types.View); ok {
+				m, err := mv.Mutate()
+				if err != nil {
+					return nil, err
+				}
+				vc, err := eg.exec(e.expr, ctx)
+				if err != nil {
+					return nil, err
+				}
+				m.SetValue(id.Position, vc)
+			}
+		default:
+			return nil, fmt.Errorf("value can not be assigned")
+		}
 	case rangeAddr:
 	case identifier:
 		value, err := eg.exec(e.expr, ctx)

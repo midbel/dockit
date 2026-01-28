@@ -27,6 +27,14 @@ func (*File) String() string {
 	return "workbook"
 }
 
+func (c *File) Active() (value.Value, error) {
+	v := c.file.ActiveSheet()
+	if v == nil {
+		return nil, fmt.Errorf("no active view")
+	}
+	return NewViewValue(v), nil
+}
+
 func (c *File) Sheet(ident string) (value.Value, error) {
 	v, err := c.file.Sheet(ident)
 	if err != nil {
@@ -108,6 +116,14 @@ func (c *View) Get(ident string) (value.Value, error) {
 	default:
 		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
 	}
+}
+
+func (c *View) Mutable() (grid.MutableView, error) {
+	mv, ok := c.view.(grid.MutableView)
+	if !ok {
+		return nil, fmt.Errorf("view is not mutable")
+	}
+	return mv, nil
 }
 
 type Range struct {

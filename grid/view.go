@@ -98,9 +98,9 @@ type MutableView interface {
 	ClearFormula(layout.Position) error
 	ClearRange(*layout.Range) error
 
-	AppendRow([]value.ScalarValue) error
-	InsertRow(int64, []value.ScalarValue) error
-	DeleteRow(int64) error
+	// AppendRow([]value.ScalarValue) error
+	// InsertRow(int64, []value.ScalarValue) error
+	// DeleteRow(int64) error
 }
 
 type ViewInfo struct {
