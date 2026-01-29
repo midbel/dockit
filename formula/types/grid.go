@@ -28,7 +28,10 @@ func (*File) String() string {
 }
 
 func (c *File) Active() (value.Value, error) {
-	v := c.file.ActiveSheet()
+	v, err := c.file.ActiveSheet()
+	if err != nil {
+		return nil, err
+	}
 	if v == nil {
 		return nil, fmt.Errorf("no active view")
 	}

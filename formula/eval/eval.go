@@ -186,51 +186,28 @@ func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value,
 }
 
 func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value, error) {
+	var (
+		lv  LValue
+		err error
+	)
 	switch id := e.ident.(type) {
 	case cellAddr:
-		obj := ctx.Default()
-		if obj == nil {
-			return nil, fmt.Errorf("no default defined")
-		}
-		switch x := obj.(type) {
-		case *File:
-			var (
-				sheet value.Value
-				err error
-			)
-			if id.Sheet == "" {
-				sheet, err = x.Sheet(id.Sheet)
-			} else {
-				sheet, err = x.Active()
-			}
-			if err != nil {
-				return nil, err
-			}
-			if mv, ok := sheet.(*types.View); ok {
-				m, err := mv.Mutate()
-				if err != nil {
-					return nil, err
-				}
-				vc, err := eg.exec(e.expr, ctx)
-				if err != nil {
-					return nil, err
-				}
-				m.SetValue(id.Position, vc)
-			}
-		default:
-			return nil, fmt.Errorf("value can not be assigned")
-		}
+		lv, err = resolveCell(ctx, id)
 	case rangeAddr:
+		lv, err = resolveRange(ctx, id)
 	case identifier:
-		value, err := eg.exec(e.expr, ctx)
-		if err != nil {
-			return nil, err
-		}
-		ctx.Define(id.name, value)
+		lv, err = resolveIdent(ctx, id)
 	default:
-		return nil, fmt.Errorf("value can not be assigned to %s", e.expr)
+		err = fmt.Errorf("value can not be assigned to %s", e.expr)
 	}
-	return nil, nil
+	if err != nil {
+		return nil, err
+	}
+	value, err := eg.exec(e.expr, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return nil, lv.Set(value)
 }
 
 func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, error) {
