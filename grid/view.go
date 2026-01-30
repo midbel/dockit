@@ -14,7 +14,8 @@ var (
 	ErrLock      = errors.New("spreadsheet locked")
 	ErrSupported = errors.New("operation not supported")
 	ErrFound     = errors.New("not found")
-	ErrPosition     = errors.New("invalid position")
+	ErrPosition  = errors.New("invalid position")
+	ErrWritable  = errors.New("read only view")
 )
 
 func NoCell(pos layout.Position) error {
@@ -160,15 +161,49 @@ func (v *filteredView) Reload(ctx value.Context) error {
 	return v.sheet.Reload(ctx)
 }
 
+type readonlyView struct {
+	view View
+}
+
+func ReadOnly(view View) View {
+	return &readonlyView{
+		view: view,
+	}
+}
+
+func (v *readonlyView) Name() string {
+	return v.view.Name()
+}
+
+func (v *readonlyView) Bounds() *layout.Range {
+	return v.view.Bounds()
+}
+
+func (v *readonlyView) Rows() iter.Seq[[]value.ScalarValue] {
+	return v.view.Rows()
+}
+
+func (v *readonlyView) Encode(encoder Encoder) error {
+	return encoder.EncodeSheet(v.view)
+}
+
+func (v *readonlyView) Cell(pos layout.Position) (Cell, error) {
+	return v.view.Cell(pos)
+}
+
+func (v *readonlyView) Reload(ctx value.Context) error {
+	return ErrWritable
+}
+
 type projectedView struct {
-	sheet   View
+	view    View
 	columns []int64
 	mapping map[int64]int64
 }
 
 func NewProjectView(view View, sel layout.Selection) View {
 	v := projectedView{
-		sheet:   view,
+		view:    view,
 		columns: sel.Indices(view.Bounds()),
 		mapping: make(map[int64]int64),
 	}
@@ -179,15 +214,15 @@ func NewProjectView(view View, sel layout.Selection) View {
 }
 
 func (v *projectedView) Name() string {
-	return v.sheet.Name()
+	return v.view.Name()
 }
 
 func (v *projectedView) Reload(ctx value.Context) error {
-	return v.sheet.Reload(ctx)
+	return v.view.Reload(ctx)
 }
 
 func (v *projectedView) Bounds() *layout.Range {
-	rg := v.sheet.Bounds()
+	rg := v.view.Bounds()
 
 	start := layout.Position{
 		Line:   1,
@@ -204,14 +239,14 @@ func (v *projectedView) Bounds() *layout.Range {
 }
 
 func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
-	pos = v.getOriginalPosition()
-	return v.sheet.Cell(pos)
+	pos = v.getOriginalPosition(pos)
+	return v.view.Cell(pos)
 }
 
 func (v *projectedView) Rows() iter.Seq[[]value.ScalarValue] {
 	it := func(yield func([]value.ScalarValue) bool) {
 		out := make([]value.ScalarValue, len(v.columns))
-		for row := range v.sheet.Rows() {
+		for row := range v.view.Rows() {
 			for i, col := range v.columns {
 				if int(col) < len(row) {
 					out[i] = row[col]
@@ -230,7 +265,12 @@ func (v *projectedView) SetValue(pos layout.Position, val value.ScalarValue) err
 	if !bd.Contains(pos) {
 		return ErrPosition
 	}
-	return v.view.SetValue(pos, val)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	pos = v.getOriginalPosition(pos)
+	return mv.SetValue(pos, val)
 }
 
 func (v *projectedView) SetFormula(pos layout.Position, val value.Formula) error {
@@ -238,30 +278,53 @@ func (v *projectedView) SetFormula(pos layout.Position, val value.Formula) error
 	if !bd.Contains(pos) {
 		return ErrPosition
 	}
-	return v.view.SetFormula(pos, val)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	pos = v.getOriginalPosition(pos)
+	return mv.SetFormula(pos, val)
 }
 
 func (v *projectedView) ClearCell(pos layout.Position) error {
-	return v.view.ClearCell(pos)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.ClearCell(pos)
 }
 
 func (v *projectedView) ClearValue(pos layout.Position) error {
-	return v.view.ClearValue(pos)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	pos = v.getOriginalPosition(pos)
+	return mv.ClearValue(pos)
 }
 
 func (v *projectedView) ClearFormula(pos layout.Position) error {
-	return v.view.ClearFormula(pos)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	pos = v.getOriginalPosition(pos)
+	return mv.ClearFormula(pos)
 }
 
 func (v *projectedView) ClearRange(rg *layout.Range) error {
-	return v.view.ClearRange(rg)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.ClearRange(rg)
 }
 
 func (v *projectedView) Encode(encoder Encoder) error {
 	return encoder.EncodeSheet(v)
 }
 
-func (v *prjectedView) getOriginalPosition(pos layout.Position) layout.Position {
+func (v *projectedView) getOriginalPosition(pos layout.Position) layout.Position {
 	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
 		return pos
 	}
@@ -269,35 +332,35 @@ func (v *prjectedView) getOriginalPosition(pos layout.Position) layout.Position 
 		Column: v.columns[pos.Column],
 		Line:   pos.Line,
 	}
-	return pos
+	return mod
 }
 
 type boundedView struct {
-	sheet View
-	part  *layout.Range
+	view View
+	part *layout.Range
 }
 
 func NewBoundedView(view View, rg *layout.Range) View {
 	v := boundedView{
-		sheet: view,
-		part:  rg.Normalize(),
+		view: view,
+		part: rg.Normalize(),
 	}
 	return &v
 }
 
 func (v *boundedView) Name() string {
-	return v.sheet.Name()
+	return v.view.Name()
 }
 
 func (v *boundedView) Reload(ctx value.Context) error {
-	return v.sheet.Reload(ctx)
+	return v.view.Reload(ctx)
 }
 
 func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
 	if !v.part.Contains(pos) {
 		return nil, fmt.Errorf("position outside view range")
 	}
-	return v.sheet.Cell(pos)
+	return v.view.Cell(pos)
 }
 
 func (v *boundedView) Bounds() *layout.Range {
@@ -316,7 +379,7 @@ func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
 					Line:   row,
 					Column: col,
 				}
-				c, err := v.sheet.Cell(p)
+				c, err := v.view.Cell(p)
 				if err == nil {
 					data[ix] = c.Value()
 				}
@@ -334,32 +397,64 @@ func (v *boundedView) SetValue(pos layout.Position, val value.ScalarValue) error
 	if !v.part.Contains(pos) {
 		return ErrPosition
 	}
-	return v.view.SetValue(pos, val)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.SetValue(pos, val)
 }
 
 func (v *boundedView) SetFormula(pos layout.Position, val value.Formula) error {
 	if !v.part.Contains(pos) {
 		return ErrPosition
 	}
-	return v.view.SetFormula(pos, val)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.SetFormula(pos, val)
 }
 
 func (v *boundedView) ClearCell(pos layout.Position) error {
-	return v.view.ClearCell(pos)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.ClearCell(pos)
 }
 
 func (v *boundedView) ClearValue(pos layout.Position) error {
-	return v.view.ClearValue(pos)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.ClearValue(pos)
 }
 
 func (v *boundedView) ClearFormula(pos layout.Position) error {
-	return v.view.ClearFormula(pos)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.ClearFormula(pos)
 }
 
 func (v *boundedView) ClearRange(rg *layout.Range) error {
-	return v.view.ClearRange(rg)
+	mv, err := mutableView(v.view)
+	if err != nil {
+		return err
+	}
+	return mv.ClearRange(rg)
 }
 
 func (v *boundedView) Encode(e Encoder) error {
 	return e.EncodeSheet(v)
+}
+
+func mutableView(v View) (MutableView, error) {
+	mv, ok := v.(MutableView)
+	if !ok {
+		return nil, ErrWritable
+	}
+	return mv, nil
 }
