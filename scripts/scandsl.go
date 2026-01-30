@@ -6,7 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/midbel/dockit/formula"
+	"github.com/midbel/dockit/formula/eval"
+	"github.com/midbel/dockit/formula/op"
 )
 
 func main() {
@@ -19,13 +20,13 @@ func main() {
 	}
 	defer r.Close()
 
-	ps := formula.NewParser(formula.ScriptGrammar())
+	ps := eval.NewParser(eval.ScriptGrammar())
 	expr, err := ps.Parse(r)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	script, ok := expr.(formula.Script)
+	script, ok := expr.(eval.Script)
 	if !ok {
 		return
 	}
@@ -35,7 +36,7 @@ func main() {
 }
 
 func scan(r io.Reader) {
-	scan, err := formula.Scan(r, formula.ModeScript)
+	scan, err := eval.Scan(r, eval.ModeScript)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(2)
@@ -44,7 +45,7 @@ func scan(r io.Reader) {
 	for {
 		tok := scan.Scan()
 		fmt.Println(tok)
-		if tok.Type == formula.EOF {
+		if tok.Type == op.EOF {
 			break
 		}
 	}

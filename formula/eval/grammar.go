@@ -68,6 +68,7 @@ type Grammar struct {
 
 	prefix   map[op.Op]PrefixFunc
 	infix    map[op.Op]InfixFunc
+	postfix  map[op.Op]InfixFunc
 	bindings map[op.Op]int
 
 	kwPrefix map[string]PrefixFunc
@@ -116,12 +117,28 @@ func (g *Grammar) Infix(tok Token) (InfixFunc, error) {
 	return fn, nil
 }
 
+func (g *Grammar) Postfix(tok Token) (InfixFunc, error) {
+	fn, ok := g.postfix[tok.Type]
+	if !ok {
+		return nil, fmt.Errorf("(%s) %s: unsupported postfix operator (%s)", tok.Position, g.name, tok)
+	}
+	return fn, nil
+}
+
 func (g *Grammar) RegisterInfix(kd op.Op, fn InfixFunc) {
 	g.infix[kd] = fn
 }
 
 func (g *Grammar) UnregisterInfix(kd op.Op) {
 	g.infix[kd] = forbiddenInfix
+}
+
+func (g *Grammar) RegisterPostfix(kd op.Op, fn InfixFunc) {
+	g.postfix[kd] = fn
+}
+
+func (g *Grammar) UnregisterPostfix(kd op.Op) {
+	g.postfix[kd] = forbiddenInfix
 }
 
 func (g *Grammar) RegisterInfixKeyword(kw string, fn InfixFunc) {
@@ -193,6 +210,18 @@ func (gs *GrammarStack) Infix(tok Token) (InfixFunc, error) {
 	var lastErr error
 	for i := len(*gs) - 1; i >= 0; i-- {
 		fn, err := (*gs)[i].Infix(tok)
+		if err == nil {
+			return fn, err
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+func (gs *GrammarStack) Postfix(tok Token) (InfixFunc, error) {
+	var lastErr error
+	for i := len(*gs) - 1; i >= 0; i-- {
+		fn, err := (*gs)[i].Postfix(tok)
 		if err == nil {
 			return fn, err
 		}

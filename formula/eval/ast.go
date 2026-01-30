@@ -262,6 +262,15 @@ func (i identifier) String() string {
 	return i.name
 }
 
+type qualifiedCellAddr struct {
+	path Expr
+	addr Expr
+}
+
+func (a qualifiedCellAddr) String() string {
+	return fmt.Sprintf("qualified(%s.%s)", a.path.String(), a.addr.String())
+}
+
 type cellAddr struct {
 	layout.Position
 	AbsCols bool

@@ -80,10 +80,6 @@ func (t Token) String() string {
 		return "<beg-prop>"
 	case op.EndProp:
 		return "<end-prop>"
-	case op.BegBlock:
-		return "<beg-block>"
-	case op.EndBlock:
-		return "<end-block>"
 	case op.RangeRef:
 		return "<range>"
 	case op.SheetRef:

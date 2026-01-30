@@ -254,10 +254,6 @@ func (s *Scanner) scanDelimiter(tok *Token) {
 		tok.Type = op.BegGrp
 	case rparen:
 		tok.Type = op.EndGrp
-	case lcurly:
-		tok.Type = op.BegBlock
-	case rcurly:
-		tok.Type = op.EndBlock
 	case lsquare:
 		tok.Type = op.BegProp
 	case rsquare:
@@ -394,8 +390,7 @@ func isNL(c rune) bool {
 
 func isDelimiter(c rune) bool {
 	return c == semi || c == lparen || c == rparen ||
-		c == lcurly || c == rcurly || c == comma ||
-		c == lsquare || c == rsquare
+		c == comma || c == lsquare || c == rsquare
 }
 
 func isOperator(c rune) bool {

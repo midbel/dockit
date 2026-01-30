@@ -17,16 +17,19 @@ func FormulaGrammar() *Grammar {
 		mode:     ModeFormula,
 		prefix:   make(map[op.Op]PrefixFunc),
 		kwPrefix: make(map[string]PrefixFunc),
+		postfix:  make(map[op.Op]InfixFunc),
 		infix:    make(map[op.Op]InfixFunc),
 		kwInfix:  make(map[string]InfixFunc),
 		bindings: maps.Clone(defaultBindings),
 	}
-	g.RegisterPrefix(op.Ident, parseAdressOrIdentifier)
+	g.RegisterPrefix(op.Ident, parseIdentOrAddress)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.Sub, parseUnary)
 	g.RegisterPrefix(op.Add, parseUnary)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
+
+	g.RegisterPostfix(op.SheetRef, parseAddress)
 
 	g.RegisterInfix(op.BegGrp, parseCall)
 	g.RegisterInfix(op.Add, parseBinary)
@@ -50,11 +53,13 @@ func ScriptGrammar() *Grammar {
 	g.name = "script"
 	g.mode = ModeScript
 
-	g.RegisterPrefix(op.BegBlock, parseBlock)
-	g.RegisterPrefix(op.BegProp, parseSlice)
 	g.RegisterPrefix(op.Eq, parseLambda)
+	g.RegisterPrefix(op.Ident, parseIdentifier)
 
-	g.RegisterInfix(op.Dot, parseAccess)
+	g.RegisterPostfix(op.Dot, parseAccess)
+	g.RegisterPostfix(op.BegProp, parseSlice)
+	g.RegisterPostfix(op.SheetRef, parseAddress)
+
 	g.RegisterInfix(op.Assign, parseAssignment)
 	g.RegisterInfix(op.AddAssign, parseAssignment)
 	g.RegisterInfix(op.SubAssign, parseAssignment)
@@ -194,6 +199,16 @@ func (p *Parser) parse(pow int) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
+	for {
+		fn, err := p.postfix()
+		if err != nil {
+			break
+		}
+		left, err = fn(p, left)
+		if err != nil {
+			return nil, err
+		}
+	}
 	for !p.done() && pow < p.pow(p.curr.Type) {
 		fn, err := p.infix()
 		if err != nil {
@@ -246,6 +261,10 @@ func (p *Parser) pow(kind op.Op) int {
 
 func (p *Parser) prefix() (PrefixFunc, error) {
 	return p.currGrammar().Prefix(p.curr)
+}
+
+func (p *Parser) postfix() (InfixFunc, error) {
+	return p.currGrammar().Postfix(p.curr)
 }
 
 func (p *Parser) infix() (InfixFunc, error) {
@@ -393,22 +412,14 @@ func parseLiteral(p *Parser) (Expr, error) {
 	return t, nil
 }
 
-func parseAdressOrIdentifier(p *Parser) (Expr, error) {
-	if p.peek.Type == op.BegGrp || p.peek.Type == op.Dot || p.peek.Type == op.EOF {
-		id := identifier{
-			name: p.currentLiteral(),
-		}
-		p.next()
-		return id, nil
+func parseIdentOrAddress(p *Parser) (Expr, error) {
+	id := identifier{
+		name: "",
 	}
+	return parseAddress(p, id)
+}
 
-	var sheet string
-	if p.peek.Type == op.SheetRef {
-		sheet = p.currentLiteral()
-		p.next()
-		p.next()
-	}
-
+func parseIdentifier(p *Parser) (Expr, error) {
 	start, err := parseCellAddr(p.currentLiteral())
 	if err != nil {
 		id := identifier{
@@ -417,9 +428,26 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 		p.next()
 		return id, nil
 	}
-
-	start.Sheet = sheet
 	p.next()
+	return start, nil
+}
+
+func parseAddress(p *Parser, left Expr) (Expr, error) {
+	var sheet string
+	switch sh := left.(type) {
+	case identifier:
+		sheet = sh.name
+	case access:
+	default:
+		return nil, fmt.Errorf("missing sheet identifier")
+	}
+	p.next()
+	start, err := parseCellAddr(p.currentLiteral())
+	if err != nil {
+		return nil, err
+	}
+	p.next()
+	start.Sheet = sheet
 
 	if p.is(op.RangeRef) {
 		p.next()
@@ -428,20 +456,30 @@ func parseAdressOrIdentifier(p *Parser) (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		end.Sheet = sheet
+		end.Sheet = start.Sheet
 		p.next()
 
 		rg := rangeAddr{
 			startAddr: start,
 			endAddr:   end,
 		}
+		if _, ok := left.(access); ok {
+			q := qualifiedCellAddr{
+				path: left,
+				addr: rg,
+			}
+			return q, nil
+		}
 		return rg, nil
 	}
+	if _, ok := left.(access); ok {
+		q := qualifiedCellAddr{
+			path: left,
+			addr: start,
+		}
+		return q, nil
+	}
 	return start, nil
-}
-
-func parseBlock(p *Parser) (Expr, error) {
-	return nil, nil
 }
 
 func parseLambda(p *Parser) (Expr, error) {
@@ -456,7 +494,7 @@ func parseLambda(p *Parser) (Expr, error) {
 	return e, nil
 }
 
-func parseSlice(p *Parser) (Expr, error) {
+func parseSlice(p *Parser, left Expr) (Expr, error) {
 	return nil, nil
 }
 

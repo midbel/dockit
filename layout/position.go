@@ -50,6 +50,35 @@ func (p Position) Update(other Position) Position {
 	return p
 }
 
+func IsAddress(addr string) bool {
+	size := len(addr)
+	if size < 2 {
+		return false
+	}
+	var offset int
+	for offset < size {
+		c := addr[offset]
+		if c >= 'a' && c <= 'z' {
+			c = c - 'a' + 'A'
+		}
+		if c < 'A' || c > 'Z' {
+			break
+		}
+		offset++
+	}
+	if offset == 0 || offset >= size || addr[offset] == '0' {
+		return false
+	}
+	for offset < size {
+		c := addr[offset]
+		if c < '0' || c > '9' {
+			return false
+		}
+		offset++
+	}
+	return offset == size
+}
+
 func ParseIndex(str string) (int64, int) {
 	if len(str) == 0 {
 		return 0, 0

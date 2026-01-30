@@ -36,17 +36,14 @@ const (
 
 const (
 	groupTok Op = 1 << iota
-	blockTok
 	propTok
 )
 
 const (
-	BegBlock = blockTok | Begin
-	EndBlock = blockTok | End
-	BegGrp   = groupTok | Begin
-	EndGrp   = groupTok | End
-	BegProp  = propTok | Begin
-	EndProp  = propTok | End
+	BegGrp  = groupTok | Begin
+	EndGrp  = groupTok | End
+	BegProp = propTok | Begin
+	EndProp = propTok | End
 )
 
 const (
