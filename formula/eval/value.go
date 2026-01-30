@@ -14,6 +14,7 @@ var (
 	ErrNoDefault = errors.New("no default defined")
 	ErrValue     = errors.New("invalid value")
 	ErrReadOnly  = errors.New("read only view")
+	ErrType      = errors.New("invalid type")
 )
 
 type LValue interface {
@@ -40,15 +41,46 @@ func resolveIdent(ctx *env.Environment, ident identifier) (LValue, error) {
 
 type rangeValue struct {
 	view grid.MutableView
-	rg   layout.Range
+	rg   *layout.Range
 }
 
 func (v rangeValue) Set(val value.Value) error {
+	var err error
+	switch val := val.(type) {
+	case value.ScalarValue:
+		err = v.setScalar(val)
+	case value.ArrayValue:
+		err = v.setArray(val)
+	default:
+		return ErrType
+	}
+	return err
+}
+
+func (v rangeValue) setScalar(val value.ScalarValue) error {
+	for pos := range v.rg.Positions() {
+		if err := v.view.SetValue(pos, val); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (v rangeValue) setArray(val value.ArrayValue) error {
 	return nil
 }
 
 func resolveRange(ctx *env.Environment, rg rangeAddr) (LValue, error) {
-	return nil, nil
+	view, err := getMutableView(ctx, rg.startAddr.Sheet)
+	if err != nil {
+		return nil, err
+	}
+	r := layout.NewRange(rg.startAddr.Position, rg.endAddr.Position)
+	val := rangeValue{
+		rg:   r.Normalize(),
+		view: view,
+	}
+	return val, nil
 }
 
 type cellValue struct {
@@ -65,6 +97,38 @@ func (v cellValue) Set(val value.Value) error {
 }
 
 func resolveCell(ctx *env.Environment, addr cellAddr) (LValue, error) {
+	view, err := getMutableView(ctx, addr.Sheet)
+	if err != nil {
+		return nil, err
+	}
+	val := cellValue{
+		pos:  addr.Position,
+		view: view,
+	}
+	return val, nil
+}
+
+func getView(ctx *env.Environment, name string) (grid.View, error) {
+	sh, err := getSheet(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return sh.View(), nil
+}
+
+func getMutableView(ctx *env.Environment, name string) (grid.MutableView, error) {
+	sh, err := getSheet(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	view, err := sh.Mutable()
+	if err != nil {
+		return nil, ErrReadOnly
+	}
+	return view, nil
+}
+
+func getSheet(ctx *env.Environment, name string) (*types.View, error) {
 	obj := ctx.Default()
 	if obj == nil {
 		return nil, ErrNoDefault
@@ -77,24 +141,17 @@ func resolveCell(ctx *env.Environment, addr cellAddr) (LValue, error) {
 		sheet value.Value
 		err   error
 	)
-	if addr.Sheet == "" {
+	if name == "" {
 		sheet, err = x.Active()
 	} else {
-		sheet, err = x.Sheet(addr.Sheet)
+		sheet, err = x.Sheet(name)
 	}
 	if err != nil {
 		return nil, err
 	}
-	val := cellValue{
-		pos: addr.Position,
-	}
-	if mv, ok := sheet.(*types.View); ok {
-		val.view, err = mv.Mutable()
-		if err != nil {
-			return nil, ErrReadOnly
-		}
-	} else {
+	tv, ok := sheet.(*types.View)
+	if !ok {
 		return nil, ErrValue
 	}
-	return val, nil
+	return tv, nil
 }

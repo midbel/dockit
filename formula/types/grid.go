@@ -121,6 +121,10 @@ func (c *View) Get(ident string) (value.Value, error) {
 	}
 }
 
+func (c *View) View() grid.View {
+	return c.view
+}
+
 func (c *View) Mutable() (grid.MutableView, error) {
 	mv, ok := c.view.(grid.MutableView)
 	if !ok {

@@ -2,6 +2,7 @@ package layout
 
 import (
 	"fmt"
+	"iter"
 	"strings"
 )
 
@@ -28,6 +29,23 @@ func RangeFromString(str string) *Range {
 		ends = ParsePosition(lst)
 	}
 	return NewRange(starts, ends)
+}
+
+func (r *Range) Positions() iter.Seq[Position] {
+	it := func(yield func(Position) bool) {
+		for row := r.Starts.Line; row <= r.Ends.Line; row++ {
+			for col := r.Starts.Column; col <= r.Ends.Column; col++ {
+				pos := Position{
+					Line:   row,
+					Column: col,
+				}
+				if !yield(pos) {
+					return
+				}
+			}
+		}
+	}
+	return it
 }
 
 func (r *Range) Open() bool {

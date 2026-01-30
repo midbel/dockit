@@ -165,12 +165,26 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case unary:
 		return evalUnary(expr, ctx)
 	case call:
+	case qualifiedCellAddr:
 	case cellAddr:
+		return evalCell(e, expr, ctx)
 	case rangeAddr:
 	default:
 		return nil, ErrEval
 	}
 	return nil, nil
+}
+
+func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, error) {
+	view, err := getView(ctx, expr.Sheet)
+	if err != nil {
+		return nil, err
+	}
+	cell, err := view.Cell(expr.Position)
+	if err != nil {
+		return nil, err
+	}
+	return cell.Value(), nil
 }
 
 func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value, error) {

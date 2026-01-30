@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -22,14 +23,14 @@ func FormulaGrammar() *Grammar {
 		kwInfix:  make(map[string]InfixFunc),
 		bindings: maps.Clone(defaultBindings),
 	}
-	g.RegisterPrefix(op.Ident, parseIdentOrAddress)
+	g.RegisterPrefix(op.Ident, parseAddress)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.Sub, parseUnary)
 	g.RegisterPrefix(op.Add, parseUnary)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 
-	g.RegisterPostfix(op.SheetRef, parseAddress)
+	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 
 	g.RegisterInfix(op.BegGrp, parseCall)
 	g.RegisterInfix(op.Add, parseBinary)
@@ -58,7 +59,7 @@ func ScriptGrammar() *Grammar {
 
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
-	g.RegisterPostfix(op.SheetRef, parseAddress)
+	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 
 	g.RegisterInfix(op.Assign, parseAssignment)
 	g.RegisterInfix(op.AddAssign, parseAssignment)
@@ -412,27 +413,43 @@ func parseLiteral(p *Parser) (Expr, error) {
 	return t, nil
 }
 
-func parseIdentOrAddress(p *Parser) (Expr, error) {
-	id := identifier{
-		name: "",
-	}
-	return parseAddress(p, id)
-}
-
 func parseIdentifier(p *Parser) (Expr, error) {
-	start, err := parseCellAddr(p.currentLiteral())
-	if err != nil {
-		id := identifier{
-			name: p.currentLiteral(),
-		}
-		p.next()
-		return id, nil
+	if layout.IsAddress(p.currentLiteral()) {
+		return parseAddress(p)
+	}
+	id := identifier{
+		name: p.currentLiteral(),
 	}
 	p.next()
+	return id, nil
+}
+
+func parseAddress(p *Parser) (Expr, error) {
+	start, err := parseCellAddr(p.currentLiteral())
+	if err != nil {
+		return nil, err
+	}
+	p.next()
+
+	if p.is(op.RangeRef) {
+		p.next()
+
+		end, err := parseCellAddr(p.currentLiteral())
+		if err != nil {
+			return nil, err
+		}
+		p.next()
+
+		rg := rangeAddr{
+			startAddr: start,
+			endAddr:   end,
+		}
+		return rg, nil
+	}
 	return start, nil
 }
 
-func parseAddress(p *Parser, left Expr) (Expr, error) {
+func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 	var sheet string
 	switch sh := left.(type) {
 	case identifier:
