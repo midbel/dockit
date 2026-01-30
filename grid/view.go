@@ -14,6 +14,7 @@ var (
 	ErrLock      = errors.New("spreadsheet locked")
 	ErrSupported = errors.New("operation not supported")
 	ErrFound     = errors.New("not found")
+	ErrPosition     = errors.New("invalid position")
 )
 
 func NoCell(pos layout.Position) error {
@@ -203,14 +204,8 @@ func (v *projectedView) Bounds() *layout.Range {
 }
 
 func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
-	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
-		return nil, nil
-	}
-	mod := layout.Position{
-		Column: v.columns[pos.Column],
-		Line:   pos.Line,
-	}
-	return v.sheet.Cell(mod)
+	pos = v.getOriginalPosition()
+	return v.sheet.Cell(pos)
 }
 
 func (v *projectedView) Rows() iter.Seq[[]value.ScalarValue] {
@@ -230,8 +225,51 @@ func (v *projectedView) Rows() iter.Seq[[]value.ScalarValue] {
 	return it
 }
 
+func (v *projectedView) SetValue(pos layout.Position, val value.ScalarValue) error {
+	bd := v.Bounds()
+	if !bd.Contains(pos) {
+		return ErrPosition
+	}
+	return v.view.SetValue(pos, val)
+}
+
+func (v *projectedView) SetFormula(pos layout.Position, val value.Formula) error {
+	bd := v.Bounds()
+	if !bd.Contains(pos) {
+		return ErrPosition
+	}
+	return v.view.SetFormula(pos, val)
+}
+
+func (v *projectedView) ClearCell(pos layout.Position) error {
+	return v.view.ClearCell(pos)
+}
+
+func (v *projectedView) ClearValue(pos layout.Position) error {
+	return v.view.ClearValue(pos)
+}
+
+func (v *projectedView) ClearFormula(pos layout.Position) error {
+	return v.view.ClearFormula(pos)
+}
+
+func (v *projectedView) ClearRange(rg *layout.Range) error {
+	return v.view.ClearRange(rg)
+}
+
 func (v *projectedView) Encode(encoder Encoder) error {
 	return encoder.EncodeSheet(v)
+}
+
+func (v *prjectedView) getOriginalPosition(pos layout.Position) layout.Position {
+	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
+		return pos
+	}
+	mod := layout.Position{
+		Column: v.columns[pos.Column],
+		Line:   pos.Line,
+	}
+	return pos
 }
 
 type boundedView struct {
@@ -290,6 +328,36 @@ func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
 		}
 	}
 	return it
+}
+
+func (v *boundedView) SetValue(pos layout.Position, val value.ScalarValue) error {
+	if !v.part.Contains(pos) {
+		return ErrPosition
+	}
+	return v.view.SetValue(pos, val)
+}
+
+func (v *boundedView) SetFormula(pos layout.Position, val value.Formula) error {
+	if !v.part.Contains(pos) {
+		return ErrPosition
+	}
+	return v.view.SetFormula(pos, val)
+}
+
+func (v *boundedView) ClearCell(pos layout.Position) error {
+	return v.view.ClearCell(pos)
+}
+
+func (v *boundedView) ClearValue(pos layout.Position) error {
+	return v.view.ClearValue(pos)
+}
+
+func (v *boundedView) ClearFormula(pos layout.Position) error {
+	return v.view.ClearFormula(pos)
+}
+
+func (v *boundedView) ClearRange(rg *layout.Range) error {
+	return v.view.ClearRange(rg)
 }
 
 func (v *boundedView) Encode(e Encoder) error {
