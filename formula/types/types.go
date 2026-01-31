@@ -128,6 +128,9 @@ func (a Array) SetAt(row, col int, val value.ScalarValue) {
 }
 
 func (a Array) Apply(do func(value.ScalarValue) (value.ScalarValue, error)) error {
+	if len(a.Data) == 0 {
+		return nil
+	}
 	dim := a.Dimension()
 	for i := range dim.Lines {
 		for j := range dim.Columns {
@@ -139,4 +142,32 @@ func (a Array) Apply(do func(value.ScalarValue) (value.ScalarValue, error)) erro
 		}
 	}
 	return nil
+}
+
+func (a Array) ApplyArray(other Array, do func(value.ScalarValue, value.ScalarValue) (value.ScalarValue, error)) (value.Value, error) {
+	var (
+		dleft  = a.Dimension()
+		dright = other.Dimension()
+		dim    = dleft.Max(dright)
+		data   = make([][]value.ScalarValue, dim.Lines)
+	)
+	for i := range data {
+		data[i] = make([]value.ScalarValue, dim.Columns)
+	}
+	for i := range dim.Lines {
+		for j := range dim.Columns {
+			var (
+				left  = a.At(int(i%dleft.Lines), int(j%dleft.Columns))
+				right = other.At(int(i%dright.Lines), int(j%dright.Columns))
+			)
+
+			v, err := do(left, right)
+			if err != nil {
+				return ErrValue, err
+			}
+
+			data[i][j] = v
+		}
+	}
+	return NewArray(data), nil
 }

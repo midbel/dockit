@@ -325,7 +325,29 @@ func evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, er
 }
 
 func evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
-	return nil, nil
+	larr, err := types.CastToArray(left)
+	if err != nil {
+		return types.ErrValue, nil
+	}
+	rarr, err := types.CastToArray(right)
+	if err != nil {
+		return types.ErrValue, nil
+	}
+	res, err := larr.ApplyArray(rarr, func(left, right value.ScalarValue) (value.ScalarValue, error) {
+		ret, err := evalScalarBinary(left, right, oper)
+		if err != nil {
+			return types.ErrValue, err
+		}
+		scalar, ok := ret.(value.ScalarValue)
+		if !ok {
+			return types.ErrValue, nil
+		}
+		return scalar, nil
+	})
+	if err != nil {
+		return types.ErrValue, err
+	}
+	return res, nil
 }
 
 func evalObjectBinary(left, right value.Value, oper op.Op) (value.Value, error) {
