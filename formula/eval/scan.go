@@ -23,6 +23,8 @@ const (
 	kwEnd     = "end"
 	kwRo      = "ro"
 	kwRw      = "rw"
+	kwLock    = "lock"
+	kwUnlock  = "unlock"
 )
 
 func isKeyword(str string) bool {
@@ -41,6 +43,8 @@ func isKeyword(str string) bool {
 	case kwEnd:
 	case kwRo:
 	case kwRw:
+	case kwLock:
+	case kwUnlock:
 	default:
 		return false
 	}

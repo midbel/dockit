@@ -51,6 +51,22 @@ func (Script) String() string {
 	return "<script>"
 }
 
+type lockRef struct {
+	ident string
+}
+
+func (k lockRef) String() string {
+	return fmt.Sprintf("lock(%s)", k.ident)
+}
+
+type unlockRef struct {
+	ident string
+}
+
+func (k unlockRef) String() string {
+	return fmt.Sprintf("unlock(%s)", k.ident)
+}
+
 type useRef struct {
 	ident    string
 	readOnly bool

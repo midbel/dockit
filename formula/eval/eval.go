@@ -148,6 +148,10 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 		return evalPrint(e, expr, ctx)
 	case useRef:
 		return evalUse(e, expr, ctx)
+	case lockRef:
+		return evalLock(e, expr, ctx)
+	case unlockRef:
+		return evalUnlock(e, expr, ctx)
 	case assignment:
 		return evalAssignment(e, expr, ctx)
 	case access:
@@ -248,6 +252,14 @@ func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, er
 	if e.defaultFile {
 		ctx.SetDefault(book)
 	}
+	return types.Empty(), nil
+}
+
+func evalLock(eg *Engine, e lockRef, ctx *env.Environment) (value.Value, error) {
+	return types.Empty(), nil
+}
+
+func evalUnlock(eg *Engine, e unlockRef, ctx *env.Environment) (value.Value, error) {
 	return types.Empty(), nil
 }
 

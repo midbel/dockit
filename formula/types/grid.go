@@ -17,7 +17,7 @@ type File struct {
 func NewFileValue(file grid.File, readonly bool) value.Value {
 	return &File{
 		file: file,
-		ro: readonly,
+		ro:   readonly,
 	}
 }
 

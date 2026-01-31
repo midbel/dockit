@@ -75,6 +75,8 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwSave, parseSave)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
 	g.RegisterPrefixKeyword(kwWith, parseWith)
+	g.RegisterPrefixKeyword(kwLock, parseLock)
+	g.RegisterPrefixKeyword(kwUnlock, parseUnlock)
 
 	return g
 }
@@ -711,6 +713,42 @@ func parseImport(p *Parser) (Expr, error) {
 	return stmt, nil
 }
 
+func parseLock(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(op.Ident) {
+		return nil, p.makeError("identifier expected")
+	}
+	stmt := lockRef{
+		ident: p.currentLiteral(),
+	}
+	p.next()
+	if !p.isEOL() {
+		return nil, p.makeError("expected eol")
+	}
+	p.next()
+	return stmt, nil
+}
+
+func parseUnlock(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(op.Ident) {
+		return nil, p.makeError("identifier expected")
+	}
+	stmt := unlockRef{
+		ident: p.currentLiteral(),
+	}
+	p.next()
+	if !p.isEOL() {
+		return nil, p.makeError("expected eol")
+	}
+	p.next()
+	return stmt, nil
+}
+
+func parseWith(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
 func parseReadonly(p *Parser) (bool, error) {
 	if !p.is(op.Keyword) {
 		return false, nil
@@ -725,8 +763,4 @@ func parseReadonly(p *Parser) (bool, error) {
 	}
 	p.next()
 	return ok, nil
-}
-
-func parseWith(p *Parser) (Expr, error) {
-	return nil, nil
 }
