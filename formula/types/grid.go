@@ -11,6 +11,7 @@ import (
 
 type File struct {
 	file grid.File
+	ro bool
 }
 
 func NewFileValue(file grid.File) value.Value {
@@ -35,7 +36,7 @@ func (c *File) Active() (value.Value, error) {
 	if v == nil {
 		return nil, fmt.Errorf("no active view")
 	}
-	return NewViewValue(v), nil
+	return newView(v, c.ro), nil
 }
 
 func (c *File) Sheet(ident string) (value.Value, error) {
@@ -43,7 +44,7 @@ func (c *File) Sheet(ident string) (value.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewViewValue(v), nil
+	return newView(v, c.ro), nil
 }
 
 func (c *File) Get(ident string) (value.Value, error) {
@@ -53,6 +54,8 @@ func (c *File) Get(ident string) (value.Value, error) {
 	case "sheets":
 		x := c.file.Sheets()
 		return Float(float64(len(x))), nil
+	case "readonly":
+		return Boolean(c.ro), nil
 	case "protected":
 		return Boolean(false), nil
 	case "active":
@@ -60,7 +63,7 @@ func (c *File) Get(ident string) (value.Value, error) {
 		if err != nil {
 			return ErrValue, nil
 		}
-		return NewViewValue(sh), nil
+		return newView(sh, c.ro), nil
 	default:
 		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
 	}
@@ -68,11 +71,17 @@ func (c *File) Get(ident string) (value.Value, error) {
 
 type View struct {
 	view grid.View
+	ro bool
 }
 
 func NewViewValue(view grid.View) value.Value {
+	return newView(view, false)
+}
+
+func newView(view grid.View, ro bool) value.Value {
 	return &View{
 		view: view,
+		ro: ro,
 	}
 }
 
@@ -104,14 +113,14 @@ func (c *View) Get(ident string) (value.Value, error) {
 		return Float(float64(count)), nil
 	case "empty":
 		return Float(float64(0)), nil
+	case "readonly":
+		return Boolean(c.ro), nil
 	case "protected":
 		var locked bool
 		if k, ok := c.view.(interface{ IsLock() bool }); ok {
 			locked = k.IsLock()
 		}
 		return Boolean(locked), nil
-	case "readonly":
-		return Boolean(false), nil
 	case "active":
 		return Boolean(false), nil
 	case "index":
@@ -122,10 +131,16 @@ func (c *View) Get(ident string) (value.Value, error) {
 }
 
 func (c *View) View() grid.View {
+	if c.ro {
+		return grid.ReadOnly(c.view)
+	}
 	return c.view
 }
 
 func (c *View) Mutable() (grid.MutableView, error) {
+	if c.ro {
+		return nil, fmt.Errorf("view is not mutable")
+	}
 	mv, ok := c.view.(grid.MutableView)
 	if !ok {
 		return nil, fmt.Errorf("view is not mutable")

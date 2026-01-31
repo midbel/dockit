@@ -166,6 +166,9 @@ type readonlyView struct {
 }
 
 func ReadOnly(view View) View {
+	if _, ok := view.(*readonlyView); ok {
+		return view
+	}
 	return &readonlyView{
 		view: view,
 	}
