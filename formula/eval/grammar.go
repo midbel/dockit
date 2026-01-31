@@ -11,6 +11,7 @@ const (
 	powAssign
 	powEq
 	powCmp
+	powUnion
 	powConcat
 	powAdd
 	powMul
@@ -35,6 +36,7 @@ var defaultBindings = map[op.Op]int{
 	op.Div:          powMul,
 	op.Percent:      powPercent,
 	op.Pow:          powPow,
+	op.Union:        powUnion,
 	op.Concat:       powConcat,
 	op.Eq:           powEq,
 	op.Ne:           powEq,

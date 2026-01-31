@@ -31,8 +31,8 @@ func FormulaGrammar() *Grammar {
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
+	g.RegisterPostfix(op.BegGrp, parseCall)
 
-	g.RegisterInfix(op.BegGrp, parseCall)
 	g.RegisterInfix(op.Add, parseBinary)
 	g.RegisterInfix(op.Sub, parseBinary)
 	g.RegisterInfix(op.Mul, parseBinary)
@@ -61,6 +61,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPostfix(op.BegProp, parseSlice)
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 
+	g.RegisterInfix(op.Union, parseBinary)
 	g.RegisterInfix(op.Assign, parseAssignment)
 	g.RegisterInfix(op.AddAssign, parseAssignment)
 	g.RegisterInfix(op.SubAssign, parseAssignment)

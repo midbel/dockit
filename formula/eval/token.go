@@ -56,6 +56,8 @@ func (t Token) String() string {
 		return "<power>"
 	case op.Concat:
 		return "<concat>"
+	case op.Union:
+		return "<union>"
 	case op.Eq:
 		return "<equal>"
 	case op.Ne:

@@ -195,6 +195,10 @@ func (v *readonlyView) Reload(ctx value.Context) error {
 	return ErrWritable
 }
 
+type combinedView struct {
+	views []View
+}
+
 type projectedView struct {
 	view    View
 	columns []int64

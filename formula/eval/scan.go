@@ -178,6 +178,8 @@ func (s *Scanner) scanOperator(tok *Token) {
 	switch s.char {
 	case dot:
 		tok.Type = op.Dot
+	case pipe:
+		tok.Type = op.Union
 	case amper:
 		tok.Type = op.Concat
 		if s.peek() == equal && s.mode == ModeScript {
@@ -343,6 +345,7 @@ const (
 	colon      = ':'
 	dot        = '.'
 	amper      = '&'
+	pipe       = '|'
 	percent    = '%'
 	dollar     = '$'
 	nl         = '\n'
@@ -397,5 +400,5 @@ func isOperator(c rune) bool {
 	return c == plus || c == minus || c == slash || c == star ||
 		c == langle || c == rangle || c == colon || c == bang ||
 		c == equal || c == caret || c == amper || c == percent ||
-		c == dot
+		c == dot || c == pipe
 }

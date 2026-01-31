@@ -20,6 +20,7 @@ const (
 	Percent
 	Pow
 	Concat
+	Union
 	Eq
 	Ne
 	Lt
@@ -63,6 +64,7 @@ var mapping = map[Op]string{
 	Div:     "/",
 	Percent: "%",
 	Concat:  "&",
+	Union:   "|",
 	Eq:      "=",
 	Ne:      "<>",
 	Lt:      "<",
