@@ -62,11 +62,13 @@ func (r *Range) Contains(pos Position) bool {
 }
 
 func (r *Range) Width() int64 {
-	return r.Ends.Column - r.Starts.Column
+	delta := r.Ends.Column - r.Starts.Column
+	return delta+1
 }
 
 func (r *Range) Height() int64 {
-	return r.Ends.Line - r.Starts.Line
+	delta := r.Ends.Line - r.Starts.Line
+	return delta+1
 }
 
 func (r *Range) String() string {

@@ -13,6 +13,7 @@ import (
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -173,10 +174,49 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case cellAddr:
 		return evalCell(e, expr, ctx)
 	case rangeAddr:
+		return evalRange(e, expr, ctx)
 	default:
 		return nil, ErrEval
 	}
 	return nil, nil
+}
+
+func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, error) {
+	view, err := getView(ctx, expr.startAddr.Sheet)
+	if err != nil {
+		return nil, err
+	}
+	rg := layout.NewRange(expr.startAddr.Position, expr.endAddr.Position)
+	rg = rg.Normalize()
+
+	var (
+		width  = rg.Width()
+		height = rg.Height()
+		data = make([][]value.ScalarValue, height)
+		col int64
+		row int64
+	)
+	for i := range data {
+		data[i] = make([]value.ScalarValue, width)
+	}
+	for pos := range rg.Positions() {
+		cell, err := view.Cell(pos)
+		if err != nil {
+			return nil, err
+		}
+		val := cell.Value()
+		if val == nil {
+			val = types.Empty()
+		}
+		data[row][col] = val
+
+		col++
+		if col == width {
+			row++
+			col = 0
+		}
+	}
+	return types.NewArray(data), nil
 }
 
 func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, error) {
