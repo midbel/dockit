@@ -166,11 +166,13 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case identifier:
 		return ctx.Resolve(expr.name)
 	case binary:
-		return evalBinary(expr, ctx)
+		return evalScriptBinary(e, expr, ctx)
 	case unary:
-		return evalUnary(expr, ctx)
+		return evalScriptUnary(e, expr, ctx)
 	case call:
+		return nil, nil
 	case qualifiedCellAddr:
+		return evalQualifiedCell(e, expr, ctx)
 	case cellAddr:
 		return evalCell(e, expr, ctx)
 	case rangeAddr:
@@ -178,7 +180,6 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	default:
 		return nil, ErrEval
 	}
-	return nil, nil
 }
 
 func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, error) {
@@ -219,6 +220,10 @@ func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, e
 	return types.NewArray(data), nil
 }
 
+func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *env.Environment) (value.Value, error) {
+	return types.Empty(), nil
+}
+
 func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, error) {
 	view, err := getView(ctx, expr.Sheet)
 	if err != nil {
@@ -243,12 +248,34 @@ func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value,
 	return types.Text(str.String()), nil
 }
 
+func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, error) {
+	return nil, nil
+}
+
+func evalScriptUnary(eg *Engine, e unary, ctx *env.Environment) (value.Value, error) {
+	val, err := eg.exec(e.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+	n, err := types.CastToFloat(val)
+	switch e.op {
+	case op.Add:
+		return n, nil
+	case op.Sub:
+		return types.Float(float64(-n)), nil
+	default:
+		return types.ErrValue, nil
+	}
+}
+
 func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value, error) {
 	var (
 		lv  LValue
 		err error
 	)
 	switch id := e.ident.(type) {
+	case qualifiedCellAddr:
+		return nil, nil
 	case cellAddr:
 		lv, err = resolveCell(ctx, id)
 	case rangeAddr:

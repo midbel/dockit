@@ -31,7 +31,8 @@ func main() {
 		return
 	}
 	for _, e := range script.Body {
-		fmt.Println(e)
+		str := eval.DumpExpr(e)
+		fmt.Println(str)
 	}
 }
 

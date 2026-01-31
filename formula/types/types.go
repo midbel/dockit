@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -45,6 +46,10 @@ func createError(code string) Error {
 	}
 }
 
+func (Error) Type() string {
+	return "error"
+}
+
 func (Error) Kind() value.ValueKind {
 	return value.KindError
 }
@@ -69,6 +74,11 @@ func NewArray(data [][]value.ScalarValue) value.ArrayValue {
 	return Array{
 		Data: data,
 	}
+}
+
+func (a Array) Type() string {
+	dim := a.Dimension()
+	return fmt.Sprintf("array(%d, %d)", dim.Lines, dim.Columns)
 }
 
 func (Array) Kind() value.ValueKind {

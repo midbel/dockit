@@ -21,6 +21,10 @@ func NewFileValue(file grid.File, readonly bool) value.Value {
 	}
 }
 
+func (*File) Type() string {
+	return "file"
+}
+
 func (*File) Kind() value.ValueKind {
 	return value.KindObject
 }
@@ -84,6 +88,10 @@ func newView(view grid.View, ro bool) value.Value {
 		view: view,
 		ro:   ro,
 	}
+}
+
+func (*View) Type() string {
+	return "view"
 }
 
 func (*View) Kind() value.ValueKind {

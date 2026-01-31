@@ -33,6 +33,7 @@ type Predicate interface {
 
 type Value interface {
 	Kind() ValueKind
+	Type() string
 	fmt.Stringer
 }
 

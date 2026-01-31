@@ -23,6 +23,10 @@ func NewReducer(name string, fn ReducerFunc) value.FunctionValue {
 	}
 }
 
+func (Reducer) Type() string {
+	return "function"
+}
+
 func (Reducer) Kind() value.ValueKind {
 	return value.KindFunction
 }
@@ -66,6 +70,10 @@ func NewFunction(name string, fn BuiltinFunc) value.FunctionValue {
 		name: name,
 		fn:   fn,
 	}
+}
+
+func (Function) Type() string {
+	return "function"
 }
 
 func (Function) Kind() value.ValueKind {
