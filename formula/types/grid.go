@@ -11,12 +11,13 @@ import (
 
 type File struct {
 	file grid.File
-	ro bool
+	ro   bool
 }
 
-func NewFileValue(file grid.File) value.Value {
+func NewFileValue(file grid.File, readonly bool) value.Value {
 	return &File{
 		file: file,
+		ro: readonly,
 	}
 }
 
@@ -71,7 +72,7 @@ func (c *File) Get(ident string) (value.Value, error) {
 
 type View struct {
 	view grid.View
-	ro bool
+	ro   bool
 }
 
 func NewViewValue(view grid.View) value.Value {
@@ -81,7 +82,7 @@ func NewViewValue(view grid.View) value.Value {
 func newView(view grid.View, ro bool) value.Value {
 	return &View{
 		view: view,
-		ro: ro,
+		ro:   ro,
 	}
 }
 

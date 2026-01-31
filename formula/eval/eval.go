@@ -243,7 +243,7 @@ func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, er
 		}
 		e.alias = alias
 	}
-	book := types.NewFileValue(file)
+	book := types.NewFileValue(file, e.readOnly)
 	ctx.Define(e.alias, book)
 	if e.defaultFile {
 		ctx.SetDefault(book)
