@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -444,78 +443,31 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 		return nil, err
 	}
 
-	if !types.IsScalar(left) && types.IsScalar(right) {
-		return types.ErrValue, nil
-	}
-
 	switch e.op {
 	case op.Add:
-		return doMath(left, right, func(left, right float64) (float64, error) {
-			return left + right, nil
-		})
+		return types.Add(left, right)
 	case op.Sub:
-		return doMath(left, right, func(left, right float64) (float64, error) {
-			return left - right, nil
-		})
+		return types.Sub(left, right)
 	case op.Mul:
-		return doMath(left, right, func(left, right float64) (float64, error) {
-			return left * right, nil
-		})
+		return types.Mul(left, right)
 	case op.Div:
-		return doMath(left, right, func(left, right float64) (float64, error) {
-			if right == 0 {
-				return 0, types.ErrDiv0
-			}
-			return left / right, nil
-		})
+		return types.Div(left, right)
 	case op.Pow:
-		return doMath(left, right, func(left, right float64) (float64, error) {
-			return math.Pow(left, right), nil
-		})
+		return types.Pow(left, right)
 	case op.Concat:
-		if !types.IsScalar(left) || !types.IsScalar(right) {
-			return types.ErrValue, nil
-		}
-		return types.Text(left.String() + right.String()), nil
+		return types.Concat(left, right)
 	case op.Eq:
-		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
-			return left.Equal(right)
-		})
+		return types.Eq(left, right)
 	case op.Ne:
-		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
-			ok, err := left.Equal(right)
-			return !ok, err
-		})
+		return types.Ne(left, right)
 	case op.Lt:
-		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
-			return left.Less(right)
-		})
+		return types.Lt(left, right)
 	case op.Le:
-		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
-			if ok, err := left.Equal(right); err == nil && ok {
-				return ok, nil
-			}
-			return left.Less(right)
-		})
+		return types.Le(left, right)
 	case op.Gt:
-		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
-			if ok, err := left.Equal(right); err == nil && ok {
-				return !ok, nil
-			}
-			ok, err := left.Less(right)
-			if !ok && err == nil {
-				ok = !ok
-			}
-			return ok, err
-		})
+		return types.Gt(left, right)
 	case op.Ge:
-		return doCmp(left, right, func(left value.Comparable, right value.Value) (bool, error) {
-			if ok, err := left.Equal(right); err == nil && ok {
-				return ok, nil
-			}
-			ok, err := left.Less(right)
-			return !ok, err
-		})
+		return types.Ge(left, right)
 	default:
 		return types.ErrValue, nil
 	}
@@ -566,35 +518,6 @@ func evalCellAddr(e cellAddr, ctx value.Context) (value.Value, error) {
 
 func evalRangeAddr(e rangeAddr, ctx value.Context) (value.Value, error) {
 	return ctx.Range(e.startAddr.Position, e.endAddr.Position)
-}
-
-func doMath(left, right value.Value, do func(left, right float64) (float64, error)) (value.Value, error) {
-	if !types.IsNumber(left) {
-		return types.ErrValue, nil
-	}
-	if !types.IsNumber(right) {
-		return types.ErrValue, nil
-	}
-	var (
-		ls = left.(value.ScalarValue)
-		rs = right.(value.ScalarValue)
-	)
-	res, err := do(ls.Scalar().(float64), rs.Scalar().(float64))
-	if err != nil {
-		return nil, err
-	}
-	return types.Float(res), nil
-}
-
-func doCmp(left, right value.Value, do func(left value.Comparable, right value.Value) (bool, error)) (value.Value, error) {
-	if !types.IsComparable(left) {
-		return types.ErrValue, nil
-	}
-	ok, err := do(left.(value.Comparable), right)
-	if err != nil {
-		return types.ErrValue, nil
-	}
-	return types.Boolean(ok), nil
 }
 
 type arg struct {
