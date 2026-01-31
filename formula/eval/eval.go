@@ -192,9 +192,9 @@ func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, e
 	var (
 		width  = rg.Width()
 		height = rg.Height()
-		data = make([][]value.ScalarValue, height)
-		col int64
-		row int64
+		data   = make([][]value.ScalarValue, height)
+		col    int64
+		row    int64
 	)
 	for i := range data {
 		data[i] = make([]value.ScalarValue, width)

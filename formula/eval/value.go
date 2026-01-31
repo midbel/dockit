@@ -15,6 +15,7 @@ var (
 	ErrValue     = errors.New("invalid value")
 	ErrReadOnly  = errors.New("read only view")
 	ErrType      = errors.New("invalid type")
+	ErrDimension = errors.New("dimension mismatched")
 )
 
 type LValue interface {
@@ -38,6 +39,16 @@ func resolveIdent(ctx *env.Environment, ident identifier) (LValue, error) {
 	}
 	return id, nil
 }
+
+type broadcastMode int8
+
+const (
+	broadcastExact broadcastMode = 1 << iota
+	broadcastRow
+	broadcastCol
+	broadcastScalar
+	broadcastFlat
+)
 
 type rangeValue struct {
 	view grid.MutableView
@@ -66,8 +77,70 @@ func (v rangeValue) setScalar(val value.ScalarValue) error {
 	return nil
 }
 
-func (v rangeValue) setArray(val value.ArrayValue) error {
+func (v rangeValue) setArray(arr value.ArrayValue) error {
+	mode, err := v.mode(arr)
+	if err != nil {
+		return err
+	}
+	var (
+		index int
+		row   int
+		col   int
+		dim   = arr.Dimension()
+	)
+	for pos := range v.rg.Positions() {
+		var val value.ScalarValue
+		switch mode {
+		case broadcastExact:
+			val = arr.At(row, col)
+		case broadcastRow:
+			val = arr.At(0, col)
+		case broadcastCol:
+			val = arr.At(row, 0)
+		case broadcastScalar:
+			val = arr.At(0, 0)
+		case broadcastFlat:
+			r := index / int(dim.Lines)
+			c := index % int(dim.Columns)
+			val = arr.At(r, c)
+			index++
+		default:
+			continue
+		}
+		if err := v.view.SetValue(pos, val); err != nil {
+			return err
+		}
+		col++
+		if col == int(v.rg.Width()) {
+			col = 0
+			row++
+		}
+	}
 	return nil
+}
+
+func (v rangeValue) mode(val value.ArrayValue) (broadcastMode, error) {
+	var (
+		width  = v.rg.Width()
+		height = v.rg.Height()
+		dim    = val.Dimension()
+		mode   broadcastMode
+	)
+	switch {
+	case width == dim.Columns && height == dim.Lines:
+		mode = broadcastExact
+	case width == dim.Columns && dim.Lines == 1:
+		mode = broadcastRow
+	case dim.Columns == 1 && height == dim.Lines:
+		mode = broadcastCol
+	case dim.Lines == 1 && dim.Columns == 1:
+		mode = broadcastScalar
+	case dim.Lines*dim.Columns == width*height:
+		mode = broadcastFlat
+	default:
+		return mode, ErrDimension
+	}
+	return mode, nil
 }
 
 func resolveRange(ctx *env.Environment, rg rangeAddr) (LValue, error) {
