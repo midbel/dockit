@@ -52,21 +52,23 @@ func (Script) String() string {
 }
 
 type useRef struct {
-	ident string
+	ident    string
+	readOnly bool
 }
 
 func (i useRef) String() string {
-	return fmt.Sprintf("use(%s)", i.ident)
+	return fmt.Sprintf("use(%s, ro: %t)", i.ident, i.readOnly)
 }
 
 type importFile struct {
 	file        string
 	alias       string
 	defaultFile bool
+	readOnly    bool
 }
 
 func (i importFile) String() string {
-	return fmt.Sprintf("import(%s)", i.file)
+	return fmt.Sprintf("import(%s, default: %t, ro: %t)", i.file, i.defaultFile, i.readOnly)
 }
 
 func (importFile) Kind() Kind {

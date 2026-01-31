@@ -21,6 +21,8 @@ const (
 	kwAs      = "as"
 	kwTo      = "to"
 	kwEnd     = "end"
+	kwRo      = "ro"
+	kwRw      = "rw"
 )
 
 func isKeyword(str string) bool {
@@ -37,6 +39,8 @@ func isKeyword(str string) bool {
 	case kwAs:
 	case kwTo:
 	case kwEnd:
+	case kwRo:
+	case kwRw:
 	default:
 		return false
 	}

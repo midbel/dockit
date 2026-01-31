@@ -594,22 +594,6 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	return a, nil
 }
 
-func parseUse(p *Parser) (Expr, error) {
-	p.next()
-	if !p.is(op.Ident) {
-		return nil, p.makeError("identifier expected")
-	}
-	stmt := useRef{
-		ident: p.currentLiteral(),
-	}
-	p.next()
-	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
-	}
-	p.next()
-	return stmt, nil
-}
-
 func parsePrint(p *Parser) (Expr, error) {
 	p.next()
 	expr, err := p.parse(powLowest)
@@ -672,6 +656,27 @@ func parseExport(p *Parser) (Expr, error) {
 	return stmt, nil
 }
 
+func parseUse(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(op.Ident) {
+		return nil, p.makeError("identifier expected")
+	}
+	stmt := useRef{
+		ident: p.currentLiteral(),
+	}
+	p.next()
+	ro, err := parseReadonly(p)
+	if err != nil {
+		return nil, err
+	}
+	stmt.readOnly = ro
+	if !p.isEOL() {
+		return nil, p.makeError("expected eol")
+	}
+	p.next()
+	return stmt, nil
+}
+
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
 	var stmt importFile
@@ -694,11 +699,32 @@ func parseImport(p *Parser) (Expr, error) {
 		p.next()
 		stmt.defaultFile = true
 	}
+	ro, err := parseReadonly(p)
+	if err != nil {
+		return nil, err
+	}
+	stmt.readOnly = ro
 	if !p.isEOL() {
 		return nil, p.makeError("eol expected")
 	}
 	p.next()
 	return stmt, nil
+}
+
+func parseReadonly(p *Parser) (bool, error) {
+	if !p.is(op.Keyword) {
+		return false, nil
+	}
+	var ok bool
+	switch kw := p.currentLiteral(); kw {
+	case kwRo:
+		ok = true
+	case kwRw:
+	default:
+		return ok, fmt.Errorf("%s: unexpected keyword", kw)
+	}
+	p.next()
+	return ok, nil
 }
 
 func parseWith(p *Parser) (Expr, error) {
