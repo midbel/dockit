@@ -249,11 +249,11 @@ func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value,
 }
 
 func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, error) {
-	left, err := Eval(e.left, ctx)
+	left, err := eg.exec(e.left, ctx)
 	if err != nil {
 		return nil, err
 	}
-	right, err := Eval(e.right, ctx)
+	right, err := eg.exec(e.right, ctx)
 	if err != nil {
 		return nil, err
 	}
