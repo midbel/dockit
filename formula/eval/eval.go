@@ -249,7 +249,21 @@ func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value,
 }
 
 func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, error) {
-	return nil, nil
+	left, err := Eval(e.left, ctx)
+	if err != nil {
+		return nil, err
+	}
+	right, err := Eval(e.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+	switch {
+	case types.IsScalar(left) && types.IsScalar(right):
+	case types.IsScalar(left) && types.IsArray(right):
+	case types.IsScalar(right) && types.IsArray(left):
+	default:
+	}
+	return types.ErrValue, nil
 }
 
 func evalScriptUnary(eg *Engine, e unary, ctx *env.Environment) (value.Value, error) {

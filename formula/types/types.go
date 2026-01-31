@@ -22,6 +22,10 @@ func IsScalar(v value.Value) bool {
 	return v.Kind() == value.KindScalar
 }
 
+func IsArray(v value.Value) bool {
+	return v.Kind() == value.KindArray
+}
+
 var ErrCompatible = errors.New("incompatible type")
 
 type ErrorCode string
