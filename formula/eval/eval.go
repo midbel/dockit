@@ -273,7 +273,34 @@ func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, 
 }
 
 func evalScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
-	return nil, nil
+	switch oper {
+	case op.Add:
+		return types.Add(left, right)
+	case op.Sub:
+		return types.Sub(left, right)
+	case op.Mul:
+		return types.Mul(left, right)
+	case op.Div:
+		return types.Div(left, right)
+	case op.Pow:
+		return types.Pow(left, right)
+	case op.Concat:
+		return types.Concat(left, right)
+	case op.Eq:
+		return types.Eq(left, right)
+	case op.Ne:
+		return types.Ne(left, right)
+	case op.Lt:
+		return types.Lt(left, right)
+	case op.Le:
+		return types.Le(left, right)
+	case op.Gt:
+		return types.Gt(left, right)
+	case op.Ge:
+		return types.Ge(left, right)
+	default:
+		return types.ErrValue, nil
+	}
 }
 
 func evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {

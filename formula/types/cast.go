@@ -13,6 +13,10 @@ type toFloat interface {
 	ToFloat() (value.ScalarValue, error)
 }
 
+type toText interface {
+	ToText() (value.ScalarValue, error)
+}
+
 func CastToFloat(val value.Value) (Float, error) {
 	switch v := val.(type) {
 	case Float:
@@ -29,5 +33,24 @@ func CastToFloat(val value.Value) (Float, error) {
 		return f, nil
 	default:
 		return 0, ErrCast
+	}
+}
+
+func CastToText(val value.Value) (Text, error) {
+	switch v := val.(type) {
+	case Text:
+		return v, nil
+	case toText:
+		x, err := v.ToText()
+		if err != nil {
+			return "", ErrCast
+		}
+		f, ok := x.(Text)
+		if !ok {
+			return f, fmt.Errorf("cast error to text")
+		}
+		return f, nil
+	default:
+		return "", ErrCast
 	}
 }
