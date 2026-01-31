@@ -115,3 +115,28 @@ func (a Array) At(row, col int) value.ScalarValue {
 	}
 	return a.Data[row][col]
 }
+
+func (a Array) SetAt(row, col int, val value.ScalarValue) {
+	if len(a.Data) == 0 || row >= len(a.Data) {
+		return
+	}
+	v := a.Data[row]
+	if len(v) == 0 || col >= len(v) {
+		return
+	}
+	a.Data[row][col] = val
+}
+
+func (a Array) Apply(do func(value.ScalarValue) (value.ScalarValue, error)) error {
+	dim := a.Dimension()
+	for i := range dim.Lines {
+		for j := range dim.Columns {
+			v, err := do(a.At(int(i), int(j)))
+			if err != nil {
+				return err
+			}
+			a.SetAt(int(i), int(j), v)
+		}
+	}
+	return nil
+}

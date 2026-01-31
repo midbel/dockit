@@ -17,6 +17,14 @@ type toText interface {
 	ToText() (value.ScalarValue, error)
 }
 
+func CastToArray(val value.Value) (Array, error) {
+	arr, ok := val.(Array)
+	if !ok {
+		return arr, ErrCast
+	}
+	return arr, nil
+}
+
 func CastToFloat(val value.Value) (Float, error) {
 	switch v := val.(type) {
 	case Float:
