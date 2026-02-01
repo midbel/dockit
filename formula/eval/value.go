@@ -24,11 +24,7 @@ type LValue interface {
 }
 
 func resolveQualifiedLValue(eg *Engine, ctx *env.Environment, expr qualifiedCellAddr) (LValue, error) {
-	val, err := eg.exec(expr.path, ctx)
-	if err != nil {
-		return nil, err
-	}
-	view, err := resolveMutableViewFromValue(val)
+	view, err := resolveMutableViewFromQualifiedPath(eg, ctx, expr.path)
 	if err != nil {
 		return nil, err
 	}

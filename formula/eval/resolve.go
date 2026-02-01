@@ -3,10 +3,65 @@ package eval
 import (
 	"fmt"
 
+	"github.com/midbel/dockit/formula/env"
+	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
-	"github.com/midbel/dockit/formula/types"
 )
+
+func resolveViewFromQualifiedPath(eg *Engine, ctx *env.Environment, path Expr) (grid.View, error) {
+	switch p := path.(type) {
+	case identifier:
+		return getView(ctx, p.name)
+	case access:
+		val, err := eg.exec(p.expr, ctx)
+		if err != nil {
+			return nil, err
+		}
+		file, ok := val.(*types.File)
+		if !ok {
+			return nil, fmt.Errorf("view can not be resolved from expr")
+		}
+		val, err = file.Sheet(p.prop)
+		if err != nil {
+			return nil, err
+		}
+		v, ok := val.(*types.View)
+		if !ok {
+			return nil, fmt.Errorf("view can not be resolved from expr")
+		}
+		return v.View(), nil
+	default:
+		return nil, fmt.Errorf("view can not be resolved from expr")
+	}
+}
+
+func resolveMutableViewFromQualifiedPath(eg *Engine, ctx *env.Environment, path Expr) (grid.MutableView, error) {
+	switch p := path.(type) {
+	case identifier:
+		return getMutableView(ctx, p.name)
+	case access:
+		val, err := eg.exec(p.expr, ctx)
+		if err != nil {
+			return nil, err
+		}
+		file, ok := val.(*types.File)
+		if !ok {
+			return nil, fmt.Errorf("view can not be resolved from expr")
+		}
+		val, err = file.Sheet(p.prop)
+		if err != nil {
+			return nil, err
+		}
+		v, ok := val.(*types.View)
+		if !ok {
+			return nil, fmt.Errorf("view can not be resolved from expr")
+		}
+		return v.Mutable()
+	default:
+		return nil, fmt.Errorf("view can not be resolved from expr")
+	}
+}
 
 func resolveViewFromValue(val value.Value) (grid.View, error) {
 	var view grid.View

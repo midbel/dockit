@@ -209,11 +209,7 @@ func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, e
 }
 
 func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *env.Environment) (value.Value, error) {
-	left, err := eg.exec(expr.path, ctx)
-	if err != nil {
-		return nil, err
-	}
-	view, err := resolveViewFromValue(left)
+	view, err := resolveViewFromQualifiedPath(eg, ctx, expr.path)
 	if err != nil {
 		return nil, err
 	}
