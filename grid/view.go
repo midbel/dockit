@@ -241,10 +241,32 @@ func (v *horizontalStackedView) Bounds() *layout.Range {
 
 func (v *horizontalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
 	it := func(yield func([]value.ScalarValue) bool) {
-		dim := v.Bounds()
-		for i := range dim.Lines {
-			for j := range v.views {
-				_, _ = i, j
+		var (
+			list []func() ([]value.ScalarValue, bool)
+			stop []func()
+			dim = v.Bounds()
+		)
+		for _, vs := range v.views {
+			next, s := iter.Pull[[]value.ScalarValue](vs.Rows())
+			stop = append(stop, s)
+			list = append(list, next)
+		}
+		defer func() {
+			for _, s := range stop {
+				s()
+			}
+		}()
+		for i := int64(0); i < dim.Height(); i++ {
+			row := make([]value.ScalarValue, 0, dim.Width())
+			for _, n := range list {
+				rs, ok := n()
+				if !ok {
+					return
+				}
+				row = append(row, rs...)
+			}
+			if !yield(row) {
+				return
 			}
 		}
 	}
