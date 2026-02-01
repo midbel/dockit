@@ -203,6 +203,22 @@ func (e *Engine) normalizeValue(ctx *env.Environment, val value.Value) (value.Va
 	}
 }
 
+func evalValueFromAddr(view grid.View, addr Expr) (value.Value, error) {
+	switch e := addr.(type) {
+	case cellAddr:
+		cell, err := view.Cell(e.Position)
+		if err != nil {
+			return types.ErrValue, err
+		}
+		return cell.Value(), nil
+	case rangeAddr:
+		rg := types.NewRangeValue(e.startAddr.Position, e.endAddr.Position)
+		return rg.(*types.Range).Collect(view)
+	default:
+		return types.ErrValue, nil
+	}
+}
+
 func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, error) {
 	rg := types.NewRangeValue(expr.startAddr.Position, expr.endAddr.Position)
 	return rg, nil
@@ -213,7 +229,7 @@ func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *env.Environment)
 	if err != nil {
 		return nil, err
 	}
-	return resolveValueFromAddr(view, expr.addr)
+	return evalValueFromAddr(view, expr.addr)
 }
 
 func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, error) {
@@ -221,7 +237,7 @@ func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, err
 	if err != nil {
 		return nil, err
 	}
-	return resolveValueFromAddr(view, expr)
+	return evalValueFromAddr(view, expr)
 }
 
 func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value, error) {

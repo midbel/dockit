@@ -110,19 +110,3 @@ func resolveMutableViewFromValue(val value.Value) (grid.MutableView, error) {
 	}
 	return view, nil
 }
-
-func resolveValueFromAddr(view grid.View, addr Expr) (value.Value, error) {
-	switch e := addr.(type) {
-	case cellAddr:
-		cell, err := view.Cell(e.Position)
-		if err != nil {
-			return types.ErrValue, err
-		}
-		return cell.Value(), nil
-	case rangeAddr:
-		rg := types.NewRangeValue(e.startAddr.Position, e.endAddr.Position)
-		return rg.(*types.Range).Collect(view)
-	default:
-		return types.ErrValue, nil
-	}
-}

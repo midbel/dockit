@@ -31,9 +31,49 @@ func resolveQualifiedLValue(eg *Engine, ctx *env.Environment, expr qualifiedCell
 	return resolveQualified(view, expr.addr)
 }
 
-type identValue struct {
-	ident string
-	ctx   *env.Environment
+func resolveQualified(view grid.MutableView, addr Expr) (LValue, error) {
+	var lv LValue
+	switch a := addr.(type) {
+	case cellAddr:
+		lv = cellValue{
+			view: view,
+			pos:  a.Position,
+		}
+	case rangeAddr:
+		rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
+		lv = rangeValue{
+			view: view,
+			rg:   rg.Normalize(),
+		}
+	default:
+		return nil, fmt.Errorf("unknown address type")
+	}
+	return lv, nil
+}
+
+func resolveRange(ctx *env.Environment, rg rangeAddr) (LValue, error) {
+	view, err := getMutableView(ctx, rg.startAddr.Sheet)
+	if err != nil {
+		return nil, err
+	}
+	r := layout.NewRange(rg.startAddr.Position, rg.endAddr.Position)
+	val := rangeValue{
+		rg:   r.Normalize(),
+		view: view,
+	}
+	return val, nil
+}
+
+func resolveCell(ctx *env.Environment, addr cellAddr) (LValue, error) {
+	view, err := getMutableView(ctx, addr.Sheet)
+	if err != nil {
+		return nil, err
+	}
+	val := cellValue{
+		pos:  addr.Position,
+		view: view,
+	}
+	return val, nil
 }
 
 func resolveIdent(ctx *env.Environment, ident identifier) (LValue, error) {
@@ -42,6 +82,11 @@ func resolveIdent(ctx *env.Environment, ident identifier) (LValue, error) {
 		ctx:   ctx,
 	}
 	return id, nil
+}
+
+type identValue struct {
+	ident string
+	ctx   *env.Environment
 }
 
 func (v identValue) Set(val value.Value) error {
@@ -62,19 +107,6 @@ const (
 type rangeValue struct {
 	view grid.MutableView
 	rg   *layout.Range
-}
-
-func resolveRange(ctx *env.Environment, rg rangeAddr) (LValue, error) {
-	view, err := getMutableView(ctx, rg.startAddr.Sheet)
-	if err != nil {
-		return nil, err
-	}
-	r := layout.NewRange(rg.startAddr.Position, rg.endAddr.Position)
-	val := rangeValue{
-		rg:   r.Normalize(),
-		view: view,
-	}
-	return val, nil
 }
 
 func (v rangeValue) Set(val value.Value) error {
@@ -170,44 +202,12 @@ type cellValue struct {
 	pos  layout.Position
 }
 
-func resolveCell(ctx *env.Environment, addr cellAddr) (LValue, error) {
-	view, err := getMutableView(ctx, addr.Sheet)
-	if err != nil {
-		return nil, err
-	}
-	val := cellValue{
-		pos:  addr.Position,
-		view: view,
-	}
-	return val, nil
-}
-
 func (v cellValue) Set(val value.Value) error {
 	scalar, ok := val.(value.ScalarValue)
 	if !ok {
 		return ErrValue
 	}
 	return v.view.SetValue(v.pos, scalar)
-}
-
-func resolveQualified(view grid.MutableView, addr Expr) (LValue, error) {
-	var lv LValue
-	switch a := addr.(type) {
-	case cellAddr:
-		lv = cellValue{
-			view: view,
-			pos:  a.Position,
-		}
-	case rangeAddr:
-		rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
-		lv = rangeValue{
-			view: view,
-			rg:   rg.Normalize(),
-		}
-	default:
-		return nil, fmt.Errorf("unknown address type")
-	}
-	return lv, nil
 }
 
 func getView(ctx *env.Environment, name string) (grid.View, error) {
