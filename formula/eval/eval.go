@@ -378,7 +378,7 @@ func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value
 	case rangeAddr:
 		lv, err = resolveRange(ctx, id)
 	case qualifiedCellAddr:
-		lv, err = resolveQualifiedLValue(eg, ctx, e)
+		lv, err = resolveQualifiedLValue(eg, ctx, id)
 	case identifier:
 		lv, err = resolveIdent(ctx, id)
 	default:

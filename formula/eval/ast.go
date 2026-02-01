@@ -475,6 +475,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 			dumpExpr(w, e.args[i])
 		}
 		io.WriteString(w, ")")
+	case assignment:
+		io.WriteString(w, "assignment(")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ")")
 	case cellAddr:
 		io.WriteString(w, "cell(")
 		io.WriteString(w, e.Position.String())
@@ -488,6 +494,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.startAddr)
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.endAddr)
+		io.WriteString(w, ")")
+	case qualifiedCellAddr:
+		io.WriteString(w, "qualified(")
+		dumpExpr(w, e.path)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.addr)
 		io.WriteString(w, ")")
 	case importFile:
 		io.WriteString(w, "import(")
@@ -510,6 +522,6 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "save(")
 		io.WriteString(w, ")")
 	default:
-		io.WriteString(w, "unknown")
+		io.WriteString(w, fmt.Sprintf("unknown(%T)", e))
 	}
 }

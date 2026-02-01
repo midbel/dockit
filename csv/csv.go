@@ -15,7 +15,7 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-const defaultSheetName = "sheet1"
+const defaultSheetName = "sheet"
 
 type Cell struct {
 	layout.Position

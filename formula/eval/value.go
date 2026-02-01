@@ -23,8 +23,8 @@ type LValue interface {
 	Set(value.Value) error
 }
 
-func resolveQualifiedLValue(e *Engine, ctx *env.Environment, expr qualifiedCellAddr) (LValue, error) {
-	val, err := eg.exec(id.path, ctx)
+func resolveQualifiedLValue(eg *Engine, ctx *env.Environment, expr qualifiedCellAddr) (LValue, error) {
+	val, err := eg.exec(expr.path, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func resolveQualifiedLValue(e *Engine, ctx *env.Environment, expr qualifiedCellA
 	if err != nil {
 		return nil, err
 	}
-	return resolveQualified(view, id)
+	return resolveQualified(view, expr.addr)
 }
 
 type identValue struct {
