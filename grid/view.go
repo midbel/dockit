@@ -198,8 +198,145 @@ func (v *readonlyView) Reload(ctx value.Context) error {
 	return ErrWritable
 }
 
-type combinedView struct {
+type horizontalStackedView struct {
 	views []View
+}
+
+func HorizontalView(views ...View) View {
+	if len(views) == 1 {
+		return views[0]
+	}
+	v := horizontalStackedView{
+		views: views,
+	}
+	return &v
+}
+
+func (v *horizontalStackedView) Name() string {
+	return v.views[0].Name()
+}
+
+func (v *horizontalStackedView) Bounds() *layout.Range {
+	start := layout.Position{
+		Line:   1,
+		Column: 1,
+	}
+	var (
+		width  int64
+		height int64
+	)
+	for i := range v.views {
+		rg := v.views[i].Bounds()
+		if i == 0 {
+			width = rg.Width()
+		}
+		height += rg.Height()
+	}
+	end := layout.Position{
+		Line:   height,
+		Column: width,
+	}
+	return layout.NewRange(start, end)
+}
+
+func (v *horizontalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
+	it := func(yield func([]value.ScalarValue) bool) {
+		dim := v.Bounds()
+		for i := range dim.Lines {
+			for j := range v.views {
+				_, _ = i, j
+			}
+		}
+	}
+	return it
+}
+
+func (v *horizontalStackedView) Encode(encoder Encoder) error {
+	return nil
+}
+
+func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
+	return nil, nil
+}
+
+func (v *horizontalStackedView) Reload(ctx value.Context) error {
+	for i := range v.views {
+		if err := v.views[i].Reload(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+type verticalStackedView struct {
+	views []View
+}
+
+func VerticalView(views ...View) View {
+	if len(views) == 1 {
+		return views[0]
+	}
+	v := verticalStackedView{
+		views: views,
+	}
+	return &v
+}
+
+func (v *verticalStackedView) Name() string {
+	return v.views[0].Name()
+}
+
+func (v *verticalStackedView) Bounds() *layout.Range {
+	start := layout.Position{
+		Line:   1,
+		Column: 1,
+	}
+	var (
+		width  int64
+		height int64
+	)
+	for i := range v.views {
+		rg := v.views[i].Bounds()
+		if i == 0 {
+			height = rg.Height()
+		}
+		width += rg.Width()
+	}
+	end := layout.Position{
+		Line:   height,
+		Column: width,
+	}
+	return layout.NewRange(start, end)
+}
+
+func (v *verticalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
+	it := func(yield func([]value.ScalarValue) bool) {
+		for i := range v.views {
+			for r := range v.views[i].Rows() {
+				if !yield(r) {
+					return
+				}
+			}
+		}
+	}
+	return it
+}
+
+func (v *verticalStackedView) Encode(Encoder) error {
+	return nil
+}
+
+func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
+	return nil, nil
+}
+
+func (v *verticalStackedView) Reload(ctx value.Context) error {
+	for i := range v.views {
+		if err := v.views[i].Reload(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type projectedView struct {

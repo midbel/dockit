@@ -269,7 +269,7 @@ func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, 
 	case types.IsArray(left) && types.IsArray(right):
 		return evalArrayBinary(left, right, e.op)
 	case types.IsObject(left) && types.IsObject(right):
-		return evalObjectBinary(left, right, e.op)
+		return evalViewBinary(left, right, e.op)
 	default:
 		return types.ErrValue, nil
 	}
@@ -354,13 +354,37 @@ func evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	return res, nil
 }
 
-func evalObjectBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+func evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+	lv, ok := left.(*types.View)
+	if !ok {
+		return types.ErrValue, nil
+	}
+	rv, ok := right.(*types.View)
+	if !ok {
+		return types.ErrValue, nil
+	}
+	var (
+		view grid.View
+		v1   = lv.View()
+		v2   = rv.View()
+		d1   = v1.Bounds()
+		d2   = v2.Bounds()
+	)
 	switch oper {
 	case op.Union:
+		if d1.Width() != d2.Width() {
+			return types.ErrValue, fmt.Errorf("view can not be combined - number of columns mismatched")
+		}
+		view = grid.VerticalView(v1, v2)
 	case op.Concat:
+		if d1.Height() != d2.Height() {
+			return types.ErrValue, fmt.Errorf("view can not be combined - number of lines mismatched")
+		}
+		view = grid.HorizontalView(v1, v2)
 	default:
+		return types.ErrValue, nil
 	}
-	return nil, nil
+	return types.NewViewValue(view), nil
 }
 
 func evalScriptUnary(eg *Engine, e unary, ctx *env.Environment) (value.Value, error) {
