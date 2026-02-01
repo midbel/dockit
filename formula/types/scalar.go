@@ -1,6 +1,7 @@
 package types
 
 import (
+	"math"
 	"strconv"
 	"time"
 
@@ -45,6 +46,24 @@ func (d Date) String() string {
 
 func (d Date) Scalar() any {
 	return time.Time(d)
+}
+
+func (d Date) Add(other value.Value) (value.ScalarValue, error) {
+	f, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	t := time.Time(d).Add(time.Duration(f) * time.Second)
+	return Date(t), nil
+}
+
+func (d Date) Sub(other value.Value) (value.ScalarValue, error) {
+	f, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	t := time.Time(d).Add(-time.Duration(f) * time.Second)
+	return Date(t), nil
 }
 
 func (d Date) ToString() (value.ScalarValue, error) {
@@ -94,6 +113,49 @@ func (f Float) Scalar() any {
 	return float64(f)
 }
 
+func (f Float) Add(other value.Value) (value.ScalarValue, error) {
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(f + x), nil
+}
+
+func (f Float) Sub(other value.Value) (value.ScalarValue, error) {
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(f - x), nil
+}
+
+func (f Float) Mul(other value.Value) (value.ScalarValue, error) {
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(f * x), nil
+}
+
+func (f Float) Div(other value.Value) (value.ScalarValue, error) {
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	if x == 0 {
+		return ErrDiv0, nil
+	}
+	return Float(f * x), nil
+}
+
+func (f Float) Pow(other value.Value) (value.ScalarValue, error) {
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(math.Pow(float64(f), float64(x))), nil
+}
+
 func (f Float) ToString() (value.ScalarValue, error) {
 	return Text(f.String()), nil
 }
@@ -138,6 +200,77 @@ func (t Text) String() string {
 
 func (t Text) Scalar() any {
 	return string(t)
+}
+
+func (t Text) Add(other value.Value) (value.ScalarValue, error) {
+	f, err := CastToFloat(t)
+	if err != nil {
+		return ErrValue, err
+	}
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(f + x), nil
+}
+
+func (t Text) Sub(other value.Value) (value.ScalarValue, error) {
+	f, err := CastToFloat(t)
+	if err != nil {
+		return ErrValue, err
+	}
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(f - x), nil
+}
+
+func (t Text) Mul(other value.Value) (value.ScalarValue, error) {
+	f, err := CastToFloat(t)
+	if err != nil {
+		return ErrValue, err
+	}
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(f * x), nil
+}
+
+func (t Text) Div(other value.Value) (value.ScalarValue, error) {
+	f, err := CastToFloat(t)
+	if err != nil {
+		return ErrValue, err
+	}
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	if x == 0 {
+		return ErrDiv0, nil
+	}
+	return Float(f * x), nil
+}
+
+func (t Text) Pow(other value.Value) (value.ScalarValue, error) {
+	f, err := CastToFloat(t)
+	if err != nil {
+		return ErrValue, err
+	}
+	x, err := CastToFloat(other)
+	if err != nil {
+		return ErrValue, err
+	}
+	return Float(math.Pow(float64(f), float64(x))), nil
+}
+
+func (t Text) Concat(other value.Value) (value.ScalarValue, error) {
+	x, err := CastToText(other)
+	if err != nil {
+		return nil, err
+	}
+	return Text(t + x), nil
 }
 
 func (t Text) ToString() (value.ScalarValue, error) {

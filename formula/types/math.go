@@ -1,72 +1,62 @@
 package types
 
 import (
-	"math"
+	"errors"
+	"fmt"
 
 	"github.com/midbel/dockit/value"
 )
 
+var ErrOperation = errors.New("operation not supported")
+
 func Add(left, right value.Value) (value.Value, error) {
-	ls, err := CastToFloat(left)
-	if err != nil {
-		return nil, err
+	a, ok := left.(interface {
+		Add(value.Value) (value.ScalarValue, error)
+	})
+	if !ok {
+		return ErrValue, fmt.Errorf("%w: %s + %s", ErrOperation, left.Type(), right.Type())
 	}
-	rs, err := CastToFloat(right)
-	if err != nil {
-		return nil, err
-	}
-	return Float(ls + rs), nil
+	return a.Add(right)
 }
 
 func Sub(left, right value.Value) (value.Value, error) {
-	ls, err := CastToFloat(left)
-	if err != nil {
-		return nil, err
+	a, ok := left.(interface {
+		Sub(value.Value) (value.ScalarValue, error)
+	})
+	if !ok {
+		return ErrValue, fmt.Errorf("%w: %s - %s", ErrOperation, left.Type(), right.Type())
 	}
-	rs, err := CastToFloat(right)
-	if err != nil {
-		return nil, err
-	}
-	return Float(ls - rs), nil
+	return a.Sub(right)
 }
 
 func Mul(left, right value.Value) (value.Value, error) {
-	ls, err := CastToFloat(left)
-	if err != nil {
-		return nil, err
+	a, ok := left.(interface {
+		Mul(value.Value) (value.ScalarValue, error)
+	})
+	if !ok {
+		return ErrValue, fmt.Errorf("%w: %s * %s", ErrOperation, left.Type(), right.Type())
 	}
-	rs, err := CastToFloat(right)
-	if err != nil {
-		return nil, err
-	}
-	return Float(ls * rs), nil
+	return a.Mul(right)
 }
 
 func Div(left, right value.Value) (value.Value, error) {
-	ls, err := CastToFloat(left)
-	if err != nil {
-		return nil, err
+	a, ok := left.(interface {
+		Div(value.Value) (value.ScalarValue, error)
+	})
+	if !ok {
+		return ErrValue, fmt.Errorf("%w: %s / %s", ErrOperation, left.Type(), right.Type())
 	}
-	rs, err := CastToFloat(right)
-	if err != nil {
-		return nil, err
-	}
-	if rs == 0 {
-		return ErrDiv0, nil
-	}
-	return Float(ls / rs), nil
+	return a.Div(right)
 }
 
 func Pow(left, right value.Value) (value.Value, error) {
-	ls, err := CastToFloat(left)
-	if err != nil {
-		return nil, err
+	a, ok := left.(interface {
+		Pow(value.Value) (value.ScalarValue, error)
+	})
+	if !ok {
+		return ErrValue, fmt.Errorf("%w: %s ^ %s", ErrOperation, left.Type(), right.Type())
 	}
-	rs, err := CastToFloat(right)
-	if err != nil {
-		return nil, err
-	}
-	return Float(math.Pow(float64(ls), float64(rs))), nil
+	return a.Pow(right)
 }
 
 func Concat(left, right value.Value) (value.Value, error) {
