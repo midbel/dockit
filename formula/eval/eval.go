@@ -12,7 +12,6 @@ import (
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
-	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -183,42 +182,30 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	}
 }
 
-func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, error) {
-	view, err := getView(ctx, expr.startAddr.Sheet)
+func (e *Engine) execAndNormalize(expr Expr, ctx *env.Environment) (value.Value, error) {
+	val, err := e.exec(expr, ctx)
 	if err != nil {
-		return nil, err
+		return types.ErrValue, err
 	}
-	rg := layout.NewRange(expr.startAddr.Position, expr.endAddr.Position)
-	rg = rg.Normalize()
+	return e.normalizeValue(ctx, val)
+}
 
-	var (
-		width  = rg.Width()
-		height = rg.Height()
-		data   = make([][]value.ScalarValue, height)
-		col    int64
-		row    int64
-	)
-	for i := range data {
-		data[i] = make([]value.ScalarValue, width)
-	}
-	for pos := range rg.Positions() {
-		cell, err := view.Cell(pos)
+func (e *Engine) normalizeValue(ctx *env.Environment, val value.Value) (value.Value, error) {
+	switch val := val.(type) {
+	case *types.Range:
+		view, err := getView(ctx, val.Target())
 		if err != nil {
-			return nil, err
+			return types.ErrValue, err
 		}
-		val := cell.Value()
-		if val == nil {
-			val = types.Empty()
-		}
-		data[row][col] = val
-
-		col++
-		if col == width {
-			row++
-			col = 0
-		}
+		return val.Collect(view)
+	default:
+		return val, nil
 	}
-	return types.NewArray(data), nil
+}
+
+func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, error) {
+	rg := types.NewRangeValue(expr.startAddr.Position, expr.endAddr.Position)
+	return rg, nil
 }
 
 func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *env.Environment) (value.Value, error) {
@@ -250,18 +237,18 @@ func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value,
 }
 
 func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, error) {
-	left, err := eg.exec(e.left, ctx)
+	left, err := eg.execAndNormalize(e.left, ctx)
 	if err != nil {
 		return nil, err
 	}
-	right, err := eg.exec(e.right, ctx)
+	right, err := eg.execAndNormalize(e.right, ctx)
 	if err != nil {
 		return nil, err
 	}
 	switch {
 	case types.IsScalar(left) && types.IsScalar(right):
 		return evalScalarBinary(left, right, e.op)
-	case types.IsScalar(right) && types.IsArray(left):
+	case types.IsArray(left) && types.IsScalar(right):
 		return evalScalarArrayBinary(right, left, e.op)
 	case types.IsArray(left) && types.IsArray(right):
 		return evalArrayBinary(left, right, e.op)
@@ -396,7 +383,7 @@ func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value
 	if err != nil {
 		return nil, err
 	}
-	value, err := eg.exec(e.expr, ctx)
+	value, err := eg.execAndNormalize(e.expr, ctx)
 	if err != nil {
 		return nil, err
 	}

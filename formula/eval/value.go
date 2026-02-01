@@ -27,17 +27,17 @@ type identValue struct {
 	ctx   *env.Environment
 }
 
-func (v identValue) Set(val value.Value) error {
-	v.ctx.Define(v.ident, val)
-	return nil
-}
-
 func resolveIdent(ctx *env.Environment, ident identifier) (LValue, error) {
 	id := identValue{
 		ident: ident.name,
 		ctx:   ctx,
 	}
 	return id, nil
+}
+
+func (v identValue) Set(val value.Value) error {
+	v.ctx.Define(v.ident, val)
+	return nil
 }
 
 type broadcastMode int8
@@ -53,6 +53,19 @@ const (
 type rangeValue struct {
 	view grid.MutableView
 	rg   *layout.Range
+}
+
+func resolveRange(ctx *env.Environment, rg rangeAddr) (LValue, error) {
+	view, err := getMutableView(ctx, rg.startAddr.Sheet)
+	if err != nil {
+		return nil, err
+	}
+	r := layout.NewRange(rg.startAddr.Position, rg.endAddr.Position)
+	val := rangeValue{
+		rg:   r.Normalize(),
+		view: view,
+	}
+	return val, nil
 }
 
 func (v rangeValue) Set(val value.Value) error {
@@ -143,30 +156,9 @@ func (v rangeValue) mode(val value.ArrayValue) (broadcastMode, error) {
 	return mode, nil
 }
 
-func resolveRange(ctx *env.Environment, rg rangeAddr) (LValue, error) {
-	view, err := getMutableView(ctx, rg.startAddr.Sheet)
-	if err != nil {
-		return nil, err
-	}
-	r := layout.NewRange(rg.startAddr.Position, rg.endAddr.Position)
-	val := rangeValue{
-		rg:   r.Normalize(),
-		view: view,
-	}
-	return val, nil
-}
-
 type cellValue struct {
 	view grid.MutableView
 	pos  layout.Position
-}
-
-func (v cellValue) Set(val value.Value) error {
-	scalar, ok := val.(value.ScalarValue)
-	if !ok {
-		return ErrValue
-	}
-	return v.view.SetValue(v.pos, scalar)
 }
 
 func resolveCell(ctx *env.Environment, addr cellAddr) (LValue, error) {
@@ -179,6 +171,14 @@ func resolveCell(ctx *env.Environment, addr cellAddr) (LValue, error) {
 		view: view,
 	}
 	return val, nil
+}
+
+func (v cellValue) Set(val value.Value) error {
+	scalar, ok := val.(value.ScalarValue)
+	if !ok {
+		return ErrValue
+	}
+	return v.view.SetValue(v.pos, scalar)
 }
 
 func getView(ctx *env.Environment, name string) (grid.View, error) {
