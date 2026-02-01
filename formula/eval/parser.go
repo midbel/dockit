@@ -31,6 +31,7 @@ func FormulaGrammar() *Grammar {
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
+	g.RegisterPostfix(op.RangeRef, parseRangeAddress)
 	g.RegisterPostfix(op.BegGrp, parseCall)
 
 	g.RegisterInfix(op.Add, parseBinary)
@@ -427,79 +428,51 @@ func parseIdentifier(p *Parser) (Expr, error) {
 	return id, nil
 }
 
-func parseAddress(p *Parser) (Expr, error) {
-	start, err := parseCellAddr(p.currentLiteral())
+func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
+	p.next()
+
+	addr, err := parseAddress(p)
 	if err != nil {
 		return nil, err
 	}
-	p.next()
 
-	if p.is(op.RangeRef) {
-		p.next()
-
-		end, err := parseCellAddr(p.currentLiteral())
-		if err != nil {
-			return nil, err
-		}
-		p.next()
-
-		rg := rangeAddr{
-			startAddr: start,
-			endAddr:   end,
-		}
-		return rg, nil
+	start, ok := left.(cellAddr)
+	if !ok {
+		return nil, p.makeError("address expected")
 	}
-	return start, nil
+	end, ok := addr.(cellAddr)
+	if !ok {
+		return nil, p.makeError("address expected")
+	}
+
+	a := rangeAddr{
+		startAddr: start,
+		endAddr:   end,
+	}
+	return a, nil
 }
 
 func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
-	var sheet string
-	switch sh := left.(type) {
-	case identifier:
-		sheet = sh.name
-	case access:
-	default:
-		return nil, fmt.Errorf("missing sheet identifier")
-	}
 	p.next()
-	start, err := parseCellAddr(p.currentLiteral())
+
+	right, err := p.parse(powSheet)
+	if err != nil {
+		return nil, err
+	}
+	q := qualifiedCellAddr{
+		path: left,
+		addr: right,
+	}
+	return q, nil
+}
+
+func parseAddress(p *Parser) (Expr, error) {
+	addr, err := parseCellAddr(p.currentLiteral())
 	if err != nil {
 		return nil, err
 	}
 	p.next()
-	start.Sheet = sheet
-
-	if p.is(op.RangeRef) {
-		p.next()
-
-		end, err := parseCellAddr(p.currentLiteral())
-		if err != nil {
-			return nil, err
-		}
-		end.Sheet = start.Sheet
-		p.next()
-
-		rg := rangeAddr{
-			startAddr: start,
-			endAddr:   end,
-		}
-		if _, ok := left.(access); ok {
-			q := qualifiedCellAddr{
-				path: left,
-				addr: rg,
-			}
-			return q, nil
-		}
-		return rg, nil
-	}
-	if _, ok := left.(access); ok {
-		q := qualifiedCellAddr{
-			path: left,
-			addr: start,
-		}
-		return q, nil
-	}
-	return start, nil
+	return addr, nil
 }
 
 func parseLambda(p *Parser) (Expr, error) {
