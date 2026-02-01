@@ -22,6 +22,10 @@ func IsScalar(v value.Value) bool {
 	return v.Kind() == value.KindScalar
 }
 
+func IsObject(v value.Value) bool {
+	return v.Kind() == value.KindObject
+}
+
 func IsArray(v value.Value) bool {
 	return v.Kind() == value.KindArray
 }

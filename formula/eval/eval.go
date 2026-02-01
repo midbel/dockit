@@ -168,6 +168,8 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 		return evalScriptBinary(e, expr, ctx)
 	case unary:
 		return evalScriptUnary(e, expr, ctx)
+	case lambda:
+		return nil, nil
 	case call:
 		return nil, nil
 	case qualifiedCellAddr:
@@ -259,16 +261,15 @@ func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, 
 	switch {
 	case types.IsScalar(left) && types.IsScalar(right):
 		return evalScalarBinary(left, right, e.op)
-	case types.IsScalar(left) && types.IsArray(right):
-		return evalScalarArrayBinary(left, right, e.op)
 	case types.IsScalar(right) && types.IsArray(left):
 		return evalScalarArrayBinary(right, left, e.op)
 	case types.IsArray(left) && types.IsArray(right):
 		return evalArrayBinary(left, right, e.op)
-	default:
+	case types.IsObject(left) && types.IsObject(right):
 		return evalObjectBinary(left, right, e.op)
+	default:
+		return types.ErrValue, nil
 	}
-	return types.ErrValue, nil
 }
 
 func evalScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
