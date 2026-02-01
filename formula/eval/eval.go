@@ -209,7 +209,15 @@ func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, e
 }
 
 func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *env.Environment) (value.Value, error) {
-	return types.Empty(), nil
+	left, err := eg.exec(expr.path, ctx)
+	if err != nil {
+		return nil, err
+	}
+	view, err := resolveViewFromValue(left)
+	if err != nil {
+		return nil, err
+	}
+	return resolveValueFromAddr(view, expr.addr)
 }
 
 func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, error) {
@@ -217,11 +225,7 @@ func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, err
 	if err != nil {
 		return nil, err
 	}
-	cell, err := view.Cell(expr.Position)
-	if err != nil {
-		return nil, err
-	}
-	return cell.Value(), nil
+	return resolveValueFromAddr(view, expr)
 }
 
 func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value, error) {
@@ -369,12 +373,20 @@ func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value
 		err error
 	)
 	switch id := e.ident.(type) {
-	case qualifiedCellAddr:
-		return nil, nil
 	case cellAddr:
 		lv, err = resolveCell(ctx, id)
 	case rangeAddr:
 		lv, err = resolveRange(ctx, id)
+	case qualifiedCellAddr:
+		val, err := eg.exec(id.path, ctx)
+		if err != nil {
+			return nil, err
+		}
+		view, err := resolveMutableViewFromValue(val)
+		if err != nil {
+			return nil, err
+		}
+		lv, err = resolveQualified(view, id)
 	case identifier:
 		lv, err = resolveIdent(ctx, id)
 	default:
