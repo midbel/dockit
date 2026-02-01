@@ -378,15 +378,7 @@ func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value
 	case rangeAddr:
 		lv, err = resolveRange(ctx, id)
 	case qualifiedCellAddr:
-		val, err := eg.exec(id.path, ctx)
-		if err != nil {
-			return nil, err
-		}
-		view, err := resolveMutableViewFromValue(val)
-		if err != nil {
-			return nil, err
-		}
-		lv, err = resolveQualified(view, id)
+		lv, err = resolveQualifiedLValue(eg, ctx, e)
 	case identifier:
 		lv, err = resolveIdent(ctx, id)
 	default:
