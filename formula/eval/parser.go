@@ -33,7 +33,7 @@ func FormulaGrammar() *Grammar {
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 	g.RegisterPostfix(op.RangeRef, parseRangeAddress)
 	g.RegisterPostfix(op.BegGrp, parseCall)
-	g.RefisterPostfix(op.Percent, parsePercent)
+	g.RegisterPostfix(op.Percent, parsePercent)
 
 	g.RegisterInfix(op.Add, parseBinary)
 	g.RegisterInfix(op.Sub, parseBinary)

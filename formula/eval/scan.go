@@ -135,7 +135,9 @@ func (s *Scanner) scanComment(tok *Token) {
 }
 
 func (s *Scanner) scanIdent(tok *Token) {
+	reco := recognizeCell()
 	for !s.done() && isAlpha(s.char) {
+		reco.Update(s.char)
 		s.write()
 		s.read()
 	}
@@ -143,6 +145,9 @@ func (s *Scanner) scanIdent(tok *Token) {
 	tok.Literal = s.literal()
 	if s.allowKeywords() && isKeyword(tok.Literal) {
 		tok.Type = op.Keyword
+	}
+	if reco.IsCell() {
+		tok.Type = op.Cell
 	}
 }
 
@@ -349,7 +354,26 @@ func recognizeCell() *cellRecognizer {
 }
 
 func (c *cellRecognizer) Update(ch rune) {
-
+	if c.state == cellDead {
+		return
+	}
+	switch c.state {
+	case cellCol:
+		if isUpper(ch) {
+			break
+		}
+		if isDigit(ch) && ch != '0' {
+			c.state = cellRow
+			c.hasRow = true
+			break
+		}
+		c.state = cellDead
+	case cellRow:
+		if isDigit(ch) && ch != '0' {
+			break
+		}
+		c.state = cellDead
+	}
 }
 
 func (c *cellRecognizer) IsCell() bool {
