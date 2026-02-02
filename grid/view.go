@@ -244,7 +244,7 @@ func (v *horizontalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
 		var (
 			list []func() ([]value.ScalarValue, bool)
 			stop []func()
-			dim = v.Bounds()
+			dim  = v.Bounds()
 		)
 		for _, vs := range v.views {
 			next, s := iter.Pull[[]value.ScalarValue](vs.Rows())
@@ -273,8 +273,8 @@ func (v *horizontalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
 	return it
 }
 
-func (v *horizontalStackedView) Encode(encoder Encoder) error {
-	return nil
+func (v *horizontalStackedView) Encode(e Encoder) error {
+	return e.EncodeSheet(v)
 }
 
 func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
@@ -344,8 +344,8 @@ func (v *verticalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
 	return it
 }
 
-func (v *verticalStackedView) Encode(Encoder) error {
-	return nil
+func (v *verticalStackedView) Encode(e Encoder) error {
+	return e.EncodeSheet(v)
 }
 
 func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
@@ -567,6 +567,9 @@ func (v *boundedView) SetValue(pos layout.Position, val value.ScalarValue) error
 	if err != nil {
 		return err
 	}
+
+	pos.Line += b.Width()
+	pos.Column += b.Height()
 	return mv.SetValue(pos, val)
 }
 
@@ -578,6 +581,10 @@ func (v *boundedView) SetFormula(pos layout.Position, val value.Formula) error {
 	if err != nil {
 		return err
 	}
+	b := v.view.Bounds()
+
+	pos.Line += b.Width()
+	pos.Column += b.Height()
 	return mv.SetFormula(pos, val)
 }
 
@@ -586,6 +593,8 @@ func (v *boundedView) ClearCell(pos layout.Position) error {
 	if err != nil {
 		return err
 	}
+	pos.Line += b.Width()
+	pos.Column += b.Height()
 	return mv.ClearCell(pos)
 }
 
@@ -594,6 +603,8 @@ func (v *boundedView) ClearValue(pos layout.Position) error {
 	if err != nil {
 		return err
 	}
+	pos.Line += b.Width()
+	pos.Column += b.Height()
 	return mv.ClearValue(pos)
 }
 
@@ -602,6 +613,8 @@ func (v *boundedView) ClearFormula(pos layout.Position) error {
 	if err != nil {
 		return err
 	}
+	pos.Line += b.Width()
+	pos.Column += b.Height()
 	return mv.ClearFormula(pos)
 }
 
@@ -610,6 +623,8 @@ func (v *boundedView) ClearRange(rg *layout.Range) error {
 	if err != nil {
 		return err
 	}
+	pos.Line += b.Width()
+	pos.Column += b.Height()
 	return mv.ClearRange(rg)
 }
 
