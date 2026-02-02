@@ -9,6 +9,7 @@ const (
 	Eol
 	Keyword
 	Ident
+	Cell
 	Number
 	Literal
 	Comment

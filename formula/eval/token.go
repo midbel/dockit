@@ -34,6 +34,8 @@ func (t Token) String() string {
 		str = "keyword"
 	case op.Ident:
 		str = "identifier"
+	case op.Cell:
+		str = "address"
 	case op.Number:
 		str = "number"
 	case op.Literal:

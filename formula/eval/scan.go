@@ -329,6 +329,33 @@ func (s *Scanner) skipBlanks() {
 	}
 }
 
+type recoMode int
+
+const (
+	cellCol  recoMode = iota // reading column (A-Z)
+	cellRow                  // reading row (1-9 then 0-9)
+	cellDead                 // invalid
+)
+
+type cellRecognizer struct {
+	state  recoMode
+	hasRow bool
+}
+
+func recognizeCell() *cellRecognizer {
+	return &cellRecognizer{
+		state: cellCol,
+	}
+}
+
+func (c *cellRecognizer) Update(ch rune) {
+
+}
+
+func (c *cellRecognizer) IsCell() bool {
+	return c.state != cellDead && c.hasRow
+}
+
 const (
 	underscore = '_'
 	bang       = '!'
