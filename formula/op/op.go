@@ -5,7 +5,7 @@ type Op rune
 const (
 	Invalid Op = 0
 
-	EOF Op = 1 << iota
+	EOF Op = -(1 + iota)
 	Eol
 	Keyword
 	Ident
@@ -13,6 +13,12 @@ const (
 	Literal
 	Comment
 	Assign
+	AddAssign
+	DivAssign
+	SubAssign
+	MulAssign
+	PowAssign
+	ConcatAssign
 	Add
 	Sub
 	Mul
@@ -29,31 +35,12 @@ const (
 	Ge
 	Comma
 	Dot
-	Begin
-	End
+	BegGrp
+	EndGrp
+	BegProp
+	EndProp
 	RangeRef
 	SheetRef
-)
-
-const (
-	groupTok Op = 1 << iota
-	propTok
-)
-
-const (
-	BegGrp  = groupTok | Begin
-	EndGrp  = groupTok | End
-	BegProp = propTok | Begin
-	EndProp = propTok | End
-)
-
-const (
-	AddAssign    = Add | Assign
-	DivAssign    = Div | Assign
-	SubAssign    = Sub | Assign
-	MulAssign    = Mul | Assign
-	PowAssign    = Pow | Assign
-	ConcatAssign = Concat | Assign
 )
 
 var mapping = map[Op]string{

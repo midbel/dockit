@@ -388,7 +388,7 @@ func evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 }
 
 func evalScriptUnary(eg *Engine, e unary, ctx *env.Environment) (value.Value, error) {
-	val, err := eg.exec(e.right, ctx)
+	val, err := eg.exec(e.expr, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -542,7 +542,7 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 }
 
 func evalUnary(e unary, ctx value.Context) (value.Value, error) {
-	val, err := Eval(e.right, ctx)
+	val, err := Eval(e.expr, ctx)
 	if err != nil {
 		return nil, err
 	}

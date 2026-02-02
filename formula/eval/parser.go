@@ -33,6 +33,7 @@ func FormulaGrammar() *Grammar {
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 	g.RegisterPostfix(op.RangeRef, parseRangeAddress)
 	g.RegisterPostfix(op.BegGrp, parseCall)
+	g.RefisterPostfix(op.Percent, parsePercent)
 
 	g.RegisterInfix(op.Add, parseBinary)
 	g.RegisterInfix(op.Sub, parseBinary)
@@ -333,7 +334,7 @@ func parseBinary(p *Parser, left Expr) (Expr, error) {
 }
 
 func parseUnary(p *Parser) (Expr, error) {
-	una := unary{
+	u := unary{
 		op: p.curr.Type,
 	}
 	p.next()
@@ -341,8 +342,17 @@ func parseUnary(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	una.right = right
-	return una, nil
+	u.expr = right
+	return u, nil
+}
+
+func parsePercent(p *Parser, expr Expr) (Expr, error) {
+	expr = postfix{
+		expr: expr,
+		op:   p.curr.Type,
+	}
+	p.next()
+	return expr, nil
 }
 
 func parseGroup(p *Parser) (Expr, error) {

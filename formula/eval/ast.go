@@ -207,24 +207,46 @@ func (b binary) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
+type postfix struct {
+	expr Expr
+	op   op.Op
+}
+
+func (p postfix) String() string {
+	oper := op.Symbol(p.op)
+	return fmt.Sprintf("%s%s", p.expr.String(), oper)
+}
+
+func (p postfix) CloneWithOffset(pos layout.Position) Expr {
+	expr := p.expr
+	if c, ok := p.expr.(Clonable); ok {
+		expr = c.CloneWithOffset(pos)
+	}
+	x := postfix{
+		expr: expr,
+		op:   p.op,
+	}
+	return x
+}
+
 type unary struct {
-	right Expr
-	op    op.Op
+	expr Expr
+	op   op.Op
 }
 
 func (u unary) String() string {
 	oper := op.Symbol(u.op)
-	return fmt.Sprintf("%s%s", oper, u.right.String())
+	return fmt.Sprintf("%s%s", oper, u.expr.String())
 }
 
 func (u unary) CloneWithOffset(pos layout.Position) Expr {
-	right := u.right
-	if c, ok := u.right.(Clonable); ok {
-		right = c.CloneWithOffset(pos)
+	expr := u.expr
+	if c, ok := u.expr.(Clonable); ok {
+		expr = c.CloneWithOffset(pos)
 	}
 	x := unary{
-		right: right,
-		op:    u.op,
+		expr: expr,
+		op:   u.op,
 	}
 	return x
 }
@@ -450,7 +472,13 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ")")
 	case unary:
 		io.WriteString(w, "unary(")
-		dumpExpr(w, e.right)
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ", ")
+		io.WriteString(w, op.Symbol(e.op))
+		io.WriteString(w, ")")
+	case postfix:
+		io.WriteString(w, "postfix(")
+		dumpExpr(w, e.expr)
 		io.WriteString(w, ", ")
 		io.WriteString(w, op.Symbol(e.op))
 		io.WriteString(w, ")")

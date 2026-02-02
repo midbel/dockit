@@ -568,6 +568,8 @@ func (v *boundedView) SetValue(pos layout.Position, val value.ScalarValue) error
 		return err
 	}
 
+	b := v.view.Bounds()
+
 	pos.Line += b.Width()
 	pos.Column += b.Height()
 	return mv.SetValue(pos, val)
@@ -581,6 +583,7 @@ func (v *boundedView) SetFormula(pos layout.Position, val value.Formula) error {
 	if err != nil {
 		return err
 	}
+
 	b := v.view.Bounds()
 
 	pos.Line += b.Width()
@@ -593,6 +596,7 @@ func (v *boundedView) ClearCell(pos layout.Position) error {
 	if err != nil {
 		return err
 	}
+	b := v.view.Bounds()
 	pos.Line += b.Width()
 	pos.Column += b.Height()
 	return mv.ClearCell(pos)
@@ -603,6 +607,7 @@ func (v *boundedView) ClearValue(pos layout.Position) error {
 	if err != nil {
 		return err
 	}
+	b := v.view.Bounds()
 	pos.Line += b.Width()
 	pos.Column += b.Height()
 	return mv.ClearValue(pos)
@@ -613,6 +618,7 @@ func (v *boundedView) ClearFormula(pos layout.Position) error {
 	if err != nil {
 		return err
 	}
+	b := v.view.Bounds()
 	pos.Line += b.Width()
 	pos.Column += b.Height()
 	return mv.ClearFormula(pos)
@@ -623,8 +629,9 @@ func (v *boundedView) ClearRange(rg *layout.Range) error {
 	if err != nil {
 		return err
 	}
-	pos.Line += b.Width()
-	pos.Column += b.Height()
+	// b := v.view.Bounds()
+	// pos.Line += b.Width()
+	// pos.Column += b.Height()
 	return mv.ClearRange(rg)
 }
 
