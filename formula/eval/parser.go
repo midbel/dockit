@@ -55,7 +55,7 @@ func ScriptGrammar() *Grammar {
 	g.name = "script"
 	g.mode = ModeScript
 
-	g.RegisterPrefix(op.Eq, parseLambda)
+	g.RegisterPrefix(op.Eq, parseDeferred)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
 	g.RegisterPrefix(op.Cell, parseAddress)
 
@@ -482,13 +482,13 @@ func parseAddress(p *Parser) (Expr, error) {
 	return addr, nil
 }
 
-func parseLambda(p *Parser) (Expr, error) {
+func parseDeferred(p *Parser) (Expr, error) {
 	p.next()
 	expr, err := p.parse(powLowest)
 	if err != nil {
 		return nil, err
 	}
-	e := lambda{
+	e := deferred{
 		expr: expr,
 	}
 	return e, nil

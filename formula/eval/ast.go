@@ -144,16 +144,20 @@ func (t template) String() string {
 	return "<template>"
 }
 
-type lambda struct {
+type deferred struct {
 	expr Expr
 }
 
-func (f lambda) String() string {
-	return fmt.Sprintf("=%s", f.expr.String())
+func (d deferred) Type() string {
+	return "lambda"
 }
 
-func (f lambda) Eval(ctx value.Context) (value.Value, error) {
-	return Eval(f.expr, ctx)
+func (d deferred) String() string {
+	return fmt.Sprintf("=%s", d.expr.String())
+}
+
+func (d deferred) Kind() value.ValueKind {
+	return 0
 }
 
 type assignment struct {
@@ -488,8 +492,8 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		io.WriteString(w, e.prop)
 		io.WriteString(w, ")")
-	case lambda:
-		io.WriteString(w, "formula(")
+	case deferred:
+		io.WriteString(w, "deferred(")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
 	case call:

@@ -99,6 +99,7 @@ func defaultLoader() Loader {
 
 type Engine struct {
 	Loader
+	phase 
 	Stdout io.Writer
 	Stderr io.Writer
 }
@@ -162,13 +163,13 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case number:
 		return types.Float(expr.value), nil
 	case identifier:
-		return ctx.Resolve(expr.name)
+		return evalScriptIdent(e, expr, ctx)
 	case binary:
 		return evalScriptBinary(e, expr, ctx)
 	case unary:
 		return evalScriptUnary(e, expr, ctx)
-	case lambda:
-		return nil, nil
+	case deferred:
+		return evalDeferred(e, expr, ctx)
 	case call:
 		return nil, nil
 	case qualifiedCellAddr:
@@ -238,6 +239,21 @@ func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, err
 		return nil, err
 	}
 	return evalValueFromAddr(view, expr)
+}
+
+func evalDeferred(eg *Engine, expr deferred, ctx *env.Environment) (value.Value, error) {
+	return expr, nil
+}
+
+func evalScriptIdent(eg *Engine, expr identifier, ctx *env.Environment) (value.Value, error) {
+	v, err := ctx.Resolve(expr.name)
+	if err != nil {
+		return nil, err
+	}
+	if d, ok := v.(deferred); ok {
+		return eg.exec(d.expr, ctx)
+	}
+	return v, nil
 }
 
 func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value, error) {

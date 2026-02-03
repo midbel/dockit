@@ -227,22 +227,6 @@ func (v *Range) Collect(view grid.View) (value.Value, error) {
 	return NewArray(data), nil
 }
 
-// type Lambda struct {
-// 	expr eval.Expr
-// }
-
-// func (*Lambda) Kind() value.ValueKind {
-// 	return value.KindFunction
-// }
-
-// func (*Lambda) String() string {
-// 	return "<formula>"
-// }
-
-// func (v *Lambda) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
-// 	return eval.Eval(v.expr, ctx)
-// }
-
 type envValue struct{}
 
 func (envValue) Kind() value.ValueKind {
