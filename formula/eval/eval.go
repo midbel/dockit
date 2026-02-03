@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/midbel/dockit/formula/env"
@@ -46,6 +47,9 @@ type scriptPhase int8
 const (
 	phaseStmt scriptPhase = 1 << iota
 	phaseImport
+	phaseBinary
+	phaseCall
+	phaseAssign
 )
 
 func (p scriptPhase) Allows(k Kind) bool {
@@ -99,9 +103,10 @@ func defaultLoader() Loader {
 
 type Engine struct {
 	Loader
-	phase 
 	Stdout io.Writer
 	Stderr io.Writer
+
+	phases []scriptPhase
 }
 
 func NewEngine(loader Loader) *Engine {
@@ -140,6 +145,26 @@ func (e *Engine) Exec(r io.Reader, ctx *env.Environment) (value.Value, error) {
 	return val, nil
 }
 
+func (e *Engine) enterPhase(ph scriptPhase) {
+	e.phases = append(e.phases, ph)
+}
+
+func (e *Engine) leavePhase() {
+	n := len(e.phases) - 1
+	if n <= 0 {
+		return
+	}
+	e.phases = e.phases[:n]
+}
+
+func (e *Engine) inAssignment() bool {
+	return e.inPhase(phaseAssign)
+}
+
+func (e *Engine) inPhase(ph scriptPhase) bool {
+	return slices.Contains(e.phases, ph)
+}
+
 func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	switch expr := expr.(type) {
 	case importFile:
@@ -153,6 +178,8 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case unlockRef:
 		return evalUnlock(e, expr, ctx)
 	case assignment:
+		e.enterPhase(phaseAssign)
+		defer e.leavePhase()
 		return evalAssignment(e, expr, ctx)
 	case access:
 		return evalAccess(e, expr, ctx)
@@ -165,12 +192,16 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	case identifier:
 		return evalScriptIdent(e, expr, ctx)
 	case binary:
+		e.enterPhase(phaseBinary)
+		defer e.leavePhase()
 		return evalScriptBinary(e, expr, ctx)
 	case unary:
 		return evalScriptUnary(e, expr, ctx)
 	case deferred:
 		return evalDeferred(e, expr, ctx)
 	case call:
+		e.enterPhase(phaseCall)
+		defer e.leavePhase()
 		return nil, nil
 	case qualifiedCellAddr:
 		return evalQualifiedCell(e, expr, ctx)
@@ -250,7 +281,7 @@ func evalScriptIdent(eg *Engine, expr identifier, ctx *env.Environment) (value.V
 	if err != nil {
 		return nil, err
 	}
-	if d, ok := v.(deferred); ok {
+	if d, ok := v.(deferred); !eg.inAssignment() && ok {
 		return eg.exec(d.expr, ctx)
 	}
 	return v, nil

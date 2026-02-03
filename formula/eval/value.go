@@ -112,6 +112,11 @@ type rangeValue struct {
 func (v rangeValue) Set(val value.Value) error {
 	var err error
 	switch val := val.(type) {
+	case deferred:
+		f := deferredFormula{
+			expr: val.expr,
+		}
+		err = v.setFormula(&f)
 	case value.ScalarValue:
 		err = v.setScalar(val)
 	case value.ArrayValue:
@@ -120,6 +125,15 @@ func (v rangeValue) Set(val value.Value) error {
 		return ErrType
 	}
 	return err
+}
+
+func (v rangeValue) setFormula(val value.Formula) error {
+	for pos := range v.rg.Positions() {
+		if err := v.view.SetFormula(pos, val); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (v rangeValue) setScalar(val value.ScalarValue) error {
@@ -203,6 +217,12 @@ type cellValue struct {
 }
 
 func (v cellValue) Set(val value.Value) error {
+	if val, ok := val.(deferred); ok {
+		f := deferredFormula{
+			expr: val.expr,
+		}
+		v.view.SetFormula(v.pos, &f)
+	}
 	scalar, ok := val.(value.ScalarValue)
 	if !ok {
 		return ErrValue

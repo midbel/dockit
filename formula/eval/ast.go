@@ -21,12 +21,12 @@ type Clonable interface {
 }
 
 func CloneWithOffset(expr value.Formula, pos layout.Position) value.Formula {
-	e, ok := expr.(formula)
+	e, ok := expr.(*deferredFormula)
 	if !ok {
 		return expr
 	}
-	if c, ok := e.Expr.(Clonable); ok {
-		e.Expr = c.CloneWithOffset(pos)
+	if c, ok := e.expr.(Clonable); ok {
+		e.expr = c.CloneWithOffset(pos)
 	}
 	return e
 }
@@ -167,18 +167,6 @@ type assignment struct {
 
 func (a assignment) String() string {
 	return fmt.Sprintf("%s := %s", a.ident.String(), a.expr.String())
-}
-
-type formula struct {
-	Expr
-}
-
-func (f formula) Eval(ctx value.Context) (value.Value, error) {
-	return Eval(f.Expr, ctx)
-}
-
-func (f formula) String() string {
-	return f.Expr.String()
 }
 
 type binary struct {
@@ -435,6 +423,26 @@ func parseIndex(str string) (int64, int) {
 		offset++
 	}
 	return int64(index), offset
+}
+
+type deferredFormula struct {
+	expr Expr
+}
+
+func (*deferredFormula) Type() string {
+	return "formula"
+}
+
+func (*deferredFormula) Kind() value.ValueKind {
+	return value.KindFunction
+}
+
+func (f *deferredFormula) String() string {
+	return f.expr.String()
+}
+
+func (f *deferredFormula) Eval(ctx value.Context) (value.Value, error) {
+	return nil, nil
 }
 
 func DumpExpr(expr Expr) string {

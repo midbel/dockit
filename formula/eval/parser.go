@@ -97,10 +97,10 @@ func ParseFormula(str string) (value.Formula, error) {
 	if err != nil {
 		return nil, err
 	}
-	f := formula{
-		Expr: expr,
+	f := deferredFormula{
+		expr: expr,
 	}
-	return f, nil
+	return &f, nil
 }
 
 func NewParser(g *Grammar) *Parser {
