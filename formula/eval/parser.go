@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
-	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -23,7 +22,7 @@ func FormulaGrammar() *Grammar {
 		kwInfix:  make(map[string]InfixFunc),
 		bindings: maps.Clone(defaultBindings),
 	}
-	g.RegisterPrefix(op.Ident, parseAddress)
+	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.Sub, parseUnary)
@@ -58,6 +57,7 @@ func ScriptGrammar() *Grammar {
 
 	g.RegisterPrefix(op.Eq, parseLambda)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
+	g.RegisterPrefix(op.Cell, parseAddress)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
@@ -428,9 +428,6 @@ func parseLiteral(p *Parser) (Expr, error) {
 }
 
 func parseIdentifier(p *Parser) (Expr, error) {
-	if layout.IsAddress(p.currentLiteral()) {
-		return parseAddress(p)
-	}
 	id := identifier{
 		name: p.currentLiteral(),
 	}
