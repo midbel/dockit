@@ -12,6 +12,52 @@ import (
 
 var ErrSupported = errors.New("not supported")
 
+type evalContext []value.Context
+
+func (ec *evalContext) Push(ctx value.Context) {
+	*ec = append(*ec, ctx)
+}
+
+func (ec *evalContext) Pop() {
+	if n := len(*ec); n >= 1 {
+		*ec = (*ec)[:n-1]
+	}
+}
+
+func (ec *evalContext) Resolve(name string) (value.Value, error) {
+	for i := len(*ec) - 1; i >= 0; i-- {
+		v, err := (*ec)[i].Resolve(name)
+		if err == nil {
+			return v, err
+		}
+	}
+	return types.ErrValue, nil
+}
+
+func (ec *evalContext) At(pos layout.Position) (value.Value, error) {
+	for i := len(*ec) - 1; i >= 0; i-- {
+		v, err := (*ec)[i].At(pos)
+		if err == nil {
+			return v, err
+		}
+	}
+	return types.ErrValue, nil
+}
+
+func (ec *evalContext) Range(start, end layout.Position) (value.Value, error) {
+	for i := len(*ec) - 1; i >= 0; i-- {
+		v, err := (*ec)[i].Range(start, end)
+		if err == nil {
+			return v, err
+		}
+	}
+	return types.ErrValue, nil
+}
+
+func EvalContext(others ...value.Context) value.Context {
+	return nil
+}
+
 type sheetContext struct {
 	view   grid.View
 	parent value.Context
