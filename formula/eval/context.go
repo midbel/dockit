@@ -10,7 +10,11 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-var ErrSupported = errors.New("not supported")
+var (
+	ErrSupported = errors.New("not supported")
+	ErrEmpty     = errors.New("empty context")
+	ErrMutate    = errors.New("context is not mutable")
+)
 
 type scopedContext []value.Context
 
@@ -64,18 +68,42 @@ func (ec *scopedContext) Range(start, end layout.Position) (value.Value, error) 
 }
 
 func (ec *scopedContext) SetValue(pos layout.Position, val value.Value) error {
+	ctx := ec.top()
+	if ctx == nil {
+		return ErrEmpty
+	}
+	if mc, ok := ctx.(value.MutableContext); ok {
+		return mc.SetValue(pos, val)
+	}
 	return nil
 }
 
 func (ec *scopedContext) SetFormula(pos layout.Position, val value.Formula) error {
+	ctx := ec.top()
+	if ctx == nil {
+		return ErrEmpty
+	}
+	if mc, ok := ctx.(value.MutableContext); ok {
+		return mc.SetFormula(pos, val)
+	}
 	return nil
 }
 
 func (ec *scopedContext) SetRange(start, end layout.Position, val value.Value) error {
+	// TBD
 	return nil
 }
 
 func (ec *scopedContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
+	// TBD
+	return nil
+}
+
+func (ec *scopedContext) top() value.Context {
+	n := len(*ec)
+	if n > 0 {
+		return (*ec)[n-1]
+	}
 	return nil
 }
 
@@ -148,11 +176,27 @@ func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 }
 
 func (c sheetContext) SetValue(pos layout.Position, val value.Value) error {
-	return nil
+	mv, ok := c.view.(grid.MutableView)
+	if !ok {
+		return ErrMutate
+	}
+	res, ok := val.(value.ScalarValue)
+	if !ok {
+		return ErrType
+	}
+	return mv.SetValue(pos, res)
 }
 
 func (c sheetContext) SetFormula(pos layout.Position, val value.Formula) error {
-	return nil
+	mv, ok := c.view.(grid.MutableView)
+	if !ok {
+		return ErrMutate
+	}
+	res, ok := val.(value.Formula)
+	if !ok {
+		return ErrType
+	}
+	return mv.SetFormula(pos, res)
 }
 
 func (c sheetContext) SetRange(start, end layout.Position, val value.Value) error {
@@ -203,11 +247,35 @@ func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
 }
 
 func (c fileContext) SetValue(pos layout.Position, val value.Value) error {
-	return nil
+	sh, err := c.sheet(pos.Sheet)
+	if err != nil {
+		return err
+	}
+	mv, ok := sh.(grid.MutableView)
+	if !ok {
+		return ErrMutate
+	}
+	res, ok := val.(value.ScalarValue)
+	if !ok {
+		return ErrType
+	}
+	return mv.SetValue(pos, res)
 }
 
 func (c fileContext) SetFormula(pos layout.Position, val value.Formula) error {
-	return nil
+	sh, err := c.sheet(pos.Sheet)
+	if err != nil {
+		return err
+	}
+	mv, ok := sh.(grid.MutableView)
+	if !ok {
+		return ErrMutate
+	}
+	res, ok := val.(value.Formula)
+	if !ok {
+		return ErrType
+	}
+	return mv.SetFormula(pos, res)
 }
 
 func (c fileContext) SetRange(start, end layout.Position, val value.Value) error {
