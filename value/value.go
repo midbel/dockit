@@ -23,6 +23,35 @@ type Context interface {
 	Resolve(string) (Value, error)
 }
 
+type readonlyContext struct {
+	inner Context
+}
+
+func ReadOnly(ctx Context) Context {
+	return readonlyContext{
+		inner: ctx,
+	}
+}
+
+func (c readonlyContext) At(pos layout.Position) (Value, error) {
+	return c.inner.At(pos)
+}
+
+func (c readonlyContext) Range(start, end layout.Position) (Value, error) {
+	return c.inner.Range(start, end)
+}
+
+func (c readonlyContext) Resolve(ident string) (Value, error) {
+	return c.inner.Resolve(ident)
+}
+
+type MutableContext interface {
+	SetValue(layout.Position, Value) error
+	SetFormula(layout.Position, Formula) error
+	SetRange(layout.Position, layout.Position, Value) error
+	SetRangeFormula(layout.Position, layout.Position, Value) error
+}
+
 type Formula interface {
 	Eval(Context) (Value, error)
 }
