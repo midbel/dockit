@@ -79,6 +79,9 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwWith, parseWith)
 	g.RegisterPrefixKeyword(kwLock, parseLock)
 	g.RegisterPrefixKeyword(kwUnlock, parseUnlock)
+	g.RegisterPrefixKeyword(kwClear, parseClear)
+	g.RegisterPrefixKeyword(kwPush, parsePush)
+	g.RegisterPrefixKeyword(kwPop, parsePop)
 
 	return g
 }
@@ -691,6 +694,18 @@ func parseImport(p *Parser) (Expr, error) {
 	}
 	p.next()
 	return stmt, nil
+}
+
+func parseClear(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
+func parsePush(p *Parser) (Expr, error) {
+	return nil, nil
+}
+
+func parsePop(p *Parser) (Expr, error) {
+	return nil, nil
 }
 
 func parseLock(p *Parser) (Expr, error) {

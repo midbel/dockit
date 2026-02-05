@@ -12,27 +12,28 @@ import (
 
 var ErrSupported = errors.New("not supported")
 
-type evalContext []value.Context
+type scopedContext []value.Context
 
 func EvalContext(others ...value.Context) value.Context {
-	return nil
+	es := scopedContext(others)
+	return &es
 }
 
-func (ec *evalContext) Push(ctx value.Context) {
+func (ec *scopedContext) Push(ctx value.Context) {
 	*ec = append(*ec, ctx)
 }
 
-func (ec *evalContext) Pop() {
+func (ec *scopedContext) Pop() {
 	if n := len(*ec); n >= 1 {
 		*ec = (*ec)[:n-1]
 	}
 }
 
-func (ec *evalContext) ReadOnly() value.Context {
+func (ec *scopedContext) ReadOnly() value.Context {
 	return value.ReadOnly(ec)
 }
 
-func (ec *evalContext) Resolve(name string) (value.Value, error) {
+func (ec *scopedContext) Resolve(name string) (value.Value, error) {
 	for i := len(*ec) - 1; i >= 0; i-- {
 		v, err := (*ec)[i].Resolve(name)
 		if err == nil {
@@ -42,7 +43,7 @@ func (ec *evalContext) Resolve(name string) (value.Value, error) {
 	return types.ErrValue, nil
 }
 
-func (ec *evalContext) At(pos layout.Position) (value.Value, error) {
+func (ec *scopedContext) At(pos layout.Position) (value.Value, error) {
 	for i := len(*ec) - 1; i >= 0; i-- {
 		v, err := (*ec)[i].At(pos)
 		if err == nil {
@@ -52,7 +53,7 @@ func (ec *evalContext) At(pos layout.Position) (value.Value, error) {
 	return types.ErrValue, nil
 }
 
-func (ec *evalContext) Range(start, end layout.Position) (value.Value, error) {
+func (ec *scopedContext) Range(start, end layout.Position) (value.Value, error) {
 	for i := len(*ec) - 1; i >= 0; i-- {
 		v, err := (*ec)[i].Range(start, end)
 		if err == nil {
@@ -62,19 +63,19 @@ func (ec *evalContext) Range(start, end layout.Position) (value.Value, error) {
 	return types.ErrValue, nil
 }
 
-func (ec *evalContext) SetValue(pos layout.Position, val value.Value) error {
+func (ec *scopedContext) SetValue(pos layout.Position, val value.Value) error {
 	return nil
 }
 
-func (ec *evalContext) SetFormula(pos layout.Position, val value.Formula) error {
+func (ec *scopedContext) SetFormula(pos layout.Position, val value.Formula) error {
 	return nil
 }
 
-func (ec *evalContext) SetRange(start, end layout.Position, val value.Value) error {
+func (ec *scopedContext) SetRange(start, end layout.Position, val value.Value) error {
 	return nil
 }
 
-func (ec *evalContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
+func (ec *scopedContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
 	return nil
 }
 

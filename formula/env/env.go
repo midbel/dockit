@@ -21,21 +21,15 @@ type Builtin interface {
 
 type Environment struct {
 	values map[string]value.Value
-	parent value.Context
 
 	currentVal value.Value
 }
 
-func Enclosed(parent value.Context) *Environment {
+func Empty() *Environment {
 	ctx := Environment{
 		values: make(map[string]value.Value),
-		parent: parent,
 	}
 	return &ctx
-}
-
-func Empty() *Environment {
-	return Enclosed(nil)
 }
 
 func (c *Environment) Resolve(ident string) (value.Value, error) {
@@ -49,10 +43,7 @@ func (c *Environment) Resolve(ident string) (value.Value, error) {
 			return v, nil
 		}
 	}
-	if c.parent == nil {
-		return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
-	}
-	return c.parent.Resolve(ident)
+	return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
 }
 
 func (c *Environment) SetDefault(val value.Value) {
