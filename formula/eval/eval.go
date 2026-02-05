@@ -504,6 +504,18 @@ func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, er
 	return types.Empty(), nil
 }
 
+func evalPush(eg *Engine, e push, ctx *env.Environment) (value.Value, error) {
+	return types.Empty(), nil
+}
+
+func evalPop(eg *Engine, e pop, ctx *env.Environment) (value.Value, error) {
+	return types.Empty(), nil
+}
+
+func evalClear(eg *Engine, e clear, ctx *env.Environment) (value.Value, error) {
+	return types.Empty(), nil
+}
+
 func evalLock(eg *Engine, e lockRef, ctx *env.Environment) (value.Value, error) {
 	return types.Empty(), nil
 }

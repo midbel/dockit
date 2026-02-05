@@ -51,6 +51,20 @@ func (Script) String() string {
 	return "<script>"
 }
 
+type push struct {
+	readOnly bool
+}
+
+func (push) String() string {
+	return "<push>"
+}
+
+type pop struct{}
+
+func (pop) String() string {
+	return "<pop>"
+}
+
 type lockRef struct {
 	ident string
 }
@@ -284,6 +298,14 @@ func (c call) CloneWithOffset(pos layout.Position) Expr {
 		x.args = append(x.args, a)
 	}
 	return x
+}
+
+type clear struct {
+	name string
+}
+
+func (c clear) String() string {
+	return fmt.Sprintf("clear(%s)", c.name)
 }
 
 type identifier struct {
@@ -560,6 +582,14 @@ func dumpExpr(w io.Writer, expr Expr) {
 	case exportRef:
 	case saveRef:
 		io.WriteString(w, "save(")
+		io.WriteString(w, ")")
+	case push:
+		io.WriteString(w, "push()")
+	case pop:
+		io.WriteString(w, "pop()")
+	case clear:
+		io.WriteString(w, "clear(")
+		io.WriteString(w, e.name)
 		io.WriteString(w, ")")
 	default:
 		io.WriteString(w, fmt.Sprintf("unknown(%T)", e))
