@@ -14,6 +14,10 @@ var ErrSupported = errors.New("not supported")
 
 type evalContext []value.Context
 
+func EvalContext(others ...value.Context) value.Context {
+	return nil
+}
+
 func (ec *evalContext) Push(ctx value.Context) {
 	*ec = append(*ec, ctx)
 }
@@ -22,6 +26,10 @@ func (ec *evalContext) Pop() {
 	if n := len(*ec); n >= 1 {
 		*ec = (*ec)[:n-1]
 	}
+}
+
+func (ec *evalContext) ReadOnly() value.Context {
+	return value.ReadOnly(ec)
 }
 
 func (ec *evalContext) Resolve(name string) (value.Value, error) {
@@ -54,26 +62,37 @@ func (ec *evalContext) Range(start, end layout.Position) (value.Value, error) {
 	return types.ErrValue, nil
 }
 
-func EvalContext(others ...value.Context) value.Context {
+func (ec *evalContext) SetValue(pos layout.Position, val value.Value) error {
+	return nil
+}
+
+func (ec *evalContext) SetFormula(pos layout.Position, val value.Formula) error {
+	return nil
+}
+
+func (ec *evalContext) SetRange(start, end layout.Position, val value.Value) error {
+	return nil
+}
+
+func (ec *evalContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
 	return nil
 }
 
 type sheetContext struct {
-	view   grid.View
-	parent value.Context
+	view grid.View
 }
 
-func SheetContext(parent value.Context, sheet grid.View) value.Context {
+func SheetContext(sheet grid.View) value.Context {
 	return sheetContext{
-		parent: parent,
-		view:   sheet,
+		view: sheet,
 	}
+}
+
+func (c sheetContext) ReadOnly() value.Context {
+	return value.ReadOnly(c)
 }
 
 func (c sheetContext) Resolve(name string) (value.Value, error) {
-	if c.parent != nil {
-		return c.parent.Resolve(name)
-	}
 	return nil, ErrSupported
 }
 
@@ -85,10 +104,7 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	if start.Sheet == "" || start.Sheet == c.view.Name() {
 		sh = c.view
 	} else {
-		if c.parent == nil {
-			return types.ErrRef, nil
-		}
-		return c.parent.Range(start, end)
+		return types.ErrRef, nil
 	}
 	var (
 		startLine = min(start.Line, end.Line)
@@ -127,28 +143,40 @@ func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 		}
 		return cell.Value(), nil
 	}
-	if c.parent == nil {
-		return types.ErrRef, nil
-	}
-	return c.parent.At(pos)
+	return types.ErrRef, nil
+}
+
+func (c sheetContext) SetValue(pos layout.Position, val value.Value) error {
+	return nil
+}
+
+func (c sheetContext) SetFormula(pos layout.Position, val value.Formula) error {
+	return nil
+}
+
+func (c sheetContext) SetRange(start, end layout.Position, val value.Value) error {
+	return nil
+}
+
+func (c sheetContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
+	return nil
 }
 
 type fileContext struct {
-	file   grid.File
-	parent value.Context
+	file grid.File
 }
 
-func FileContext(parent value.Context, file grid.File) value.Context {
+func FileContext(file grid.File) value.Context {
 	return fileContext{
-		file:   file,
-		parent: parent,
+		file: file,
 	}
+}
+
+func (c fileContext) ReadOnly() value.Context {
+	return value.ReadOnly(c)
 }
 
 func (c fileContext) Resolve(name string) (value.Value, error) {
-	if c.parent != nil {
-		return c.parent.Resolve(name)
-	}
 	return nil, ErrSupported
 }
 
@@ -157,7 +185,7 @@ func (c fileContext) At(pos layout.Position) (value.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx := SheetContext(c, sh)
+	ctx := EvalContext(c, SheetContext(sh))
 	return ctx.At(pos)
 }
 
@@ -169,8 +197,24 @@ func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
 	if err != nil {
 		return types.ErrRef, nil
 	}
-	ctx := SheetContext(c, sh)
+	ctx := EvalContext(c, SheetContext(sh))
 	return ctx.Range(start, end)
+}
+
+func (c fileContext) SetValue(pos layout.Position, val value.Value) error {
+	return nil
+}
+
+func (c fileContext) SetFormula(pos layout.Position, val value.Formula) error {
+	return nil
+}
+
+func (c fileContext) SetRange(start, end layout.Position, val value.Value) error {
+	return nil
+}
+
+func (c fileContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
+	return nil
 }
 
 func (c fileContext) sheet(name string) (grid.View, error) {

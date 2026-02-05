@@ -11,7 +11,6 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
@@ -237,7 +236,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 }
 
 func (s *Sheet) Reload(ctx value.Context) error {
-	ctx = eval.SheetContext(ctx, s)
+	ctx = eval.EvalContext(ctx, eval.SheetContext(s))
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
 			if err := c.Reload(ctx); err != nil {
@@ -467,9 +466,13 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Reload() error {
-	ctx := eval.FileContext(env.Empty(), f)
+	ctx := eval.EvalContext(eval.FileContext(f))
 	for _, s := range f.sheets {
-		if err := s.Reload(eval.SheetContext(ctx, s)); err != nil {
+		p, ok := ctx.(interface{ Push(value.Context) })
+		if ok {
+			p.Push(eval.SheetContext(s))
+		}
+		if err := s.Reload(ctx); err != nil {
 			return err
 		}
 	}
