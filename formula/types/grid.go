@@ -52,6 +52,10 @@ func (c *File) Sheet(ident string) (value.Value, error) {
 	return newView(v, c.ro), nil
 }
 
+func (c *File) File() grid.File {
+	return c.file
+}
+
 func (c *File) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "names":

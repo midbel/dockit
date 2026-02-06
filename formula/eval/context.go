@@ -3,6 +3,7 @@ package eval
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
@@ -15,6 +16,110 @@ var (
 	ErrEmpty     = errors.New("empty context")
 	ErrMutate    = errors.New("context is not mutable")
 )
+
+type EngineContext struct {
+	ctx          *scopedContext
+	currentValue value.Value
+}
+
+func NewEngineContext() *EngineContext {
+	eg := EngineContext{
+		ctx: new(scopedContext),
+	}
+	return &eg
+}
+
+func (c *EngineContext) Default() value.Value {
+	return c.currentValue
+}
+
+func (c *EngineContext) SetDefault(val value.Value) {
+	c.currentValue = val
+}
+
+func (c *EngineContext) PushMutable(name string) (io.Closer, error) {
+	sub, err := c.mutableView(name)
+	if err != nil {
+		return nil, err
+	}
+	if f, ok := c.currentValue.(*types.File); ok {
+		fc := FileContext(f.File())
+		sub = EvalContext(fc, sub)
+	}
+	n := c.ctx.Len()
+	c.ctx.Push(sub)
+
+	cf := func() {
+		c.ctx.Truncate(n)
+	}
+	return closable(cf), nil
+}
+
+func (c *EngineContext) PushReadable(name string) (io.Closer, error) {
+	sub, err := c.readableView(name)
+	if err != nil {
+		return nil, err
+	}
+	if f, ok := c.currentValue.(*types.File); ok {
+		fc := FileContext(f.File())
+		sub = EvalContext(fc, sub)
+	}
+	n := c.ctx.Len()
+	c.ctx.Push(sub)
+
+	cf := func() {
+		c.ctx.Truncate(n)
+	}
+	return closable(cf), nil
+}
+
+func (c *EngineContext) readableView(name string) (value.Context, error) {
+	sh, err := c.getViewFromFile(name)
+	if err != nil {
+		return nil, err
+	}
+	return value.ReadOnly(SheetContext(sh.View())), nil
+}
+
+func (c *EngineContext) mutableView(name string) (value.Context, error) {
+	sh, err := c.getViewFromFile(name)
+	if err != nil {
+		return nil, err
+	}
+	view, err := sh.Mutable()
+	if err != nil {
+		return nil, ErrReadOnly
+	}
+	return SheetContext(view), nil
+}
+
+func (c *EngineContext) getViewFromFile(name string) (*types.View, error) {
+	obj := c.Default()
+	if obj == nil {
+		return nil, ErrNoDefault
+	}
+	x, ok := obj.(*types.File)
+	if !ok {
+		return nil, ErrValue
+	}
+	var (
+		sheet value.Value
+		err   error
+	)
+	if name == "" {
+		sheet, err = x.Active()
+	} else {
+		sheet, err = x.Sheet(name)
+	}
+	if err != nil {
+		return nil, err
+	}
+	tv, ok := sheet.(*types.View)
+	if !ok {
+		return nil, ErrValue
+	}
+	return tv, nil
+}
 
 type scopedContext []value.Context
 
@@ -31,6 +136,18 @@ func (ec *scopedContext) Pop() {
 	if n := len(*ec); n >= 1 {
 		*ec = (*ec)[:n-1]
 	}
+}
+
+func (ec *scopedContext) Len() int {
+	return len(*ec)
+}
+
+func (ec *scopedContext) Truncate(n int) {
+	z := len(*ec)
+	if n >= z {
+		n = z
+	}
+	*ec = (*ec)[:n]
 }
 
 func (ec *scopedContext) ReadOnly() value.Context {
@@ -292,4 +409,11 @@ func (c fileContext) sheet(name string) (grid.View, error) {
 	} else {
 	}
 	return c.file.Sheet(name)
+}
+
+type closable func()
+
+func (c closable) Close() error {
+	c()
+	return nil
 }
