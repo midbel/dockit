@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -35,6 +36,33 @@ func (c *EngineContext) Default() value.Value {
 
 func (c *EngineContext) SetDefault(val value.Value) {
 	c.currentValue = val
+}
+
+func (c *EngineContext) Context() value.Context {
+	return c.ctx
+}
+
+func (c *EngineContext) PushContext(ctx value.Context) {
+	c.ctx.Push(ctx)
+}
+
+func (c *EngineContext) PushValue(val value.Value, ident string) (io.Closer, error) {
+	sh, err := c.getViewFromFile(val, ident)
+	if err != nil {
+		return nil, err
+	}
+	ctx := SheetContext(sh.View())
+	if file, ok := val.(*types.File); ok {
+		fc := FileContext(file.File())
+		ctx = EvalContext(fc, ctx)
+	}
+	n := c.ctx.Len()
+	c.ctx.Push(ctx)
+
+	cf := func() {
+		c.ctx.Truncate(n)
+	}
+	return closable(cf), nil
 }
 
 func (c *EngineContext) PushMutable(name string) (io.Closer, error) {
@@ -74,7 +102,7 @@ func (c *EngineContext) PushReadable(name string) (io.Closer, error) {
 }
 
 func (c *EngineContext) readableView(name string) (value.Context, error) {
-	sh, err := c.getViewFromFile(name)
+	sh, err := c.getViewFromFile(c.Default(), name)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +110,7 @@ func (c *EngineContext) readableView(name string) (value.Context, error) {
 }
 
 func (c *EngineContext) mutableView(name string) (value.Context, error) {
-	sh, err := c.getViewFromFile(name)
+	sh, err := c.getViewFromFile(c.Default(), name)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +121,8 @@ func (c *EngineContext) mutableView(name string) (value.Context, error) {
 	return SheetContext(view), nil
 }
 
-func (c *EngineContext) getViewFromFile(name string) (*types.View, error) {
-	obj := c.Default()
-	if obj == nil {
-		return nil, ErrNoDefault
-	}
-	x, ok := obj.(*types.File)
+func (c *EngineContext) getViewFromFile(val value.Value, name string) (*types.View, error) {
+	x, ok := val.(*types.File)
 	if !ok {
 		return nil, ErrValue
 	}
@@ -184,6 +208,17 @@ func (ec *scopedContext) Range(start, end layout.Position) (value.Value, error) 
 	return types.ErrValue, nil
 }
 
+func (ec *scopedContext) Define(ident string, val value.Value) error {
+	ctx := ec.top()
+	if ctx == nil {
+		return ErrEmpty
+	}
+	if e, ok := ctx.(*env.Environment); ok {
+		e.Define(ident, val)
+	}
+	return nil
+}
+
 func (ec *scopedContext) SetValue(pos layout.Position, val value.Value) error {
 	ctx := ec.top()
 	if ctx == nil {
@@ -207,12 +242,10 @@ func (ec *scopedContext) SetFormula(pos layout.Position, val value.Formula) erro
 }
 
 func (ec *scopedContext) SetRange(start, end layout.Position, val value.Value) error {
-	// TBD
 	return nil
 }
 
 func (ec *scopedContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
-	// TBD
 	return nil
 }
 
@@ -286,6 +319,9 @@ func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 		cell, err := c.view.Cell(pos)
 		if err != nil || cell == nil {
 			return types.ErrRef, nil
+		}
+		if err := cell.Reload(c); err != nil {
+			return nil, err
 		}
 		return cell.Value(), nil
 	}

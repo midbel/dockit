@@ -188,6 +188,10 @@ func (v *Range) Target() string {
 	return v.rg.Starts.Sheet
 }
 
+func (v *Range) Range() *layout.Range {
+	return v.rg
+}
+
 func (v *Range) Get(ident string) (value.ScalarValue, error) {
 	switch ident {
 	case "lines":

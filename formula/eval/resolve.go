@@ -9,33 +9,6 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-func resolveViewFromQualifiedPath(eg *Engine, ctx *env.Environment, path Expr) (grid.View, error) {
-	switch p := path.(type) {
-	case identifier:
-		return getView(ctx, p.name)
-	case access:
-		val, err := eg.exec(p.expr, ctx)
-		if err != nil {
-			return nil, err
-		}
-		file, ok := val.(*types.File)
-		if !ok {
-			return nil, fmt.Errorf("view can not be resolved from expr")
-		}
-		val, err = file.Sheet(p.prop)
-		if err != nil {
-			return nil, err
-		}
-		v, ok := val.(*types.View)
-		if !ok {
-			return nil, fmt.Errorf("view can not be resolved from expr")
-		}
-		return v.View(), nil
-	default:
-		return nil, fmt.Errorf("view can not be resolved from expr")
-	}
-}
-
 func resolveMutableViewFromQualifiedPath(eg *Engine, ctx *env.Environment, path Expr) (grid.MutableView, error) {
 	switch p := path.(type) {
 	case identifier:

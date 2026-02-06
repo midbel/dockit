@@ -118,12 +118,14 @@ func NewEngine(loader Loader) *Engine {
 	return &e
 }
 
-func (e *Engine) Exec(r io.Reader, ctx *env.Environment) (value.Value, error) {
+func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
 	var (
 		val   value.Value
 		phase = phaseImport
 		ps    = NewParser(ScriptGrammar())
+		ctx   = NewEngineContext()
 	)
+	ctx.PushContext(environ)
 	if err := ps.Init(r); err != nil {
 		return nil, err
 	}
@@ -165,7 +167,7 @@ func (e *Engine) inPhase(ph scriptPhase) bool {
 	return slices.Contains(e.phases, ph)
 }
 
-func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
+func (e *Engine) exec(expr Expr, ctx *EngineContext) (value.Value, error) {
 	switch expr := expr.(type) {
 	case importFile:
 		return evalImport(e, expr, ctx)
@@ -214,22 +216,24 @@ func (e *Engine) exec(expr Expr, ctx *env.Environment) (value.Value, error) {
 	}
 }
 
-func (e *Engine) execAndNormalize(expr Expr, ctx *env.Environment) (value.Value, error) {
+func (e *Engine) execAndNormalize(expr Expr, ctx *EngineContext) (value.Value, error) {
 	val, err := e.exec(expr, ctx)
 	if err != nil {
 		return types.ErrValue, err
 	}
-	return e.normalizeValue(ctx, val)
+	return e.normalizeValue(val, ctx)
 }
 
-func (e *Engine) normalizeValue(ctx *env.Environment, val value.Value) (value.Value, error) {
+func (e *Engine) normalizeValue(val value.Value, ctx *EngineContext) (value.Value, error) {
 	switch val := val.(type) {
 	case *types.Range:
-		view, err := getView(ctx, val.Target())
+		cl, err := ctx.PushReadable(val.Target())
 		if err != nil {
 			return types.ErrValue, err
 		}
-		return val.Collect(view)
+		defer cl.Close()
+		rg := val.Range()
+		return ctx.Context().Range(rg.Starts, rg.Ends)
 	default:
 		return val, nil
 	}
@@ -251,33 +255,55 @@ func evalValueFromAddr(view grid.View, addr Expr) (value.Value, error) {
 	}
 }
 
-func evalRange(eg *Engine, expr rangeAddr, ctx *env.Environment) (value.Value, error) {
+func evalRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {
 	rg := types.NewRangeValue(expr.startAddr.Position, expr.endAddr.Position)
 	return rg, nil
 }
 
-func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *env.Environment) (value.Value, error) {
-	view, err := resolveViewFromQualifiedPath(eg, ctx, expr.path)
+func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (value.Value, error) {
+	var (
+		cl  io.Closer
+		err error
+	)
+	switch expr := expr.path.(type) {
+	case access:
+		val, err := eg.exec(expr, ctx)
+		if err != nil {
+			return nil, err
+		}
+		cl, err = ctx.PushValue(val, expr.prop)
+	case identifier:
+		cl, err = ctx.PushReadable(expr.name)
+	default:
+		return nil, fmt.Errorf("no view can be found from expr")
+	}
 	if err != nil {
 		return nil, err
 	}
-	return evalValueFromAddr(view, expr.addr)
+	defer cl.Close()
+
+	addr, ok := expr.addr.(cellAddr)
+	if !ok {
+		return types.ErrValue, nil
+	}
+	return ctx.Context().At(addr.Position)
 }
 
-func evalCell(eg *Engine, expr cellAddr, ctx *env.Environment) (value.Value, error) {
-	view, err := getView(ctx, expr.Sheet)
+func evalCell(eg *Engine, expr cellAddr, ctx *EngineContext) (value.Value, error) {
+	cl, err := ctx.PushReadable(expr.Sheet)
 	if err != nil {
 		return nil, err
 	}
-	return evalValueFromAddr(view, expr)
+	defer cl.Close()
+	return ctx.Context().At(expr.Position)
 }
 
-func evalDeferred(eg *Engine, expr deferred, ctx *env.Environment) (value.Value, error) {
+func evalDeferred(eg *Engine, expr deferred, ctx *EngineContext) (value.Value, error) {
 	return expr, nil
 }
 
-func evalScriptIdent(eg *Engine, expr identifier, ctx *env.Environment) (value.Value, error) {
-	v, err := ctx.Resolve(expr.name)
+func evalScriptIdent(eg *Engine, expr identifier, ctx *EngineContext) (value.Value, error) {
+	v, err := ctx.Context().Resolve(expr.name)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +313,7 @@ func evalScriptIdent(eg *Engine, expr identifier, ctx *env.Environment) (value.V
 	return v, nil
 }
 
-func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value, error) {
+func evalTemplate(eg *Engine, expr template, ctx *EngineContext) (value.Value, error) {
 	var str strings.Builder
 	for i := range expr.expr {
 		v, err := eg.exec(expr.expr[i], ctx)
@@ -299,7 +325,7 @@ func evalTemplate(eg *Engine, expr template, ctx *env.Environment) (value.Value,
 	return types.Text(str.String()), nil
 }
 
-func evalScriptBinary(eg *Engine, e binary, ctx *env.Environment) (value.Value, error) {
+func evalScriptBinary(eg *Engine, e binary, ctx *EngineContext) (value.Value, error) {
 	left, err := eg.execAndNormalize(e.left, ctx)
 	if err != nil {
 		return nil, err
@@ -434,7 +460,7 @@ func evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	return types.NewViewValue(view), nil
 }
 
-func evalScriptUnary(eg *Engine, e unary, ctx *env.Environment) (value.Value, error) {
+func evalScriptUnary(eg *Engine, e unary, ctx *EngineContext) (value.Value, error) {
 	val, err := eg.exec(e.expr, ctx)
 	if err != nil {
 		return nil, err
@@ -450,7 +476,7 @@ func evalScriptUnary(eg *Engine, e unary, ctx *env.Environment) (value.Value, er
 	}
 }
 
-func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value, error) {
+func evalAssignment(eg *Engine, e assignment, ctx *EngineContext) (value.Value, error) {
 	var (
 		lv  LValue
 		err error
@@ -477,7 +503,7 @@ func evalAssignment(eg *Engine, e assignment, ctx *env.Environment) (value.Value
 	return nil, lv.Set(value)
 }
 
-func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, error) {
+func evalImport(eg *Engine, e importFile, ctx *EngineContext) (value.Value, error) {
 	file, err := eg.Loader.Open(e.file)
 	if err != nil {
 		return nil, err
@@ -497,35 +523,37 @@ func evalImport(eg *Engine, e importFile, ctx *env.Environment) (value.Value, er
 		e.alias = alias
 	}
 	book := types.NewFileValue(file, e.readOnly)
-	ctx.Define(e.alias, book)
+	if ev, ok := ctx.Context().(interface{ Define(string, value.Value) }); ok {
+		ev.Define(e.alias, book)
+	}
 	if e.defaultFile {
 		ctx.SetDefault(book)
 	}
 	return types.Empty(), nil
 }
 
-func evalPush(eg *Engine, e push, ctx *env.Environment) (value.Value, error) {
+func evalPush(eg *Engine, e push, ctx *EngineContext) (value.Value, error) {
 	return types.Empty(), nil
 }
 
-func evalPop(eg *Engine, e pop, ctx *env.Environment) (value.Value, error) {
+func evalPop(eg *Engine, e pop, ctx *EngineContext) (value.Value, error) {
 	return types.Empty(), nil
 }
 
-func evalClear(eg *Engine, e clear, ctx *env.Environment) (value.Value, error) {
+func evalClear(eg *Engine, e clear, ctx *EngineContext) (value.Value, error) {
 	return types.Empty(), nil
 }
 
-func evalLock(eg *Engine, e lockRef, ctx *env.Environment) (value.Value, error) {
+func evalLock(eg *Engine, e lockRef, ctx *EngineContext) (value.Value, error) {
 	return types.Empty(), nil
 }
 
-func evalUnlock(eg *Engine, e unlockRef, ctx *env.Environment) (value.Value, error) {
+func evalUnlock(eg *Engine, e unlockRef, ctx *EngineContext) (value.Value, error) {
 	return types.Empty(), nil
 }
 
-func evalUse(eg *Engine, e useRef, ctx *env.Environment) (value.Value, error) {
-	v, err := ctx.Resolve(e.ident)
+func evalUse(eg *Engine, e useRef, ctx *EngineContext) (value.Value, error) {
+	v, err := ctx.Context().Resolve(e.ident)
 	if err != nil {
 		return nil, err
 	}
@@ -537,7 +565,7 @@ func evalUse(eg *Engine, e useRef, ctx *env.Environment) (value.Value, error) {
 	return types.Empty(), nil
 }
 
-func evalPrint(eg *Engine, e printRef, ctx *env.Environment) (value.Value, error) {
+func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) {
 	v, err := eg.exec(e.expr, ctx)
 	if err != nil {
 		return nil, err
@@ -548,7 +576,7 @@ func evalPrint(eg *Engine, e printRef, ctx *env.Environment) (value.Value, error
 	return types.Empty(), nil
 }
 
-func evalAccess(eg *Engine, e access, ctx *env.Environment) (value.Value, error) {
+func evalAccess(eg *Engine, e access, ctx *EngineContext) (value.Value, error) {
 	obj, err := eg.exec(e.expr, ctx)
 	if err != nil {
 		return nil, err
