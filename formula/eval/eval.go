@@ -266,11 +266,14 @@ func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (
 	}
 	defer cl.Close()
 
-	addr, ok := expr.addr.(cellAddr)
-	if !ok {
+	switch a := expr.addr.(type) {
+	case cellAddr:
+		return ctx.Context().At(a.Position)
+	case rangeAddr:
+		return ctx.Context().Range(a.startAddr.Position, a.endAddr.Position)
+	default:
 		return types.ErrValue, nil
 	}
-	return ctx.Context().At(addr.Position)
 }
 
 func evalCell(eg *Engine, expr cellAddr, ctx *EngineContext) (value.Value, error) {
@@ -482,6 +485,7 @@ func evalAssignment(eg *Engine, e assignment, ctx *EngineContext) (value.Value, 
 		lv, err = resolveRange(ctx, id)
 	case qualifiedCellAddr:
 		// TODO
+		lv, err = resolveQualified(ctx, id.addr)
 	case identifier:
 		lv, err = resolveIdent(ctx, id)
 	default:

@@ -20,18 +20,18 @@ type LValue interface {
 	Set(value.Value) error
 }
 
-func resolveQualified(ctx value.Context, addr Expr) (LValue, error) {
+func resolveQualified(ctx *EngineContext, addr Expr) (LValue, error) {
 	var lv LValue
 	switch a := addr.(type) {
 	case cellAddr:
 		lv = cellValue{
-			ctx: ctx,
+			ctx: ctx.Context(),
 			pos: a.Position,
 		}
 	case rangeAddr:
 		rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
 		lv = rangeValue{
-			ctx: ctx,
+			ctx: ctx.Context(),
 			rg:  rg.Normalize(),
 		}
 	default:
