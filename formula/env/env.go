@@ -21,8 +21,6 @@ type Builtin interface {
 
 type Environment struct {
 	values map[string]value.Value
-
-	currentVal value.Value
 }
 
 func Empty() *Environment {
@@ -37,21 +35,7 @@ func (c *Environment) Resolve(ident string) (value.Value, error) {
 	if ok {
 		return v, nil
 	}
-	if x, ok := c.currentVal.(value.ObjectValue); ok {
-		v, err := x.Get(ident)
-		if err == nil {
-			return v, nil
-		}
-	}
 	return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
-}
-
-func (c *Environment) SetDefault(val value.Value) {
-	c.currentVal = val
-}
-
-func (c *Environment) Default() value.Value {
-	return c.currentVal
 }
 
 func (c *Environment) Define(ident string, val value.Value) {

@@ -4,9 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/midbel/dockit/formula/env"
-	"github.com/midbel/dockit/formula/types"
-	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -23,27 +20,19 @@ type LValue interface {
 	Set(value.Value) error
 }
 
-func resolveQualifiedLValue(eg *Engine, ctx *env.Environment, expr qualifiedCellAddr) (LValue, error) {
-	view, err := resolveMutableViewFromQualifiedPath(eg, ctx, expr.path)
-	if err != nil {
-		return nil, err
-	}
-	return resolveQualified(view, expr.addr)
-}
-
-func resolveQualified(view grid.MutableView, addr Expr) (LValue, error) {
+func resolveQualified(ctx value.Context, addr Expr) (LValue, error) {
 	var lv LValue
 	switch a := addr.(type) {
 	case cellAddr:
 		lv = cellValue{
-			view: view,
-			pos:  a.Position,
+			ctx: ctx,
+			pos: a.Position,
 		}
 	case rangeAddr:
 		rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
 		lv = rangeValue{
-			view: view,
-			rg:   rg.Normalize(),
+			ctx: ctx,
+			rg:  rg.Normalize(),
 		}
 	default:
 		return nil, fmt.Errorf("unknown address type")
@@ -51,46 +40,42 @@ func resolveQualified(view grid.MutableView, addr Expr) (LValue, error) {
 	return lv, nil
 }
 
-func resolveRange(ctx *env.Environment, rg rangeAddr) (LValue, error) {
-	view, err := getMutableView(ctx, rg.startAddr.Sheet)
-	if err != nil {
-		return nil, err
-	}
+func resolveRange(ctx *EngineContext, rg rangeAddr) (LValue, error) {
 	r := layout.NewRange(rg.startAddr.Position, rg.endAddr.Position)
 	val := rangeValue{
-		rg:   r.Normalize(),
-		view: view,
+		rg:  r.Normalize(),
+		ctx: ctx.Context(),
 	}
 	return val, nil
 }
 
-func resolveCell(ctx *env.Environment, addr cellAddr) (LValue, error) {
-	view, err := getMutableView(ctx, addr.Sheet)
-	if err != nil {
-		return nil, err
-	}
+func resolveCell(ctx *EngineContext, addr cellAddr) (LValue, error) {
 	val := cellValue{
-		pos:  addr.Position,
-		view: view,
+		pos: addr.Position,
+		ctx: ctx.Context(),
 	}
 	return val, nil
 }
 
-func resolveIdent(ctx *env.Environment, ident identifier) (LValue, error) {
+func resolveIdent(ctx *EngineContext, ident identifier) (LValue, error) {
 	id := identValue{
 		ident: ident.name,
-		ctx:   ctx,
+		ctx:   ctx.Context(),
 	}
 	return id, nil
 }
 
 type identValue struct {
 	ident string
-	ctx   *env.Environment
+	ctx   value.Context
 }
 
 func (v identValue) Set(val value.Value) error {
-	v.ctx.Define(v.ident, val)
+	d, ok := v.ctx.(interface{ Define(string, value.Value) })
+	if !ok {
+		return ErrValue
+	}
+	d.Define(v.ident, val)
 	return nil
 }
 
@@ -105,8 +90,8 @@ const (
 )
 
 type rangeValue struct {
-	view grid.MutableView
-	rg   *layout.Range
+	ctx value.Context
+	rg  *layout.Range
 }
 
 func (v rangeValue) Set(val value.Value) error {
@@ -128,8 +113,14 @@ func (v rangeValue) Set(val value.Value) error {
 }
 
 func (v rangeValue) setFormula(val value.Formula) error {
+	f, ok := v.ctx.(interface {
+		SetFormula(layout.Position, value.Formula) error
+	})
+	if !ok {
+		return ErrValue
+	}
 	for pos := range v.rg.Positions() {
-		if err := v.view.SetFormula(pos, val); err != nil {
+		if err := f.SetFormula(pos, val); err != nil {
 			return err
 		}
 	}
@@ -137,8 +128,14 @@ func (v rangeValue) setFormula(val value.Formula) error {
 }
 
 func (v rangeValue) setScalar(val value.ScalarValue) error {
+	f, ok := v.ctx.(interface {
+		SetValue(layout.Position, value.Value) error
+	})
+	if !ok {
+		return ErrValue
+	}
 	for pos := range v.rg.Positions() {
-		if err := v.view.SetValue(pos, val); err != nil {
+		if err := f.SetValue(pos, val); err != nil {
 			return err
 		}
 	}
@@ -146,6 +143,12 @@ func (v rangeValue) setScalar(val value.ScalarValue) error {
 }
 
 func (v rangeValue) setArray(arr value.ArrayValue) error {
+	f, ok := v.ctx.(interface {
+		SetValue(layout.Position, value.Value) error
+	})
+	if !ok {
+		return ErrValue
+	}
 	mode, err := v.mode(arr)
 	if err != nil {
 		return err
@@ -175,7 +178,7 @@ func (v rangeValue) setArray(arr value.ArrayValue) error {
 		default:
 			continue
 		}
-		if err := v.view.SetValue(pos, val); err != nil {
+		if err := f.SetValue(pos, val); err != nil {
 			return err
 		}
 		col++
@@ -212,68 +215,40 @@ func (v rangeValue) mode(val value.ArrayValue) (broadcastMode, error) {
 }
 
 type cellValue struct {
-	view grid.MutableView
-	pos  layout.Position
+	ctx value.Context
+	pos layout.Position
 }
 
 func (v cellValue) Set(val value.Value) error {
-	if val, ok := val.(deferred); ok {
-		f := deferredFormula{
-			expr: val.expr,
-		}
-		v.view.SetFormula(v.pos, &f)
+	switch val := val.(type) {
+	case deferred:
+		return v.setFormula(val)
+	case value.ScalarValue:
+		return v.setValue(val)
+	default:
+		return ErrValue
 	}
-	scalar, ok := val.(value.ScalarValue)
+}
+
+func (v cellValue) setFormula(val deferred) error {
+	f, ok := v.ctx.(interface {
+		SetFormula(layout.Position, value.Formula) error
+	})
 	if !ok {
 		return ErrValue
 	}
-	return v.view.SetValue(v.pos, scalar)
+	df := deferredFormula{
+		expr: val.expr,
+	}
+	return f.SetFormula(v.pos, &df)
 }
 
-func getView(ctx *env.Environment, name string) (grid.View, error) {
-	sh, err := getSheet(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-	return sh.View(), nil
-}
-
-func getMutableView(ctx *env.Environment, name string) (grid.MutableView, error) {
-	sh, err := getSheet(ctx, name)
-	if err != nil {
-		return nil, err
-	}
-	view, err := sh.Mutable()
-	if err != nil {
-		return nil, ErrReadOnly
-	}
-	return view, nil
-}
-
-func getSheet(ctx *env.Environment, name string) (*types.View, error) {
-	obj := ctx.Default()
-	if obj == nil {
-		return nil, ErrNoDefault
-	}
-	x, ok := obj.(*types.File)
+func (v cellValue) setValue(val value.ScalarValue) error {
+	f, ok := v.ctx.(interface {
+		SetValue(layout.Position, value.Value) error
+	})
 	if !ok {
-		return nil, ErrValue
+		return ErrValue
 	}
-	var (
-		sheet value.Value
-		err   error
-	)
-	if name == "" {
-		sheet, err = x.Active()
-	} else {
-		sheet, err = x.Sheet(name)
-	}
-	if err != nil {
-		return nil, err
-	}
-	tv, ok := sheet.(*types.View)
-	if !ok {
-		return nil, ErrValue
-	}
-	return tv, nil
+	return f.SetValue(v.pos, val)
 }

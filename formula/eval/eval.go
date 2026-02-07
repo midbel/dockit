@@ -239,22 +239,6 @@ func (e *Engine) normalizeValue(val value.Value, ctx *EngineContext) (value.Valu
 	}
 }
 
-func evalValueFromAddr(view grid.View, addr Expr) (value.Value, error) {
-	switch e := addr.(type) {
-	case cellAddr:
-		cell, err := view.Cell(e.Position)
-		if err != nil {
-			return types.ErrValue, err
-		}
-		return cell.Value(), nil
-	case rangeAddr:
-		rg := types.NewRangeValue(e.startAddr.Position, e.endAddr.Position)
-		return rg.(*types.Range).Collect(view)
-	default:
-		return types.ErrValue, nil
-	}
-}
-
 func evalRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {
 	rg := types.NewRangeValue(expr.startAddr.Position, expr.endAddr.Position)
 	return rg, nil
@@ -483,11 +467,21 @@ func evalAssignment(eg *Engine, e assignment, ctx *EngineContext) (value.Value, 
 	)
 	switch id := e.ident.(type) {
 	case cellAddr:
+		cl, err1 := ctx.PushMutable("")
+		if err1 != nil {
+			return nil, err1
+		}
+		defer cl.Close()
 		lv, err = resolveCell(ctx, id)
 	case rangeAddr:
+		cl, err1 := ctx.PushMutable("")
+		if err1 != nil {
+			return nil, err1
+		}
+		defer cl.Close()
 		lv, err = resolveRange(ctx, id)
 	case qualifiedCellAddr:
-		lv, err = resolveQualifiedLValue(eg, ctx, id)
+		// TODO
 	case identifier:
 		lv, err = resolveIdent(ctx, id)
 	default:
