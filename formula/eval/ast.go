@@ -308,6 +308,39 @@ func (c clear) String() string {
 	return fmt.Sprintf("clear(%s)", c.name)
 }
 
+type slice struct {
+	expr Expr
+}
+
+func (s slice) String() string {
+	return fmt.Sprintf("slice(%s)", s.expr)
+}
+
+type rangeSlice struct {
+	startAddr cellAddr
+	endAddr   cellAddr
+}
+
+func (s rangeSlice) String() string {
+	return fmt.Sprintf("range(%s, %s)", s.startAddr, s.endAddr)
+}
+
+type selectionSlice struct {
+	columns []int
+}
+
+func (s selectionSlice) String() string {
+	return fmt.Sprintf("selection(%s, %s)", s.columns)
+}
+
+type filterSlice struct {
+	expr Expr
+}
+
+func (s filterSlice) String() string {
+	return fmt.Sprintf("filter(%s)", s.expr)
+}
+
 type identifier struct {
 	name string
 }
