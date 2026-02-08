@@ -463,36 +463,69 @@ func evalScriptUnary(eg *Engine, e unary, ctx *EngineContext) (value.Value, erro
 	}
 }
 
-func evalAssignment(eg *Engine, e assignment, ctx *EngineContext) (value.Value, error) {
+func evalQualifiedAssignment(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (LValue, io.Closer, error) {
 	var (
 		lv  LValue
+		cl  io.Closer
 		err error
 	)
-	switch id := e.ident.(type) {
-	case cellAddr:
-		cl, err1 := ctx.PushMutable("")
-		if err1 != nil {
-			return nil, err1
-		}
-		defer cl.Close()
-		lv, err = resolveCell(ctx, id)
-	case rangeAddr:
-		cl, err1 := ctx.PushMutable("")
-		if err1 != nil {
-			return nil, err1
-		}
-		defer cl.Close()
-		lv, err = resolveRange(ctx, id)
-	case qualifiedCellAddr:
-		// TODO
-		lv, err = resolveQualified(ctx, id.addr)
+	switch expr := expr.path.(type) {
 	case identifier:
-		lv, err = resolveIdent(ctx, id)
+		cl, err = ctx.PushMutable(expr.name)
+	case access:
+		val, err1 := eg.exec(expr, ctx)
+		if err1 != nil {
+			err = err1
+			break
+		}
+		cl, err = ctx.PushValue(val, expr.prop)
 	default:
-		err = fmt.Errorf("value can not be assigned to %s", e.expr)
+		err = fmt.Errorf("expression can not be assigned to %s", expr)
 	}
 	if err != nil {
+		return nil, nil, err
+	}
+	lv, err = resolveQualified(ctx, expr.addr)
+	return lv, cl, err
+}
+
+func evalAssignmentTarget(eg *Engine, expr Expr, ctx *EngineContext) (LValue, io.Closer, error) {
+	var (
+		lv  LValue
+		cl  io.Closer
+		err error
+	)
+	switch expr := expr.(type) {
+	case cellAddr:
+		cl, err = ctx.PushMutable("")
+		if err != nil {
+			break
+		}
+		lv, err = resolveCell(ctx, expr)
+	case rangeAddr:
+		cl, err = ctx.PushMutable("")
+		if err != nil {
+			break
+		}
+		lv, err = resolveRange(ctx, expr)
+	case qualifiedCellAddr:
+		return evalQualifiedAssignment(eg, expr, ctx)
+	case access:
+	case identifier:
+		lv, err = resolveIdent(ctx, expr)
+	default:
+		err = fmt.Errorf("value can not be assigned to %s", expr)
+	}
+	return lv, cl, err
+}
+
+func evalAssignment(eg *Engine, e assignment, ctx *EngineContext) (value.Value, error) {
+	lv, cl, err := evalAssignmentTarget(eg, e.ident, ctx)
+	if err != nil {
 		return nil, err
+	}
+	if cl != nil {
+		defer cl.Close()
 	}
 	value, err := eg.execAndNormalize(e.expr, ctx)
 	if err != nil {
