@@ -2,6 +2,7 @@ package eval
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/midbel/dockit/formula/op"
 )
@@ -79,6 +80,20 @@ type Grammar struct {
 
 	kwPrefix map[string]PrefixFunc
 	kwInfix  map[string]InfixFunc
+}
+
+func NewGrammar(name string, mode ScanMode) *Grammar {
+	g := Grammar{
+		name:     name,
+		mode:     mode,
+		prefix:   make(map[op.Op]PrefixFunc),
+		kwPrefix: make(map[string]PrefixFunc),
+		postfix:  make(map[op.Op]InfixFunc),
+		infix:    make(map[op.Op]InfixFunc),
+		kwInfix:  make(map[string]InfixFunc),
+		bindings: maps.Clone(defaultBindings),
+	}
+	return &g
 }
 
 func (g *Grammar) Context() string {

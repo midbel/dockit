@@ -3,7 +3,6 @@ package eval
 import (
 	"fmt"
 	"io"
-	"maps"
 	"strconv"
 	"strings"
 
@@ -12,16 +11,8 @@ import (
 )
 
 func FormulaGrammar() *Grammar {
-	g := Grammar{
-		name:     "formula",
-		mode:     ModeFormula,
-		prefix:   make(map[op.Op]PrefixFunc),
-		kwPrefix: make(map[string]PrefixFunc),
-		postfix:  make(map[op.Op]InfixFunc),
-		infix:    make(map[op.Op]InfixFunc),
-		kwInfix:  make(map[string]InfixFunc),
-		bindings: maps.Clone(defaultBindings),
-	}
+	g := NewGrammar("formula", ModeFormula)
+
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
@@ -30,10 +21,10 @@ func FormulaGrammar() *Grammar {
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
-	g.RegisterPostfix(op.RangeRef, parseRangeAddress)
 	g.RegisterPostfix(op.BegGrp, parseCall)
 	g.RegisterPostfix(op.Percent, parsePercent)
 
+	g.RegisterInfix(op.RangeRef, parseRangeAddress)
 	g.RegisterInfix(op.Add, parseBinary)
 	g.RegisterInfix(op.Sub, parseBinary)
 	g.RegisterInfix(op.Mul, parseBinary)
@@ -47,7 +38,7 @@ func FormulaGrammar() *Grammar {
 	g.RegisterInfix(op.Gt, parseBinary)
 	g.RegisterInfix(op.Ge, parseBinary)
 
-	return &g
+	return g
 }
 
 func ScriptGrammar() *Grammar {
@@ -83,6 +74,26 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwPush, parsePush)
 	g.RegisterPrefixKeyword(kwPop, parsePop)
 
+	return g
+}
+
+func SliceGrammar() *Grammar {
+	g := NewGrammar("slice", ModeScript)
+
+	g.RegisterPrefix(op.Cell, parseAddress)
+	g.RegisterPrefix(op.Number, parseNumber)
+	g.RegisterPrefix(op.Literal, parseLiteral)
+
+	g.RegisterPostfix(op.BegGrp, parseCall)
+	g.RegisterInfix(op.RangeRef, parseRangeAddress)
+	g.RegisterInfix(op.Comma, parseSelectedColumns)
+
+	g.RegisterInfix(op.Eq, parseBinary)
+	g.RegisterInfix(op.Ne, parseBinary)
+	g.RegisterInfix(op.Lt, parseBinary)
+	g.RegisterInfix(op.Le, parseBinary)
+	g.RegisterInfix(op.Gt, parseBinary)
+	g.RegisterInfix(op.Ge, parseBinary)
 	return g
 }
 
@@ -462,6 +473,10 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 	return a, nil
 }
 
+func parseSelectedColumns(p *Parser, left Expr) (Expr, error) {
+	return nil, nil
+}
+
 func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 	p.next()
 
@@ -495,10 +510,6 @@ func parseDeferred(p *Parser) (Expr, error) {
 		expr: expr,
 	}
 	return e, nil
-}
-
-func parseSlice(p *Parser, left Expr) (Expr, error) {
-	return nil, nil
 }
 
 func parseAccess(p *Parser, left Expr) (Expr, error) {
@@ -758,4 +769,17 @@ func parseReadonly(p *Parser) (bool, error) {
 	}
 	p.next()
 	return ok, nil
+}
+
+func parseSlice(p *Parser, left Expr) (Expr, error) {
+	g := SliceGrammar()
+	p.pushGrammar(g)
+	defer p.popGrammar()
+
+	p.next()
+	if !p.is(op.EndProp) {
+		return nil, p.makeError("expected ] at end of slice expression")
+	}
+	p.next()
+	return nil, nil
 }
