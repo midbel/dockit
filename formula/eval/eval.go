@@ -290,7 +290,7 @@ func evalDeferred(eg *Engine, expr deferred, ctx *EngineContext) (value.Value, e
 }
 
 func evalScriptIdent(eg *Engine, expr identifier, ctx *EngineContext) (value.Value, error) {
-	v, err := ctx.Context().Resolve(expr.name)
+	v, err := ctx.Resolve(expr.name)
 	if err != nil {
 		return nil, err
 	}

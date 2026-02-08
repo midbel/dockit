@@ -30,6 +30,16 @@ func NewEngineContext() *EngineContext {
 	return &eg
 }
 
+func (c *EngineContext) Resolve(ident string) (value.Value, error) {
+	if obj, ok := c.currentValue.(value.ObjectValue); ok {
+		v, err := obj.Get(ident)
+		if err == nil {
+			return v, err
+		}
+	}
+	return c.ctx.Resolve(ident)
+}
+
 func (c *EngineContext) Default() value.Value {
 	return c.currentValue
 }
@@ -208,15 +218,14 @@ func (ec *scopedContext) Range(start, end layout.Position) (value.Value, error) 
 	return types.ErrValue, nil
 }
 
-func (ec *scopedContext) Define(ident string, val value.Value) error {
+func (ec *scopedContext) Define(ident string, val value.Value) {
 	ctx := ec.top()
 	if ctx == nil {
-		return ErrEmpty
+		return
 	}
 	if e, ok := ctx.(*env.Environment); ok {
 		e.Define(ident, val)
 	}
-	return nil
 }
 
 func (ec *scopedContext) SetValue(pos layout.Position, val value.Value) error {
@@ -320,7 +329,7 @@ func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 		if err != nil || cell == nil {
 			return types.ErrRef, nil
 		}
-		if err := cell.Reload(c); err != nil {
+		if err := cell.Reload(c); err != nil && !errors.Is(err, grid.ErrSupported) {
 			return nil, err
 		}
 		return cell.Value(), nil
@@ -383,8 +392,7 @@ func (c fileContext) At(pos layout.Position) (value.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctx := EvalContext(c, SheetContext(sh))
-	return ctx.At(pos)
+	return SheetContext(sh).At(pos)
 }
 
 func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
@@ -395,8 +403,7 @@ func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
 	if err != nil {
 		return types.ErrRef, nil
 	}
-	ctx := EvalContext(c, SheetContext(sh))
-	return ctx.Range(start, end)
+	return SheetContext(sh).Range(start, end)
 }
 
 func (c fileContext) SetValue(pos layout.Position, val value.Value) error {
@@ -442,7 +449,6 @@ func (c fileContext) SetRangeFormula(start, end layout.Position, val value.Value
 func (c fileContext) sheet(name string) (grid.View, error) {
 	if name == "" {
 		return c.file.ActiveSheet()
-	} else {
 	}
 	return c.file.Sheet(name)
 }
