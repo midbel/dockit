@@ -326,11 +326,16 @@ func (s rangeSlice) String() string {
 }
 
 type selectionSlice struct {
-	columns []int
+	columns []columnsRange
 }
 
 func (s selectionSlice) String() string {
 	return fmt.Sprintf("selection(%s, %s)", s.columns)
+}
+
+type columnsRange struct {
+	from int
+	to   int
 }
 
 type filterSlice struct {

@@ -79,21 +79,22 @@ func ScriptGrammar() *Grammar {
 
 func SliceGrammar() *Grammar {
 	g := NewGrammar("slice", ModeScript)
+	g.scope = GrammarIsolated
 
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
 
 	g.RegisterPostfix(op.BegGrp, parseCall)
-	g.RegisterInfix(op.RangeRef, parseRangeAddress)
+	g.RegisterInfix(op.RangeRef, parseRangeColumns)
 	g.RegisterInfix(op.Comma, parseSelectedColumns)
 
-	g.RegisterInfix(op.Eq, parseBinary)
-	g.RegisterInfix(op.Ne, parseBinary)
-	g.RegisterInfix(op.Lt, parseBinary)
-	g.RegisterInfix(op.Le, parseBinary)
-	g.RegisterInfix(op.Gt, parseBinary)
-	g.RegisterInfix(op.Ge, parseBinary)
+	g.RegisterInfix(op.Eq, parseFilterRows)
+	g.RegisterInfix(op.Ne, parseFilterRows)
+	g.RegisterInfix(op.Lt, parseFilterRows)
+	g.RegisterInfix(op.Le, parseFilterRows)
+	g.RegisterInfix(op.Gt, parseFilterRows)
+	g.RegisterInfix(op.Ge, parseFilterRows)
 	return g
 }
 
@@ -291,8 +292,8 @@ func (p *Parser) infix() (InfixFunc, error) {
 	return p.currGrammar().Infix(p.curr)
 }
 
-func (p *Parser) pushGrammar(g *Grammar) {
-	p.stack.Push(g)
+func (p *Parser) pushGrammar(g *Grammar) error {
+	return p.stack.Push(g)
 }
 
 func (p *Parser) popGrammar() {
@@ -471,10 +472,6 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 		endAddr:   end,
 	}
 	return a, nil
-}
-
-func parseSelectedColumns(p *Parser, left Expr) (Expr, error) {
-	return nil, nil
 }
 
 func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
@@ -773,7 +770,9 @@ func parseReadonly(p *Parser) (bool, error) {
 
 func parseSlice(p *Parser, left Expr) (Expr, error) {
 	g := SliceGrammar()
-	p.pushGrammar(g)
+	if err := p.pushGrammar(g); err != nil {
+		return nil, err
+	}
 	defer p.popGrammar()
 
 	p.next()
@@ -782,4 +781,24 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 	}
 	p.next()
 	return nil, nil
+}
+
+func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
+	return nil, nil
+}
+
+func parseSelectedColumns(p *Parser, left Expr) (Expr, error) {
+	var cs selectionSlice
+	return cs, nil
+}
+
+func parseFilterRows(p *Parser, left Expr) (Expr, error) {
+	expr, err := parseBinary(p, left)
+	if err != nil {
+		return nil, err
+	}
+	fs := filterSlice{
+		expr: expr,
+	}
+	return fs, nil
 }

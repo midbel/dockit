@@ -54,6 +54,13 @@ var defaultBindings = map[op.Op]int{
 	op.RangeRef:     powRange,
 }
 
+type GrammarScope int
+
+const (
+	GrammarDefault GrammarScope = iota
+	GrammarIsolated
+)
+
 type (
 	PrefixFunc func(*Parser) (Expr, error)
 	InfixFunc  func(*Parser, Expr) (Expr, error)
@@ -72,6 +79,7 @@ func forbiddenPrefix(_ *Parser) (Expr, error) {
 type Grammar struct {
 	name string
 	mode ScanMode
+	scope GrammarScope
 
 	prefix   map[op.Op]PrefixFunc
 	infix    map[op.Op]InfixFunc
@@ -86,6 +94,7 @@ func NewGrammar(name string, mode ScanMode) *Grammar {
 	g := Grammar{
 		name:     name,
 		mode:     mode,
+		scope:    GrammarDefault,
 		prefix:   make(map[op.Op]PrefixFunc),
 		kwPrefix: make(map[string]PrefixFunc),
 		postfix:  make(map[op.Op]InfixFunc),
@@ -94,6 +103,10 @@ func NewGrammar(name string, mode ScanMode) *Grammar {
 		bindings: maps.Clone(defaultBindings),
 	}
 	return &g
+}
+
+func (g *Grammar) Isolated() bool {
+	return g.scope == GrammarIsolated
 }
 
 func (g *Grammar) Context() string {
@@ -206,6 +219,10 @@ func (gs *GrammarStack) Context() string {
 }
 
 func (gs *GrammarStack) Pow(kind op.Op) int {
+	top := gs.Top()
+	if top != nil && top.Isolated() {
+		return top.Pow(kind)
+	}
 	for i := len(*gs) - 1; i >= 0; i-- {
 		pow := (*gs)[i].Pow(kind)
 		if pow > powLowest {
@@ -216,7 +233,13 @@ func (gs *GrammarStack) Pow(kind op.Op) int {
 }
 
 func (gs *GrammarStack) Prefix(tok Token) (PrefixFunc, error) {
-	var lastErr error
+	var (
+		lastErr error
+		top = gs.Top()
+	)
+	if top != nil && top.Isolated() {
+		return top.Prefix(tok)
+	}
 	for i := len(*gs) - 1; i >= 0; i-- {
 		fn, err := (*gs)[i].Prefix(tok)
 		if err == nil {
@@ -228,7 +251,13 @@ func (gs *GrammarStack) Prefix(tok Token) (PrefixFunc, error) {
 }
 
 func (gs *GrammarStack) Infix(tok Token) (InfixFunc, error) {
-	var lastErr error
+	var (
+		lastErr error
+		top = gs.Top()
+	)
+	if top != nil && top.Isolated() {
+		return top.Infix(tok)
+	}
 	for i := len(*gs) - 1; i >= 0; i-- {
 		fn, err := (*gs)[i].Infix(tok)
 		if err == nil {
@@ -240,7 +269,13 @@ func (gs *GrammarStack) Infix(tok Token) (InfixFunc, error) {
 }
 
 func (gs *GrammarStack) Postfix(tok Token) (InfixFunc, error) {
-	var lastErr error
+	var (
+		lastErr error
+		top = gs.Top()
+	)
+	if top != nil && top.Isolated() {
+		return top.Postfix(tok)
+	}
 	for i := len(*gs) - 1; i >= 0; i-- {
 		fn, err := (*gs)[i].Postfix(tok)
 		if err == nil {
@@ -258,6 +293,10 @@ func (gs *GrammarStack) Pop() {
 	}
 }
 
-func (gs *GrammarStack) Push(g *Grammar) {
+func (gs *GrammarStack) Push(g *Grammar) error {
+	if top := gs.Top(); top != nil && top.Isolated() {
+		return nil
+	}
 	*gs = append(*gs, g)
+	return nil
 }
