@@ -9,7 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -120,7 +119,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 		cell = &Cell{
 			Position: pos,
 			raw:      "",
-			parsed:   types.Blank{},
+			parsed:   value.Empty(),
 		}
 	}
 	return cell, nil
@@ -150,7 +149,7 @@ func (s *Sheet) ClearValue(pos layout.Position) error {
 		return grid.NoCell(pos)
 	}
 	c.raw = ""
-	c.parsed = types.Blank{}
+	c.parsed = value.Empty()
 	return nil
 }
 
@@ -293,7 +292,7 @@ func readSheet(r io.Reader) (*Sheet, error) {
 			c := Cell{
 				Position: p,
 				raw:      f,
-				parsed:   types.Text(f),
+				parsed:   value.Text(f),
 			}
 			r.cells = append(r.cells, &c)
 			sh.cells[p] = &c

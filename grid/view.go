@@ -16,6 +16,9 @@ var (
 	ErrFound     = errors.New("not found")
 	ErrPosition  = errors.New("invalid position")
 	ErrWritable  = errors.New("read only view")
+	ErrEmpty     = errors.New("empty context")
+	ErrMutate    = errors.New("context is not mutable")
+	ErrType      = errors.New("invalid type")
 )
 
 func NoCell(pos layout.Position) error {

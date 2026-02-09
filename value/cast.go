@@ -1,23 +1,18 @@
-package types
+package value
 
 import (
-	"errors"
 	"fmt"
-
-	"github.com/midbel/dockit/value"
 )
 
-var ErrCast = errors.New("value can not be cast to target type")
-
 type toFloat interface {
-	ToFloat() (value.ScalarValue, error)
+	ToFloat() (ScalarValue, error)
 }
 
 type toText interface {
-	ToText() (value.ScalarValue, error)
+	ToText() (ScalarValue, error)
 }
 
-func CastToArray(val value.Value) (Array, error) {
+func CastToArray(val Value) (Array, error) {
 	arr, ok := val.(Array)
 	if !ok {
 		return arr, ErrCast
@@ -25,7 +20,7 @@ func CastToArray(val value.Value) (Array, error) {
 	return arr, nil
 }
 
-func CastToFloat(val value.Value) (Float, error) {
+func CastToFloat(val Value) (Float, error) {
 	switch v := val.(type) {
 	case Float:
 		return v, nil
@@ -44,7 +39,7 @@ func CastToFloat(val value.Value) (Float, error) {
 	}
 }
 
-func CastToText(val value.Value) (Text, error) {
+func CastToText(val Value) (Text, error) {
 	switch v := val.(type) {
 	case Text:
 		return v, nil

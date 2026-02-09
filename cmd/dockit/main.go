@@ -13,7 +13,6 @@ import (
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/doc"
-	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/oxml"
@@ -234,7 +233,7 @@ func (s SheetRef) DumpTo(encoder grid.Encoder, reload bool) error {
 	if err != nil {
 		return err
 	}
-	ctx := eval.FileContext(s.File)
+	ctx := grid.FileContext(s.File)
 	if reload {
 		if err := sh.Reload(ctx); err != nil {
 			return err

@@ -59,18 +59,18 @@ func (c *File) File() grid.File {
 func (c *File) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "names":
-		return Float(0), nil
+		return value.Float(0), nil
 	case "sheets":
 		x := c.file.Sheets()
-		return Float(float64(len(x))), nil
+		return value.Float(float64(len(x))), nil
 	case "readonly":
-		return Boolean(c.ro), nil
+		return value.Boolean(c.ro), nil
 	case "protected":
-		return Boolean(false), nil
+		return value.Boolean(false), nil
 	case "active":
 		sh, err := c.file.ActiveSheet()
 		if err != nil {
-			return ErrValue, nil
+			return value.ErrValue, nil
 		}
 		return newView(sh, c.ro), nil
 	default:
@@ -109,35 +109,35 @@ func (c *View) String() string {
 func (c *View) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "name":
-		return Text(c.view.Name()), nil
+		return value.Text(c.view.Name()), nil
 	case "lines":
 		rg := c.view.Bounds()
 		lines := rg.Ends.Line - rg.Starts.Line
-		return Float(float64(lines)), nil
+		return value.Float(float64(lines)), nil
 	case "columns":
 		rg := c.view.Bounds()
 		lines := rg.Ends.Column - rg.Starts.Column
-		return Float(float64(lines)), nil
+		return value.Float(float64(lines)), nil
 	case "cells":
 		var count int
 		for x := range c.view.Rows() {
 			count += len(x)
 		}
-		return Float(float64(count)), nil
+		return value.Float(float64(count)), nil
 	case "empty":
-		return Float(float64(0)), nil
+		return value.Float(float64(0)), nil
 	case "readonly":
-		return Boolean(c.ro), nil
+		return value.Boolean(c.ro), nil
 	case "protected":
 		var locked bool
 		if k, ok := c.view.(interface{ IsLock() bool }); ok {
 			locked = k.IsLock()
 		}
-		return Boolean(locked), nil
+		return value.Boolean(locked), nil
 	case "active":
-		return Boolean(false), nil
+		return value.Boolean(false), nil
 	case "index":
-		return Float(float64(0)), nil
+		return value.Float(float64(0)), nil
 	default:
 		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
 	}
@@ -195,9 +195,9 @@ func (v *Range) Range() *layout.Range {
 func (v *Range) Get(ident string) (value.ScalarValue, error) {
 	switch ident {
 	case "lines":
-		return Float(v.rg.Height()), nil
+		return value.Float(v.rg.Height()), nil
 	case "columns":
-		return Float(v.rg.Width()), nil
+		return value.Float(v.rg.Width()), nil
 	default:
 		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
 	}
@@ -222,7 +222,7 @@ func (v *Range) Collect(view grid.View) (value.Value, error) {
 		}
 		val := cell.Value()
 		if val == nil {
-			val = Empty()
+			val = value.Empty()
 		}
 		data[row][col] = val
 
@@ -232,7 +232,7 @@ func (v *Range) Collect(view grid.View) (value.Value, error) {
 			col = 0
 		}
 	}
-	return NewArray(data), nil
+	return value.NewArray(data), nil
 }
 
 type envValue struct{}
@@ -247,5 +247,5 @@ func (envValue) String() string {
 
 func (v envValue) Get(name string) (value.ScalarValue, error) {
 	str := os.Getenv(name)
-	return Text(str), nil
+	return value.Text(str), nil
 }

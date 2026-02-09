@@ -11,7 +11,6 @@ import (
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/formula/eval"
-	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -252,23 +251,23 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 		if n < 0 || n >= len(r.sharedStrings) {
 			return fmt.Errorf("shared string index out of bounds")
 		}
-		cell.parsed = types.Text(r.sharedStrings[n])
+		cell.parsed = value.Text(r.sharedStrings[n])
 	case TypeDate:
 		// date: TBW
 	case TypeInlineStr:
-		cell.parsed = types.Text(str)
+		cell.parsed = value.Text(str)
 	case TypeBool:
 		b, err := strconv.ParseBool(str)
 		if err != nil {
 			return err
 		}
-		cell.parsed = types.Boolean(b)
+		cell.parsed = value.Boolean(b)
 	default:
 		n, err := strconv.ParseFloat(strings.TrimSpace(str), 64)
 		if err != nil {
-			cell.parsed = types.Text(str)
+			cell.parsed = value.Text(str)
 		} else {
-			cell.parsed = types.Float(n)
+			cell.parsed = value.Float(n)
 		}
 	}
 	return nil

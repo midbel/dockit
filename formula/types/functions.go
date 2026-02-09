@@ -37,13 +37,13 @@ func (f Reducer) String() string {
 
 func (f Reducer) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
 	if len(args) != 1 {
-		return ErrValue, fmt.Errorf("%s only accepts one argument", f.name)
+		return value.ErrValue, fmt.Errorf("%s only accepts one argument", f.name)
 	}
 	p, ok := args[0].(interface {
 		asFilter(value.Context) (*value.Filter, bool, error)
 	})
 	if !ok {
-		return ErrNA, fmt.Errorf("argument can not be used as argument")
+		return value.ErrNA, fmt.Errorf("argument can not be used as argument")
 	}
 	if src, ok, err := p.asFilter(ctx); err == nil {
 		if ok {
@@ -56,7 +56,7 @@ func (f Reducer) Call(args []value.Arg, ctx value.Context) (value.Value, error) 
 		var p truePredicate
 		return f.fn(p, val)
 	} else {
-		return ErrNA, err
+		return value.ErrNA, err
 	}
 }
 

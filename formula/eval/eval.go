@@ -28,9 +28,9 @@ func Eval(expr Expr, ctx value.Context) (value.Value, error) {
 	case unary:
 		return evalUnary(e, ctx)
 	case literal:
-		return types.Text(e.value), nil
+		return value.Text(e.value), nil
 	case number:
-		return types.Float(e.value), nil
+		return value.Float(e.value), nil
 	case call:
 		return evalCall(e, ctx)
 	case cellAddr:
@@ -186,11 +186,11 @@ func (e *Engine) exec(expr Expr, ctx *EngineContext) (value.Value, error) {
 	case access:
 		return evalAccess(e, expr, ctx)
 	case literal:
-		return types.Text(expr.value), nil
+		return value.Text(expr.value), nil
 	case template:
 		return evalTemplate(e, expr, ctx)
 	case number:
-		return types.Float(expr.value), nil
+		return value.Float(expr.value), nil
 	case identifier:
 		return evalScriptIdent(e, expr, ctx)
 	case binary:
@@ -219,7 +219,7 @@ func (e *Engine) exec(expr Expr, ctx *EngineContext) (value.Value, error) {
 func (e *Engine) execAndNormalize(expr Expr, ctx *EngineContext) (value.Value, error) {
 	val, err := e.exec(expr, ctx)
 	if err != nil {
-		return types.ErrValue, err
+		return value.ErrValue, err
 	}
 	return e.normalizeValue(val, ctx)
 }
@@ -229,7 +229,7 @@ func (e *Engine) normalizeValue(val value.Value, ctx *EngineContext) (value.Valu
 	case *types.Range:
 		cl, err := ctx.PushReadable(val.Target())
 		if err != nil {
-			return types.ErrValue, err
+			return value.ErrValue, err
 		}
 		defer cl.Close()
 		rg := val.Range()
@@ -272,7 +272,7 @@ func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (
 	case rangeAddr:
 		return ctx.Context().Range(a.startAddr.Position, a.endAddr.Position)
 	default:
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 }
 
@@ -309,7 +309,7 @@ func evalTemplate(eg *Engine, expr template, ctx *EngineContext) (value.Value, e
 		}
 		str.WriteString(v.String())
 	}
-	return types.Text(str.String()), nil
+	return value.Text(str.String()), nil
 }
 
 func evalScriptBinary(eg *Engine, e binary, ctx *EngineContext) (value.Value, error) {
@@ -322,94 +322,94 @@ func evalScriptBinary(eg *Engine, e binary, ctx *EngineContext) (value.Value, er
 		return nil, err
 	}
 	switch {
-	case types.IsScalar(left) && types.IsScalar(right):
+	case value.IsScalar(left) && value.IsScalar(right):
 		return evalScalarBinary(left, right, e.op)
-	case types.IsArray(left) && types.IsScalar(right):
+	case value.IsArray(left) && value.IsScalar(right):
 		return evalScalarArrayBinary(right, left, e.op)
-	case types.IsArray(left) && types.IsArray(right):
+	case value.IsArray(left) && value.IsArray(right):
 		return evalArrayBinary(left, right, e.op)
-	case types.IsObject(left) && types.IsObject(right):
+	case value.IsObject(left) && value.IsObject(right):
 		return evalViewBinary(left, right, e.op)
 	default:
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 }
 
 func evalScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	switch oper {
 	case op.Add:
-		return types.Add(left, right)
+		return value.Add(left, right)
 	case op.Sub:
-		return types.Sub(left, right)
+		return value.Sub(left, right)
 	case op.Mul:
-		return types.Mul(left, right)
+		return value.Mul(left, right)
 	case op.Div:
-		return types.Div(left, right)
+		return value.Div(left, right)
 	case op.Pow:
-		return types.Pow(left, right)
+		return value.Pow(left, right)
 	case op.Concat:
-		return types.Concat(left, right)
+		return value.Concat(left, right)
 	case op.Eq:
-		return types.Eq(left, right)
+		return value.Eq(left, right)
 	case op.Ne:
-		return types.Ne(left, right)
+		return value.Ne(left, right)
 	case op.Lt:
-		return types.Lt(left, right)
+		return value.Lt(left, right)
 	case op.Le:
-		return types.Le(left, right)
+		return value.Le(left, right)
 	case op.Gt:
-		return types.Gt(left, right)
+		return value.Gt(left, right)
 	case op.Ge:
-		return types.Ge(left, right)
+		return value.Ge(left, right)
 	default:
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 }
 
 func evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
-	arr, err := types.CastToArray(right)
+	arr, err := value.CastToArray(right)
 	if err != nil {
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 	err = arr.Apply(func(val value.ScalarValue) (value.ScalarValue, error) {
 		ret, err := evalScalarBinary(left, val, oper)
 		if err != nil {
-			return types.ErrValue, err
+			return value.ErrValue, err
 		}
 		scalar, ok := ret.(value.ScalarValue)
 		if !ok {
-			return types.ErrValue, nil
+			return value.ErrValue, nil
 		}
 		return scalar, nil
 	})
 	if err != nil {
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 	return arr, nil
 }
 
 func evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
-	larr, err := types.CastToArray(left)
+	larr, err := value.CastToArray(left)
 	if err != nil {
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
-	rarr, err := types.CastToArray(right)
+	rarr, err := value.CastToArray(right)
 	if err != nil {
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 	res, err := larr.ApplyArray(rarr, func(left, right value.ScalarValue) (value.ScalarValue, error) {
 		ret, err := evalScalarBinary(left, right, oper)
 		if err != nil {
-			return types.ErrValue, err
+			return value.ErrValue, err
 		}
 		scalar, ok := ret.(value.ScalarValue)
 		if !ok {
-			return types.ErrValue, nil
+			return value.ErrValue, nil
 		}
 		return scalar, nil
 	})
 	if err != nil {
-		return types.ErrValue, err
+		return value.ErrValue, err
 	}
 	return res, nil
 }
@@ -417,11 +417,11 @@ func evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 func evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	lv, ok := left.(*types.View)
 	if !ok {
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 	rv, ok := right.(*types.View)
 	if !ok {
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 	var (
 		view grid.View
@@ -433,16 +433,16 @@ func evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	switch oper {
 	case op.Union:
 		if d1.Width() != d2.Width() {
-			return types.ErrValue, fmt.Errorf("view can not be combined - number of columns mismatched")
+			return value.ErrValue, fmt.Errorf("view can not be combined - number of columns mismatched")
 		}
 		view = grid.VerticalView(v1, v2)
 	case op.Concat:
 		if d1.Height() != d2.Height() {
-			return types.ErrValue, fmt.Errorf("view can not be combined - number of lines mismatched")
+			return value.ErrValue, fmt.Errorf("view can not be combined - number of lines mismatched")
 		}
 		view = grid.HorizontalView(v1, v2)
 	default:
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 	return types.NewViewValue(view), nil
 }
@@ -452,14 +452,14 @@ func evalScriptUnary(eg *Engine, e unary, ctx *EngineContext) (value.Value, erro
 	if err != nil {
 		return nil, err
 	}
-	n, err := types.CastToFloat(val)
+	n, err := value.CastToFloat(val)
 	switch e.op {
 	case op.Add:
 		return n, nil
 	case op.Sub:
-		return types.Float(float64(-n)), nil
+		return value.Float(float64(-n)), nil
 	default:
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 }
 
@@ -560,27 +560,27 @@ func evalImport(eg *Engine, e importFile, ctx *EngineContext) (value.Value, erro
 	if e.defaultFile {
 		ctx.SetDefault(book)
 	}
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalPush(eg *Engine, e push, ctx *EngineContext) (value.Value, error) {
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalPop(eg *Engine, e pop, ctx *EngineContext) (value.Value, error) {
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalClear(eg *Engine, e clear, ctx *EngineContext) (value.Value, error) {
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalLock(eg *Engine, e lockRef, ctx *EngineContext) (value.Value, error) {
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalUnlock(eg *Engine, e unlockRef, ctx *EngineContext) (value.Value, error) {
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalUse(eg *Engine, e useRef, ctx *EngineContext) (value.Value, error) {
@@ -593,7 +593,7 @@ func evalUse(eg *Engine, e useRef, ctx *EngineContext) (value.Value, error) {
 		return nil, fmt.Errorf("default can only be used with workbook")
 	}
 	ctx.SetDefault(wb)
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) {
@@ -604,7 +604,7 @@ func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) 
 	if v != nil {
 		fmt.Fprintln(eg.Stdout, v.String())
 	}
-	return types.Empty(), nil
+	return value.Empty(), nil
 }
 
 func evalAccess(eg *Engine, e access, ctx *EngineContext) (value.Value, error) {
@@ -631,31 +631,31 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 
 	switch e.op {
 	case op.Add:
-		return types.Add(left, right)
+		return value.Add(left, right)
 	case op.Sub:
-		return types.Sub(left, right)
+		return value.Sub(left, right)
 	case op.Mul:
-		return types.Mul(left, right)
+		return value.Mul(left, right)
 	case op.Div:
-		return types.Div(left, right)
+		return value.Div(left, right)
 	case op.Pow:
-		return types.Pow(left, right)
+		return value.Pow(left, right)
 	case op.Concat:
-		return types.Concat(left, right)
+		return value.Concat(left, right)
 	case op.Eq:
-		return types.Eq(left, right)
+		return value.Eq(left, right)
 	case op.Ne:
-		return types.Ne(left, right)
+		return value.Ne(left, right)
 	case op.Lt:
-		return types.Lt(left, right)
+		return value.Lt(left, right)
 	case op.Le:
-		return types.Le(left, right)
+		return value.Le(left, right)
 	case op.Gt:
-		return types.Gt(left, right)
+		return value.Gt(left, right)
 	case op.Ge:
-		return types.Ge(left, right)
+		return value.Ge(left, right)
 	default:
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 }
 
@@ -664,24 +664,24 @@ func evalUnary(e unary, ctx value.Context) (value.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	n, ok := val.(types.Float)
+	n, ok := val.(value.Float)
 	if !ok {
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 	switch e.op {
 	case op.Add:
 		return n, nil
 	case op.Sub:
-		return types.Float(float64(-n)), nil
+		return value.Float(float64(-n)), nil
 	default:
-		return types.ErrValue, nil
+		return value.ErrValue, nil
 	}
 }
 
 func evalCall(e call, ctx value.Context) (value.Value, error) {
 	id, ok := e.ident.(identifier)
 	if !ok {
-		return types.ErrName, nil
+		return value.ErrName, nil
 	}
 	var args []value.Arg
 	for i := range e.args {
