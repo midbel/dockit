@@ -77,8 +77,8 @@ func forbiddenPrefix(_ *Parser) (Expr, error) {
 }
 
 type Grammar struct {
-	name string
-	mode ScanMode
+	name  string
+	mode  ScanMode
 	scope GrammarScope
 
 	prefix   map[op.Op]PrefixFunc
@@ -235,7 +235,7 @@ func (gs *GrammarStack) Pow(kind op.Op) int {
 func (gs *GrammarStack) Prefix(tok Token) (PrefixFunc, error) {
 	var (
 		lastErr error
-		top = gs.Top()
+		top     = gs.Top()
 	)
 	if top != nil && top.Isolated() {
 		return top.Prefix(tok)
@@ -253,7 +253,7 @@ func (gs *GrammarStack) Prefix(tok Token) (PrefixFunc, error) {
 func (gs *GrammarStack) Infix(tok Token) (InfixFunc, error) {
 	var (
 		lastErr error
-		top = gs.Top()
+		top     = gs.Top()
 	)
 	if top != nil && top.Isolated() {
 		return top.Infix(tok)
@@ -271,7 +271,7 @@ func (gs *GrammarStack) Infix(tok Token) (InfixFunc, error) {
 func (gs *GrammarStack) Postfix(tok Token) (InfixFunc, error) {
 	var (
 		lastErr error
-		top = gs.Top()
+		top     = gs.Top()
 	)
 	if top != nil && top.Isolated() {
 		return top.Postfix(tok)
