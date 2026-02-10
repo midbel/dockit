@@ -309,11 +309,12 @@ func (c clear) String() string {
 }
 
 type slice struct {
+	view Expr
 	expr Expr
 }
 
 func (s slice) String() string {
-	return fmt.Sprintf("slice(%s)", s.expr)
+	return fmt.Sprintf("slice(%s, %s)", s.view, s.expr)
 }
 
 type rangeSlice struct {
@@ -325,12 +326,12 @@ func (s rangeSlice) String() string {
 	return fmt.Sprintf("range(%s, %s)", s.startAddr, s.endAddr)
 }
 
-type selectionSlice struct {
+type columnsSlice struct {
 	columns []columnsRange
 }
 
-func (s selectionSlice) String() string {
-	return fmt.Sprintf("selection(%s, %s)", s.columns)
+func (s columnsSlice) String() string {
+	return fmt.Sprintf("columns(%s)", s.columns)
 }
 
 type columnsRange struct {
@@ -344,6 +345,15 @@ type filterSlice struct {
 
 func (s filterSlice) String() string {
 	return fmt.Sprintf("filter(%s)", s.expr)
+}
+
+type exprRange struct {
+	from Expr
+	to   Expr
+}
+
+func (e exprRange) String() string {
+	return fmt.Sprintf("range(%s, %s)", e.from, e.to)
 }
 
 type identifier struct {
@@ -600,6 +610,34 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.path)
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.addr)
+		io.WriteString(w, ")")
+	case slice:
+		io.WriteString(w, "slice(")
+		dumpExpr(w, e.view)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ")")
+	case filterSlice:
+		dumpExpr(w, e.expr)
+	case columnsSlice:
+		io.WriteString(w, "selection(")
+		for i := range e.columns {
+			if i > 0 {
+				io.WriteString(w, ",")
+			}
+			var fix, tix string
+			if e.columns[i].from != 0 {
+				fix = strconv.Itoa(e.columns[i].from)
+			}
+			if e.columns[i].to != 0 {
+				tix = strconv.Itoa(e.columns[i].to)
+			}
+			io.WriteString(w, fix)
+			if fix != tix {
+				io.WriteString(w, ":")
+				io.WriteString(w, tix)
+			}
+		}
 		io.WriteString(w, ")")
 	case importFile:
 		io.WriteString(w, "import(")

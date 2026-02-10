@@ -74,6 +74,8 @@ func (t Token) String() string {
 		return "<greateq>"
 	case op.Comma:
 		return "<comma>"
+	case op.Semi:
+		return "<semi>"
 	case op.Dot:
 		return "<dot>"
 	case op.BegGrp:
@@ -81,9 +83,9 @@ func (t Token) String() string {
 	case op.EndGrp:
 		return "<end-group>"
 	case op.BegProp:
-		return "<beg-prop>"
+		return "<beg-slice>"
 	case op.EndProp:
-		return "<end-prop>"
+		return "<end-slice>"
 	case op.RangeRef:
 		return "<range>"
 	case op.SheetRef:

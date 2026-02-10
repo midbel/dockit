@@ -77,17 +77,28 @@ func ScriptGrammar() *Grammar {
 	return g
 }
 
+func LambdaGrammar() *Grammar {
+	g := FormulaGrammar()
+	g.name = "lambda"
+	g.scope = GrammarIsolated
+
+	g.RegisterPostfix(op.BegProp, parseSlice)
+
+	return g
+}
+
 func SliceGrammar() *Grammar {
 	g := NewGrammar("slice", ModeScript)
 	g.scope = GrammarIsolated
 
 	g.RegisterPrefix(op.Cell, parseAddress)
+	g.RegisterPrefix(op.Ident, parseIdentifier)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
+	g.RegisterPrefix(op.RangeRef, parseOpenSelectedColumns)
 
-	g.RegisterPostfix(op.BegGrp, parseCall)
 	g.RegisterInfix(op.RangeRef, parseRangeColumns)
-	g.RegisterInfix(op.Comma, parseSelectedColumns)
+	g.RegisterInfix(op.Semi, parseSelectedColumns)
 
 	g.RegisterInfix(op.Eq, parseFilterRows)
 	g.RegisterInfix(op.Ne, parseFilterRows)
@@ -776,19 +787,139 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 	defer p.popGrammar()
 
 	p.next()
+
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
 	if !p.is(op.EndProp) {
 		return nil, p.makeError("expected ] at end of slice expression")
 	}
+	if _, ok := expr.(exprRange); ok {
+		rg, err := getColumnsRangeFromExpr(expr)
+		if err != nil {
+			return nil, err
+		}
+		expr = columnsSlice{
+			columns: []columnsRange{rg},
+		}
+	}
 	p.next()
-	return nil, nil
+	s := slice{
+		view: left,
+		expr: expr,
+	}
+	return s, nil
+}
+
+func parseColumnExpr(expr Expr) (int, error) {
+	e, ok := expr.(identifier)
+	if !ok {
+		return 0, fmt.Errorf("columns identifier expected")
+	}
+	ix, size := parseIndex(e.name)
+	if size != len(e.name) {
+		return 0, fmt.Errorf("invalid column index")
+	}
+	return int(ix), nil
+}
+
+func getColumnsRangeFromExpr(expr Expr) (columnsRange, error) {
+	var (
+		crg columnsRange
+		err error
+	)
+	if _, ok := expr.(rangeAddr); ok {
+		return crg, fmt.Errorf("address range not allowed in selection list")
+	}
+	switch expr := expr.(type) {
+	case identifier:
+		crg.from, err = parseColumnExpr(expr)
+		crg.to = crg.from
+	case exprRange:
+		if expr.from != nil {
+			crg.from, err = parseColumnExpr(expr.from)
+			if err != nil {
+				break
+			}
+		}
+		if expr.to != nil {
+			crg.to, err = parseColumnExpr(expr.to)
+			if err != nil {
+				break
+			}
+		}
+	default:
+		return crg, fmt.Errorf("invalid columns selector")
+	}
+	return crg, err
+}
+
+func parseOpenSelectedColumns(p *Parser) (Expr, error) {
+	p.next()
+	var (
+		expr exprRange
+		err  error
+	)
+	if !p.is(op.EndProp) && !p.is(op.Semi) {
+		expr.to, err = p.parse(powList)
+	}
+	return expr, err
 }
 
 func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
-	return nil, nil
+	p.next()
+	var (
+		right Expr
+		err   error
+	)
+	if !p.is(op.EndProp) && !p.is(op.Semi) {
+		right, err = p.parse(powRange)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	leftAddr, leftAddrOk := left.(cellAddr)
+	rightAddr, rightAddrOk := right.(cellAddr)
+
+	if leftAddrOk && rightAddrOk {
+		expr := rangeAddr{
+			startAddr: leftAddr,
+			endAddr:   rightAddr,
+		}
+		return expr, nil
+	}
+	if !leftAddrOk && (!rightAddrOk || right == nil) {
+		expr := exprRange{
+			from: left,
+			to:   right,
+		}
+		return expr, nil
+	}
+	return nil, fmt.Errorf("use range address or columns range not both")
 }
 
 func parseSelectedColumns(p *Parser, left Expr) (Expr, error) {
-	var cs selectionSlice
+	var cs columnsSlice
+
+	crg, err := getColumnsRangeFromExpr(left)
+	if err != nil {
+		return nil, err
+	}
+	cs.columns = append(cs.columns, crg)
+	for !p.done() && p.is(op.Semi) {
+		p.next()
+		expr, err := p.parse(powList)
+		if err != nil {
+			return nil, err
+		}
+		crg, err := getColumnsRangeFromExpr(expr)
+		if err != nil {
+			return nil, err
+		}
+		cs.columns = append(cs.columns, crg)
+	}
 	return cs, nil
 }
 

@@ -34,7 +34,8 @@ const (
 	Le
 	Gt
 	Ge
-	Comma // use for "," and ";"
+	Comma
+	Semi
 	Dot
 	BegGrp
 	EndGrp

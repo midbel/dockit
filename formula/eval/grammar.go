@@ -19,6 +19,7 @@ const (
 	powPow
 	powUnary
 	powPercent
+	powList
 	powRange
 	powSheet
 	powProp
@@ -52,6 +53,7 @@ var defaultBindings = map[op.Op]int{
 	op.Dot:          powProp,
 	op.SheetRef:     powSheet,
 	op.RangeRef:     powRange,
+	op.Semi:         powList,
 }
 
 type GrammarScope int
@@ -207,6 +209,9 @@ type GrammarStack []*Grammar
 
 func (gs *GrammarStack) Top() *Grammar {
 	n := len(*gs)
+	if n == 0 {
+		return nil
+	}
 	return (*gs)[n-1]
 }
 
