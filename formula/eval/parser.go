@@ -97,6 +97,8 @@ func SliceGrammar() *Grammar {
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.RangeRef, parseOpenSelectedColumns)
 
+	g.RegisterInfix(op.BegGrp, parseCall)
+
 	g.RegisterInfix(op.RangeRef, parseRangeColumns)
 	g.RegisterInfix(op.Semi, parseSelectedColumns)
 
