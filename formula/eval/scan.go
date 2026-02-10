@@ -269,8 +269,10 @@ func (s *Scanner) scanOperator(tok *Token) {
 func (s *Scanner) scanDelimiter(tok *Token) {
 	tok.Type = op.Invalid
 	switch s.char {
-	case semi, comma:
+	case comma:
 		tok.Type = op.Comma
+	case semi:
+		tok.Type = op.Semi
 	case lparen:
 		tok.Type = op.BegGrp
 	case rparen:
@@ -343,9 +345,11 @@ func (s *Scanner) skipBlanks() {
 type recoMode int
 
 const (
-	cellCol  recoMode = iota // reading column (A-Z)
-	cellRow                  // reading row (1-9 then 0-9)
-	cellDead                 // invalid
+	cellCol recoMode = iota // reading column (A-Z)
+	cellRow                 // reading row (1-9 then 0-9)
+	cellAbsCol
+	cellAbsRow
+	cellDead // invalid
 )
 
 type cellRecognizer struct {
@@ -355,7 +359,7 @@ type cellRecognizer struct {
 
 func recognizeCell() *cellRecognizer {
 	return &cellRecognizer{
-		state: cellCol,
+		state: cellAbsCol,
 	}
 }
 
@@ -364,26 +368,60 @@ func (c *cellRecognizer) Update(ch rune) {
 		return
 	}
 	switch c.state {
+	case cellAbsCol:
+		if ch == dollar {
+			break
+		}
+		if isUpper(ch) {
+			c.toCol()
+			break
+		}
+		c.toDead()
+	case cellAbsRow:
+		if isDigit(ch) && ch != '0' {
+			c.toRow()
+			break
+		}
+		c.toDead()
 	case cellCol:
 		if isUpper(ch) {
 			break
 		}
-		if isDigit(ch) && ch != '0' {
-			c.state = cellRow
-			c.hasRow = true
+		if ch == dollar {
+			c.toAbsRow()
 			break
 		}
-		c.state = cellDead
+		if isDigit(ch) && ch != '0' {
+			c.toRow()
+			break
+		}
+		c.toDead()
 	case cellRow:
-		if isDigit(ch) && ch != '0' {
+		if isDigit(ch) {
 			break
 		}
-		c.state = cellDead
+		c.toDead()
 	}
 }
 
 func (c *cellRecognizer) IsCell() bool {
-	return c.state != cellDead && c.hasRow
+	return c.state == cellRow
+}
+
+func (c *cellRecognizer) toDead() {
+	c.state = cellDead
+}
+
+func (c *cellRecognizer) toCol() {
+	c.state = cellCol
+}
+
+func (c *cellRecognizer) toRow() {
+	c.state = cellRow
+}
+
+func (c *cellRecognizer) toAbsRow() {
+	c.state = cellAbsRow
 }
 
 const (
