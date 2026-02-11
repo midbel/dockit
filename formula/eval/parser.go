@@ -893,9 +893,17 @@ func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
 		return expr, nil
 	}
 	if !leftAddrOk && (!rightAddrOk || right == nil) {
+		var step Expr
+		if p.is(op.RangeRef) {
+			step, err = p.parse(powRange)
+			if err != nil {
+				return nil, err
+			}
+		}
 		expr := exprRange{
 			from: left,
 			to:   right,
+			step: step,
 		}
 		return expr, nil
 	}

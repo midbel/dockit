@@ -326,6 +326,11 @@ func (s rangeSlice) String() string {
 	return fmt.Sprintf("range(%s, %s)", s.startAddr, s.endAddr)
 }
 
+func (s rangeSlice) Range() *layout.Range {
+	rg := layout.NewRange(s.startAddr.Position, s.endAddr.Position)
+	return rg
+}
+
 type columnsSlice struct {
 	columns []columnsRange
 }
@@ -334,9 +339,21 @@ func (s columnsSlice) String() string {
 	return fmt.Sprintf("columns(%s)", s.columns)
 }
 
+func (s columnsSlice) Selection() layout.Selection {
+	return nil
+}
+
 type columnsRange struct {
 	from int
 	to   int
+	step int
+}
+
+func (c columnsRange) Selection() layout.Selection {
+	if c.from == c.to {
+		return layout.SelectSingle(int64(c.from))
+	}
+	return layout.SelectSpan(int64(c.from), int64(c.to), int64(c.step))
 }
 
 type filterSlice struct {
@@ -350,6 +367,7 @@ func (s filterSlice) String() string {
 type exprRange struct {
 	from Expr
 	to   Expr
+	step Expr
 }
 
 func (e exprRange) String() string {

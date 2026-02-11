@@ -57,6 +57,12 @@ type columnRef struct {
 	Index int64
 }
 
+func SelectSingle(ix int64) Selection {
+	return columnRef{
+		Index: ix,
+	}
+}
+
 func (c columnRef) Indices(rg *Range) []int64 {
 	if rg == nil {
 		return nil
@@ -71,6 +77,17 @@ type columnSpan struct {
 	Starts int64
 	Ends   int64
 	Step   int64
+}
+
+func SelectSpan(from, to, step int64) Selection {
+	if step == 0 {
+		step++
+	}
+	return columnSpan{
+		Starts: from,
+		Ends:   to,
+		Step:   step,
+	}
 }
 
 func (c columnSpan) Indices(rg *Range) []int64 {

@@ -106,6 +106,14 @@ func (c *View) String() string {
 	return c.view.Name()
 }
 
+func (c *View) ProjectView(sel layout.Selection) {
+	c.view = grid.NewProjectView(c.view, sel)
+}
+
+func (c *View) BoundedView(rg *layout.Range) {
+	c.view = grid.NewBoundedView(c.view, rg)
+}
+
 func (c *View) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "name":

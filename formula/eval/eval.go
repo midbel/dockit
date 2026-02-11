@@ -211,6 +211,8 @@ func (e *Engine) exec(expr Expr, ctx *EngineContext) (value.Value, error) {
 		return evalCell(e, expr, ctx)
 	case rangeAddr:
 		return evalRange(e, expr, ctx)
+	case slice:
+		return evalSlice(e, expr, ctx)
 	default:
 		return nil, ErrEval
 	}
@@ -237,6 +239,28 @@ func (e *Engine) normalizeValue(val value.Value, ctx *EngineContext) (value.Valu
 	default:
 		return val, nil
 	}
+}
+
+func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) {
+	val, err := eg.exec(expr.view, ctx)
+	if err != nil {
+		return nil, err
+	}
+	view, ok := val.(*types.View)
+	if !ok {
+		return nil, fmt.Errorf("slice can only be used on view")
+	}
+	switch e := expr.expr.(type) {
+	case rangeSlice:
+		view.BoundedView(e.Range())
+	case columnsSlice:
+		view.ProjectView(e.Selection())
+	case filterSlice:
+	case identifier:
+	default:
+		return nil, fmt.Errorf("invalid slice expression")
+	}
+	return nil, nil
 }
 
 func evalRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {
