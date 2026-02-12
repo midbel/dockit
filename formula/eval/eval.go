@@ -106,16 +106,23 @@ type Engine struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
+	printMode PrintMode
+
 	phases []scriptPhase
 }
 
 func NewEngine(loader Loader) *Engine {
 	e := Engine{
-		Loader: loader,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Loader:    loader,
+		Stdout:    os.Stdout,
+		Stderr:    os.Stderr,
+		printMode: PrintDefault,
 	}
 	return &e
+}
+
+func (e *Engine) SetPrintMode(mode PrintMode) {
+	e.printMode = mode
 }
 
 func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
@@ -145,6 +152,15 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 		}
 	}
 	return val, nil
+}
+
+func (e *Engine) getPrinter() Printer {
+	switch e.printMode {
+	case PrintDebug:
+		return DebugValue(e.Stdout)
+	default:
+		return PrintValue(e.Stdout)
+	}
 }
 
 func (e *Engine) enterPhase(ph scriptPhase) {
@@ -621,13 +637,11 @@ func evalUse(eg *Engine, e useRef, ctx *EngineContext) (value.Value, error) {
 }
 
 func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) {
-	v, err := eg.exec(e.expr, ctx)
+	v, err := eg.execAndNormalize(e.expr, ctx)
 	if err != nil {
 		return nil, err
 	}
-	if v != nil {
-		fmt.Fprintln(eg.Stdout, v.String())
-	}
+	eg.getPrinter().Print(v)
 	return value.Empty(), nil
 }
 
