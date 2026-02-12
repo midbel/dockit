@@ -83,6 +83,11 @@ func SelectSpan(from, to, step int64) Selection {
 	if step == 0 {
 		step++
 	}
+	if from > to {
+		step = -1
+	} else {
+		step = 1
+	}
 	return columnSpan{
 		Starts: from,
 		Ends:   to,

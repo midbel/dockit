@@ -173,6 +173,9 @@ func (p debugPrinter) printView(v *types.View) {
 	for i := range data {
 		io.WriteString(writer, "\n")
 		io.WriteString(writer, "[")
+		if i+1 < 10 {
+			io.WriteString(writer, "0")
+		}
 		io.WriteString(writer, strconv.Itoa(i+1))
 		io.WriteString(writer, "] ")
 		for j := range data[i] {
