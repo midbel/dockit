@@ -13,7 +13,7 @@ import (
 
 func main() {
 	var (
-		dir = flag.String("d", "", "context directory")
+		dir   = flag.String("d", "", "context directory")
 		debug = flag.Bool("g", false, "debug mode")
 	)
 	flag.Parse()

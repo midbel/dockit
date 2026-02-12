@@ -143,7 +143,7 @@ func (f Float) Div(other Value) (ScalarValue, error) {
 	if x == 0 {
 		return ErrDiv0, nil
 	}
-	return Float(f * x), nil
+	return Float(f / x), nil
 }
 
 func (f Float) Pow(other Value) (ScalarValue, error) {

@@ -3,9 +3,17 @@ package eval
 import (
 	"fmt"
 	"io"
+	"iter"
+	"strconv"
+	"strings"
 
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/value"
+)
+
+const (
+	maxCols = 10
+	maxRows = 25
 )
 
 type PrintMode int
@@ -85,5 +93,74 @@ func (p debugPrinter) printArray(v value.ArrayValue) {
 }
 
 func (p debugPrinter) printView(v *types.View) {
+	var (
+		view      = v.View()
+		bounds    = view.Bounds()
+		writer    strings.Builder
+		cols      = bounds.Width()
+		rows      = bounds.Height()
+		truncated = rows > maxRows
+		data      = make([][]string, 0, min(rows, maxRows))
+	)
+	if rows == 0 || cols == 0 {
+		return
+	}
 
+	next, stop := iter.Pull(view.Rows())
+	defer stop()
+
+	var (
+		first, _ = next()
+		size     = min(len(first), maxCols)
+		padding  = make([]int, size)
+		row      = make([]string, size)
+	)
+	for i := range size {
+		row[i] = first[i].String()
+		padding[i] = max(padding[i], len(row[i]))
+	}
+	data = append(data, row)
+
+	for {
+		r, ok := next()
+		if !ok || len(data) >= maxRows {
+			break
+		}
+		row = make([]string, size)
+		for i := range size {
+			row[i] = r[i].String()
+			padding[i] = max(padding[i], len(row[i]))
+		}
+		data = append(data, row)
+	}
+
+	io.WriteString(&writer, "view[rows=")
+	io.WriteString(&writer, strconv.FormatInt(rows, 10))
+	io.WriteString(&writer, ", columns=")
+	io.WriteString(&writer, strconv.FormatInt(cols, 10))
+	io.WriteString(&writer, "]")
+	for i := range data {
+		io.WriteString(&writer, "\n")
+		io.WriteString(&writer, "[")
+		io.WriteString(&writer, strconv.Itoa(i+1))
+		io.WriteString(&writer, "] ")
+		for j := range data[i] {
+			if j > 0 {
+				io.WriteString(&writer, " | ")
+			}
+			str := data[i][j]
+			if z := len(str); z < padding[j] {
+				str = fmt.Sprintf("%-*s", padding[j], str)
+			}
+			io.WriteString(&writer, str)
+		}
+	}
+
+	if truncated {
+		io.WriteString(&writer, "\n... (")
+		io.WriteString(&writer, strconv.FormatInt(rows-maxRows, 10))
+		io.WriteString(&writer, " more rows)")
+	}
+	io.WriteString(p.w, writer.String())
+	io.WriteString(p.w, "\n")
 }

@@ -213,7 +213,10 @@ func (f *File) ActiveSheet() (grid.View, error) {
 	return f.sheet, nil
 }
 
-func (f *File) Sheet(_ string) (grid.View, error) {
+func (f *File) Sheet(ident string) (grid.View, error) {
+	if ident != defaultSheetName {
+		return nil, fmt.Errorf("sheet not found")
+	}
 	return f.sheet, nil
 }
 

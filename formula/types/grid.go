@@ -74,6 +74,10 @@ func (c *File) Get(ident string) (value.Value, error) {
 		}
 		return newView(sh, c.ro), nil
 	default:
+		v, err := c.Sheet(ident)
+		if err == nil {
+			return v, nil
+		}
 		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
 	}
 }

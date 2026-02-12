@@ -340,7 +340,11 @@ func (s columnsSlice) String() string {
 }
 
 func (s columnsSlice) Selection() layout.Selection {
-	return nil
+	all := make([]layout.Selection, 0, len(s.columns))
+	for _, r := range s.columns {
+		all = append(all, r.Selection())
+	}
+	return layout.Combine(all...)
 }
 
 type columnsRange struct {
@@ -427,6 +431,11 @@ func (a rangeAddr) CloneWithOffset(pos layout.Position) Expr {
 		endAddr:   a.endAddr.CloneWithOffset(pos).(cellAddr),
 	}
 	return x
+}
+
+func (a rangeAddr) Range() *layout.Range {
+	rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
+	return rg
 }
 
 func formatCellAddr(addr cellAddr) string {

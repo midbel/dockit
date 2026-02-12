@@ -267,6 +267,8 @@ func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) 
 		return nil, fmt.Errorf("slice can only be used on view")
 	}
 	switch e := expr.expr.(type) {
+	case rangeAddr:
+		view.BoundedView(e.Range())
 	case rangeSlice:
 		view.BoundedView(e.Range())
 	case columnsSlice:
@@ -276,7 +278,7 @@ func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) 
 	default:
 		return nil, fmt.Errorf("invalid slice expression")
 	}
-	return nil, nil
+	return view, nil
 }
 
 func evalRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {

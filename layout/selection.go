@@ -143,6 +143,12 @@ type combinedRef struct {
 	list []Selection
 }
 
+func Combine(s ...Selection) Selection {
+	return combinedRef{
+		list: s,
+	}
+}
+
 func (r combinedRef) Indices(rg *Range) []int64 {
 	var all []int64
 	for i := range r.list {
