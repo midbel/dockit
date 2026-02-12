@@ -1,11 +1,11 @@
 package eval
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"iter"
 	"strconv"
-	"strings"
 
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/value"
@@ -96,7 +96,7 @@ func (p debugPrinter) printView(v *types.View) {
 	var (
 		view      = v.View()
 		bounds    = view.Bounds()
-		writer    strings.Builder
+		writer    = bufio.NewWriter(p.w)
 		cols      = bounds.Width()
 		rows      = bounds.Height()
 		truncated = rows > maxRows
@@ -134,33 +134,36 @@ func (p debugPrinter) printView(v *types.View) {
 		data = append(data, row)
 	}
 
-	io.WriteString(&writer, "view[rows=")
-	io.WriteString(&writer, strconv.FormatInt(rows, 10))
-	io.WriteString(&writer, ", columns=")
-	io.WriteString(&writer, strconv.FormatInt(cols, 10))
-	io.WriteString(&writer, "]")
+	io.WriteString(writer, "view[rows=")
+	io.WriteString(writer, strconv.FormatInt(rows, 10))
+	io.WriteString(writer, ", columns=")
+	io.WriteString(writer, strconv.FormatInt(cols, 10))
+	io.WriteString(writer, "]")
 	for i := range data {
-		io.WriteString(&writer, "\n")
-		io.WriteString(&writer, "[")
-		io.WriteString(&writer, strconv.Itoa(i+1))
-		io.WriteString(&writer, "] ")
+		io.WriteString(writer, "\n")
+		io.WriteString(writer, "[")
+		io.WriteString(writer, strconv.Itoa(i+1))
+		io.WriteString(writer, "] ")
 		for j := range data[i] {
 			if j > 0 {
-				io.WriteString(&writer, " | ")
+				io.WriteString(writer, " | ")
 			}
-			str := data[i][j]
-			if z := len(str); z < padding[j] {
-				str = fmt.Sprintf("%-*s", padding[j], str)
-			}
-			io.WriteString(&writer, str)
+			writeValue(writer, data[i][j], padding[j])
 		}
 	}
 
 	if truncated {
-		io.WriteString(&writer, "\n... (")
-		io.WriteString(&writer, strconv.FormatInt(rows-maxRows, 10))
-		io.WriteString(&writer, " more rows)")
+		io.WriteString(writer, "\n... (")
+		io.WriteString(writer, strconv.FormatInt(rows-maxRows, 10))
+		io.WriteString(writer, " more rows)")
 	}
-	io.WriteString(p.w, writer.String())
-	io.WriteString(p.w, "\n")
+	io.WriteString(writer, "\n")
+	writer.Flush()
+}
+
+func writeValue(writer io.Writer, str string, size int) {
+	io.WriteString(writer, str)
+	for range size - len(str) {
+		io.WriteString(writer, " ")
+	}
 }
