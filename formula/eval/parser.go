@@ -609,6 +609,14 @@ func parsePrint(p *Parser) (Expr, error) {
 	stmt := printRef{
 		expr: expr,
 	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
+		p.next()
+		if !p.is(op.Ident) {
+			return nil, p.makeError("identifier expected")
+		}
+		stmt.mode = p.currentLiteral()
+		p.next()
+	}
 	if !p.isEOL() {
 		return nil, p.makeError("expected eol")
 	}

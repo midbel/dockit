@@ -89,7 +89,38 @@ func (p debugPrinter) printScalar(v value.ScalarValue) {
 }
 
 func (p debugPrinter) printArray(v value.ArrayValue) {
+	var (
+		dim    = v.Dimension()
+		writer = bufio.NewWriter(p.w)
+	)
+	io.WriteString(writer, "array[rows=")
+	io.WriteString(writer, strconv.FormatInt(dim.Lines, 10))
+	io.WriteString(writer, ", columns=")
+	io.WriteString(writer, strconv.FormatInt(dim.Columns, 10))
+	io.WriteString(writer, "][\n")
 
+	for i := range dim.Lines {
+		if i > maxRows {
+			break
+		}
+		io.WriteString(writer, "  ")
+		io.WriteString(writer, "[")
+		for j := range dim.Columns {
+			if j > 0 {
+				io.WriteString(writer, ", ")
+			}
+			if j > maxCols {
+				io.WriteString(writer, "...")
+				break
+			}
+			io.WriteString(writer, v.At(int(i), int(j)).String())
+		}
+		io.WriteString(writer, "],\n")
+	}
+
+	io.WriteString(writer, "]")
+
+	writer.Flush()
 }
 
 func (p debugPrinter) printView(v *types.View) {

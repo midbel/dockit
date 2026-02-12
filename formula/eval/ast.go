@@ -107,6 +107,7 @@ func (importFile) Kind() Kind {
 
 type printRef struct {
 	expr Expr
+	mode string
 }
 
 func (p printRef) String() string {
