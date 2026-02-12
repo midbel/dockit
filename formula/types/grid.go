@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -171,6 +172,14 @@ func (c *View) Mutable() (grid.MutableView, error) {
 		return nil, fmt.Errorf("view is not mutable")
 	}
 	return mv, nil
+}
+
+func (c *View) AsArray() value.ArrayValue {
+	var data [][]value.ScalarValue
+	for r := range c.view.Rows() {
+		data = append(data, slices.Clone(r))
+	}
+	return value.NewArray(data)
 }
 
 type Range struct {

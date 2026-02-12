@@ -366,7 +366,7 @@ func evalScriptBinary(eg *Engine, e binary, ctx *EngineContext) (value.Value, er
 	switch {
 	case value.IsScalar(left) && value.IsScalar(right):
 		return evalScalarBinary(left, right, e.op)
-	case value.IsArray(left) && value.IsScalar(right):
+	case (value.IsArray(left) || value.IsObject(left)) && value.IsScalar(right):
 		return evalScalarArrayBinary(right, left, e.op)
 	case value.IsArray(left) && value.IsArray(right):
 		return evalArrayBinary(left, right, e.op)
@@ -409,6 +409,9 @@ func evalScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) 
 }
 
 func evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+	if v, ok := right.(*types.View); ok {
+		right = v.AsArray()
+	}
 	arr, err := value.CastToArray(right)
 	if err != nil {
 		return value.ErrValue, nil
@@ -473,6 +476,8 @@ func evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 		d2   = v2.Bounds()
 	)
 	switch oper {
+	case op.Add, op.Sub, op.Mul, op.Div, op.Pow:
+		return evalArrayBinary(lv.AsArray(), rv.AsArray(), oper)
 	case op.Union:
 		if d1.Width() != d2.Width() {
 			return value.ErrValue, fmt.Errorf("view can not be combined - number of columns mismatched")
