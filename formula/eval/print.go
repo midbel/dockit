@@ -51,6 +51,8 @@ func (p valuePrinter) Print(v value.Value) {
 		p.printArray(v)
 	case *types.View:
 		p.printView(v)
+	case *types.InspectValue:
+		p.printInspect(v)
 	default:
 	}
 }
@@ -67,6 +69,10 @@ func (p valuePrinter) printView(v *types.View) {
 
 }
 
+func (p valuePrinter) printInspect(v *types.InspectValue) {
+
+}
+
 type debugPrinter struct {
 	w io.Writer
 }
@@ -79,6 +85,8 @@ func (p debugPrinter) Print(v value.Value) {
 		p.printArray(v)
 	case *types.View:
 		p.printView(v)
+	case *types.InspectValue:
+		p.printInspect(v)
 	default:
 	}
 }
@@ -97,7 +105,7 @@ func (p debugPrinter) printArray(v value.ArrayValue) {
 	io.WriteString(writer, strconv.FormatInt(dim.Lines, 10))
 	io.WriteString(writer, ", columns=")
 	io.WriteString(writer, strconv.FormatInt(dim.Columns, 10))
-	io.WriteString(writer, "][\n")
+	io.WriteString(writer, "] [\n")
 
 	for i := range dim.Lines {
 		if i > maxRows {
@@ -118,7 +126,7 @@ func (p debugPrinter) printArray(v value.ArrayValue) {
 		io.WriteString(writer, "],\n")
 	}
 
-	io.WriteString(writer, "]")
+	io.WriteString(writer, "]\n")
 
 	writer.Flush()
 }
@@ -169,10 +177,9 @@ func (p debugPrinter) printView(v *types.View) {
 	io.WriteString(writer, strconv.FormatInt(rows, 10))
 	io.WriteString(writer, ", columns=")
 	io.WriteString(writer, strconv.FormatInt(cols, 10))
-	io.WriteString(writer, "]")
+	io.WriteString(writer, "] (")
 	for i := range data {
-		io.WriteString(writer, "\n")
-		io.WriteString(writer, "[")
+		io.WriteString(writer, "\n  [")
 		if i+1 < 10 {
 			io.WriteString(writer, "0")
 		}
@@ -187,12 +194,16 @@ func (p debugPrinter) printView(v *types.View) {
 	}
 
 	if truncated {
-		io.WriteString(writer, "\n... (")
+		io.WriteString(writer, "\n  ... (")
 		io.WriteString(writer, strconv.FormatInt(rows-maxRows, 10))
-		io.WriteString(writer, " more rows)")
+		io.WriteString(writer, " more rows)\n")
 	}
-	io.WriteString(writer, "\n")
+	io.WriteString(writer, ")\n")
 	writer.Flush()
+}
+
+func (p debugPrinter) printInspect(v *types.InspectValue) {
+
 }
 
 func writeValue(writer io.Writer, str string, size int) {

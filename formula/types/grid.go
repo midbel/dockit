@@ -119,6 +119,15 @@ func (c *View) BoundedView(rg *layout.Range) {
 	c.view = grid.NewBoundedView(c.view, rg)
 }
 
+func (c *View) Inspect() *InspectValue {
+	var (
+		view = grid.Unwrap(c.view)
+		iv   = InspectView()
+	)
+	iv.Set("name", value.Text(view.Name()))
+	return iv
+}
+
 func (c *View) Get(ident string) (value.Value, error) {
 	switch ident {
 	case "name":

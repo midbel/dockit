@@ -2,6 +2,7 @@ package eval
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/midbel/dockit/formula/types"
@@ -41,6 +42,25 @@ func (c *EngineContext) Default() value.Value {
 	return c.currentValue
 }
 
+func (c *EngineContext) CurrentActiveView() *types.View {
+	switch c := c.currentValue.(type) {
+	case *types.View:
+		return c
+	case *types.File:
+		active, err := c.Active()
+		if err != nil {
+			return nil
+		}
+		v, ok := active.(*types.View)
+		if ok {
+			return v
+		}
+		return nil
+	default:
+		return nil
+	}
+}
+
 func (c *EngineContext) SetDefault(val value.Value) {
 	c.currentValue = val
 }
@@ -54,7 +74,7 @@ func (c *EngineContext) PushContext(ctx value.Context) {
 }
 
 func (c *EngineContext) PushValue(val value.Value, ident string) (io.Closer, error) {
-	sh, err := c.getViewFromFile(val, ident)
+	sh, err := c.getActiveView(val, ident)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +129,7 @@ func (c *EngineContext) PushReadable(name string) (io.Closer, error) {
 }
 
 func (c *EngineContext) readableView(name string) (value.Context, error) {
-	sh, err := c.getViewFromFile(c.Default(), name)
+	sh, err := c.getActiveView(c.Default(), name)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +137,7 @@ func (c *EngineContext) readableView(name string) (value.Context, error) {
 }
 
 func (c *EngineContext) mutableView(name string) (value.Context, error) {
-	sh, err := c.getViewFromFile(c.Default(), name)
+	sh, err := c.getActiveView(c.Default(), name)
 	if err != nil {
 		return nil, err
 	}
@@ -128,19 +148,26 @@ func (c *EngineContext) mutableView(name string) (value.Context, error) {
 	return grid.SheetContext(view), nil
 }
 
-func (c *EngineContext) getViewFromFile(val value.Value, name string) (*types.View, error) {
-	x, ok := val.(*types.File)
-	if !ok {
-		return nil, ErrValue
+func (c *EngineContext) getActiveView(val value.Value, name string) (*types.View, error) {
+	switch v := val.(type) {
+	case *types.View:
+		return v, nil
+	case *types.File:
+		return c.getViewFromFile(v, name)
+	default:
+		return nil, fmt.Errorf("%s: view can not be found", name)
 	}
+}
+
+func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.View, error) {
 	var (
 		sheet value.Value
 		err   error
 	)
 	if name == "" {
-		sheet, err = x.Active()
+		sheet, err = file.Active()
 	} else {
-		sheet, err = x.Sheet(name)
+		sheet, err = file.Sheet(name)
 	}
 	if err != nil {
 		return nil, err

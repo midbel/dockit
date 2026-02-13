@@ -20,6 +20,7 @@ const (
 	KindArray
 	KindObject
 	KindFunction
+	KindInspectable
 )
 
 func IsComparable(v Value) bool {

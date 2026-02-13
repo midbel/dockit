@@ -1,67 +1,66 @@
 package builtins
 
 import (
-	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/value"
 )
 
-func execMin(args []value.Value) (value.Value, error) {
+func Min(args []value.Value) (value.Value, error) {
 	var res float64
 	for i := range args {
-		if !types.IsNumber(args[i]) {
-			return types.ErrValue, nil
+		if !value.IsNumber(args[i]) {
+			return value.ErrValue, nil
 		}
-		v := args[i].(types.Float)
+		v := args[i].(value.Float)
 		if i == 0 {
 			res = float64(v)
 			continue
 		}
 		res = min(res, float64(v))
 	}
-	return types.Float(res), nil
+	return value.Float(res), nil
 }
 
-func execMax(args []value.Value) (value.Value, error) {
+func Max(args []value.Value) (value.Value, error) {
 	var res float64
 	for i := range args {
-		if !types.IsNumber(args[i]) {
-			return types.ErrValue, nil
+		if !value.IsNumber(args[i]) {
+			return value.ErrValue, nil
 		}
-		v := args[i].(types.Float)
+		v := args[i].(value.Float)
 		if i == 0 {
 			res = float64(v)
 			continue
 		}
 		res = max(res, float64(v))
 	}
-	return types.Float(res), nil
+	return value.Float(res), nil
 }
 
-func execSum(args []value.Value) (value.Value, error) {
+func Sum(args []value.Value) (value.Value, error) {
 	var total float64
 	for i := range args {
-		if !types.IsNumber(args[i]) {
-			return types.ErrValue, nil
+		if !value.IsNumber(args[i]) {
+			return value.ErrValue, nil
 		}
-		total += float64(args[i].(types.Float))
+		total += float64(args[i].(value.Float))
 	}
-	return types.Float(total), nil
+	return value.Float(total), nil
 }
 
-func execAvg(args []value.Value) (value.Value, error) {
+func Avg(args []value.Value) (value.Value, error) {
 	if len(args) == 0 {
-		return types.Float(0), nil
+		return value.Float(0), nil
 	}
 	var total float64
 	for i := range args {
-		if !types.IsNumber(args[i]) {
-			return types.ErrValue, nil
+		if !value.IsNumber(args[i]) {
+			return value.ErrValue, nil
 		}
-		total += float64(args[i].(types.Float))
+		total += float64(args[i].(value.Float))
 	}
-	return types.Float(total / float64(len(args))), nil
+	return value.Float(total / float64(len(args))), nil
 }
 
-func execCount(args []value.Value) (value.Value, error) {
+func Count(args []value.Value) (value.Value, error) {
 	return nil, nil
 }

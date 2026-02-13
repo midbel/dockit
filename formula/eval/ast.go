@@ -151,6 +151,10 @@ func (a access) String() string {
 	return fmt.Sprintf("%s.%s", a.expr.String(), a.prop)
 }
 
+func (access) KindOf() string {
+	return "access"
+}
+
 type template struct {
 	expr []Expr
 }
@@ -159,12 +163,20 @@ func (t template) String() string {
 	return "<template>"
 }
 
+func (template) KindOf() string {
+	return "template"
+}
+
 type deferred struct {
 	expr Expr
 }
 
 func (d deferred) Type() string {
-	return "lambda"
+	return d.KindOf()
+}
+
+func (deferred) KindOf() string {
+	return "deferred"
 }
 
 func (d deferred) String() string {
@@ -266,12 +278,20 @@ func (i literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
 
+func (literal) KindOf() string {
+	return "primitive"
+}
+
 type number struct {
 	value float64
 }
 
 func (n number) String() string {
 	return strconv.FormatFloat(n.value, 'f', -1, 64)
+}
+
+func (number) KindOf() string {
+	return "primitive"
 }
 
 type call struct {
@@ -316,6 +336,10 @@ type slice struct {
 
 func (s slice) String() string {
 	return fmt.Sprintf("slice(%s, %s)", s.view, s.expr)
+}
+
+func (slice) KindOf() string {
+	return "slice"
 }
 
 type rangeSlice struct {
@@ -387,6 +411,10 @@ func (i identifier) String() string {
 	return i.name
 }
 
+func (identifier) KindOf() string {
+	return "identifier"
+}
+
 type qualifiedCellAddr struct {
 	path Expr
 	addr Expr
@@ -394,6 +422,10 @@ type qualifiedCellAddr struct {
 
 func (a qualifiedCellAddr) String() string {
 	return fmt.Sprintf("qualified(%s.%s)", a.path.String(), a.addr.String())
+}
+
+func (qualifiedCellAddr) KindOf() string {
+	return "qualified-address"
 }
 
 type cellAddr struct {
@@ -404,6 +436,10 @@ type cellAddr struct {
 
 func (a cellAddr) String() string {
 	return formatCellAddr(a)
+}
+
+func (cellAddr) KindOf() string {
+	return "address"
 }
 
 func (a cellAddr) CloneWithOffset(pos layout.Position) Expr {
@@ -424,6 +460,10 @@ type rangeAddr struct {
 
 func (a rangeAddr) String() string {
 	return fmt.Sprintf("%s:%s", a.startAddr.String(), a.endAddr.String())
+}
+
+func (rangeAddr) KindOf() string {
+	return "range"
 }
 
 func (a rangeAddr) CloneWithOffset(pos layout.Position) Expr {

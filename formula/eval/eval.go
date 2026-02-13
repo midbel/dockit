@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/types"
@@ -220,7 +221,7 @@ func (e *Engine) exec(expr Expr, ctx *EngineContext) (value.Value, error) {
 	case call:
 		e.enterPhase(phaseCall)
 		defer e.leavePhase()
-		return nil, nil
+		return evalScriptCall(e, expr, ctx)
 	case qualifiedCellAddr:
 		return evalQualifiedCell(e, expr, ctx)
 	case cellAddr:
@@ -258,7 +259,15 @@ func (e *Engine) normalizeValue(val value.Value, ctx *EngineContext) (value.Valu
 }
 
 func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) {
-	val, err := eg.exec(expr.view, ctx)
+	var (
+		val value.Value
+		err error
+	)
+	if expr.view == nil {
+		val = ctx.CurrentActiveView()
+	} else {
+		val, err = eg.exec(expr.view, ctx)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -279,6 +288,28 @@ func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) 
 		return nil, fmt.Errorf("invalid slice expression")
 	}
 	return view, nil
+}
+
+func evalScriptCall(eg *Engine, expr call, ctx *EngineContext) (value.Value, error) {
+	id, ok := expr.ident.(identifier)
+	if !ok {
+		return value.ErrName, nil
+	}
+	if fn, ok := specials[id.name]; ok {
+		return fn.Eval(eg, expr.args, ctx)
+	}
+	if fn, ok := builtins.Registry[id.name]; ok {
+		var args []value.Value
+		for _, a := range expr.args {
+			v, err := eg.exec(a, ctx)
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, v)
+		}
+		return fn(args)
+	}
+	return value.ErrName, nil
 }
 
 func evalRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {
@@ -631,15 +662,16 @@ func evalUnlock(eg *Engine, e unlockRef, ctx *EngineContext) (value.Value, error
 }
 
 func evalUse(eg *Engine, e useRef, ctx *EngineContext) (value.Value, error) {
-	v, err := ctx.Context().Resolve(e.ident)
+	v, err := ctx.Resolve(e.ident)
 	if err != nil {
 		return nil, err
 	}
-	wb, ok := v.(*types.File)
-	if !ok {
-		return nil, fmt.Errorf("default can only be used with workbook")
+	switch v := v.(type) {
+	case *types.File, *types.View:
+		ctx.SetDefault(v)
+	default:
+		return nil, fmt.Errorf("default can only be used with file or view")
 	}
-	ctx.SetDefault(wb)
 	return value.Empty(), nil
 }
 

@@ -49,6 +49,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(op.Eq, parseDeferred)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
 	g.RegisterPrefix(op.Cell, parseAddress)
+	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
@@ -787,6 +788,10 @@ func parseReadonly(p *Parser) (bool, error) {
 	}
 	p.next()
 	return ok, nil
+}
+
+func parseSlicePrefix(p *Parser) (Expr, error) {
+	return parseSlice(p, nil)
 }
 
 func parseSlice(p *Parser, left Expr) (Expr, error) {

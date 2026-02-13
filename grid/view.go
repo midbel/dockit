@@ -82,6 +82,21 @@ type Callable interface {
 	Call(value.Context) (value.Value, error)
 }
 
+type UnwrapView interface {
+	Unwrap() View
+}
+
+func Unwrap(view View) View {
+	for {
+		u, ok := view.(UnwrapView)
+		if !ok {
+			break
+		}
+		view = u.Unwrap()
+	}
+	return view
+}
+
 type View interface {
 	Name() string
 	Bounds() *layout.Range
@@ -127,17 +142,17 @@ type File interface {
 }
 
 type filteredView struct {
-	sheet View
+	view View
 }
 
 func FilterView(view View) View {
 	return &filteredView{
-		sheet: view,
+		view: view,
 	}
 }
 
 func (v *filteredView) Name() string {
-	return v.sheet.Name()
+	return v.view.Name()
 }
 
 func (v *filteredView) Bounds() *layout.Range {
@@ -148,8 +163,12 @@ func (v *filteredView) Rows() iter.Seq[[]value.ScalarValue] {
 	return nil
 }
 
+func (v *filteredView) Unwrap() View {
+	return v.view
+}
+
 func (v *filteredView) Encode(encoder Encoder) error {
-	return encoder.EncodeSheet(v.sheet)
+	return encoder.EncodeSheet(v.view)
 }
 
 func (v *filteredView) Cell(layout.Position) (Cell, error) {
@@ -157,7 +176,7 @@ func (v *filteredView) Cell(layout.Position) (Cell, error) {
 }
 
 func (v *filteredView) Reload(ctx value.Context) error {
-	return v.sheet.Reload(ctx)
+	return v.view.Reload(ctx)
 }
 
 type readonlyView struct {
@@ -183,6 +202,10 @@ func (v *readonlyView) Bounds() *layout.Range {
 
 func (v *readonlyView) Rows() iter.Seq[[]value.ScalarValue] {
 	return v.view.Rows()
+}
+
+func (v *readonlyView) Unwrap() View {
+	return v.view
 }
 
 func (v *readonlyView) Encode(encoder Encoder) error {
@@ -403,6 +426,10 @@ func (v *projectedView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
+func (v *projectedView) Unwrap() View {
+	return v.view
+}
+
 func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
 	pos = v.getOriginalPosition(pos)
 	return v.view.Cell(pos)
@@ -530,6 +557,10 @@ func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
 
 func (v *boundedView) Bounds() *layout.Range {
 	return v.part.Range()
+}
+
+func (v *boundedView) Unwrap() View {
+	return v.view
 }
 
 func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
