@@ -33,6 +33,11 @@ var Registry = map[string]func([]value.Value) (value.Value, error){
 	"lower":     Lower,
 	"substr":    Substr,
 	"replace":   Replace,
+	"if":        If,
+	"and":       And,
+	"or":        Or,
+	"xor":       Xor,
+	"not":       Not,
 }
 
 func Now(args []value.Value) (value.Value, error) {
