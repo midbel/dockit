@@ -30,6 +30,18 @@ func (*File) Kind() value.ValueKind {
 	return value.KindObject
 }
 
+func (f *File) Inspect() *InspectValue {
+	var (
+		iv = InspectFile()
+		sz = len(f.file.Sheets())
+	)
+	iv.Set("sheets", value.Float(sz))
+	if a, err := f.file.ActiveSheet(); err == nil {
+		iv.Set("active", value.Text(a.Name()))
+	}
+	return iv
+}
+
 func (*File) String() string {
 	return "workbook"
 }
@@ -99,7 +111,10 @@ func newView(view grid.View, ro bool) value.Value {
 	}
 }
 
-func (*View) Type() string {
+func (v *View) Type() string {
+	if t, ok := v.view.(interface{ Type() string }); ok {
+		return t.Type()
+	}
 	return "view"
 }
 
@@ -121,10 +136,14 @@ func (c *View) BoundedView(rg *layout.Range) {
 
 func (c *View) Inspect() *InspectValue {
 	var (
-		view = grid.Unwrap(c.view)
-		iv   = InspectView()
+		iv = InspectView()
+		bs = c.view.Bounds()
 	)
-	iv.Set("name", value.Text(view.Name()))
+	iv.Set("name", value.Text(c.view.Name()))
+	iv.Set("lines", value.Float(bs.Height()))
+	iv.Set("columns", value.Float(bs.Width()))
+	iv.Set("type", value.Text(c.Type()))
+
 	return iv
 }
 

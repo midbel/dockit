@@ -14,7 +14,8 @@ const (
 	InspectKindFile  = "file"
 	InspectKindRange = "range"
 	InspectKindSlice = "slice"
-	InspectKindValue = "value" // fallback for computed expressions
+	InspectKindValue = "value" 
+	InspectKindPrimitive = "primitive"
 )
 
 type InspectField struct {
@@ -31,6 +32,10 @@ func InspectCell() *InspectValue {
 	return inspectValue(InspectKindCell)
 }
 
+func InspectFile() *InspectValue {
+	return inspectValue(InspectKindFile)
+}
+
 func InspectView() *InspectValue {
 	return inspectValue(InspectKindView)
 }
@@ -41,6 +46,10 @@ func InspectRange() *InspectValue {
 
 func InspectSlice() *InspectValue {
 	return inspectValue(InspectKindSlice)
+}
+
+func InspectPrimitive() *InspectValue {
+	return inspectValue(InspectKindPrimitive)
 }
 
 func ReinspectValue(iv *InspectValue, val value.Value) *InspectValue {

@@ -155,6 +155,10 @@ func (v *filteredView) Name() string {
 	return v.view.Name()
 }
 
+func (v *filteredView) Type() string {
+	return "filtered"
+}
+
 func (v *filteredView) Bounds() *layout.Range {
 	return nil
 }
@@ -194,6 +198,10 @@ func ReadOnly(view View) View {
 
 func (v *readonlyView) Name() string {
 	return v.view.Name()
+}
+
+func (v *readonlyView) Type() string {
+	return "readonly"
 }
 
 func (v *readonlyView) Bounds() *layout.Range {
@@ -236,6 +244,10 @@ func HorizontalView(views ...View) View {
 
 func (v *horizontalStackedView) Name() string {
 	return v.views[0].Name()
+}
+
+func (v *horizontalStackedView) Type() string {
+	return "horizontal-stack"
 }
 
 func (v *horizontalStackedView) Bounds() *layout.Range {
@@ -330,6 +342,10 @@ func (v *verticalStackedView) Name() string {
 	return v.views[0].Name()
 }
 
+func (v *verticalStackedView) Type() string {
+	return "vertical-stack"
+}
+
 func (v *verticalStackedView) Bounds() *layout.Range {
 	start := layout.Position{
 		Line:   1,
@@ -403,6 +419,10 @@ func NewProjectView(view View, sel layout.Selection) View {
 
 func (v *projectedView) Name() string {
 	return v.view.Name()
+}
+
+func (v *projectedView) Type() string {
+	return "projected"
 }
 
 func (v *projectedView) Reload(ctx value.Context) error {
@@ -542,6 +562,10 @@ func NewBoundedView(view View, rg *layout.Range) View {
 
 func (v *boundedView) Name() string {
 	return v.view.Name()
+}
+
+func (v *boundedView) Type() string {
+	return "bounded"
 }
 
 func (v *boundedView) Reload(ctx value.Context) error {

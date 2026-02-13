@@ -3,6 +3,7 @@ package eval
 import (
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/value"
+	"github.com/midbel/dockit/layout"
 )
 
 type SpecialForm interface {
@@ -48,7 +49,7 @@ func (i inspectForm) inspectCell(eg *Engine, expr cellAddr, ctx *EngineContext) 
 	iv.Set("kind", value.Text(expr.KindOf()))
 
 	if view := ctx.CurrentActiveView(); view != nil {
-		iv.SetSource(view.Inspect())
+		iv.Set("view", value.Text(view.Type()))
 	}
 
 	val, _ := eg.exec(expr, ctx)
@@ -63,32 +64,89 @@ func (i inspectForm) inspectQualified(eg *Engine, expr qualifiedCellAddr, ctx *E
 }
 
 func (i inspectForm) inspectRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {
-	iv := types.InspectRange()
-	iv.Set("startAddr", value.Text(expr.startAddr.Position.String()))
-	iv.Set("endAddr", value.Text(expr.endAddr.Position.String()))
+	var (
+		iv = types.InspectRange()
+		rg = layout.NewRange(expr.startAddr.Position, expr.endAddr.Position)
+	)
+	iv.Set("from", value.Text(expr.startAddr.Position.String()))
+	iv.Set("to", value.Text(expr.endAddr.Position.String()))
 	iv.Set("kind", value.Text(expr.KindOf()))
 
 	if view := ctx.CurrentActiveView(); view != nil {
-		iv.SetSource(view.Inspect())
+		iv.Set("view", value.Text(view.Type()))
 	}
+
+	rg = rg.Normalize()
+	iv.Set("lines", value.Float(rg.Height()))
+	iv.Set("columns", value.Float(rg.Width()))
+
 	return iv, nil
 }
 
 func (i inspectForm) inspectSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) {
-	iv := types.InspectRange()
+	iv := types.InspectSlice()
+	if expr.view == nil {
+		iv.Set("view", value.Text("view"))
+	} else {
+		val, err := eg.exec(expr.view, ctx)
+		if err != nil {
+			return value.ErrValue, err
+		}
+		v, ok := val.(*types.View)
+		if !ok {
+			return value.ErrValue, nil
+		}
+		iv.Set("view", value.Text(v.Type()))
+	}
+	switch e := expr.expr.(type) {
+	case rangeSlice:
+		iv.Set("type", value.Text("range"))
+
+		rg := layout.NewRange(e.startAddr.Position, e.endAddr.Position)
+		iv.Set("from", value.Text(e.startAddr.Position.String()))
+		iv.Set("to", value.Text(e.endAddr.Position.String()))
+
+		rg = rg.Normalize()
+		iv.Set("lines", value.Float(rg.Height()))
+		iv.Set("columns", value.Float(rg.Width()))
+	case columnsSlice:
+		iv.Set("type", value.Text("column"))
+		iv.Set("count", value.Float(len(e.columns)))
+	case filterSlice:
+		iv.Set("type", value.Text("binary"))
+	default:
+		iv.Set("type", value.Text("unknown"))
+	}
 	return iv, nil
 }
 
 func (i inspectForm) inspectIdent(eg *Engine, expr identifier, ctx *EngineContext) (value.Value, error) {
-	return nil, nil
+	val, err := ctx.Resolve(expr.name)
+	if err != nil {
+		return value.ErrValue, err
+	}
+	if i, ok := val.(interface{ Inspect() *types.InspectValue }); ok {
+		return i.Inspect(), nil
+	}
+	return types.InspectPrimitive(), nil
 }
 
 func (i inspectForm) inspectNumber(eg *Engine, expr number, ctx *EngineContext) (value.Value, error) {
-	return nil, nil
+	val, err := eg.exec(expr, ctx)
+	if err != nil {
+		return value.ErrValue, err
+	}
+	iv := types.InspectPrimitive()
+	return types.ReinspectValue(iv, val), nil
 }
 
 func (i inspectForm) inspectLiteral(eg *Engine, expr literal, ctx *EngineContext) (value.Value, error) {
-	return nil, nil
+	val, err := eg.exec(expr, ctx)
+	if err != nil {
+		return value.ErrValue, err
+	}
+	iv := types.InspectPrimitive()
+	return types.ReinspectValue(iv, val), nil
 }
 
 type kindofForm struct{}
