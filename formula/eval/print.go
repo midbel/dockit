@@ -203,7 +203,30 @@ func (p debugPrinter) printView(v *types.View) {
 }
 
 func (p debugPrinter) printInspect(v *types.InspectValue) {
+	var (
+		writer = bufio.NewWriter(p.w)
+		lino   int
+	)
+	io.WriteString(writer, "inspect[type=")
+	io.WriteString(writer, v.Type())
+	io.WriteString(writer, "] [\n")
 
+	for n, v := range v.Values() {
+		lino++
+		io.WriteString(writer, "  ")
+		io.WriteString(writer, "[")
+		if lino < 10 {
+			io.WriteString(writer, "0")
+		}
+		io.WriteString(writer, strconv.Itoa(lino))
+		io.WriteString(writer, "] ")
+		writeValue(writer, n, 12)
+		io.WriteString(writer, " => ")
+		io.WriteString(writer, v.String())
+		io.WriteString(writer, "\n")
+	}
+	io.WriteString(writer, "]\n")
+	writer.Flush()
 }
 
 func writeValue(writer io.Writer, str string, size int) {

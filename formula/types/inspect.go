@@ -2,19 +2,20 @@ package types
 
 import (
 	"fmt"
+	"iter"
 	"slices"
 
 	"github.com/midbel/dockit/value"
 )
 
 const (
-	InspectKindCell  = "cell"
-	InspectKindView  = "view"
-	InspectKindSheet = "sheet"
-	InspectKindFile  = "file"
-	InspectKindRange = "range"
-	InspectKindSlice = "slice"
-	InspectKindValue = "value" 
+	InspectKindCell      = "cell"
+	InspectKindView      = "view"
+	InspectKindSheet     = "sheet"
+	InspectKindFile      = "file"
+	InspectKindRange     = "range"
+	InspectKindSlice     = "slice"
+	InspectKindValue     = "value"
 	InspectKindPrimitive = "primitive"
 )
 
@@ -72,7 +73,13 @@ func (v *InspectValue) Source() *InspectValue {
 	return v.source
 }
 
-func (*InspectValue) Type() string {
+func (v *InspectValue) Type() string {
+	ix := slices.IndexFunc(v.fields, func(f *InspectField) bool {
+		return f.Name == "kind"
+	})
+	if ix >= 0 {
+		return v.fields[0].Value.String()
+	}
 	return "inspect"
 }
 
@@ -82,6 +89,20 @@ func (*InspectValue) Kind() value.ValueKind {
 
 func (*InspectValue) String() string {
 	return "<inspect>"
+}
+
+func (v *InspectValue) Values() iter.Seq2[string, value.Value] {
+	it := func(yield func(string, value.Value) bool) {
+		for _, f := range v.fields {
+			if f.Name == "kind" {
+				continue
+			}
+			if !yield(f.Name, f.Value) {
+				return
+			}
+		}
+	}
+	return it
 }
 
 func (v *InspectValue) Set(name string, val value.Value) {

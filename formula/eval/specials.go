@@ -2,8 +2,8 @@ package eval
 
 import (
 	"github.com/midbel/dockit/formula/types"
-	"github.com/midbel/dockit/value"
 	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
 
 type SpecialForm interface {
