@@ -68,8 +68,8 @@ func (i inspectForm) inspectRange(eg *Engine, expr rangeAddr, ctx *EngineContext
 		iv = types.InspectRange()
 		rg = layout.NewRange(expr.startAddr.Position, expr.endAddr.Position)
 	)
-	iv.Set("from", value.Text(expr.startAddr.Position.String()))
-	iv.Set("to", value.Text(expr.endAddr.Position.String()))
+	iv.Set("start", value.Text(expr.startAddr.Position.String()))
+	iv.Set("end", value.Text(expr.endAddr.Position.String()))
 	iv.Set("kind", value.Text(expr.KindOf()))
 
 	if view := ctx.CurrentActiveView(); view != nil {
@@ -77,8 +77,8 @@ func (i inspectForm) inspectRange(eg *Engine, expr rangeAddr, ctx *EngineContext
 	}
 
 	rg = rg.Normalize()
-	iv.Set("lines", value.Float(rg.Height()))
-	iv.Set("columns", value.Float(rg.Width()))
+	iv.Set("rows", value.Float(rg.Height()))
+	iv.Set("cols", value.Float(rg.Width()))
 
 	return iv, nil
 }
@@ -86,7 +86,7 @@ func (i inspectForm) inspectRange(eg *Engine, expr rangeAddr, ctx *EngineContext
 func (i inspectForm) inspectSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) {
 	iv := types.InspectSlice()
 	if expr.view == nil {
-		iv.Set("view", value.Text("view"))
+		iv.Set("owner", value.Text("view"))
 	} else {
 		val, err := eg.exec(expr.view, ctx)
 		if err != nil {
@@ -96,19 +96,19 @@ func (i inspectForm) inspectSlice(eg *Engine, expr slice, ctx *EngineContext) (v
 		if !ok {
 			return value.ErrValue, nil
 		}
-		iv.Set("view", value.Text(v.Type()))
+		iv.Set("owner", value.Text(v.Type()))
 	}
 	switch e := expr.expr.(type) {
 	case rangeSlice:
 		iv.Set("type", value.Text("range"))
 
 		rg := layout.NewRange(e.startAddr.Position, e.endAddr.Position)
-		iv.Set("from", value.Text(e.startAddr.Position.String()))
-		iv.Set("to", value.Text(e.endAddr.Position.String()))
+		iv.Set("start", value.Text(e.startAddr.Position.String()))
+		iv.Set("end", value.Text(e.endAddr.Position.String()))
 
 		rg = rg.Normalize()
-		iv.Set("lines", value.Float(rg.Height()))
-		iv.Set("columns", value.Float(rg.Width()))
+		iv.Set("rows", value.Float(rg.Height()))
+		iv.Set("cols", value.Float(rg.Width()))
 	case columnsSlice:
 		iv.Set("type", value.Text("column"))
 		iv.Set("count", value.Float(len(e.columns)))

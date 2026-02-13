@@ -140,8 +140,8 @@ func (c *View) Inspect() *InspectValue {
 		bs = c.view.Bounds()
 	)
 	iv.Set("name", value.Text(c.view.Name()))
-	iv.Set("lines", value.Float(bs.Height()))
-	iv.Set("columns", value.Float(bs.Width()))
+	iv.Set("rows", value.Float(bs.Height()))
+	iv.Set("cols", value.Float(bs.Width()))
 	iv.Set("type", value.Text(c.Type()))
 
 	return iv
