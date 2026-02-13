@@ -400,7 +400,7 @@ type exprRange struct {
 }
 
 func (e exprRange) String() string {
-	return fmt.Sprintf("range(%s, %s)", e.from, e.to)
+	return fmt.Sprintf("range(%v, %v)", e.from, e.to)
 }
 
 type identifier struct {

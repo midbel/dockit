@@ -864,6 +864,9 @@ func getColumnsRangeFromExpr(expr Expr) (columnsRange, error) {
 				break
 			}
 		}
+		if n, ok := expr.step.(number); ok {
+			crg.step = int(n.value)
+		}
 	default:
 		return crg, fmt.Errorf("invalid columns selector")
 	}
@@ -908,6 +911,7 @@ func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
 	if !leftAddrOk && (!rightAddrOk || right == nil) {
 		var step Expr
 		if p.is(op.RangeRef) {
+			p.next()
 			step, err = p.parse(powRange)
 			if err != nil {
 				return nil, err
