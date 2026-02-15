@@ -27,20 +27,26 @@ type Printer interface {
 	Print(value.Value)
 }
 
-func PrintValue(w io.Writer) Printer {
+func PrintValue(w io.Writer, rows, cols int) Printer {
 	return valuePrinter{
-		w: w,
+		w:    w,
+		rows: rows,
+		cols: cols,
 	}
 }
 
-func DebugValue(w io.Writer) Printer {
+func DebugValue(w io.Writer, rows, cols int) Printer {
 	return debugPrinter{
-		w: w,
+		w:    w,
+		rows: rows,
+		cols: cols,
 	}
 }
 
 type valuePrinter struct {
-	w io.Writer
+	w    io.Writer
+	cols int
+	rows int
 }
 
 func (p valuePrinter) Print(v value.Value) {
@@ -74,7 +80,9 @@ func (p valuePrinter) printInspect(v *types.InspectValue) {
 }
 
 type debugPrinter struct {
-	w io.Writer
+	w    io.Writer
+	cols int
+	rows int
 }
 
 func (p debugPrinter) Print(v value.Value) {
@@ -108,7 +116,7 @@ func (p debugPrinter) printArray(v value.ArrayValue) {
 	io.WriteString(writer, "] [\n")
 
 	for i := range dim.Lines {
-		if i > maxRows {
+		if i > int64(p.rows) {
 			break
 		}
 		io.WriteString(writer, "  ")
@@ -138,8 +146,8 @@ func (p debugPrinter) printView(v *types.View) {
 		writer    = bufio.NewWriter(p.w)
 		cols      = bounds.Width()
 		rows      = bounds.Height()
-		truncated = rows > maxRows
-		data      = make([][]string, 0, min(rows, maxRows))
+		truncated = rows > int64(p.rows)
+		data      = make([][]string, 0, min(rows, int64(p.rows)))
 	)
 	if rows == 0 || cols == 0 {
 		return
@@ -150,7 +158,7 @@ func (p debugPrinter) printView(v *types.View) {
 
 	var (
 		first, _ = next()
-		size     = min(len(first), maxCols)
+		size     = min(len(first), p.cols)
 		padding  = make([]int, size)
 		row      = make([]string, size)
 	)
@@ -162,7 +170,7 @@ func (p debugPrinter) printView(v *types.View) {
 
 	for {
 		r, ok := next()
-		if !ok || len(data) >= maxRows {
+		if !ok || len(data) >= p.rows {
 			break
 		}
 		row = make([]string, size)
@@ -195,7 +203,7 @@ func (p debugPrinter) printView(v *types.View) {
 
 	if truncated {
 		io.WriteString(writer, "\n  ... (")
-		io.WriteString(writer, strconv.FormatInt(rows-maxRows, 10))
+		io.WriteString(writer, strconv.FormatInt(rows-int64(p.rows), 10))
 		io.WriteString(writer, " more rows)\n")
 	}
 	io.WriteString(writer, ")\n")

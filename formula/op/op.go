@@ -7,6 +7,8 @@ const (
 
 	EOF Op = -(1 + iota)
 	Eol
+	Directive
+	Pragma
 	Keyword
 	Ident
 	Cell

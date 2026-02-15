@@ -16,8 +16,33 @@ var (
 	ErrMutate    = errors.New("context is not mutable")
 )
 
+type EngineConfig struct {
+	Print struct {
+		Cols  int
+		Rows  int
+		Debug bool
+	}
+
+	Stdout io.Writer
+	Stderr io.Writer
+	Trace  bool
+
+	Csv struct {
+		Quoted bool
+		Comma  rune
+	}
+}
+
+func (c EngineConfig) Printer() Printer {
+	if c.Print.Debug {
+		return DebugValue(c.Stdout, c.Print.Rows, c.Print.Cols)
+	}
+	return PrintValue(c.Stdout, c.Print.Rows, c.Print.Cols)
+}
+
 type EngineContext struct {
 	ctx          *grid.ScopedContext
+	config       EngineConfig
 	currentValue value.Value
 }
 

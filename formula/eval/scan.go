@@ -130,6 +130,10 @@ func (s *Scanner) scanNL(tok *Token) {
 
 func (s *Scanner) scanComment(tok *Token) {
 	s.read()
+	if s.char == bang {
+		s.scanDirective(tok)
+		return
+	}
 	s.skipBlanks()
 	for !s.done() && !isNL(s.char) {
 		s.write()
@@ -137,6 +141,21 @@ func (s *Scanner) scanComment(tok *Token) {
 	}
 	s.skipNL()
 	tok.Type = op.Comment
+	tok.Literal = s.literal()
+}
+
+func (s *Scanner) scanDirective(tok *Token) {
+	s.read()
+	if s.char == space {
+		s.skipBlanks()
+		tok.Type = op.Pragma
+		return
+	}
+	for !s.done() && !isNL(s.char) {
+		s.write()
+		s.read()
+	}
+	tok.Type = op.Directive
 	tok.Literal = s.literal()
 }
 

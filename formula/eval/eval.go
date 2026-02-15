@@ -88,28 +88,14 @@ func execPhase(expr Expr, phase scriptPhase) (scriptPhase, error) {
 	return phase.Next(currKind), nil
 }
 
-type Loader interface {
-	Open(string) (grid.File, error)
-}
-
-type noopLoader struct{}
-
-func (noopLoader) Open(_ string) (grid.File, error) {
-	return nil, fmt.Errorf("noop loader can not open file")
-}
-
-func defaultLoader() Loader {
-	return noopLoader{}
-}
-
 type Engine struct {
 	Loader
+	Config EngineConfig
 	Stdout io.Writer
 	Stderr io.Writer
 
 	printMode PrintMode
-
-	phases []scriptPhase
+	phases    []scriptPhase
 }
 
 func NewEngine(loader Loader) *Engine {
@@ -119,6 +105,8 @@ func NewEngine(loader Loader) *Engine {
 		Stderr:    os.Stderr,
 		printMode: PrintDefault,
 	}
+	e.Config.Print.Cols = maxCols
+	e.Config.Print.Rows = maxRows
 	return &e
 }
 
@@ -134,6 +122,9 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 		ctx   = NewEngineContext()
 	)
 	ctx.PushContext(environ)
+	ctx.config = e.Config
+	ctx.config.Stdout = e.Stdout
+	ctx.config.Stderr = e.Stderr
 	if err := ps.Init(r); err != nil {
 		return nil, err
 	}
@@ -153,15 +144,6 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 		}
 	}
 	return val, nil
-}
-
-func (e *Engine) getPrinter() Printer {
-	switch e.printMode {
-	case PrintDebug:
-		return DebugValue(e.Stdout)
-	default:
-		return PrintValue(e.Stdout)
-	}
 }
 
 func (e *Engine) enterPhase(ph scriptPhase) {
@@ -680,7 +662,7 @@ func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) 
 	if err != nil {
 		return nil, err
 	}
-	eg.getPrinter().Print(v)
+	ctx.config.Printer().Print(v)
 	return value.Empty(), nil
 }
 

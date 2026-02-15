@@ -30,6 +30,10 @@ func (t Token) String() string {
 		return "<eof>"
 	case op.Eol:
 		return "<eol>"
+	case op.Pragma:
+		return "<pragma>"
+	case op.Directive:
+		str = "directive"
 	case op.Keyword:
 		str = "keyword"
 	case op.Ident:
