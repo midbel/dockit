@@ -3,6 +3,7 @@ package eval
 import (
 	"bytes"
 	"io"
+	"strconv"
 	"unicode/utf8"
 
 	"github.com/midbel/dockit/formula/op"
@@ -64,6 +65,13 @@ const (
 	ModeScript
 )
 
+type ScannerState struct {
+	pos      int
+	next     int
+	char     rune
+	position Position
+}
+
 type Scanner struct {
 	input []byte
 	pos   int
@@ -92,6 +100,46 @@ func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
 		scan.read()
 	}
 	return &scan, nil
+}
+
+func (s *Scanner) Save() ScannerState {
+	return ScannerState{
+		pos:      s.pos,
+		next:     s.next,
+		char:     s.char,
+		position: s.Position,
+	}
+}
+
+func (s *Scanner) Restore(state ScannerState) {
+	s.Position = state.position
+	s.pos = state.pos
+	s.next = state.next
+	s.char = state.char
+}
+
+func (s *Scanner) Peek() Token {
+	currState := s.Save()
+	defer s.Restore(currState)
+	return s.Scan()
+}
+
+func (s *Scanner) Value() any {
+	tok := s.Scan()
+	switch tok.Type {
+	case op.Number:
+		f, _ := strconv.ParseFloat(tok.Literal, 64)
+		return f
+	case op.Ident:
+		if tok.Literal == "true" {
+			return true
+		}
+		return false
+	case op.Literal:
+		return tok.Literal
+	default:
+		return nil
+	}
 }
 
 func (s *Scanner) Scan() Token {

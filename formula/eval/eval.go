@@ -111,23 +111,25 @@ func NewEngine(loader Loader) *Engine {
 }
 
 func (e *Engine) SetPrintMode(mode PrintMode) {
-	e.printMode = mode
+	e.Config.Print.Debug = mode == PrintDebug
 }
 
 func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
 	var (
 		val   value.Value
 		phase = phaseImport
-		ps    = NewParser(ScriptGrammar())
 		ctx   = NewEngineContext()
 	)
 	ctx.PushContext(environ)
 	ctx.config = e.Config
 	ctx.config.Stdout = e.Stdout
 	ctx.config.Stderr = e.Stderr
-	if err := ps.Init(r); err != nil {
+
+	ps, err := e.bootstrap(r, ctx)
+	if err != nil {
 		return nil, err
 	}
+
 	for {
 		expr, err := ps.ParseNext()
 		if errors.Is(err, io.EOF) {
@@ -144,6 +146,62 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 		}
 	}
 	return val, nil
+}
+
+func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
+	scan, err := Scan(r, ModeScript)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		grammar *Grammar
+		mode    string
+	)
+	if tok := scan.Peek(); tok.Type == op.Directive {
+		mode = tok.Literal
+		scan.Scan()
+	}
+	switch mode {
+	case "", "script":
+		grammar = ScriptGrammar()
+	case "pipeline":
+	case "cube":
+	case "command":
+	default:
+		return nil, fmt.Errorf("%s: unsupported mode", mode)
+	}
+	scan.skipNL()
+	for {
+		tok := scan.Peek()
+		if tok.Type != op.Pragma {
+			break
+		}
+		scan.Scan()
+		var ident []string
+		for {
+			tok := scan.Scan()
+			if tok.Type == op.Dot {
+				continue
+			}
+			if tok.Type == op.Assign {
+				break
+			}
+			ident = append(ident, strings.TrimSpace(tok.Literal))
+		}
+		val := scan.Value()
+		if tok := scan.Scan(); tok.Type != op.Eol {
+			return nil, fmt.Errorf("newline expected")
+		}
+		fmt.Println(ident, val)
+		err := directiveTrie.Configure(ident, val, &ctx.config)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ps := NewParser(grammar)
+	ps.Attach(scan)
+	return ps, nil
 }
 
 func (e *Engine) enterPhase(ph scriptPhase) {

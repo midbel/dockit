@@ -166,6 +166,13 @@ func (p *Parser) Parse(r io.Reader) (Expr, error) {
 	return p.parseScript()
 }
 
+func (p *Parser) Attach(scan *Scanner) {
+	p.scan = scan
+	p.next()
+	p.next()
+	p.skipEOL()
+}
+
 func (p *Parser) Init(r io.Reader) error {
 	scan, err := Scan(r, p.stack.Mode())
 	if err != nil {

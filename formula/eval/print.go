@@ -155,7 +155,6 @@ func (p debugPrinter) printView(v *types.View) {
 
 	next, stop := iter.Pull(view.Rows())
 	defer stop()
-
 	var (
 		first, _ = next()
 		size     = min(len(first), p.cols)
