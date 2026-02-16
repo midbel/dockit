@@ -126,6 +126,10 @@ func (c *View) String() string {
 	return c.view.Name()
 }
 
+func (c *View) FilterView(predicate value.Predicate) {
+	c.view = grid.FilterView(c.view, predicate)
+}
+
 func (c *View) ProjectView(sel layout.Selection) {
 	c.view = grid.NewProjectView(c.view, sel)
 }

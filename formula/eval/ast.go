@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
+	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -398,6 +399,13 @@ func (s filterSlice) String() string {
 	return fmt.Sprintf("filter(%s)", s.expr)
 }
 
+func (s filterSlice) Predicate() value.Predicate {
+	f := deferredFormula{
+		expr: s.expr,
+	}
+	return types.NewExprPredicate(&f)
+}
+
 type exprRange struct {
 	from Expr
 	to   Expr
@@ -585,7 +593,7 @@ func (f *deferredFormula) String() string {
 }
 
 func (f *deferredFormula) Eval(ctx value.Context) (value.Value, error) {
-	return nil, nil
+	return Eval(f.expr, ctx)
 }
 
 func DumpExpr(expr Expr) string {

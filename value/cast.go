@@ -20,6 +20,14 @@ func CastToArray(val Value) (Array, error) {
 	return arr, nil
 }
 
+func True(val Value) bool {
+	b, ok := val.(Boolean)
+	if ok {
+		return bool(b)
+	}
+	return false
+}
+
 func CastToFloat(val Value) (Float, error) {
 	switch v := val.(type) {
 	case Float:

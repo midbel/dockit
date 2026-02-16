@@ -119,6 +119,34 @@ func (ec *ScopedContext) top() value.Context {
 	return nil
 }
 
+type rowContext struct {
+	rows []value.ScalarValue
+}
+
+func RowContext(rs []value.ScalarValue) value.Context {
+	return rowContext{
+		rows: rs,
+	}
+}
+
+func (c rowContext) Resolve(string) (value.Value, error) {
+	return nil, ErrSupported
+}
+
+func (c rowContext) At(pos layout.Position) (value.Value, error) {
+	if pos.Column < 0 || pos.Column >= int64(len(c.rows)) {
+		return nil, ErrPosition
+	}
+	if pos.Line != 1 {
+		return nil, ErrPosition
+	}
+	return c.rows[pos.Column-1], nil
+}
+
+func (c rowContext) Range(start, end layout.Position) (value.Value, error) {
+	return nil, ErrSupported
+}
+
 type sheetContext struct {
 	view View
 }
@@ -133,7 +161,7 @@ func (c sheetContext) ReadOnly() value.Context {
 	return value.ReadOnly(c)
 }
 
-func (c sheetContext) Resolve(name string) (value.Value, error) {
+func (c sheetContext) Resolve(string) (value.Value, error) {
 	return nil, ErrSupported
 }
 

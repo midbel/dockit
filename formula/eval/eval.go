@@ -322,6 +322,7 @@ func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) 
 	case columnsSlice:
 		view.ProjectView(e.Selection())
 	case filterSlice:
+		view.FilterView(e.Predicate())
 	case identifier:
 	default:
 		return nil, fmt.Errorf("invalid slice expression")
@@ -834,26 +835,4 @@ func makeArg(expr Expr) value.Arg {
 
 func (a arg) Eval(ctx value.Context) (value.Value, error) {
 	return Eval(a.expr, ctx)
-}
-
-func (a arg) asFilter(ctx value.Context) (*value.Filter, bool, error) {
-	var src value.Filter
-
-	b, ok := a.expr.(binary)
-	if !ok {
-		return nil, false, fmt.Errorf("argument can not be used as a predicate")
-	}
-	v, err := Eval(b.right, ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	src.Predicate, err = types.NewPredicate(b.op, v)
-	if err != nil {
-		return nil, false, err
-	}
-	src.Value, err = Eval(b.left, ctx)
-	if err != nil {
-		return nil, false, err
-	}
-	return &src, true, err
 }

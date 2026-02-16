@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"slices"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -142,12 +143,26 @@ type File interface {
 }
 
 type filteredView struct {
-	view View
+	data      [][]value.ScalarValue
+	view      View
+	predicate value.Predicate
 }
 
-func FilterView(view View) View {
+func FilterView(view View, predicate value.Predicate) View {
+	var data [][]value.ScalarValue
+
+	for r := range view.Rows() {
+		ok, err := predicate.Test(RowContext(r))
+		if err != nil || !ok {
+			continue
+		}
+		data = append(data, r)
+	}
+
 	return &filteredView{
-		view: view,
+		data:      data,
+		view:      view,
+		predicate: predicate,
 	}
 }
 
@@ -160,11 +175,23 @@ func (v *filteredView) Type() string {
 }
 
 func (v *filteredView) Bounds() *layout.Range {
-	return nil
+	starts := layout.Position{
+		Line:   1,
+		Column: 1,
+	}
+	if len(v.data) == 0 {
+		return layout.NewRange(starts, starts)
+	}
+	last := v.data[len(v.data)-1]
+	ends := layout.Position{
+		Line:   int64(len(v.data)),
+		Column: int64(len(last)),
+	}
+	return layout.NewRange(starts, ends)
 }
 
 func (v *filteredView) Rows() iter.Seq[[]value.ScalarValue] {
-	return nil
+	return slices.Values(v.data)
 }
 
 func (v *filteredView) Unwrap() View {

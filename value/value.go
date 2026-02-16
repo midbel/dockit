@@ -85,18 +85,13 @@ type Formula interface {
 }
 
 type Predicate interface {
-	Test(ScalarValue) (bool, error)
+	Test(Context) (bool, error)
 }
 
 type Value interface {
 	Kind() ValueKind
 	Type() string
 	fmt.Stringer
-}
-
-type Filter struct {
-	Predicate
-	Value
 }
 
 type Comparable interface {
