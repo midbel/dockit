@@ -73,7 +73,7 @@ func (i inspectForm) inspectRange(eg *Engine, expr rangeAddr, ctx *EngineContext
 	iv.Set("kind", value.Text(expr.KindOf()))
 
 	if view := ctx.CurrentActiveView(); view != nil {
-		iv.Set("view", value.Text(view.Type()))
+		iv.Set("owner", value.Text(view.Type()))
 	}
 
 	rg = rg.Normalize()

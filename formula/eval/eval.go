@@ -192,7 +192,6 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
 		if tok := scan.Scan(); tok.Type != op.Eol {
 			return nil, fmt.Errorf("newline expected")
 		}
-		fmt.Println(ident, val)
 		err := directiveTrie.Configure(ident, val, &ctx.config)
 		if err != nil {
 			return nil, err

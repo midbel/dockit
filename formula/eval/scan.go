@@ -12,6 +12,7 @@ import (
 const (
 	kwImport  = "import"
 	kwUse     = "use"
+	kwUsing   = "using"
 	kwWith    = "with"
 	kwPrint   = "print"
 	kwSave    = "save"
@@ -35,6 +36,7 @@ func isKeyword(str string) bool {
 	switch str {
 	case kwImport:
 	case kwUse:
+	case kwUsing:
 	case kwWith:
 	case kwFrom:
 	case kwPrint:

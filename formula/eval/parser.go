@@ -699,6 +699,35 @@ func parseUse(p *Parser) (Expr, error) {
 	return stmt, nil
 }
 
+func parseKeyValuePairs(p *Parser) (map[string]string, error) {
+	p.next()
+	kvs := make(map[string]string)
+	for !p.done() && !p.is(op.EndGrp) {
+		if !p.is(op.Ident) && !p.is(op.Literal) {
+			return nil, p.makeError("only identifier or literal allowed as key")
+		}
+		key := p.currentLiteral()
+		p.next()
+		if !p.is(op.Assign) {
+			return nil, p.makeError("assignment operator expected between key/value")
+		}
+		p.next()
+		kvs[key] = p.currentLiteral()
+		p.next()
+		switch {
+		case p.is(op.Comma):
+			p.next()
+			if p.is(op.EndGrp) {
+				return nil, p.makeError("unexpected ')' after ','")
+			}
+		case p.is(op.EndGrp):
+		default:
+			return nil, p.makeError("')' or ',' expected")
+		}
+	}
+	return kvs, nil
+}
+
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
 	var stmt importFile
@@ -708,6 +737,28 @@ func parseImport(p *Parser) (Expr, error) {
 	}
 	stmt.file = p.currentLiteral()
 	p.next()
+	if p.is(op.Keyword) && p.currentLiteral() == kwUsing {
+		p.next()
+		if !p.is(op.Ident) {
+			msg := fmt.Sprintf("literal/identifier expected instead of %s", p.curr)
+			return nil, p.makeError(msg)
+		}
+		stmt.format = p.currentLiteral()
+		p.next()
+		if p.is(op.Keyword) && p.currentLiteral() == kwWith {
+			p.next()
+			if p.is(op.BegGrp) {
+				options, err := parseKeyValuePairs(p)
+				if err != nil {
+					return nil, err
+				}
+				stmt.options = options
+			} else {
+				stmt.specifier = p.currentLiteral()
+			}
+			p.next()
+		}
+	}
 	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		if !p.is(op.Ident) {

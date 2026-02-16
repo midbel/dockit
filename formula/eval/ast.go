@@ -91,7 +91,12 @@ func (i useRef) String() string {
 }
 
 type importFile struct {
-	file        string
+	file string
+
+	format    string
+	specifier string
+	options   map[string]string
+
 	alias       string
 	defaultFile bool
 	readOnly    bool
@@ -710,9 +715,19 @@ func dumpExpr(w io.Writer, expr Expr) {
 	case importFile:
 		io.WriteString(w, "import(")
 		io.WriteString(w, e.file)
+		if e.format != "" {
+			io.WriteString(w, ", format: ")
+			io.WriteString(w, e.format)
+		}
 		if e.alias != "" {
 			io.WriteString(w, ", alias: ")
 			io.WriteString(w, e.alias)
+		}
+		if e.defaultFile {
+			io.WriteString(w, ", default")
+		}
+		if e.readOnly {
+			io.WriteString(w, ", readonly")
 		}
 		io.WriteString(w, ")")
 	case useRef:
