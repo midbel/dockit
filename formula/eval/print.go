@@ -6,6 +6,7 @@ import (
 	"io"
 	"iter"
 	"strconv"
+	"strings"
 
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/value"
@@ -68,15 +69,97 @@ func (p valuePrinter) printScalar(v value.ScalarValue) {
 }
 
 func (p valuePrinter) printArray(v value.ArrayValue) {
-
+	writer := bufio.NewWriter(p.w)
+	writeArray(writer, v, int64(p.rows), int64(p.cols))
+	writer.Flush()
 }
 
 func (p valuePrinter) printView(v *types.View) {
+	var (
+		view      = v.View()
+		bounds    = view.Bounds()
+		writer    = bufio.NewWriter(p.w)
+		cols      = bounds.Width()
+		rows      = bounds.Height()
+		truncated = rows > int64(p.rows)
+		data      = make([][]string, 0, min(rows, int64(p.rows)))
+	)
+	if rows == 0 || cols == 0 {
+		return
+	}
 
+	next, stop := iter.Pull(view.Rows())
+	defer stop()
+	var (
+		first, _ = next()
+		size     = min(len(first), p.cols)
+		padding  = make([]int, size)
+		row      = make([]string, size)
+	)
+	for i := range size {
+		row[i] = first[i].String()
+		padding[i] = max(padding[i], len(row[i]))
+	}
+	data = append(data, row)
+
+	for {
+		r, ok := next()
+		if !ok || len(data) >= p.rows {
+			break
+		}
+		row = make([]string, size)
+		for i := 0; i < min(size, len(row)); i++ {
+			row[i] = r[i].String()
+			padding[i] = max(padding[i], len(row[i]))
+		}
+		data = append(data, row)
+	}
+
+	for i := range data {
+		for j := range data[i] {
+			if j > 0 {
+				io.WriteString(writer, " | ")
+			}
+			writeValue(writer, data[i][j], padding[j])
+		}
+		io.WriteString(writer, "\n")
+	}
+	writeView(writer, data, padding, false)
+
+	if truncated {
+		writeTruncate(writer, rows-int64(p.rows))
+		io.WriteString(writer, "\n")
+	}
+	writer.Flush()
 }
 
 func (p valuePrinter) printInspect(v *types.InspectValue) {
-
+	var (
+		prefix = v.Type()
+		props  = make([]string, 0, 5)
+		values = make([]string, 0, 5)
+	)
+	switch prefix {
+	case types.InspectKindCell:
+		props = append(props, "position", "value", "type")
+	case types.InspectKindFile:
+		props = append(props, "sheets")
+	case types.InspectKindSlice:
+		props = append(props, "owner", "type", "rows", "cols")
+	case types.InspectKindRange:
+		props = append(props, "owner", "rows", "cols")
+	case types.InspectKindView:
+		props = append(props, "name", "rows", "cols")
+	default:
+	}
+	for _, p := range props {
+		x, err := v.Get(p)
+		if err == nil {
+			str := fmt.Sprintf("%s=%s", p, x.String())
+			values = append(values, str)
+		}
+	}
+	fmt.Fprintf(p.w, "%s(%s)\n", prefix, strings.Join(values, ", "))
 }
 
 type debugPrinter struct {
@@ -113,29 +196,9 @@ func (p debugPrinter) printArray(v value.ArrayValue) {
 	io.WriteString(writer, strconv.FormatInt(dim.Lines, 10))
 	io.WriteString(writer, ", columns=")
 	io.WriteString(writer, strconv.FormatInt(dim.Columns, 10))
-	io.WriteString(writer, "] [\n")
+	io.WriteString(writer, "]")
 
-	for i := range dim.Lines {
-		if i > int64(p.rows) {
-			break
-		}
-		io.WriteString(writer, "  ")
-		io.WriteString(writer, "[")
-		for j := range dim.Columns {
-			if j > 0 {
-				io.WriteString(writer, ", ")
-			}
-			if j > maxCols {
-				io.WriteString(writer, "...")
-				break
-			}
-			io.WriteString(writer, v.At(int(i), int(j)).String())
-		}
-		io.WriteString(writer, "],\n")
-	}
-
-	io.WriteString(writer, "]\n")
-
+	writeArray(writer, v, int64(p.rows), int64(p.cols))
 	writer.Flush()
 }
 
@@ -173,7 +236,7 @@ func (p debugPrinter) printView(v *types.View) {
 			break
 		}
 		row = make([]string, size)
-		for i := range size {
+		for i := 0; i < min(size, len(row)); i++ {
 			row[i] = r[i].String()
 			padding[i] = max(padding[i], len(row[i]))
 		}
@@ -184,26 +247,12 @@ func (p debugPrinter) printView(v *types.View) {
 	io.WriteString(writer, strconv.FormatInt(rows, 10))
 	io.WriteString(writer, ", columns=")
 	io.WriteString(writer, strconv.FormatInt(cols, 10))
-	io.WriteString(writer, "] (")
-	for i := range data {
-		io.WriteString(writer, "\n  [")
-		if i+1 < 10 {
-			io.WriteString(writer, "0")
-		}
-		io.WriteString(writer, strconv.Itoa(i+1))
-		io.WriteString(writer, "] ")
-		for j := range data[i] {
-			if j > 0 {
-				io.WriteString(writer, " | ")
-			}
-			writeValue(writer, data[i][j], padding[j])
-		}
-	}
+	io.WriteString(writer, "] (\n")
+	writeView(writer, data, padding, true)
 
 	if truncated {
-		io.WriteString(writer, "\n  ... (")
-		io.WriteString(writer, strconv.FormatInt(rows-int64(p.rows), 10))
-		io.WriteString(writer, " more rows)\n")
+		io.WriteString(writer, "  ")
+		writeTruncate(writer, rows-int64(p.rows))
 	}
 	io.WriteString(writer, ")\n")
 	writer.Flush()
@@ -240,5 +289,55 @@ func writeValue(writer io.Writer, str string, size int) {
 	io.WriteString(writer, str)
 	for range size - len(str) {
 		io.WriteString(writer, " ")
+	}
+}
+
+func writeArray(writer io.Writer, arr value.ArrayValue, maxRows, maxCols int64) {
+	dim := arr.Dimension()
+	io.WriteString(writer, "[\n")
+	for i := range dim.Lines {
+		if i > maxRows {
+			break
+		}
+		io.WriteString(writer, "  ")
+		io.WriteString(writer, "[")
+		for j := range dim.Columns {
+			if j > 0 {
+				io.WriteString(writer, ", ")
+			}
+			if j > maxCols {
+				io.WriteString(writer, "...")
+				break
+			}
+			io.WriteString(writer, arr.At(int(i), int(j)).String())
+		}
+		io.WriteString(writer, "],\n")
+	}
+	io.WriteString(writer, "]\n")
+}
+
+func writeTruncate(writer io.Writer, count int64) {
+	io.WriteString(writer, "... (")
+	io.WriteString(writer, strconv.FormatInt(count, 10))
+	io.WriteString(writer, " more rows)\n")
+}
+
+func writeView(writer io.Writer, data [][]string, padding []int, index bool) {
+	for i := range data {
+		if index {
+			io.WriteString(writer, "  [")
+			if i+1 < 10 {
+				io.WriteString(writer, "0")
+			}
+			io.WriteString(writer, strconv.Itoa(i+1))
+			io.WriteString(writer, "] ")
+		}
+		for j := range data[i] {
+			if j > 0 {
+				io.WriteString(writer, " | ")
+			}
+			writeValue(writer, data[i][j], padding[j])
+		}
+		io.WriteString(writer, "\n")
 	}
 }
