@@ -151,6 +151,10 @@ func (s *Scanner) Value() any {
 }
 
 func (s *Scanner) Scan() Token {
+	if s.char == backslash && isNL(s.peek()) {
+		s.read()
+		s.read()
+	}
 	s.skipBlanks()
 
 	var tok Token
@@ -538,6 +542,7 @@ const (
 	pound      = '#'
 	lsquare    = '['
 	rsquare    = ']'
+	backslash  = '\\'
 )
 
 func isComment(c rune) bool {

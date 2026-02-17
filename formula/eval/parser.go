@@ -92,6 +92,7 @@ func LambdaGrammar() *Grammar {
 func SliceGrammar() *Grammar {
 	g := NewGrammar("slice", ModeScript)
 	g.scope = GrammarIsolated
+	g.bindings[op.Semi] = powList
 
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
@@ -284,7 +285,7 @@ func (p *Parser) is(kind op.Op) bool {
 }
 
 func (p *Parser) isEOL() bool {
-	return p.is(op.Eol) || p.is(op.EOF)
+	return p.is(op.Eol) || p.is(op.EOF) || p.is(op.Semi)
 }
 
 func (p *Parser) skipEOL() {
@@ -333,6 +334,14 @@ func (p *Parser) currGrammar() *Grammar {
 
 func (p *Parser) makeError(msg string) error {
 	return fmt.Errorf("(%s) %s: %s", p.currGrammar().Context(), p.curr.Position, msg)
+}
+
+func (p *Parser) expectedEOL() error {
+	return p.makeError("end of line expected")
+}
+
+func (p *Parser) expectedIdent() error {
+	return p.makeError("identifier expected")
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
@@ -447,7 +456,7 @@ func parseLiteral(p *Parser) (Expr, error) {
 		list = append(list, i)
 		offset += ix + 2
 		if ix = strings.Index(lit[offset:], "}"); ix <= 0 {
-			return nil, fmt.Errorf("invalid template string")
+			return nil, p.makeError("invalid template string")
 		}
 		expr, err := parseExprFromString(lit[offset : offset+ix])
 		if err != nil {
@@ -539,7 +548,7 @@ func parseDeferred(p *Parser) (Expr, error) {
 func parseAccess(p *Parser, left Expr) (Expr, error) {
 	p.next()
 	if !p.is(op.Ident) {
-		return nil, p.makeError("identifier expected")
+		return nil, p.expectedIdent()
 	}
 	a := access{
 		expr: left,
@@ -608,9 +617,9 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	}
 	a.expr = expr
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return a, nil
 }
 
@@ -626,15 +635,15 @@ func parsePrint(p *Parser) (Expr, error) {
 	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
 		p.next()
 		if !p.is(op.Ident) {
-			return nil, p.makeError("identifier expected")
+			return nil, p.expectedIdent()
 		}
 		stmt.mode = p.currentLiteral()
 		p.next()
 	}
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return stmt, nil
 }
 
@@ -648,9 +657,9 @@ func parseSave(p *Parser) (Expr, error) {
 		expr: expr,
 	}
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return stmt, nil
 }
 
@@ -678,16 +687,16 @@ func parseExport(p *Parser) (Expr, error) {
 		}
 	}
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return stmt, nil
 }
 
 func parseUse(p *Parser) (Expr, error) {
 	p.next()
 	if !p.is(op.Ident) {
-		return nil, p.makeError("identifier expected")
+		return nil, p.expectedIdent()
 	}
 	stmt := useRef{
 		ident: p.currentLiteral(),
@@ -699,9 +708,9 @@ func parseUse(p *Parser) (Expr, error) {
 	}
 	stmt.readOnly = ro
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return stmt, nil
 }
 
@@ -784,9 +793,9 @@ func parseImport(p *Parser) (Expr, error) {
 	}
 	stmt.readOnly = ro
 	if !p.isEOL() {
-		return nil, p.makeError("eol expected")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return stmt, nil
 }
 
@@ -805,32 +814,32 @@ func parsePop(p *Parser) (Expr, error) {
 func parseLock(p *Parser) (Expr, error) {
 	p.next()
 	if !p.is(op.Ident) {
-		return nil, p.makeError("identifier expected")
+		return nil, p.expectedIdent()
 	}
 	stmt := lockRef{
 		ident: p.currentLiteral(),
 	}
 	p.next()
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return stmt, nil
 }
 
 func parseUnlock(p *Parser) (Expr, error) {
 	p.next()
 	if !p.is(op.Ident) {
-		return nil, p.makeError("identifier expected")
+		return nil, p.expectedIdent()
 	}
 	stmt := unlockRef{
 		ident: p.currentLiteral(),
 	}
 	p.next()
 	if !p.isEOL() {
-		return nil, p.makeError("expected eol")
+		return nil, p.expectedEOL()
 	}
-	p.next()
+	p.skipEOL()
 	return stmt, nil
 }
 
@@ -848,7 +857,8 @@ func parseReadonly(p *Parser) (bool, error) {
 		ok = true
 	case kwRw:
 	default:
-		return ok, fmt.Errorf("%s: unexpected keyword", kw)
+		msg := fmt.Sprintf("%s: unexpected keyword", kw)
+		return ok, p.makeError(msg)
 	}
 	p.next()
 	return ok, nil
@@ -874,6 +884,7 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 	if !p.is(op.EndProp) {
 		return nil, p.makeError("expected ] at end of slice expression")
 	}
+	p.next()
 	if _, ok := expr.(exprRange); ok {
 		rg, err := getColumnsRangeFromExpr(expr)
 		if err != nil {
@@ -883,7 +894,6 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 			columns: []columnsRange{rg},
 		}
 	}
-	p.next()
 	s := slice{
 		view: left,
 		expr: expr,

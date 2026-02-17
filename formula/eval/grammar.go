@@ -54,7 +54,6 @@ var defaultBindings = map[op.Op]int{
 	op.Dot:          powProp,
 	op.SheetRef:     powSheet,
 	op.RangeRef:     powRange,
-	op.Semi:         powList,
 	op.And:          powLogical,
 	op.Or:           powLogical,
 	op.Not:          powUnary,

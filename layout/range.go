@@ -78,6 +78,18 @@ func (r *Range) String() string {
 	return fmt.Sprintf("%s:%s", r.Starts.Addr(), r.Ends.Addr())
 }
 
+func (r *Range) Transpose() *Range {
+	e := Position{
+		Line: r.Width(),
+		Column: r.Height(),
+	}
+	s := Position{
+		Line: 1,
+		Column: 1,
+	}
+	return NewRange(s, e)
+}
+
 func (r *Range) Normalize() *Range {
 	x := NewRange(r.Starts, r.Ends)
 	x.Starts.Line = min(r.Starts.Line, r.Ends.Line)

@@ -279,12 +279,17 @@ func (v *transposedView) Type() string {
 
 func (v *transposedView) Bounds() *layout.Range {
 	bs := v.view.Bounds()
-	return bs
+	return bs.Transpose()
 }
 
 func (v *transposedView) Rows() iter.Seq[[]value.ScalarValue] {
 	it := func(yield func([]value.ScalarValue) bool) {
-
+		bs := v.Bounds()
+		for row := range bs.Width() {
+			for col := range bs.Height() {
+				_, _ = row, col
+			}
+		}
 	}
 	return it
 }
