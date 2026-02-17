@@ -285,9 +285,22 @@ func (v *transposedView) Bounds() *layout.Range {
 func (v *transposedView) Rows() iter.Seq[[]value.ScalarValue] {
 	it := func(yield func([]value.ScalarValue) bool) {
 		bs := v.Bounds()
-		for row := range bs.Width() {
-			for col := range bs.Height() {
-				_, _ = row, col
+		for row := int64(0); row < bs.Height(); row++ {
+			rs := make([]value.ScalarValue, bs.Width())
+			for col := int64(0); col < bs.Width(); col++ {
+				p := layout.Position{
+					Line:   col,
+					Column: row,
+				}
+				c, err := v.Cell(p)
+				if err != nil {
+					rs[col] = value.ErrNA
+				} else {
+					rs[col] = c.Value()
+				}
+			}
+			if !yield(rs) {
+				return
 			}
 		}
 	}
@@ -303,7 +316,11 @@ func (v *transposedView) Encode(encoder Encoder) error {
 }
 
 func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
-	return v.view.Cell(pos)
+	p := layout.Position{
+		Line:   pos.Column,
+		Column: pos.Line,
+	}
+	return v.view.Cell(p)
 }
 
 func (v *transposedView) Reload(ctx value.Context) error {

@@ -24,15 +24,50 @@ const (
 	PrintDebug
 )
 
+type Formatter interface {
+	Format(value.Value) string
+}
+
+type valueFormatter struct{}
+
+func (valueFormatter) Format(v value.Value) string {
+	return ""
+}
+
+type strFormatter struct{}
+
+func (strFormatter) Format(v value.Value) string {
+	return v.String()
+}
+
+type dateFormatter struct{}
+
+func (f dateFormatter) Format(v value.Value) string {
+	return ""
+}
+
+type numberFormatter struct{}
+
+func (f numberFormatter) Format(v value.Value) string {
+	return ""
+}
+
+type boolFormatter struct{}
+
+func (f boolFormatter) Format(v value.Value) string {
+	return ""
+}
+
 type Printer interface {
 	Print(value.Value)
 }
 
 func PrintValue(w io.Writer, rows, cols int) Printer {
 	return valuePrinter{
-		w:    w,
-		rows: rows,
-		cols: cols,
+		w:      w,
+		rows:   rows,
+		cols:   cols,
+		format: strFormatter{},
 	}
 }
 
@@ -45,9 +80,10 @@ func DebugValue(w io.Writer, rows, cols int) Printer {
 }
 
 type valuePrinter struct {
-	w    io.Writer
-	cols int
-	rows int
+	w      io.Writer
+	cols   int
+	rows   int
+	format Formatter
 }
 
 func (p valuePrinter) Print(v value.Value) {
@@ -65,7 +101,7 @@ func (p valuePrinter) Print(v value.Value) {
 }
 
 func (p valuePrinter) printScalar(v value.ScalarValue) {
-	fmt.Fprintln(p.w, v.String())
+	fmt.Fprintln(p.w, p.format.Format(v))
 }
 
 func (p valuePrinter) printArray(v value.ArrayValue) {

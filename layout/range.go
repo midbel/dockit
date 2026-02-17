@@ -80,11 +80,11 @@ func (r *Range) String() string {
 
 func (r *Range) Transpose() *Range {
 	e := Position{
-		Line: r.Width(),
+		Line:   r.Width(),
 		Column: r.Height(),
 	}
 	s := Position{
-		Line: 1,
+		Line:   1,
 		Column: 1,
 	}
 	return NewRange(s, e)
