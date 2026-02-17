@@ -30,6 +30,9 @@ const (
 	kwPush    = "push"
 	kwPop     = "pop"
 	kwClear   = "clear"
+	kwAnd     = "and"
+	kwOr      = "or"
+	kwNot     = "not"
 )
 
 func isKeyword(str string) bool {
@@ -54,6 +57,9 @@ func isKeyword(str string) bool {
 	case kwPush:
 	case kwPop:
 	case kwClear:
+	case kwAnd:
+	case kwOr:
+	case kwNot:
 	default:
 		return false
 	}
@@ -220,6 +226,13 @@ func (s *Scanner) scanIdent(tok *Token) {
 	tok.Literal = s.literal()
 	if s.allowKeywords() && isKeyword(tok.Literal) {
 		tok.Type = op.Keyword
+		if tok.Literal == kwAnd {
+			tok.Type = op.And
+		} else if tok.Literal == kwOr {
+			tok.Type = op.Or
+		} else if tok.Literal == kwNot {
+			tok.Type = op.Not
+		}
 	}
 	if reco.IsCell() {
 		tok.Type = op.Cell

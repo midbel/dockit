@@ -50,6 +50,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(op.Ident, parseIdentifier)
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
+	g.RegisterPrefix(op.BegGrp, parseGroup)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
@@ -97,6 +98,7 @@ func SliceGrammar() *Grammar {
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.RangeRef, parseOpenSelectedColumns)
+	g.RegisterPrefix(op.BegGrp, parseGroup)
 
 	g.RegisterInfix(op.BegGrp, parseCall)
 
@@ -109,6 +111,11 @@ func SliceGrammar() *Grammar {
 	g.RegisterInfix(op.Le, parseFilterRows)
 	g.RegisterInfix(op.Gt, parseFilterRows)
 	g.RegisterInfix(op.Ge, parseFilterRows)
+
+	g.RegisterInfix(op.And, parseAnd)
+	g.RegisterInfix(op.Or, parseOr)
+	g.RegisterPrefix(op.Not, parseNot)
+
 	return g
 }
 
@@ -1017,4 +1024,42 @@ func parseFilterRows(p *Parser, left Expr) (Expr, error) {
 		expr: expr,
 	}
 	return fs, nil
+}
+
+func parseNot(p *Parser) (Expr, error) {
+	p.next()
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	ret := not{
+		expr: expr,
+	}
+	return ret, nil
+}
+
+func parseAnd(p *Parser, left Expr) (Expr, error) {
+	p.next()
+	right, err := p.parse(powLogical)
+	if err != nil {
+		return nil, err
+	}
+	a := and{
+		left:  left,
+		right: right,
+	}
+	return a, nil
+}
+
+func parseOr(p *Parser, left Expr) (Expr, error) {
+	p.next()
+	right, err := p.parse(powLogical)
+	if err != nil {
+		return nil, err
+	}
+	o := or{
+		left:  left,
+		right: right,
+	}
+	return o, nil
 }

@@ -150,6 +150,8 @@ func (p valuePrinter) printInspect(v *types.InspectValue) {
 		props = append(props, "owner", "rows", "cols")
 	case types.InspectKindView:
 		props = append(props, "name", "rows", "cols")
+	case types.InspectKindPrimitive:
+		props = append(props, "type", "value")
 	default:
 	}
 	for _, p := range props {

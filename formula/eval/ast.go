@@ -254,6 +254,32 @@ func (p postfix) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
+type not struct {
+	expr Expr
+}
+
+func (n not) String() string {
+	return fmt.Sprintf("not(%s)", n.expr)
+}
+
+type and struct {
+	left  Expr
+	right Expr
+}
+
+func (a and) String() string {
+	return fmt.Sprintf("and(%s, %s)", a.left, a.right)
+}
+
+type or struct {
+	left  Expr
+	right Expr
+}
+
+func (o or) String() string {
+	return fmt.Sprintf("or(%s, %s)", o.left, o.right)
+}
+
 type unary struct {
 	expr Expr
 	op   op.Op
@@ -638,6 +664,22 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ", ")
 		io.WriteString(w, op.Symbol(e.op))
+		io.WriteString(w, ")")
+	case not:
+		io.WriteString(w, "not(")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ")")
+	case and:
+		io.WriteString(w, "and(")
+		dumpExpr(w, e.left)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.right)
+		io.WriteString(w, ")")
+	case or:
+		io.WriteString(w, "or(")
+		dumpExpr(w, e.left)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.right)
 		io.WriteString(w, ")")
 	case postfix:
 		io.WriteString(w, "postfix(")

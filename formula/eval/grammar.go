@@ -10,6 +10,7 @@ import (
 const (
 	powLowest = iota
 	powAssign
+	powLogical
 	powEq
 	powCmp
 	powUnion
@@ -54,6 +55,9 @@ var defaultBindings = map[op.Op]int{
 	op.SheetRef:     powSheet,
 	op.RangeRef:     powRange,
 	op.Semi:         powList,
+	op.And:          powLogical,
+	op.Or:           powLogical,
+	op.Not:          powUnary,
 }
 
 type GrammarScope int

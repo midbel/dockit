@@ -255,6 +255,56 @@ func (v *readonlyView) Reload(ctx value.Context) error {
 	return ErrWritable
 }
 
+type transposedView struct {
+	view View
+}
+
+func NewTransposedView(view View) View {
+	if v, ok := view.(*transposedView); ok {
+		return v
+	}
+	v := &transposedView{
+		view: view,
+	}
+	return v
+}
+
+func (v *transposedView) Name() string {
+	return v.view.Name()
+}
+
+func (v *transposedView) Type() string {
+	return "transpose"
+}
+
+func (v *transposedView) Bounds() *layout.Range {
+	bs := v.view.Bounds()
+	return bs
+}
+
+func (v *transposedView) Rows() iter.Seq[[]value.ScalarValue] {
+	it := func(yield func([]value.ScalarValue) bool) {
+
+	}
+	return it
+}
+
+func (v *transposedView) Unwrap() View {
+	return v.view
+}
+
+func (v *transposedView) Encode(encoder Encoder) error {
+	return encoder.EncodeSheet(v)
+}
+
+func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
+	return v.view.Cell(pos)
+}
+
+func (v *transposedView) Reload(ctx value.Context) error {
+	return ErrWritable
+}
+
 type horizontalStackedView struct {
 	views []View
 }

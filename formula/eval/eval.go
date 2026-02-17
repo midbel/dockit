@@ -249,6 +249,12 @@ func (e *Engine) exec(expr Expr, ctx *EngineContext) (value.Value, error) {
 		return value.Float(expr.value), nil
 	case identifier:
 		return evalScriptIdent(e, expr, ctx)
+	case not:
+		return evalScriptNot(e, expr, ctx)
+	case and:
+		return evalScriptAnd(e, expr, ctx)
+	case or:
+		return evalScriptOr(e, expr, ctx)
 	case binary:
 		e.enterPhase(phaseBinary)
 		defer e.leavePhase()
@@ -423,6 +429,18 @@ func evalTemplate(eg *Engine, expr template, ctx *EngineContext) (value.Value, e
 		str.WriteString(v.String())
 	}
 	return value.Text(str.String()), nil
+}
+
+func evalScriptNot(eg *Engine, e not, ctx *EngineContext) (value.Value, error) {
+	return nil, nil
+}
+
+func evalScriptAnd(eg *Engine, e and, ctx *EngineContext) (value.Value, error) {
+	return nil, nil
+}
+
+func evalScriptOr(eg *Engine, e or, ctx *EngineContext) (value.Value, error) {
+	return nil, nil
 }
 
 func evalScriptBinary(eg *Engine, e binary, ctx *EngineContext) (value.Value, error) {

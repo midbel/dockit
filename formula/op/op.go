@@ -36,6 +36,9 @@ const (
 	Le
 	Gt
 	Ge
+	And
+	Or
+	Not
 	Comma
 	Semi
 	Dot

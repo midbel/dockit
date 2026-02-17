@@ -80,6 +80,12 @@ func (t Token) String() string {
 		return "<comma>"
 	case op.Semi:
 		return "<semi>"
+	case op.And:
+		return "<and>"
+	case op.Or:
+		return "<or>"
+	case op.Not:
+		return "<not>"
 	case op.Dot:
 		return "<dot>"
 	case op.BegGrp:
