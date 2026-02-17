@@ -21,6 +21,27 @@ func init() {
 		"mode",
 		"debug",
 	}, configurePrintDebug)
+
+	directiveTrie.Register([]string{
+		"print",
+		"format",
+		"date",
+	}, configureFormatDate)
+	directiveTrie.Register([]string{
+		"print",
+		"format",
+		"boolean",
+	}, configureFormatBoolean)
+	directiveTrie.Register([]string{
+		"print",
+		"format",
+		"number",
+	}, configureFormatNumber)
+
+	directiveTrie.Register([]string{
+		"import",
+		"directory",
+	}, configureContextDir)
 }
 
 type ConfigFunc func(*EngineConfig, any) error
@@ -72,6 +93,22 @@ func (t *Trie) Register(path []string, cmd ConfigFunc) error {
 		node = node.Children[name]
 	}
 	node.cmd = cmd
+	return nil
+}
+
+func configureContextDir(cfg *EngineConfig, value any) error {
+	return nil
+}
+
+func configureFormatDate(cfg *EngineConfig, value any) error {
+	return nil
+}
+
+func configureFormatNumber(cfg *EngineConfig, value any) error {
+	return nil
+}
+
+func configureFormatBoolean(cfg *EngineConfig, value any) error {
 	return nil
 }
 
