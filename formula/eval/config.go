@@ -8,12 +8,10 @@ func init() {
 	directiveTrie = NewTrie()
 	directiveTrie.Register([]string{
 		"print",
-		"format",
 		"rows",
 	}, configurePrintRows)
 	directiveTrie.Register([]string{
 		"print",
-		"format",
 		"cols",
 	}, configurePrintCols)
 	directiveTrie.Register([]string{
@@ -97,18 +95,22 @@ func (t *Trie) Register(path []string, cmd ConfigFunc) error {
 }
 
 func configureContextDir(cfg *EngineConfig, value any) error {
+	cfg.ContextDir = value.(string)
 	return nil
 }
 
 func configureFormatDate(cfg *EngineConfig, value any) error {
+	cfg.Formating.Date = value.(string)
 	return nil
 }
 
 func configureFormatNumber(cfg *EngineConfig, value any) error {
+	cfg.Formating.Number = value.(string)
 	return nil
 }
 
 func configureFormatBoolean(cfg *EngineConfig, value any) error {
+	cfg.Formating.Bool = value.(string)
 	return nil
 }
 

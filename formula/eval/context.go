@@ -23,6 +23,14 @@ type EngineConfig struct {
 		Debug bool
 	}
 
+	Formating struct {
+		Date   string
+		Number string
+		Bool   string
+	}
+
+	ContextDir string
+
 	Stdout io.Writer
 	Stderr io.Writer
 	Trace  bool
