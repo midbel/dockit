@@ -232,6 +232,13 @@ func (b binary) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
+func (b binary) Predicate() value.Predicate {
+	f := deferredFormula{
+		expr: b,
+	}
+	return types.NewExprPredicate(&f)
+}
+
 type postfix struct {
 	expr Expr
 	op   op.Op
@@ -262,6 +269,17 @@ func (n not) String() string {
 	return fmt.Sprintf("not(%s)", n.expr)
 }
 
+func (n not) Predicate() value.Predicate {
+	e := unary{
+		expr: n.expr,
+		op:   op.Not,
+	}
+	f := deferredFormula{
+		expr: e,
+	}
+	return types.NewExprPredicate(&f)
+}
+
 type and struct {
 	left  Expr
 	right Expr
@@ -271,6 +289,18 @@ func (a and) String() string {
 	return fmt.Sprintf("and(%s, %s)", a.left, a.right)
 }
 
+func (a and) Predicate() value.Predicate {
+	b := binary{
+		op:    op.And,
+		left:  a.left,
+		right: a.right,
+	}
+	f := deferredFormula{
+		expr: b,
+	}
+	return types.NewExprPredicate(&f)
+}
+
 type or struct {
 	left  Expr
 	right Expr
@@ -278,6 +308,18 @@ type or struct {
 
 func (o or) String() string {
 	return fmt.Sprintf("or(%s, %s)", o.left, o.right)
+}
+
+func (o or) Predicate() value.Predicate {
+	b := binary{
+		op:    op.Or,
+		left:  o.left,
+		right: o.right,
+	}
+	f := deferredFormula{
+		expr: b,
+	}
+	return types.NewExprPredicate(&f)
 }
 
 type unary struct {

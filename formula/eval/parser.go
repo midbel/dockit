@@ -99,22 +99,21 @@ func SliceGrammar() *Grammar {
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.RangeRef, parseOpenSelectedColumns)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
+	g.RegisterPrefix(op.Not, parseNot)
 
 	g.RegisterInfix(op.BegGrp, parseCall)
 
 	g.RegisterInfix(op.RangeRef, parseRangeColumns)
 	g.RegisterInfix(op.Semi, parseSelectedColumns)
 
-	g.RegisterInfix(op.Eq, parseFilterRows)
-	g.RegisterInfix(op.Ne, parseFilterRows)
-	g.RegisterInfix(op.Lt, parseFilterRows)
-	g.RegisterInfix(op.Le, parseFilterRows)
-	g.RegisterInfix(op.Gt, parseFilterRows)
-	g.RegisterInfix(op.Ge, parseFilterRows)
-
+	g.RegisterInfix(op.Eq, parseBinary)
+	g.RegisterInfix(op.Ne, parseBinary)
+	g.RegisterInfix(op.Lt, parseBinary)
+	g.RegisterInfix(op.Le, parseBinary)
+	g.RegisterInfix(op.Gt, parseBinary)
+	g.RegisterInfix(op.Ge, parseBinary)
 	g.RegisterInfix(op.And, parseAnd)
 	g.RegisterInfix(op.Or, parseOr)
-	g.RegisterPrefix(op.Not, parseNot)
 
 	return g
 }

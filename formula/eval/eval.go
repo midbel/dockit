@@ -327,7 +327,13 @@ func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) 
 		view.BoundedView(e.Range())
 	case columnsSlice:
 		view.ProjectView(e.Selection())
-	case filterSlice:
+	case binary:
+		view.FilterView(e.Predicate())
+	case and:
+		view.FilterView(e.Predicate())
+	case or:
+		view.FilterView(e.Predicate())
+	case not:
 		view.FilterView(e.Predicate())
 	case identifier:
 	default:
@@ -812,6 +818,12 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 		return value.Gt(left, right)
 	case op.Ge:
 		return value.Ge(left, right)
+	case op.And:
+		ok := value.True(left) && value.True(right)
+		return value.Boolean(ok), nil
+	case op.Or:
+		ok := value.True(left) || value.True(right)
+		return value.Boolean(ok), nil
 	default:
 		return value.ErrValue, nil
 	}
@@ -827,6 +839,9 @@ func evalUnary(e unary, ctx value.Context) (value.Value, error) {
 		return value.ErrValue, nil
 	}
 	switch e.op {
+	case op.Not:
+		ok := value.True(val)
+		return value.Boolean(!ok), nil
 	case op.Add:
 		return n, nil
 	case op.Sub:
