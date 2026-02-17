@@ -12,6 +12,10 @@ type toText interface {
 	ToText() (ScalarValue, error)
 }
 
+type toBool interface {
+	ToBool() (ScalarValue, error)
+}
+
 func CastToArray(val Value) (Array, error) {
 	arr, ok := val.(Array)
 	if !ok {
@@ -21,8 +25,15 @@ func CastToArray(val Value) (Array, error) {
 }
 
 func True(val Value) bool {
-	b, ok := val.(Boolean)
-	if ok {
+	tb, ok := val.(toBool)
+	if !ok {
+		return false
+	}
+	b, err := tb.ToBool()
+	if err != nil {
+		return false
+	}
+	if b, ok := b.(Boolean); ok {
 		return bool(b)
 	}
 	return false

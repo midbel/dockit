@@ -432,15 +432,38 @@ func evalTemplate(eg *Engine, expr template, ctx *EngineContext) (value.Value, e
 }
 
 func evalScriptNot(eg *Engine, e not, ctx *EngineContext) (value.Value, error) {
-	return nil, nil
+	val, err := eg.exec(e.expr, ctx)
+	if err != nil {
+		return value.ErrValue, err
+	}
+	ok := value.True(val)
+	return value.Boolean(!ok), nil
 }
 
 func evalScriptAnd(eg *Engine, e and, ctx *EngineContext) (value.Value, error) {
-	return nil, nil
+	left, err := eg.exec(e.left, ctx)
+	if err != nil {
+		return value.ErrValue, err
+	}
+	right, err := eg.exec(e.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+	ok := value.True(left) && value.True(right)
+	return value.Boolean(ok), nil
 }
 
 func evalScriptOr(eg *Engine, e or, ctx *EngineContext) (value.Value, error) {
-	return nil, nil
+	left, err := eg.exec(e.left, ctx)
+	if err != nil {
+		return value.ErrValue, err
+	}
+	right, err := eg.exec(e.right, ctx)
+	if err != nil {
+		return nil, err
+	}
+	ok := value.True(left) || value.True(right)
+	return value.Boolean(ok), nil
 }
 
 func evalScriptBinary(eg *Engine, e binary, ctx *EngineContext) (value.Value, error) {
