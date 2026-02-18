@@ -24,9 +24,11 @@ type EngineConfig struct {
 	}
 
 	Formating struct {
-		Date   string
-		Number string
-		Bool   string
+		Date        string
+		Bool        string
+		Number      string
+		ThousandSep rune
+		DecimalSep  rune
 	}
 
 	ContextDir string

@@ -292,7 +292,7 @@ func (v *transposedView) Rows() iter.Seq[[]value.ScalarValue] {
 					Line:   col,
 					Column: row,
 				}
-				c, err := v.Cell(p)
+				c, err := v.view.Cell(p)
 				if err != nil {
 					rs[col] = value.ErrNA
 				} else {

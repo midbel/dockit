@@ -34,6 +34,16 @@ func init() {
 		"print",
 		"format",
 		"number",
+	}, configureFormatThousandSep)
+	directiveTrie.Register([]string{
+		"print",
+		"format",
+		"thousand_sep",
+	}, configureFormatDecimalSep)
+	directiveTrie.Register([]string{
+		"print",
+		"format",
+		"decimal_sep",
 	}, configureFormatNumber)
 
 	directiveTrie.Register([]string{
@@ -105,6 +115,16 @@ func configureFormatDate(cfg *EngineConfig, value any) error {
 }
 
 func configureFormatNumber(cfg *EngineConfig, value any) error {
+	cfg.Formating.Number = value.(string)
+	return nil
+}
+
+func configureFormatThousandSep(cfg *EngineConfig, value any) error {
+	cfg.Formating.Number = value.(string)
+	return nil
+}
+
+func configureFormatDecimalSep(cfg *EngineConfig, value any) error {
 	cfg.Formating.Number = value.(string)
 	return nil
 }

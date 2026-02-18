@@ -112,8 +112,8 @@ func (importFile) Kind() Kind {
 }
 
 type printRef struct {
-	expr Expr
-	mode string
+	expr    Expr
+	pattern string
 }
 
 func (p printRef) String() string {
@@ -435,7 +435,7 @@ type columnsSlice struct {
 }
 
 func (s columnsSlice) String() string {
-	return fmt.Sprintf("columns(%s)", s.columns)
+	return fmt.Sprintf("columns(%v)", s.columns)
 }
 
 func (s columnsSlice) Selection() layout.Selection {
