@@ -47,7 +47,16 @@ func (c EngineConfig) Printer() Printer {
 	if c.Print.Debug {
 		return DebugValue(c.Stdout, c.Print.Rows, c.Print.Cols)
 	}
-	return PrintValue(c.Stdout, c.Print.Rows, c.Print.Cols)
+	p := PrintValue(c.Stdout, c.Print.Rows, c.Print.Cols)
+	if x, ok := p.(valuePrinter); ok {
+		var vs valueFormatter
+		if f, err := ParseNumberFormatter(c.Formating.Number); err == nil {
+			vs.number = f
+		}
+		x.format = vs
+		return x
+	}
+	return p
 }
 
 type EngineContext struct {
@@ -57,8 +66,15 @@ type EngineContext struct {
 }
 
 func NewEngineContext() *EngineContext {
+	var cfg EngineConfig
+
+	cfg.Formating.Number = defaultNumberFormatPattern
+	cfg.Formating.ThousandSep = ','
+	cfg.Formating.DecimalSep = '.'
+
 	eg := EngineContext{
-		ctx: new(grid.ScopedContext),
+		ctx:    new(grid.ScopedContext),
+		config: cfg,
 	}
 	return &eg
 }

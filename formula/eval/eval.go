@@ -107,6 +107,9 @@ func NewEngine(loader Loader) *Engine {
 	}
 	e.Config.Print.Cols = maxCols
 	e.Config.Print.Rows = maxRows
+	e.Config.Formating.Number = defaultNumberFormatPattern
+	e.Config.Formating.ThousandSep = ','
+	e.Config.Formating.DecimalSep = '.'
 	return &e
 }
 

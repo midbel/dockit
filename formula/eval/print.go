@@ -17,6 +17,8 @@ import (
 const (
 	maxCols = 10
 	maxRows = 25
+
+	defaultNumberFormatPattern = "#######.00"
 )
 
 type PrintMode int
@@ -31,11 +33,24 @@ type Formatter interface {
 }
 
 type valueFormatter struct {
-	list []Formatter
+	number  Formatter
+	text    Formatter
+	boolean Formatter
+	date    Formatter
 }
 
-func (valueFormatter) Format(v value.Value) (string, error) {
-	return "", nil
+func (vf valueFormatter) Format(v value.Value) (string, error) {
+	switch v.(type) {
+	case value.Boolean:
+	case value.Float:
+		if vf.number != nil {
+			return vf.number.Format(v)
+		}
+	case value.Text:
+	case value.Date:
+	default:
+	}
+	return v.String(), nil
 }
 
 type strFormatter struct{}
@@ -247,7 +262,7 @@ func (p valuePrinter) printScalar(v value.ScalarValue) {
 
 func (p valuePrinter) printArray(v value.ArrayValue) {
 	writer := bufio.NewWriter(p.w)
-	writeArray(writer, v, int64(p.rows), int64(p.cols))
+	writeArray(writer, v, p.format, int64(p.rows), int64(p.cols))
 	writer.Flush()
 }
 
@@ -274,7 +289,8 @@ func (p valuePrinter) printView(v *types.View) {
 		row      = make([]string, size)
 	)
 	for i := range size {
-		row[i] = first[i].String()
+		str, _ := p.format.Format(first[i])
+		row[i] = str
 		padding[i] = max(padding[i], len(row[i]))
 	}
 	data = append(data, row)
@@ -286,7 +302,8 @@ func (p valuePrinter) printView(v *types.View) {
 		}
 		row = make([]string, size)
 		for i := 0; i < min(size, len(row)); i++ {
-			row[i] = r[i].String()
+			str, _ := p.format.Format(r[i])
+			row[i] = str
 			padding[i] = max(padding[i], len(row[i]))
 		}
 		data = append(data, row)
@@ -377,7 +394,7 @@ func (p debugPrinter) printArray(v value.ArrayValue) {
 	io.WriteString(writer, strconv.FormatInt(dim.Columns, 10))
 	io.WriteString(writer, "]")
 
-	writeArray(writer, v, int64(p.rows), int64(p.cols))
+	writeArray(writer, v, nil, int64(p.rows), int64(p.cols))
 	writer.Flush()
 }
 
@@ -471,7 +488,10 @@ func writeValue(writer io.Writer, str string, size int) {
 	}
 }
 
-func writeArray(writer io.Writer, arr value.ArrayValue, maxRows, maxCols int64) {
+func writeArray(writer io.Writer, arr value.ArrayValue, ft Formatter, maxRows, maxCols int64) {
+	if ft == nil {
+		ft = strFormatter{}
+	}
 	dim := arr.Dimension()
 	io.WriteString(writer, "[\n")
 	for i := range dim.Lines {
@@ -488,7 +508,8 @@ func writeArray(writer io.Writer, arr value.ArrayValue, maxRows, maxCols int64) 
 				io.WriteString(writer, "...")
 				break
 			}
-			io.WriteString(writer, arr.At(int(i), int(j)).String())
+			str, _ := ft.Format(arr.At(int(i), int(j)))
+			io.WriteString(writer, str)
 		}
 		io.WriteString(writer, "],\n")
 	}
