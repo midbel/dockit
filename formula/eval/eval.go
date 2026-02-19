@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/op"
@@ -107,7 +108,8 @@ func NewEngine(loader Loader) *Engine {
 	}
 	e.Config.Print.Cols = maxCols
 	e.Config.Print.Rows = maxRows
-	e.Config.Formating.Number = defaultNumberFormatPattern
+	e.Config.Formating.Number = format.DefaultNumberPattern
+	e.Config.Formating.Date = format.DefaultDatePattern
 	e.Config.Formating.ThousandSep = ','
 	e.Config.Formating.DecimalSep = '.'
 	return &e

@@ -13,7 +13,7 @@ func Empty() ScalarValue {
 }
 
 func (Blank) Type() string {
-	return "blank"
+	return TypeBlank
 }
 
 func (Blank) Kind() ValueKind {
@@ -31,7 +31,7 @@ func (Blank) Scalar() any {
 type Date time.Time
 
 func (Date) Type() string {
-	return "date"
+	return TypeDate
 }
 
 func (Date) Kind() ValueKind {
@@ -96,7 +96,7 @@ func (d Date) Less(other Value) (bool, error) {
 type Float float64
 
 func (Float) Type() string {
-	return "number"
+	return TypeNumber
 }
 
 func (Float) Kind() ValueKind {
@@ -185,7 +185,7 @@ func (f Float) Less(other Value) (bool, error) {
 type Text string
 
 func (Text) Type() string {
-	return "text"
+	return TypeText
 }
 
 func (Text) Kind() ValueKind {
@@ -306,7 +306,7 @@ func (t Text) Less(other Value) (bool, error) {
 type Boolean bool
 
 func (Boolean) Type() string {
-	return "boolean"
+	return TypeBool
 }
 
 func (Boolean) Kind() ValueKind {

@@ -26,7 +26,7 @@ func (Array) Kind() ValueKind {
 }
 
 func (Array) String() string {
-	return ""
+	return TypeArray
 }
 
 func (a Array) Dimension() layout.Dimension {

@@ -23,7 +23,7 @@ func createError(code string) Error {
 }
 
 func (Error) Type() string {
-	return "error"
+	return TypeError
 }
 
 func (Error) Kind() ValueKind {

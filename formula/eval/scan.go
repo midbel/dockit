@@ -193,6 +193,8 @@ func (s *Scanner) scanComment(tok *Token) {
 	if s.char == bang {
 		s.scanDirective(tok)
 		return
+	} else if s.char == question {
+
 	}
 	s.skipBlanks()
 	for !s.done() && !isNL(s.char) {
@@ -513,6 +515,7 @@ func (c *cellRecognizer) toAbsRow() {
 const (
 	underscore = '_'
 	bang       = '!'
+	question   = '?'
 	semi       = ';'
 	comma      = ','
 	rparen     = ')'

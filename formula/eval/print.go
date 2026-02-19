@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"io"
 	"iter"
-	"math"
-	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/value"
 )
@@ -17,8 +16,6 @@ import (
 const (
 	maxCols = 10
 	maxRows = 25
-
-	defaultNumberFormatPattern = "#######.00"
 )
 
 type PrintMode int
@@ -27,188 +24,6 @@ const (
 	PrintDefault PrintMode = 1 << iota
 	PrintDebug
 )
-
-type Formatter interface {
-	Format(value.Value) (string, error)
-}
-
-type valueFormatter struct {
-	number  Formatter
-	text    Formatter
-	boolean Formatter
-	date    Formatter
-}
-
-func (vf valueFormatter) Format(v value.Value) (string, error) {
-	switch v.(type) {
-	case value.Boolean:
-	case value.Float:
-		if vf.number != nil {
-			return vf.number.Format(v)
-		}
-	case value.Text:
-	case value.Date:
-	default:
-	}
-	return v.String(), nil
-}
-
-type strFormatter struct{}
-
-func (strFormatter) Format(v value.Value) (string, error) {
-	return v.String(), nil
-}
-
-type dateFormatter struct{}
-
-func (f dateFormatter) Format(v value.Value) (string, error) {
-	return "", nil
-}
-
-type numberFormatter struct {
-	minInt int
-	maxInt int
-	minDec int
-	maxDec int
-
-	signAlways  bool
-	hasGrouping bool
-	hasDecimal  bool
-
-	decimalSep  byte
-	thousandSep byte
-}
-
-func ParseNumberFormatter(pattern string) (Formatter, error) {
-	if pattern == "" || pattern == "." || pattern == "-" || pattern == "+" {
-		return nil, fmt.Errorf("invalid pattern given")
-	}
-	var (
-		nf     numberFormatter
-		left   string
-		right  string
-		zeroes = true
-	)
-	nf.decimalSep = '.'
-	nf.thousandSep = ','
-
-	left, right, nf.hasDecimal = strings.Cut(pattern, ".")
-
-	if left == "" || left == "-" || left == "+" {
-		return nil, fmt.Errorf("invalid pattern given")
-	}
-
-	for i := 0; i < len(right); i++ {
-		if zeroes && right[i] == '0' {
-			nf.minDec++
-			nf.maxDec++
-		} else if right[i] == '#' {
-			zeroes = false
-			nf.maxDec++
-		} else {
-			return nil, fmt.Errorf("unexpected character in fractional part pattern")
-		}
-	}
-
-	if left[0] == '+' {
-		nf.signAlways = true
-		left = left[1:]
-	}
-
-	zeroes = true
-	for i := len(left) - 1; i >= 0; i-- {
-		if left[i] == ',' {
-			nf.hasGrouping = true
-			continue
-		}
-
-		if zeroes && left[i] == '0' {
-			nf.minInt++
-			nf.maxInt++
-		} else if left[i] == '#' {
-			zeroes = false
-			nf.maxInt++
-		} else {
-			return nil, fmt.Errorf("unexpected character in integral part pattern")
-		}
-	}
-
-	return nf, nil
-}
-
-func (nf numberFormatter) Format(v value.Value) (string, error) {
-	vf, ok := v.(value.Float)
-	if !ok {
-		return "", fmt.Errorf("value is not a number")
-	}
-
-	var (
-		scale      = math.Pow10(nf.maxDec)
-		rounded    = math.Round(float64(vf)*scale) / scale
-		integral   []byte
-		fractional []byte
-		str        = strconv.FormatFloat(rounded, 'f', nf.maxDec, 64)
-		signed     = math.Signbit(float64(vf))
-	)
-	left, right, _ := strings.Cut(str, ".")
-	if nf.maxDec > 0 {
-		fractional = make([]byte, nf.maxDec)
-		for i := 0; i < nf.maxDec; i++ {
-			fractional[i] = '0'
-		}
-		copy(fractional, right)
-	}
-	for len(fractional) > nf.minDec && fractional[len(fractional)-1] == '0' {
-		fractional = fractional[:len(fractional)-1]
-	}
-	if signed {
-		left = left[1:]
-	}
-	integral = []byte(left)
-	if z := len(integral); z < nf.minInt {
-		tmp := make([]byte, nf.minInt)
-		for i := 0; i < nf.minInt; i++ {
-			tmp[i] = '0'
-		}
-		copy(tmp[nf.minInt-z:], integral)
-		integral = tmp
-	}
-	if nf.hasGrouping {
-		slices.Reverse(integral)
-		var tmp []byte
-		for i := 0; i < len(integral); i += 3 {
-			if i+3 >= len(integral) {
-				tmp = append(tmp, integral[i:]...)
-			} else {
-				tmp = append(tmp, integral[i:i+3]...)
-				tmp = append(tmp, nf.thousandSep)
-			}
-		}
-		slices.Reverse(tmp)
-		integral = tmp
-	}
-	if signed || nf.signAlways {
-		tmp := []byte{'+'}
-		if signed {
-			tmp[0] = '-'
-		}
-		integral = append(tmp, integral...)
-	}
-	var all []byte
-	if len(fractional) > 0 {
-		all = append(integral, nf.decimalSep)
-		all = append(all, fractional...)
-	} else {
-		all = integral
-	}
-	return string(all), nil
-}
-
-type boolFormatter struct{}
-
-func (f boolFormatter) Format(v value.Value) (string, error) {
-	return "", nil
-}
 
 type Printer interface {
 	Print(value.Value)
@@ -219,7 +34,7 @@ func PrintValue(w io.Writer, rows, cols int) Printer {
 		w:      w,
 		rows:   rows,
 		cols:   cols,
-		format: strFormatter{},
+		valfmt: valueFormatter{},
 	}
 }
 
@@ -231,11 +46,17 @@ func DebugValue(w io.Writer, rows, cols int) Printer {
 	}
 }
 
+type valueFormatter struct{}
+
+func (f valueFormatter) Format(v value.Value) (string, error) {
+	return v.String(), nil
+}
+
 type valuePrinter struct {
 	w      io.Writer
 	cols   int
 	rows   int
-	format Formatter
+	valfmt format.Formatter
 }
 
 func (p valuePrinter) Print(v value.Value) {
@@ -253,7 +74,7 @@ func (p valuePrinter) Print(v value.Value) {
 }
 
 func (p valuePrinter) printScalar(v value.ScalarValue) {
-	str, err := p.format.Format(v)
+	str, err := p.valfmt.Format(v)
 	if err != nil {
 		str = value.ErrNA.String()
 	}
@@ -262,7 +83,7 @@ func (p valuePrinter) printScalar(v value.ScalarValue) {
 
 func (p valuePrinter) printArray(v value.ArrayValue) {
 	writer := bufio.NewWriter(p.w)
-	writeArray(writer, v, p.format, int64(p.rows), int64(p.cols))
+	writeArray(writer, v, p.valfmt, int64(p.rows), int64(p.cols))
 	writer.Flush()
 }
 
@@ -289,7 +110,7 @@ func (p valuePrinter) printView(v *types.View) {
 		row      = make([]string, size)
 	)
 	for i := range size {
-		str, _ := p.format.Format(first[i])
+		str, _ := p.valfmt.Format(first[i])
 		row[i] = str
 		padding[i] = max(padding[i], len(row[i]))
 	}
@@ -302,7 +123,7 @@ func (p valuePrinter) printView(v *types.View) {
 		}
 		row = make([]string, size)
 		for i := 0; i < min(size, len(row)); i++ {
-			str, _ := p.format.Format(r[i])
+			str, _ := p.valfmt.Format(r[i])
 			row[i] = str
 			padding[i] = max(padding[i], len(row[i]))
 		}
@@ -488,9 +309,9 @@ func writeValue(writer io.Writer, str string, size int) {
 	}
 }
 
-func writeArray(writer io.Writer, arr value.ArrayValue, ft Formatter, maxRows, maxCols int64) {
+func writeArray(writer io.Writer, arr value.ArrayValue, ft format.Formatter, maxRows, maxCols int64) {
 	if ft == nil {
-		ft = strFormatter{}
+		ft = valueFormatter{}
 	}
 	dim := arr.Dimension()
 	io.WriteString(writer, "[\n")

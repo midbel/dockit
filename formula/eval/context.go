@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
@@ -49,11 +50,10 @@ func (c EngineConfig) Printer() Printer {
 	}
 	p := PrintValue(c.Stdout, c.Print.Rows, c.Print.Cols)
 	if x, ok := p.(valuePrinter); ok {
-		var vs valueFormatter
-		if f, err := ParseNumberFormatter(c.Formating.Number); err == nil {
-			vs.number = f
-		}
-		x.format = vs
+		vs := format.FormatValue()
+		vs.Number(c.Formating.Number)
+
+		x.valfmt = vs
 		return x
 	}
 	return p
@@ -68,7 +68,8 @@ type EngineContext struct {
 func NewEngineContext() *EngineContext {
 	var cfg EngineConfig
 
-	cfg.Formating.Number = defaultNumberFormatPattern
+	cfg.Formating.Number = format.DefaultNumberPattern
+	cfg.Formating.Date = format.DefaultDatePattern
 	cfg.Formating.ThousandSep = ','
 	cfg.Formating.DecimalSep = '.'
 

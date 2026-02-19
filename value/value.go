@@ -23,6 +23,16 @@ const (
 	KindInspectable
 )
 
+const (
+	TypeNumber = "number"
+	TypeText   = "text"
+	TypeBool   = "boolean"
+	TypeDate   = "date"
+	TypeBlank  = "blank"
+	TypeArray  = "array"
+	TypeError  = "error"
+)
+
 func IsComparable(v Value) bool {
 	_, ok := v.(Comparable)
 	return ok
