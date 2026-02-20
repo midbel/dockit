@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"maps"
+	"slices"
 
 	"github.com/midbel/dockit/formula/op"
 )
@@ -88,6 +89,8 @@ type Grammar struct {
 	mode  ScanMode
 	scope GrammarScope
 
+	terminators []op.Op
+
 	prefix   map[op.Op]PrefixFunc
 	infix    map[op.Op]InfixFunc
 	postfix  map[op.Op]InfixFunc
@@ -110,6 +113,10 @@ func NewGrammar(name string, mode ScanMode) *Grammar {
 		bindings: maps.Clone(defaultBindings),
 	}
 	return &g
+}
+
+func (g *Grammar) IsTerminator(tok Token) bool {
+	return slices.Contains(g.terminators, tok.Type)
 }
 
 func (g *Grammar) Isolated() bool {
@@ -226,6 +233,14 @@ func (gs *GrammarStack) Mode() ScanMode {
 
 func (gs *GrammarStack) Context() string {
 	return gs.Top().Context()
+}
+
+func (gs *GrammarStack) IsTermintor(tok Token) bool {
+	top := gs.Top()
+	if top == nil {
+		return false
+	}
+	return top.IsTerminator(tok)
 }
 
 func (gs *GrammarStack) Pow(kind op.Op) int {

@@ -13,6 +13,8 @@ import (
 func FormulaGrammar() *Grammar {
 	g := NewGrammar("formula", ModeFormula)
 
+	g.terminators = []op.Op{op.EOF}
+
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
@@ -45,6 +47,8 @@ func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
 	g.name = "script"
 	g.mode = ModeScript
+
+	g.terminators = []op.Op{op.EOF, op.Eol, op.Semi}
 
 	g.RegisterPrefix(op.Eq, parseDeferred)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
@@ -179,7 +183,7 @@ func (p *Parser) Attach(scan *Scanner) {
 	p.scan = scan
 	p.next()
 	p.next()
-	p.skipEOL()
+	p.skipTerminator()
 }
 
 func (p *Parser) Init(r io.Reader) error {
@@ -197,6 +201,7 @@ func (p *Parser) ParseNext() (Expr, error) {
 	if p.done() {
 		return nil, io.EOF
 	}
+	p.skipTerminator()
 	p.skipComment()
 	return p.parse(powLowest)
 }
@@ -224,10 +229,10 @@ func (p *Parser) parseScript() (Expr, error) {
 			return nil, err
 		}
 		script.Body = append(script.Body, e)
-		if !p.isEOL() {
+		if !p.isTerminator() {
 			return nil, p.expectedEOL()
 		}
-		p.skipEOL()
+		p.skipTerminator()
 	}
 	return script, nil
 }
@@ -263,7 +268,7 @@ func (p *Parser) parse(pow int) (Expr, error) {
 			return nil, err
 		}
 	}
-	for !p.isEOL() && pow < p.pow(p.curr.Type) {
+	for !p.isTerminator() && pow < p.pow(p.curr.Type) {
 		fn, err := p.infix()
 		if err != nil {
 			return nil, err
@@ -289,12 +294,12 @@ func (p *Parser) is(kind op.Op) bool {
 	return p.curr.Type == kind
 }
 
-func (p *Parser) isEOL() bool {
-	return p.is(op.Eol) || p.is(op.EOF) || p.is(op.Semi)
+func (p *Parser) isTerminator() bool {
+	return p.currGrammar().IsTerminator(p.curr)
 }
 
-func (p *Parser) skipEOL() {
-	for p.isEOL() && !p.done() {
+func (p *Parser) skipTerminator() {
+	for p.isTerminator() && !p.done() {
 		p.next()
 	}
 }
