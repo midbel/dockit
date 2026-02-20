@@ -165,6 +165,12 @@ type template struct {
 	expr []Expr
 }
 
+func NewTemplate(list []Expr) Expr {
+	return template{
+		expr: list,
+	}
+}
+
 func (t template) String() string {
 	return "<template>"
 }
@@ -206,6 +212,14 @@ type binary struct {
 	left  Expr
 	right Expr
 	op    op.Op
+}
+
+func NewBinary(left, right Expr, oper op.Op) Expr {
+	return binary{
+		left:  left,
+		right: right,
+		op:    oper,
+	}
 }
 
 func (b binary) String() string {
@@ -356,6 +370,12 @@ type literal struct {
 	value string
 }
 
+func NewLiteral(value string) Expr {
+	return literal{
+		value: value,
+	}
+}
+
 func (i literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
@@ -366,6 +386,12 @@ func (literal) KindOf() string {
 
 type number struct {
 	value float64
+}
+
+func NewNumber(value float64) Expr {
+	return number{
+		value: value,
+	}
 }
 
 func (n number) String() string {
@@ -494,6 +520,12 @@ func (e exprRange) String() string {
 
 type identifier struct {
 	name string
+}
+
+func NewIdentifier(id string) Expr {
+	return identifier{
+		name: id,
+	}
 }
 
 func (i identifier) String() string {

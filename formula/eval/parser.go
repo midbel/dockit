@@ -393,17 +393,13 @@ func parseCall(p *Parser, expr Expr) (Expr, error) {
 }
 
 func parseBinary(p *Parser, left Expr) (Expr, error) {
-	bin := binary{
-		left: left,
-		op:   p.curr.Type,
-	}
+	oper := p.curr.Type
 	p.next()
-	right, err := p.parse(p.pow(bin.op))
+	right, err := p.parse(p.pow(oper))
 	if err != nil {
 		return nil, err
 	}
-	bin.right = right
-	return bin, nil
+	return NewBinary(left, right, oper), nil
 }
 
 func parseUnary(p *Parser) (Expr, error) {
@@ -448,20 +444,14 @@ func parseNumber(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := number{
-		value: x,
-	}
-	return n, nil
+	return NewNumber(x), nil
 }
 
 func parseLiteral(p *Parser) (Expr, error) {
 	lit := p.currentLiteral()
 	p.next()
 	if strings.Index(lit, "${") < 0 {
-		i := literal{
-			value: lit,
-		}
-		return i, nil
+		return NewLiteral(lit), nil
 	}
 	var (
 		offset int
@@ -472,10 +462,7 @@ func parseLiteral(p *Parser) (Expr, error) {
 		if ix < 0 {
 			break
 		}
-		i := literal{
-			value: lit[offset : offset+ix],
-		}
-		list = append(list, i)
+		list = append(list, NewLiteral(lit[offset:offset+ix]))
 		offset += ix + 2
 		if ix = strings.Index(lit[offset:], "}"); ix <= 0 {
 			return nil, p.makeError("invalid template string")
@@ -486,24 +473,15 @@ func parseLiteral(p *Parser) (Expr, error) {
 		}
 		list = append(list, expr)
 		offset += ix + 1
-		lit = lit[offset:]
 	}
-	if len(lit) > 0 {
-		i := literal{
-			value: lit,
-		}
-		list = append(list, i)
+	if len(lit[offset:]) > 0 {
+		list = append(list, NewLiteral(lit[offset:]))
 	}
-	t := template{
-		expr: list,
-	}
-	return t, nil
+	return NewTemplate(list), nil
 }
 
 func parseIdentifier(p *Parser) (Expr, error) {
-	id := identifier{
-		name: p.currentLiteral(),
-	}
+	id := NewIdentifier(p.currentLiteral())
 	p.next()
 	return id, nil
 }
