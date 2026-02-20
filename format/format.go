@@ -1,6 +1,9 @@
 package format
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
@@ -81,12 +84,64 @@ func (vf *ValueFormatter) Format(v value.Value) (string, error) {
 
 type strFormatter struct{}
 
+func FormatString() Formatter {
+	var s strFormatter
+	return s
+}
+
 func (strFormatter) Format(v value.Value) (string, error) {
 	return v.String(), nil
 }
 
-type boolFormatter struct{}
+type boolMode int
+
+const (
+	boolDefault boolMode = iota
+	boolYesNo
+	boolOnOff
+)
+
+type boolFormatter struct {
+	mode boolMode
+}
+
+func FormatBool() Formatter {
+	var b boolFormatter
+	b.mode = boolDefault
+	return b
+}
+
+func FormatYesNo() Formatter {
+	var b boolFormatter
+	b.mode = boolYesNo
+	return b
+}
+
+func FormatOnOff() Formatter {
+	var b boolFormatter
+	b.mode = boolOnOff
+	return b
+}
 
 func (f boolFormatter) Format(v value.Value) (string, error) {
-	return "", nil
+	b, ok := v.(value.Boolean)
+	if !ok {
+		return "", fmt.Errorf("value is not a boolean")
+	}
+	switch f.mode {
+	case boolDefault:
+		return strconv.FormatBool(bool(b)), nil
+	case boolYesNo:
+		if b {
+			return "yes", nil
+		}
+		return "no", nil
+	case boolOnOff:
+		if b {
+			return "on", nil
+		}
+		return "off", nil
+	default:
+		return "", fmt.Errorf("invalid mode")
+	}
 }
