@@ -12,7 +12,7 @@ import (
 
 func init() {
 	slices.SortFunc(dateFieldsWriter, func(a, b dateFieldPattern) int {
-		return strings.Compare(a.Pattern, b.Pattern)
+		return strings.Compare(b.Pattern, a.Pattern)
 	})
 }
 
@@ -116,8 +116,8 @@ func ParseDateFormatter(pattern string) (Formatter, error) {
 			}
 		}
 		if !matched {
-			i++
 			df.writers = append(df.writers, writeLiteralDate(pattern[i]))
+			i++
 		}
 	}
 	return df, nil
@@ -136,6 +136,56 @@ func (f dateFormatter) Format(v value.Value) (string, error) {
 		f.writers[i](&str, time.Time(tv))
 	}
 	return str.String(), nil
+}
+
+var longMonthNames = []string{
+	"January",
+	"February",
+	"March",
+	"April",
+	"May",
+	"June",
+	"July",
+	"August",
+	"September",
+	"October",
+	"November",
+	"December",
+}
+
+var shortMonthNames = []string{
+	"Jan",
+	"Feb",
+	"Mar",
+	"Apr",
+	"May",
+	"Jun",
+	"Jul",
+	"Aug",
+	"Sep",
+	"Oct",
+	"Nov",
+	"Dec",
+}
+
+var longDayNames = []string{
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+	"Sunday",
+}
+
+var shortDayNames = []string{
+	"Mon",
+	"Tue",
+	"Wed",
+	"Thu",
+	"Fri",
+	"Sat",
+	"Sun",
 }
 
 func writeLiteralDate(char byte) dateWriter {
@@ -166,11 +216,13 @@ func writeMonthPadded(w *strings.Builder, t time.Time) {
 }
 
 func writeMonthNameShort(w *strings.Builder, t time.Time) {
-
+	m := int(t.Month()) - 1
+	w.WriteString(shortMonthNames[m])
 }
 
 func writeMonthNameLong(w *strings.Builder, t time.Time) {
-
+	m := int(t.Month()) - 1
+	w.WriteString(longMonthNames[m])
 }
 
 func writeDay(w *strings.Builder, t time.Time) {
@@ -186,11 +238,13 @@ func writeDayPadded(w *strings.Builder, t time.Time) {
 }
 
 func writeDayNameShort(w *strings.Builder, t time.Time) {
-
+	d := t.Weekday() - 1
+	w.WriteString(shortDayNames[d])
 }
 
 func writeDayNameLong(w *strings.Builder, t time.Time) {
-
+	d := t.Weekday() - 1
+	w.WriteString(longDayNames[d])
 }
 
 func writeYearDay(w *strings.Builder, t time.Time) {
@@ -198,7 +252,7 @@ func writeYearDay(w *strings.Builder, t time.Time) {
 }
 
 func writeYearDayPadded(w *strings.Builder, t time.Time) {
-	y := t.Day()
+	y := t.YearDay()
 	if y < 10 {
 		w.WriteByte('0')
 	}

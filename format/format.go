@@ -4,6 +4,10 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+var PatternNames = map[string]string{
+	"ISO": "YYYY-MM-DD",
+}
+
 const (
 	DefaultNumberPattern = "#######.00"
 	DefaultDatePattern   = "YYYY-MM-DD"
