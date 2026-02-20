@@ -499,11 +499,7 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 		return nil, p.makeError("range: address expected")
 	}
 
-	a := rangeAddr{
-		startAddr: start,
-		endAddr:   end,
-	}
-	return a, nil
+	return NewRangeAddr(start, end), nil
 }
 
 func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
@@ -513,11 +509,7 @@ func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	q := qualifiedCellAddr{
-		path: left,
-		addr: right,
-	}
-	return q, nil
+	return NewQualifiedAddr(left, right), nil
 }
 
 func parseAddress(p *Parser) (Expr, error) {

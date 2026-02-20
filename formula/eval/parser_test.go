@@ -315,10 +315,8 @@ func TestExpr(t *testing.T) {
 					NewCall(
 						NewIdentifier("min"),
 						[]Expr{
-							NewRangeAddr(
-								NewCellAddr(layout.NewPosition(1, 1), false, false),
-								NewCellAddr(layout.NewPosition(100, 1), false, false),
-							),
+							NewCellAddr(layout.NewPosition(1, 1), false, false),
+							NewCellAddr(layout.NewPosition(100, 1), false, false),
 						},
 					),
 					NewQualifiedAddr(
@@ -425,6 +423,14 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.AbsRow != g.AbsRow {
 			t.Errorf("absolute column mismatched!")
 		}
+	case qualifiedCellAddr:
+		g, ok := got.(qualifiedCellAddr)
+		if !ok {
+			t.Errorf("qualifiedCellAddr expression expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.path, g.path)
+		assertEqualExpr(t, w.addr, g.addr)
 	case assignment:
 		g, ok := got.(assignment)
 		if !ok {

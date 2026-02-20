@@ -22,8 +22,8 @@ const (
 	powUnary
 	powPercent
 	powList
-	powRange
 	powSheet
+	powRange
 	powProp
 	powCall
 	powSpread
