@@ -285,6 +285,15 @@ func (s *Scanner) scanOperator(tok *Token) {
 	switch s.char {
 	case dot:
 		tok.Type = op.Dot
+
+		st := s.Save()
+		s.read()
+		if s.char == dot && s.peek() == dot {
+			s.read()
+			tok.Type = op.SpreadRef
+		} else {
+			s.Restore(st)
+		}
 	case pipe:
 		tok.Type = op.Union
 	case amper:

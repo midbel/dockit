@@ -48,6 +48,7 @@ const (
 	EndProp
 	RangeRef
 	SheetRef
+	SpreadRef
 )
 
 var mapping = map[Op]string{
@@ -65,6 +66,7 @@ var mapping = map[Op]string{
 	Le:      "<=",
 	Gt:      ">",
 	Ge:      ">=",
+	SpreadRef: "...",
 }
 
 func Symbol(oper Op) string {

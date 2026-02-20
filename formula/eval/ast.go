@@ -322,6 +322,14 @@ func (o or) Predicate() value.Predicate {
 	return types.NewExprPredicate(&f)
 }
 
+type spread struct {
+	expr Expr
+}
+
+func (s spread) String() string {
+	return fmt.Sprintf("...%s", s.expr)
+}
+
 type unary struct {
 	expr Expr
 	op   op.Op
@@ -706,6 +714,10 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ", ")
 		io.WriteString(w, op.Symbol(e.op))
+		io.WriteString(w, ")")
+	case spread:
+		io.WriteString(w, "spread(")
+		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
 	case not:
 		io.WriteString(w, "not(")

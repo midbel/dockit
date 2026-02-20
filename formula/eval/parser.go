@@ -51,6 +51,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
+	g.RegisterPrefix(op.SpreadRef, parseSpread)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
@@ -101,6 +102,7 @@ func SliceGrammar() *Grammar {
 	g.RegisterPrefix(op.RangeRef, parseOpenSelectedColumns)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 	g.RegisterPrefix(op.Not, parseNot)
+	g.RegisterPrefix(op.SpreadRef, parseSpread)
 
 	g.RegisterInfix(op.BegGrp, parseCall)
 
@@ -222,6 +224,9 @@ func (p *Parser) parseScript() (Expr, error) {
 			return nil, err
 		}
 		script.Body = append(script.Body, e)
+		if !p.isEOL() {
+			return nil, p.expectedEOL()
+		}
 		p.skipEOL()
 	}
 	return script, nil
@@ -258,7 +263,7 @@ func (p *Parser) parse(pow int) (Expr, error) {
 			return nil, err
 		}
 	}
-	for !p.done() && pow < p.pow(p.curr.Type) {
+	for !p.isEOL() && pow < p.pow(p.curr.Type) {
 		fn, err := p.infix()
 		if err != nil {
 			return nil, err
@@ -342,6 +347,18 @@ func (p *Parser) expectedEOL() error {
 
 func (p *Parser) expectedIdent() error {
 	return p.makeError("identifier expected")
+}
+
+func parseSpread(p *Parser) (Expr, error) {
+	p.next()
+	next, err := p.parse(powSpread)
+	if err != nil {
+		return nil, err
+	}
+	expr := spread{
+		expr: next,
+	}
+	return expr, nil
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
@@ -616,10 +633,6 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	default:
 	}
 	a.expr = expr
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return a, nil
 }
 
@@ -636,10 +649,6 @@ func parsePrint(p *Parser) (Expr, error) {
 		stmt.pattern = p.currentLiteral()
 		p.next()
 	}
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return stmt, nil
 }
 
@@ -652,10 +661,6 @@ func parseSave(p *Parser) (Expr, error) {
 	stmt := saveRef{
 		expr: expr,
 	}
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return stmt, nil
 }
 
@@ -682,10 +687,6 @@ func parseExport(p *Parser) (Expr, error) {
 			return nil, err
 		}
 	}
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return stmt, nil
 }
 
@@ -703,10 +704,6 @@ func parseUse(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	stmt.readOnly = ro
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return stmt, nil
 }
 
@@ -788,10 +785,6 @@ func parseImport(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	stmt.readOnly = ro
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return stmt, nil
 }
 
@@ -816,10 +809,6 @@ func parseLock(p *Parser) (Expr, error) {
 		ident: p.currentLiteral(),
 	}
 	p.next()
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return stmt, nil
 }
 
@@ -832,10 +821,6 @@ func parseUnlock(p *Parser) (Expr, error) {
 		ident: p.currentLiteral(),
 	}
 	p.next()
-	if !p.isEOL() {
-		return nil, p.expectedEOL()
-	}
-	p.skipEOL()
 	return stmt, nil
 }
 
