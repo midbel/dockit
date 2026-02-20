@@ -68,6 +68,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterInfix(op.MulAssign, parseAssignment)
 	g.RegisterInfix(op.PowAssign, parseAssignment)
 	g.RegisterInfix(op.DivAssign, parseAssignment)
+	g.RegisterInfix(op.ConcatAssign, parseAssignment)
 
 	g.RegisterPrefixKeyword(kwUse, parseUse)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
@@ -368,9 +369,7 @@ func parseSpread(p *Parser) (Expr, error) {
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
 	p.next()
-	c := call{
-		ident: expr,
-	}
+	var args []Expr
 	for !p.done() && !p.is(op.EndGrp) {
 		arg, err := p.parse(powLowest)
 		if err != nil {
@@ -383,13 +382,13 @@ func parseCall(p *Parser, expr Expr) (Expr, error) {
 		default:
 			return nil, p.makeError("unexpected character in function call")
 		}
-		c.args = append(c.args, arg)
+		args = append(args, arg)
 	}
 	if !p.is(op.EndGrp) {
 		return nil, p.makeError("unexpected character in function call")
 	}
 	p.next()
-	return c, nil
+	return NewCall(expr, args), nil
 }
 
 func parseBinary(p *Parser, left Expr) (Expr, error) {
@@ -403,16 +402,13 @@ func parseBinary(p *Parser, left Expr) (Expr, error) {
 }
 
 func parseUnary(p *Parser) (Expr, error) {
-	u := unary{
-		op: p.curr.Type,
-	}
+	oper := p.curr.Type
 	p.next()
 	right, err := p.parse(powUnary)
 	if err != nil {
 		return nil, err
 	}
-	u.expr = right
-	return u, nil
+	return NewUnary(right, oper), nil
 }
 
 func parsePercent(p *Parser, expr Expr) (Expr, error) {
@@ -496,11 +492,11 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 
 	start, ok := left.(cellAddr)
 	if !ok {
-		return nil, p.makeError("address expected")
+		return nil, p.makeError("range: address expected")
 	}
 	end, ok := addr.(cellAddr)
 	if !ok {
-		return nil, p.makeError("address expected")
+		return nil, p.makeError("range: address expected")
 	}
 
 	a := rangeAddr{
@@ -559,9 +555,6 @@ func parseAccess(p *Parser, left Expr) (Expr, error) {
 }
 
 func parseAssignment(p *Parser, left Expr) (Expr, error) {
-	a := assignment{
-		ident: left,
-	}
 	oper := p.curr.Type
 	p.next()
 
@@ -572,51 +565,20 @@ func parseAssignment(p *Parser, left Expr) (Expr, error) {
 	switch oper {
 	case op.Assign:
 	case op.AddAssign:
-		b := binary{
-			left:  left,
-			right: expr,
-			op:    op.Add,
-		}
-		expr = b
+		expr = NewBinary(left, expr, op.Add)
 	case op.SubAssign:
-		b := binary{
-			left:  left,
-			right: expr,
-			op:    op.Sub,
-		}
-		expr = b
+		expr = NewBinary(left, expr, op.Sub)
 	case op.MulAssign:
-		b := binary{
-			left:  left,
-			right: expr,
-			op:    op.Mul,
-		}
-		expr = b
+		expr = NewBinary(left, expr, op.Mul)
 	case op.DivAssign:
-		b := binary{
-			left:  left,
-			right: expr,
-			op:    op.Div,
-		}
-		expr = b
+		expr = NewBinary(left, expr, op.Div)
 	case op.PowAssign:
-		b := binary{
-			left:  left,
-			right: expr,
-			op:    op.Pow,
-		}
-		expr = b
+		expr = NewBinary(left, expr, op.Pow)
 	case op.ConcatAssign:
-		b := binary{
-			left:  left,
-			right: expr,
-			op:    op.Concat,
-		}
-		expr = b
+		expr = NewBinary(left, expr, op.Concat)
 	default:
 	}
-	a.expr = expr
-	return a, nil
+	return NewAssignment(left, expr), nil
 }
 
 func parsePrint(p *Parser) (Expr, error) {

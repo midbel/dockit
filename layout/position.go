@@ -11,6 +11,13 @@ type Position struct {
 	Column int64
 }
 
+func NewPosition(line, column int64) Position {
+	return Position{
+		Line:   line,
+		Column: column,
+	}
+}
+
 func ParsePosition(addr string) Position {
 	var (
 		pos    Position

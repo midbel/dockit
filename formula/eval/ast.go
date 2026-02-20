@@ -94,13 +94,13 @@ func (i useRef) String() string {
 type importFile struct {
 	file string
 
-	format    string
-	specifier string
+	format    string // using
+	specifier string // with
 	options   map[string]string
 
-	alias       string
-	defaultFile bool
-	readOnly    bool
+	alias       string // as
+	defaultFile bool   // default
+	readOnly    bool   // ro
 }
 
 func (i importFile) String() string {
@@ -202,6 +202,13 @@ func (d deferred) Kind() value.ValueKind {
 type assignment struct {
 	ident Expr
 	expr  Expr
+}
+
+func NewAssignment(ident, expr Expr) Expr {
+	return assignment{
+		ident: ident,
+		expr:  expr,
+	}
 }
 
 func (a assignment) String() string {
@@ -349,6 +356,13 @@ type unary struct {
 	op   op.Op
 }
 
+func NewUnary(expr Expr, oper op.Op) Expr {
+	return unary{
+		expr: expr,
+		op:   oper,
+	}
+}
+
 func (u unary) String() string {
 	oper := op.Symbol(u.op)
 	return fmt.Sprintf("%s%s", oper, u.expr.String())
@@ -405,6 +419,13 @@ func (number) KindOf() string {
 type call struct {
 	ident Expr
 	args  []Expr
+}
+
+func NewCall(id Expr, args []Expr) Expr {
+	return call{
+		ident: id,
+		args:  args,
+	}
 }
 
 func (c call) String() string {
@@ -541,6 +562,13 @@ type qualifiedCellAddr struct {
 	addr Expr
 }
 
+func NewQualifiedAddr(path, addr Expr) Expr {
+	return qualifiedCellAddr{
+		path: path,
+		addr: addr,
+	}
+}
+
 func (a qualifiedCellAddr) String() string {
 	return fmt.Sprintf("qualified(%s.%s)", a.path.String(), a.addr.String())
 }
@@ -551,8 +579,16 @@ func (qualifiedCellAddr) KindOf() string {
 
 type cellAddr struct {
 	layout.Position
-	AbsCols bool
-	AbsLine bool
+	AbsCol bool
+	AbsRow bool
+}
+
+func NewCellAddr(pos layout.Position, col, row bool) Expr {
+	return cellAddr{
+		Position: pos,
+		AbsCol:   col,
+		AbsRow:   row,
+	}
 }
 
 func (a cellAddr) String() string {
@@ -565,10 +601,10 @@ func (cellAddr) KindOf() string {
 
 func (a cellAddr) CloneWithOffset(pos layout.Position) Expr {
 	x := a
-	if !x.AbsLine {
+	if !x.AbsRow {
 		x.Line += pos.Line
 	}
-	if !x.AbsCols {
+	if !x.AbsCol {
 		x.Column += pos.Column
 	}
 	return x
@@ -577,6 +613,13 @@ func (a cellAddr) CloneWithOffset(pos layout.Position) Expr {
 type rangeAddr struct {
 	startAddr cellAddr
 	endAddr   cellAddr
+}
+
+func NewRangeAddr(start, end Expr) Expr {
+	return rangeAddr{
+		startAddr: start.(cellAddr),
+		endAddr:   end.(cellAddr),
+	}
 }
 
 func (a rangeAddr) String() string {
@@ -618,11 +661,11 @@ func formatCellAddr(addr cellAddr) string {
 		parts = append(parts, addr.Sheet)
 		parts = append(parts, "!")
 	}
-	if addr.AbsCols {
+	if addr.AbsCol {
 		parts = append(parts, "$")
 	}
 	parts = append(parts, result)
-	if addr.AbsLine {
+	if addr.AbsRow {
 		parts = append(parts, "$")
 	}
 	parts = append(parts, strconv.FormatInt(addr.Line, 10))
@@ -640,7 +683,7 @@ func parseCellAddr(addr string) (cellAddr, error) {
 		return pos, fmt.Errorf("empty cell address")
 	}
 	if offset < len(addr) && addr[offset] == dollar {
-		pos.AbsCols = true
+		pos.AbsCol = true
 		offset++
 	}
 	pos.Column, size = parseIndex(addr[offset:])
@@ -653,7 +696,7 @@ func parseCellAddr(addr string) (cellAddr, error) {
 	}
 
 	if offset < len(addr) && addr[offset] == dollar {
-		pos.AbsLine = true
+		pos.AbsRow = true
 		offset++
 	}
 	if offset < len(addr) {
@@ -804,9 +847,9 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "cell(")
 		io.WriteString(w, e.Position.String())
 		io.WriteString(w, ", ")
-		io.WriteString(w, strconv.FormatBool(e.AbsCols))
+		io.WriteString(w, strconv.FormatBool(e.AbsCol))
 		io.WriteString(w, ", ")
-		io.WriteString(w, strconv.FormatBool(e.AbsLine))
+		io.WriteString(w, strconv.FormatBool(e.AbsRow))
 		io.WriteString(w, ")")
 	case rangeAddr:
 		io.WriteString(w, "range(")
