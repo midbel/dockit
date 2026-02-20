@@ -1,6 +1,8 @@
 package format
 
 import (
+	"github.com/midbel/dockit/internal/ds"
+	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
 )
 
@@ -39,18 +41,18 @@ func (v formattedValue) Format() (string, error) {
 }
 
 type ValueFormatter struct {
-	formatters map[string]Formatter
+	registry *ds.Trie[Formatter]
 }
 
 func FormatValue() *ValueFormatter {
 	vf := ValueFormatter{
-		formatters: make(map[string]Formatter),
+		registry: ds.NewTrie[Formatter](),
 	}
 	return &vf
 }
 
 func (vf *ValueFormatter) Set(kind string, formatter Formatter) {
-	vf.formatters[kind] = formatter
+	vf.registry.Register(slx.One(kind), formatter)
 }
 
 func (vf *ValueFormatter) Number(pattern string) error {
@@ -70,7 +72,7 @@ func (vf *ValueFormatter) Date(pattern string) error {
 }
 
 func (vf *ValueFormatter) Format(v value.Value) (string, error) {
-	f, ok := vf.formatters[v.Type()]
+	f, ok := vf.registry.Get(slx.One(v.Type()))
 	if ok {
 		return f.Format(v)
 	}

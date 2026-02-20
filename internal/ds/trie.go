@@ -19,7 +19,7 @@ type Trie[T any] struct {
 }
 
 func NewTrie[T any]() *Trie[T] {
-	trie := Trie{
+	trie := Trie[T]{
 		root: createNode[T](""),
 	}
 	return &trie
@@ -43,8 +43,8 @@ func (t *Trie[T]) Get(path []string) (T, bool) {
 func (t *Trie[T]) Walk(path []string, fn func(path []string, v T)) {
 	node := t.root
 	// move to prefix
-	for _, name := range prefix {
-		n, ok := node.Children[name]
+	for _, name := range path {
+		n, ok := node.children[name]
 		if !ok {
 			return
 		}
@@ -55,22 +55,22 @@ func (t *Trie[T]) Walk(path []string, fn func(path []string, v T)) {
 
 	walk = func(n *Node[T], path []string) {
 		if n.setted {
-			fn(path, n.Value)
+			fn(path, n.value)
 		}
 
-		for name, child := range n.Children {
+		for name, child := range n.children {
 			walk(child, append(path, name))
 		}
 	}
 
-	walk(node, prefix)
+	walk(node, path)
 }
 
 func (t *Trie[T]) Register(path []string, value T) {
 	node := t.root
 	for _, name := range path {
 		if node.children[name] == nil {
-			node.Children[name] = createNode(name)
+			node.children[name] = createNode[T](name)
 		}
 		node = node.children[name]
 	}
