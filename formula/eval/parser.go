@@ -20,6 +20,7 @@ func FormulaGrammar() *Grammar {
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.Sub, parseUnary)
 	g.RegisterPrefix(op.Add, parseUnary)
+	g.RegisterPrefix(op.Ident, parseIdentifier)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
@@ -412,10 +413,7 @@ func parseUnary(p *Parser) (Expr, error) {
 }
 
 func parsePercent(p *Parser, expr Expr) (Expr, error) {
-	expr = postfix{
-		expr: expr,
-		op:   p.curr.Type,
-	}
+	expr = NewPostfix(expr, p.curr.Type)
 	p.next()
 	return expr, nil
 }
@@ -522,6 +520,12 @@ func parseAddress(p *Parser) (Expr, error) {
 }
 
 func parseDeferred(p *Parser) (Expr, error) {
+	g := LambdaGrammar()
+	if err := p.pushGrammar(g); err != nil {
+		return nil, err
+	}
+	defer p.popGrammar()
+
 	p.next()
 	expr, err := p.parse(powLowest)
 	if err != nil {
@@ -812,11 +816,7 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 			columns: []columnsRange{rg},
 		}
 	}
-	s := slice{
-		view: left,
-		expr: expr,
-	}
-	return s, nil
+	return NewSlice(left, expr), nil
 }
 
 func parseColumnExpr(expr Expr) (int, error) {
@@ -883,7 +883,7 @@ func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
 		right Expr
 		err   error
 	)
-	if !p.is(op.EndProp) && !p.is(op.Semi) {
+	if !p.is(op.EndProp) && !p.is(op.Semi) && !p.is(op.RangeRef) {
 		right, err = p.parse(powRange)
 	}
 	if err != nil {

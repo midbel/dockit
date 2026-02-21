@@ -7,6 +7,34 @@ import (
 	"github.com/midbel/dockit/layout"
 )
 
+func TestSaveStmt(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestExportStmt(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestPushStmt(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestPopStmt(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestLockStmt(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestUnlockStmt(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestClearStmt(t *testing.T) {
+	t.SkipNow()
+}
+
 type importExpect struct {
 	File      string
 	Format    string
@@ -14,6 +42,7 @@ type importExpect struct {
 	Alias     string
 	Default   bool
 	Readonly  bool
+	Options   map[string]string
 }
 
 func TestImportStmt(t *testing.T) {
@@ -57,6 +86,28 @@ func TestImportStmt(t *testing.T) {
 				Format: "csv",
 			},
 		},
+		{
+			Expr: "import \"file.log\" using log with \"%time %user %level %message\" as file",
+			Expect: importExpect{
+				File:      "file.log",
+				Alias:     "file",
+				Format:    "log",
+				Specifier: "%time %user %level %message",
+			},
+		},
+		{
+			Expr: "import \"file.csv\" using csv with (quote := 'true', separator := 'tab') default ro",
+			Expect: importExpect{
+				File:     "file.csv",
+				Format:   "csv",
+				Default:  true,
+				Readonly: true,
+				Options: map[string]string{
+					"quote":     "true",
+					"separator": "tab",
+				},
+			},
+		},
 	}
 	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
@@ -90,6 +141,19 @@ func assertImportRef(t *testing.T, expr string, got importFile, want importExpec
 	}
 	if want.Readonly != got.readOnly {
 		t.Errorf("%s: readonly mismatched! want %t, got %t", expr, want.Readonly, got.readOnly)
+	}
+	if len(want.Options) != len(got.options) {
+		t.Errorf("number of options mismatched! want %d, got %d", len(want.Options), len(got.options))
+	}
+	for k, v := range want.Options {
+		other, ok := got.options[k]
+		if !ok {
+			t.Errorf("option %s not set", k)
+			continue
+		}
+		if v != other {
+			t.Errorf("value of option %s mismatched! want %s, got %s", k, v, other)
+		}
 	}
 }
 
@@ -217,6 +281,18 @@ func TestExpr(t *testing.T) {
 		Expr string
 		Want Expr
 	}{
+		{
+			Expr: "file.sheets",
+			Want: NewAccess(NewIdentifier("file"), "sheets"),
+		},
+		{
+			Expr: "100 ^ 1%",
+			Want: NewBinary(
+				NewNumber(100),
+				NewPostfix(NewNumber(1), op.Percent),
+				op.Pow,
+			),
+		},
 		{
 			Expr: "x * 5 + 10",
 			Want: NewBinary(
@@ -385,6 +461,42 @@ func TestExpr(t *testing.T) {
 				),
 			),
 		},
+		{
+			Expr: "lambda := =sum(A1, B2)",
+			Want: NewAssignment(
+				NewIdentifier("lambda"),
+				NewDeferred(NewCall(
+					NewIdentifier("sum"),
+					[]Expr{
+						NewCellAddr(layout.NewPosition(1, 1), false, false),
+						NewCellAddr(layout.NewPosition(2, 2), false, false),
+					},
+				)),
+			),
+		},
+		{
+			Expr: "E5 := =10 + 100 + view[A1:C100]",
+			Want: NewAssignment(
+				NewCellAddr(layout.NewPosition(5, 5), false, false),
+				NewDeferred(
+					NewBinary(
+						NewBinary(
+							NewNumber(10),
+							NewNumber(100),
+							op.Add,
+						),
+						NewSlice(
+							NewIdentifier("view"),
+							NewRangeAddr(
+								NewCellAddr(layout.NewPosition(1, 1), false, false),
+								NewCellAddr(layout.NewPosition(100, 3), false, false),
+							),
+						),
+						op.Add,
+					),
+				),
+			),
+		},
 	}
 	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
@@ -400,26 +512,155 @@ func TestExpr(t *testing.T) {
 func TestSlices(t *testing.T) {
 	tests := []struct {
 		Expr string
-	}{}
+		Want Expr
+	}{
+		{
+			Expr: "view1[A;B;C]",
+			Want: NewSlice(
+				NewIdentifier("view1"),
+				NewColumnsSlice([]Expr{
+					SelectRange(1, 1, 0),
+					SelectRange(2, 2, 0),
+					SelectRange(3, 3, 0),
+				}),
+			),
+		},
+		{
+			Expr: "view2[:E;B:D:2;C::3]",
+			Want: NewSlice(
+				NewIdentifier("view2"),
+				NewColumnsSlice([]Expr{
+					SelectRange(0, 5, 0),
+					SelectRange(2, 4, 2),
+					SelectRange(3, 0, 3),
+				}),
+			),
+		},
+		{
+			Expr: "view3[A1:C2]",
+			Want: NewSlice(
+				NewIdentifier("view3"),
+				NewRangeAddr(
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+					NewCellAddr(layout.NewPosition(2, 3), false, false),
+				),
+			),
+		},
+		{
+			Expr: "view4[A:C]",
+			Want: NewSlice(
+				NewIdentifier("view4"),
+				NewColumnsSlice([]Expr{
+					SelectRange(1, 3, 0),
+				}),
+			),
+		},
+		{
+			Expr: "view5[D1 >= 100 and A1 <> 'test']",
+			Want: NewSlice(
+				NewIdentifier("view5"),
+				NewAnd(
+					NewBinary(
+						NewCellAddr(layout.NewPosition(1, 4), false, false),
+						NewNumber(100),
+						op.Ge,
+					),
+					NewBinary(
+						NewCellAddr(layout.NewPosition(1, 1), false, false),
+						NewLiteral("test"),
+						op.Ne,
+					),
+				),
+			),
+		},
+		{
+			Expr: "view6[not D1 = 'foobar']",
+			Want: NewSlice(
+				NewIdentifier("view6"),
+				NewNot(
+					NewBinary(
+						NewCellAddr(layout.NewPosition(1, 4), false, false),
+						NewLiteral("foobar"),
+						op.Eq,
+					),
+				),
+			),
+		},
+		{
+			Expr: "view7[D1 = 'foobar']",
+			Want: NewSlice(
+				NewIdentifier("view7"),
+				NewBinary(
+					NewCellAddr(layout.NewPosition(1, 4), false, false),
+					NewLiteral("foobar"),
+					op.Eq,
+				),
+			),
+		},
+	}
+	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
 		expr, err := p.ParseString(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
 		}
+		got, ok := unwrapScriptExpr(expr).(slice)
+		if !ok {
+			t.Errorf("%s: expected slice expression, got %T", c.Expr, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, got)
 	}
 }
 
 func TestScript(t *testing.T) {
 	tests := []struct {
 		Expr string
-	}{}
+		Want Expr
+	}{
+		{
+			Expr: "A1 := 100;; A1 * 2;",
+			Want: NewScript([]Expr{
+				NewAssignment(
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+					NewNumber(100),
+				),
+				NewBinary(
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+					NewNumber(2),
+					op.Mul,
+				),
+			}),
+		},
+		{
+			Expr: "A1 := 100;;\n A1 * 2;",
+			Want: NewScript([]Expr{
+				NewAssignment(
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+					NewNumber(100),
+				),
+				NewBinary(
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+					NewNumber(2),
+					op.Mul,
+				),
+			}),
+		},
+	}
+	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
 		expr, err := p.ParseString(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
 		}
+		got, ok := expr.(Script)
+		if !ok {
+			t.Errorf("%s: expected script, got %T", c.Expr, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, got)
 	}
 }
 
@@ -476,6 +717,29 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		}
 		assertEqualExpr(t, w.left, g.left)
 		assertEqualExpr(t, w.right, g.right)
+	case and:
+		g, ok := got.(and)
+		if !ok {
+			t.Errorf("and expression expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.left, g.left)
+		assertEqualExpr(t, w.right, g.right)
+	case or:
+		g, ok := got.(or)
+		if !ok {
+			t.Errorf("or expression expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.left, g.left)
+		assertEqualExpr(t, w.right, g.right)
+	case not:
+		g, ok := got.(not)
+		if !ok {
+			t.Errorf("not expression expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.expr, g.expr)
 	case unary:
 		g, ok := got.(unary)
 		if !ok {
@@ -484,6 +748,23 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		}
 		if g.op != w.op {
 			t.Errorf("unary operator mismatched!")
+		}
+		assertEqualExpr(t, w.expr, g.expr)
+	case postfix:
+		g, ok := got.(postfix)
+		if !ok {
+			t.Errorf("postfix expression expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.expr, g.expr)
+		if g.op != w.op {
+			t.Errorf("unary operator mismatched!")
+		}
+	case deferred:
+		g, ok := got.(deferred)
+		if !ok {
+			t.Errorf("deferred expression expected but got %T", got)
+			return
 		}
 		assertEqualExpr(t, w.expr, g.expr)
 	case call:
@@ -530,6 +811,16 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		for i := range w.expr {
 			assertEqualExpr(t, w.expr[i], g.expr[i])
 		}
+	case access:
+		g, ok := got.(access)
+		if !ok {
+			t.Errorf("access expression expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.expr, g.expr)
+		if w.prop != g.prop {
+			t.Errorf("property mismatched! want %s, got %s", w.prop, g.prop)
+		}
 	case identifier:
 		g, ok := got.(identifier)
 		if !ok {
@@ -538,6 +829,47 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		}
 		if w.name != g.name {
 			t.Errorf("identifier name mismatched! want %s, got %s", w.name, g.name)
+		}
+	case slice:
+		g, ok := got.(slice)
+		if !ok {
+			t.Errorf("slice expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.view, g.view)
+		assertEqualExpr(t, w.expr, g.expr)
+	case columnsSlice:
+		g, ok := got.(columnsSlice)
+		if !ok {
+			t.Errorf("columns slice expected but got %T", got)
+			return
+		}
+		if len(w.columns) != len(g.columns) {
+			t.Errorf("selected columns count mismatched! want %d, got %d", len(w.columns), len(g.columns))
+		}
+		for i := range w.columns {
+			if w.columns[i].from != g.columns[i].from {
+				t.Errorf("column \"from\" mismatched! want %d, got %d", w.columns[i].from, g.columns[i].from)
+			}
+			if w.columns[i].to != g.columns[i].to {
+				t.Errorf("column \"to\" mismatched! want %d, got %d", w.columns[i].to, g.columns[i].to)
+			}
+			if w.columns[i].step != g.columns[i].step {
+				t.Errorf("columns \"step\" mismatched! want %d, got %d", w.columns[i].step, g.columns[i].step)
+			}
+		}
+	case Script:
+		g, ok := got.(Script)
+		if !ok {
+			t.Errorf("script expected but got %T", got)
+			return
+		}
+		if len(w.Body) != len(g.Body) {
+			t.Errorf("expressions count mismatched! want %d, got %d", len(w.Body), len(g.Body))
+			return
+		}
+		for i := range w.Body {
+			assertEqualExpr(t, w.Body[i], g.Body[i])
 		}
 	default:
 		t.Errorf("unsupported expression type %T", want)

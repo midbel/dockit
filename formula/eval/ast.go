@@ -46,6 +46,13 @@ type ExprKind interface {
 
 type Script struct {
 	Body []Expr
+	Position
+}
+
+func NewScript(body []Expr) Expr {
+	return Script{
+		Body: body,
+	}
 }
 
 func (Script) String() string {
@@ -54,13 +61,16 @@ func (Script) String() string {
 
 type push struct {
 	readOnly bool
+	Position
 }
 
 func (push) String() string {
 	return "<push>"
 }
 
-type pop struct{}
+type pop struct {
+	Position
+}
 
 func (pop) String() string {
 	return "<pop>"
@@ -68,6 +78,7 @@ func (pop) String() string {
 
 type lockRef struct {
 	ident string
+	Position
 }
 
 func (k lockRef) String() string {
@@ -76,6 +87,7 @@ func (k lockRef) String() string {
 
 type unlockRef struct {
 	ident string
+	Position
 }
 
 func (k unlockRef) String() string {
@@ -85,6 +97,7 @@ func (k unlockRef) String() string {
 type useRef struct {
 	ident    string
 	readOnly bool
+	Position
 }
 
 func (i useRef) String() string {
@@ -101,6 +114,8 @@ type importFile struct {
 	alias       string // as
 	defaultFile bool   // default
 	readOnly    bool   // ro
+
+	Position
 }
 
 func (i importFile) String() string {
@@ -114,6 +129,7 @@ func (importFile) Kind() Kind {
 type printRef struct {
 	expr    Expr
 	pattern string
+	Position
 }
 
 func (p printRef) String() string {
@@ -124,6 +140,7 @@ type exportRef struct {
 	expr   Expr
 	file   Expr
 	format Expr
+	Position
 }
 
 func (p exportRef) String() string {
@@ -132,6 +149,7 @@ func (p exportRef) String() string {
 
 type saveRef struct {
 	expr Expr
+	Position
 }
 
 func (p saveRef) String() string {
@@ -142,6 +160,7 @@ type macroDef struct {
 	ident identifier
 	args  []Expr
 	body  Expr
+	Position
 }
 
 func (d macroDef) String() string {
@@ -151,6 +170,14 @@ func (d macroDef) String() string {
 type access struct {
 	expr Expr
 	prop string
+	Position
+}
+
+func NewAccess(expr Expr, prop string) Expr {
+	return access{
+		expr: expr,
+		prop: prop,
+	}
 }
 
 func (a access) String() string {
@@ -163,6 +190,7 @@ func (access) KindOf() string {
 
 type template struct {
 	expr []Expr
+	Position
 }
 
 func NewTemplate(list []Expr) Expr {
@@ -181,6 +209,13 @@ func (template) KindOf() string {
 
 type deferred struct {
 	expr Expr
+	Position
+}
+
+func NewDeferred(expr Expr) Expr {
+	return deferred{
+		expr: expr,
+	}
 }
 
 func (d deferred) Type() string {
@@ -202,6 +237,7 @@ func (d deferred) Kind() value.ValueKind {
 type assignment struct {
 	ident Expr
 	expr  Expr
+	Position
 }
 
 func NewAssignment(ident, expr Expr) Expr {
@@ -219,6 +255,7 @@ type binary struct {
 	left  Expr
 	right Expr
 	op    op.Op
+	Position
 }
 
 func NewBinary(left, right Expr, oper op.Op) Expr {
@@ -263,6 +300,14 @@ func (b binary) Predicate() value.Predicate {
 type postfix struct {
 	expr Expr
 	op   op.Op
+	Position
+}
+
+func NewPostfix(expr Expr, oper op.Op) Expr {
+	return postfix{
+		expr: expr,
+		op:   oper,
+	}
 }
 
 func (p postfix) String() string {
@@ -284,6 +329,13 @@ func (p postfix) CloneWithOffset(pos layout.Position) Expr {
 
 type not struct {
 	expr Expr
+	Position
+}
+
+func NewNot(expr Expr) Expr {
+	return not{
+		expr: expr,
+	}
 }
 
 func (n not) String() string {
@@ -304,6 +356,14 @@ func (n not) Predicate() value.Predicate {
 type and struct {
 	left  Expr
 	right Expr
+	Position
+}
+
+func NewAnd(left, right Expr) Expr {
+	return and{
+		left:  left,
+		right: right,
+	}
 }
 
 func (a and) String() string {
@@ -325,6 +385,14 @@ func (a and) Predicate() value.Predicate {
 type or struct {
 	left  Expr
 	right Expr
+	Position
+}
+
+func NewOr(left, right Expr) Expr {
+	return or{
+		left:  left,
+		right: right,
+	}
 }
 
 func (o or) String() string {
@@ -345,6 +413,7 @@ func (o or) Predicate() value.Predicate {
 
 type spread struct {
 	expr Expr
+	Position
 }
 
 func (s spread) String() string {
@@ -354,6 +423,7 @@ func (s spread) String() string {
 type unary struct {
 	expr Expr
 	op   op.Op
+	Position
 }
 
 func NewUnary(expr Expr, oper op.Op) Expr {
@@ -382,6 +452,7 @@ func (u unary) CloneWithOffset(pos layout.Position) Expr {
 
 type literal struct {
 	value string
+	Position
 }
 
 func NewLiteral(value string) Expr {
@@ -400,6 +471,7 @@ func (literal) KindOf() string {
 
 type number struct {
 	value float64
+	Position
 }
 
 func NewNumber(value float64) Expr {
@@ -419,6 +491,7 @@ func (number) KindOf() string {
 type call struct {
 	ident Expr
 	args  []Expr
+	Position
 }
 
 func NewCall(id Expr, args []Expr) Expr {
@@ -452,6 +525,7 @@ func (c call) CloneWithOffset(pos layout.Position) Expr {
 
 type clear struct {
 	name string
+	Position
 }
 
 func (c clear) String() string {
@@ -461,6 +535,14 @@ func (c clear) String() string {
 type slice struct {
 	view Expr
 	expr Expr
+	Position
+}
+
+func NewSlice(view, expr Expr) Expr {
+	return slice{
+		view: view,
+		expr: expr,
+	}
 }
 
 func (s slice) String() string {
@@ -474,6 +556,7 @@ func (slice) KindOf() string {
 type rangeSlice struct {
 	startAddr cellAddr
 	endAddr   cellAddr
+	Position
 }
 
 func (s rangeSlice) String() string {
@@ -487,6 +570,18 @@ func (s rangeSlice) Range() *layout.Range {
 
 type columnsSlice struct {
 	columns []columnsRange
+	Position
+}
+
+func NewColumnsSlice(cols []Expr) Expr {
+	var columns []columnsRange
+	for i := range cols {
+		c := cols[i].(columnsRange)
+		columns = append(columns, c)
+	}
+	return columnsSlice{
+		columns: columns,
+	}
 }
 
 func (s columnsSlice) String() string {
@@ -507,6 +602,18 @@ type columnsRange struct {
 	step int
 }
 
+func SelectRange(from, to, step int) Expr {
+	return columnsRange{
+		from: from,
+		to:   to,
+		step: step,
+	}
+}
+
+func (c columnsRange) String() string {
+	return fmt.Sprintf("columns(%d, %d, %d)", c.from, c.to, c.step)
+}
+
 func (c columnsRange) Selection() layout.Selection {
 	if c.from == c.to {
 		return layout.SelectSingle(int64(c.from))
@@ -516,6 +623,7 @@ func (c columnsRange) Selection() layout.Selection {
 
 type filterSlice struct {
 	expr Expr
+	Position
 }
 
 func (s filterSlice) String() string {
@@ -533,6 +641,7 @@ type exprRange struct {
 	from Expr
 	to   Expr
 	step Expr
+	Position
 }
 
 func (e exprRange) String() string {
@@ -541,6 +650,7 @@ func (e exprRange) String() string {
 
 type identifier struct {
 	name string
+	Position
 }
 
 func NewIdentifier(id string) Expr {
@@ -560,6 +670,7 @@ func (identifier) KindOf() string {
 type qualifiedCellAddr struct {
 	path Expr
 	addr Expr
+	Position
 }
 
 func NewQualifiedAddr(path, addr Expr) Expr {
@@ -613,6 +724,7 @@ func (a cellAddr) CloneWithOffset(pos layout.Position) Expr {
 type rangeAddr struct {
 	startAddr cellAddr
 	endAddr   cellAddr
+	Position
 }
 
 func NewRangeAddr(start, end Expr) Expr {
