@@ -397,6 +397,32 @@ func TestExpr(t *testing.T) {
 	}
 }
 
+func TestSlices(t *testing.T) {
+	tests := []struct {
+		Expr string
+	}{}
+	for _, c := range tests {
+		expr, err := p.ParseString(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+	}
+}
+
+func TestScript(t *testing.T) {
+	tests := []struct {
+		Expr string
+	}{}
+	for _, c := range tests {
+		expr, err := p.ParseString(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+	}
+}
+
 func assertEqualExpr(t *testing.T, want, got Expr) {
 	t.Helper()
 	switch w := want.(type) {

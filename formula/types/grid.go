@@ -112,7 +112,7 @@ func createView(view grid.View, ro bool) *View {
 	return &View{
 		view: view,
 		ro:   ro,
-	}	
+	}
 }
 
 func (v *View) Type() string {
