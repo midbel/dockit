@@ -437,6 +437,21 @@ func TestExpr(t *testing.T) {
 			),
 		},
 		{
+			Expr: "sum(\n$A1,\n A$100,\n $B$1\n) / 100",
+			Want: NewBinary(
+				NewCall(
+					NewIdentifier("sum"),
+					[]Expr{
+						NewCellAddr(layout.NewPosition(1, 1), true, false),
+						NewCellAddr(layout.NewPosition(100, 1), false, true),
+						NewCellAddr(layout.NewPosition(1, 2), true, true),
+					},
+				),
+				NewNumber(100),
+				op.Div,
+			),
+		},
+		{
 			Expr: "A1 := min(A1, A100) + view!A1:A100",
 			Want: NewAssignment(
 				NewCellAddr(layout.NewPosition(1, 1), false, false),

@@ -366,13 +366,23 @@ func parseCall(p *Parser, expr Expr) (Expr, error) {
 	p.next()
 	var args []Expr
 	for !p.done() && !p.is(op.EndGrp) {
+		p.skipEOL()
 		arg, err := p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
 		switch p.curr.Type {
+		case op.Eol:
+			p.skipEOL()
+			if !p.is(op.EndGrp) {
+				return nil, p.makeError("expected ')' after last argument")
+			}
 		case op.Comma:
 			p.next()
+			p.skipEOL()
+			if p.is(op.EndGrp) {
+				return nil, p.makeError("unexpected ')' after ','")
+			}
 		case op.EndGrp:
 		default:
 			return nil, p.makeError("unexpected character in function call")
@@ -661,6 +671,9 @@ func parseKeyValuePairs(p *Parser) (map[string]string, error) {
 		switch {
 		case p.is(op.Eol):
 			p.skipEOL()
+			if !p.is(op.EndGrp) {
+				return nil, p.makeError("expected ')' after last property")
+			}
 		case p.is(op.Comma):
 			p.next()
 			p.skipEOL()
