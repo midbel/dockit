@@ -942,17 +942,6 @@ func parseSelectedColumns(p *Parser, left Expr) (Expr, error) {
 	return cs, nil
 }
 
-func parseFilterRows(p *Parser, left Expr) (Expr, error) {
-	expr, err := parseBinary(p, left)
-	if err != nil {
-		return nil, err
-	}
-	fs := filterSlice{
-		expr: expr,
-	}
-	return fs, nil
-}
-
 func parseNot(p *Parser) (Expr, error) {
 	p.next()
 	expr, err := p.parse(powLowest)

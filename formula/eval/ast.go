@@ -621,22 +621,6 @@ func (c columnsRange) Selection() layout.Selection {
 	return layout.SelectSpan(int64(c.from), int64(c.to), int64(c.step))
 }
 
-type filterSlice struct {
-	expr Expr
-	Position
-}
-
-func (s filterSlice) String() string {
-	return fmt.Sprintf("filter(%s)", s.expr)
-}
-
-func (s filterSlice) Predicate() value.Predicate {
-	f := deferredFormula{
-		expr: s.expr,
-	}
-	return types.NewExprPredicate(&f)
-}
-
 type exprRange struct {
 	from Expr
 	to   Expr
@@ -981,8 +965,6 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
-	case filterSlice:
-		dumpExpr(w, e.expr)
 	case columnsSlice:
 		io.WriteString(w, "selection(")
 		for i := range e.columns {

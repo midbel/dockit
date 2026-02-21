@@ -112,7 +112,7 @@ func (i inspectForm) inspectSlice(eg *Engine, expr slice, ctx *EngineContext) (v
 	case columnsSlice:
 		iv.Set("type", value.Text("column"))
 		iv.Set("count", value.Float(len(e.columns)))
-	case filterSlice:
+	case binary, and, or:
 		iv.Set("type", value.Text("binary"))
 	default:
 		iv.Set("type", value.Text("unknown"))
