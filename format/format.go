@@ -16,6 +16,7 @@ var PatternNames = map[string]string{
 const (
 	DefaultNumberPattern = "#######.00"
 	DefaultDatePattern   = "YYYY-MM-DD"
+	DefaultBoolPattern   = "bool"
 )
 
 type Formatter interface {
@@ -74,7 +75,29 @@ func (vf *ValueFormatter) Date(pattern string) error {
 	return err
 }
 
+func (vf *ValueFormatter) Bool(pattern string) error {
+	var mode boolMode
+	switch pattern {
+	case "", "bool":
+		mode = boolDefault
+	case "yesno":
+		mode = boolYesNo
+	case "onoff":
+		mode = boolOnOff
+	default:
+		return fmt.Errorf("unknown boolean pattern")
+	}
+	f := boolFormatter{
+		mode: mode,
+	}
+	vf.Set(value.TypeBool, f)
+	return nil
+}
+
 func (vf *ValueFormatter) Format(v value.Value) (string, error) {
+	if v, ok := v.(formattedValue); ok {
+		return v.Format()
+	}
 	f, ok := vf.registry.Get(slx.One(v.Type()))
 	if ok {
 		return f.Format(v)

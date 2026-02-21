@@ -93,7 +93,6 @@ type Engine struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	printMode PrintMode
 	phases    []scriptPhase
 }
 
@@ -102,21 +101,8 @@ func NewEngine(loader Loader) *Engine {
 		Loader:    loader,
 		Stdout:    os.Stdout,
 		Stderr:    os.Stderr,
-		printMode: PrintDefault,
 	}
 	return &e
-}
-
-func (e *Engine) SetPrintMode(mode PrintMode) {
-	e.printMode = mode
-}
-
-func (e *Engine) Printer() Printer {
-	if e.printMode == PrintDebug {
-		return DebugValue(e.Stdout, maxRows, maxCols)
-	}
-	p := PrintValue(e.Stdout, maxRows, maxCols)
-	return p
 }
 
 func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
@@ -158,6 +144,7 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
 	var (
 		grammar *Grammar
 		mode    string
+		cfg = NewConfig()
 	)
 	if tok := scan.Peek(); tok.Type == op.Directive {
 		mode = tok.Literal
@@ -194,7 +181,12 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
 		if tok := scan.Scan(); tok.Type != op.Eol {
 			return nil, fmt.Errorf("newline expected")
 		}
-		_, _ = ident, val
+		if err := cfg.Set(ident, val); err != nil {
+			return nil, err
+		}
+	}
+	if err := ctx.Configure(cfg); err != nil {
+		return nil, err
 	}
 
 	ps := NewParser(grammar)
@@ -766,7 +758,7 @@ func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) 
 	if err != nil {
 		return nil, err
 	}
-	eg.Printer().Print(v)
+	ctx.Print(v)
 	return value.Empty(), nil
 }
 

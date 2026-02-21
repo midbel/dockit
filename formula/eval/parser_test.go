@@ -9,7 +9,7 @@ import (
 )
 
 func TestParseFormula(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		Expr string
 		Want Expr
 	}{
@@ -954,7 +954,7 @@ func unwrapScriptExpr(expr Expr) Expr {
 }
 
 func TestPrecedences(t *testing.T) {
-	tests := []struct{
+	tests := []struct {
 		Expr string
 		Want string
 	}{
@@ -994,21 +994,21 @@ func TestPrecedences(t *testing.T) {
 }
 
 func l(s string) string {
-    return fmt.Sprintf("literal(%s)", s)
+	return fmt.Sprintf("literal(%s)", s)
 }
 
 func n(v int) string {
-    return fmt.Sprintf("number(%d)", v)
+	return fmt.Sprintf("number(%d)", v)
 }
 
 func c(name string) string {
-    return fmt.Sprintf("cell(%s, false, false)", name)
+	return fmt.Sprintf("cell(%s, false, false)", name)
 }
 
 func b(left, right, op string) string {
-    return fmt.Sprintf("binary(%s, %s, %s)", left, right, op)
+	return fmt.Sprintf("binary(%s, %s, %s)", left, right, op)
 }
 
 func u(left, op string) string {
-    return fmt.Sprintf("unary(%s, %s)", left, op)
+	return fmt.Sprintf("unary(%s, %s)", left, op)
 }

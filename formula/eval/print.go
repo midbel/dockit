@@ -27,14 +27,14 @@ const (
 
 type Printer interface {
 	Print(value.Value)
+	Format(value.Value, format.Formatter)
 }
 
 func PrintValue(w io.Writer, rows, cols int) Printer {
 	return valuePrinter{
-		w:      w,
-		rows:   rows,
-		cols:   cols,
-		valfmt: valueFormatter{},
+		w:    w,
+		rows: rows,
+		cols: cols,
 	}
 }
 
@@ -53,41 +53,45 @@ func (f valueFormatter) Format(v value.Value) (string, error) {
 }
 
 type valuePrinter struct {
-	w      io.Writer
-	cols   int
-	rows   int
-	valfmt format.Formatter
+	w    io.Writer
+	cols int
+	rows int
 }
 
 func (p valuePrinter) Print(v value.Value) {
+	var vf valueFormatter
+	p.Format(v, vf)
+}
+
+func (p valuePrinter) Format(v value.Value, f format.Formatter) {
 	switch v := v.(type) {
 	case value.ScalarValue:
-		p.printScalar(v)
+		p.printScalar(v, f)
 	case value.ArrayValue:
-		p.printArray(v)
+		p.printArray(v, f)
 	case *types.View:
-		p.printView(v)
+		p.printView(v, f)
 	case *types.InspectValue:
 		p.printInspect(v)
 	default:
 	}
 }
 
-func (p valuePrinter) printScalar(v value.ScalarValue) {
-	str, err := p.valfmt.Format(v)
+func (p valuePrinter) printScalar(v value.ScalarValue, f format.Formatter) {
+	str, err := f.Format(v)
 	if err != nil {
 		str = value.ErrNA.String()
 	}
 	fmt.Fprintln(p.w, str)
 }
 
-func (p valuePrinter) printArray(v value.ArrayValue) {
+func (p valuePrinter) printArray(v value.ArrayValue, f format.Formatter) {
 	writer := bufio.NewWriter(p.w)
-	writeArray(writer, v, p.valfmt, int64(p.rows), int64(p.cols))
+	writeArray(writer, v, f, int64(p.rows), int64(p.cols))
 	writer.Flush()
 }
 
-func (p valuePrinter) printView(v *types.View) {
+func (p valuePrinter) printView(v *types.View, f format.Formatter) {
 	var (
 		view      = v.View()
 		bounds    = view.Bounds()
@@ -110,7 +114,7 @@ func (p valuePrinter) printView(v *types.View) {
 		row      = make([]string, size)
 	)
 	for i := range size {
-		str, _ := p.valfmt.Format(first[i])
+		str, _ := f.Format(first[i])
 		row[i] = str
 		padding[i] = max(padding[i], len(row[i]))
 	}
@@ -123,7 +127,7 @@ func (p valuePrinter) printView(v *types.View) {
 		}
 		row = make([]string, size)
 		for i := 0; i < min(size, len(row)); i++ {
-			str, _ := p.valfmt.Format(r[i])
+			str, _ := f.Format(r[i])
 			row[i] = str
 			padding[i] = max(padding[i], len(row[i]))
 		}
@@ -186,6 +190,10 @@ type debugPrinter struct {
 }
 
 func (p debugPrinter) Print(v value.Value) {
+	p.Format(v, nil)
+}
+
+func (p debugPrinter) Format(v value.Value, _ format.Formatter) {
 	switch v := v.(type) {
 	case value.ScalarValue:
 		p.printScalar(v)
