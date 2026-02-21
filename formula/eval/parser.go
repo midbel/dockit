@@ -144,7 +144,7 @@ func ParseFormula(str string) (value.Formula, error) {
 	f := deferredFormula{
 		expr: expr,
 	}
-	return &f, nil
+	return f, nil
 }
 
 func NewParser(g *Grammar) *Parser {
@@ -237,18 +237,6 @@ func (p *Parser) parseScript() (Expr, error) {
 		p.skipTerminator()
 	}
 	return script, nil
-}
-
-func (p *Parser) parseUntil(ok func() bool) ([]Expr, error) {
-	var body []Expr
-	for !p.done() && ok() {
-		e, err := p.parse(powLowest)
-		if err != nil {
-			return nil, err
-		}
-		body = append(body, e)
-	}
-	return body, nil
 }
 
 func (p *Parser) parse(pow int) (Expr, error) {

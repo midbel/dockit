@@ -7,6 +7,46 @@ import (
 	"github.com/midbel/dockit/layout"
 )
 
+func TestParseFormula(t *testing.T) {
+	tests := []struct{
+		Expr string
+		Want Expr
+	}{
+		{
+			Expr: "=1+1",
+			Want: NewBinary(
+				NewNumber(1),
+				NewNumber(1),
+				op.Add,
+			),
+		},
+		{
+			Expr: "=sum(A1, A2, A3)",
+			Want: NewCall(
+				NewIdentifier("sum"),
+				[]Expr{
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+					NewCellAddr(layout.NewPosition(2, 1), false, false),
+					NewCellAddr(layout.NewPosition(3, 1), false, false),
+				},
+			),
+		},
+	}
+	for _, c := range tests {
+		f, err := ParseFormula(c.Expr)
+		if err != nil {
+			t.Errorf("%s: error parsing formumla: %s", c.Expr, err)
+			continue
+		}
+		e, ok := f.(deferredFormula)
+		if !ok {
+			t.Errorf("formula expected - got %T", f)
+			continue
+		}
+		assertEqualExpr(t, c.Want, e.expr)
+	}
+}
+
 func TestSaveStmt(t *testing.T) {
 	t.SkipNow()
 }

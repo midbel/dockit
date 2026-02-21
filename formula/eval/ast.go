@@ -827,19 +827,19 @@ type deferredFormula struct {
 	expr Expr
 }
 
-func (*deferredFormula) Type() string {
+func (deferredFormula) Type() string {
 	return "formula"
 }
 
-func (*deferredFormula) Kind() value.ValueKind {
+func (deferredFormula) Kind() value.ValueKind {
 	return value.KindFunction
 }
 
-func (f *deferredFormula) String() string {
+func (f deferredFormula) String() string {
 	return f.expr.String()
 }
 
-func (f *deferredFormula) Eval(ctx value.Context) (value.Value, error) {
+func (f deferredFormula) Eval(ctx value.Context) (value.Value, error) {
 	return Eval(f.expr, ctx)
 }
 
