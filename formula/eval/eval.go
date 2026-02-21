@@ -327,19 +327,19 @@ func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) 
 	}
 	switch e := expr.expr.(type) {
 	case rangeAddr:
-		view.BoundedView(e.Range())
+		view = view.BoundedView(e.Range())
 	case rangeSlice:
-		view.BoundedView(e.Range())
+		view = view.BoundedView(e.Range())
 	case columnsSlice:
-		view.ProjectView(e.Selection())
+		view = view.ProjectView(e.Selection())
 	case binary:
-		view.FilterView(e.Predicate())
+		view = view.FilterView(e.Predicate())
 	case and:
-		view.FilterView(e.Predicate())
+		view = view.FilterView(e.Predicate())
 	case or:
-		view.FilterView(e.Predicate())
+		view = view.FilterView(e.Predicate())
 	case not:
-		view.FilterView(e.Predicate())
+		view = view.FilterView(e.Predicate())
 	case identifier:
 	default:
 		return nil, fmt.Errorf("invalid slice expression")

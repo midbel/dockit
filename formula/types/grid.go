@@ -105,10 +105,14 @@ func NewViewValue(view grid.View) value.Value {
 }
 
 func newView(view grid.View, ro bool) value.Value {
+	return createView(view, ro)
+}
+
+func createView(view grid.View, ro bool) *View {
 	return &View{
 		view: view,
 		ro:   ro,
-	}
+	}	
 }
 
 func (v *View) Type() string {
@@ -126,16 +130,19 @@ func (c *View) String() string {
 	return c.view.Name()
 }
 
-func (c *View) FilterView(predicate value.Predicate) {
-	c.view = grid.FilterView(c.view, predicate)
+func (c *View) FilterView(predicate value.Predicate) *View {
+	view := grid.FilterView(c.view, predicate)
+	return createView(view, false)
 }
 
-func (c *View) ProjectView(sel layout.Selection) {
-	c.view = grid.NewProjectView(c.view, sel)
+func (c *View) ProjectView(sel layout.Selection) *View {
+	view := grid.NewProjectView(c.view, sel)
+	return createView(view, false)
 }
 
-func (c *View) BoundedView(rg *layout.Range) {
-	c.view = grid.NewBoundedView(c.view, rg)
+func (c *View) BoundedView(rg *layout.Range) *View {
+	view := grid.NewBoundedView(c.view, rg)
+	return createView(view, false)
 }
 
 func (c *View) Inspect() *InspectValue {
