@@ -108,6 +108,19 @@ func TestImportStmt(t *testing.T) {
 				},
 			},
 		},
+		{
+			Expr: "import \"file.csv\" using csv with (\nquote := 'true',\nseparator := 'tab'\n) default ro",
+			Expect: importExpect{
+				File:     "file.csv",
+				Format:   "csv",
+				Default:  true,
+				Readonly: true,
+				Options: map[string]string{
+					"quote":     "true",
+					"separator": "tab",
+				},
+			},
+		},
 	}
 	p := NewParser(ScriptGrammar())
 	for _, c := range tests {

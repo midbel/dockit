@@ -300,6 +300,12 @@ func (p *Parser) isTerminator() bool {
 	return p.currGrammar().IsTerminator(p.curr)
 }
 
+func (p *Parser) skipEOL() {
+	for !p.done() && p.is(op.Eol) {
+		p.next()
+	}
+}
+
 func (p *Parser) skipTerminator() {
 	for p.isTerminator() && !p.done() {
 		p.next()
@@ -652,6 +658,7 @@ func parseKeyValuePairs(p *Parser) (map[string]string, error) {
 	p.next()
 	kvs := make(map[string]string)
 	for !p.done() && !p.is(op.EndGrp) {
+		p.skipEOL()
 		if !p.is(op.Ident) && !p.is(op.Literal) {
 			return nil, p.makeError("only identifier or literal allowed as key")
 		}
@@ -664,8 +671,11 @@ func parseKeyValuePairs(p *Parser) (map[string]string, error) {
 		kvs[key] = p.currentLiteral()
 		p.next()
 		switch {
+		case p.is(op.Eol):
+			p.skipEOL()
 		case p.is(op.Comma):
 			p.next()
+			p.skipEOL()
 			if p.is(op.EndGrp) {
 				return nil, p.makeError("unexpected ')' after ','")
 			}
