@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/op"
@@ -91,7 +90,6 @@ func execPhase(expr Expr, phase scriptPhase) (scriptPhase, error) {
 
 type Engine struct {
 	Loader
-	Config EngineConfig
 	Stdout io.Writer
 	Stderr io.Writer
 
@@ -106,17 +104,19 @@ func NewEngine(loader Loader) *Engine {
 		Stderr:    os.Stderr,
 		printMode: PrintDefault,
 	}
-	e.Config.Print.Cols = maxCols
-	e.Config.Print.Rows = maxRows
-	e.Config.Formating.Number = format.DefaultNumberPattern
-	e.Config.Formating.Date = format.DefaultDatePattern
-	e.Config.Formating.ThousandSep = ','
-	e.Config.Formating.DecimalSep = '.'
 	return &e
 }
 
 func (e *Engine) SetPrintMode(mode PrintMode) {
-	e.Config.Print.Debug = mode == PrintDebug
+	e.printMode = mode
+}
+
+func (e *Engine) Printer() Printer {
+	if e.printMode == PrintDebug {
+		return DebugValue(e.Stdout, maxRows, maxCols)
+	}
+	p := PrintValue(e.Stdout, maxRows, maxCols)
+	return p
 }
 
 func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
@@ -126,9 +126,6 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 		ctx   = NewEngineContext()
 	)
 	ctx.PushContext(environ)
-	ctx.config = e.Config
-	ctx.config.Stdout = e.Stdout
-	ctx.config.Stderr = e.Stderr
 
 	ps, err := e.bootstrap(r, ctx)
 	if err != nil {
@@ -197,10 +194,7 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
 		if tok := scan.Scan(); tok.Type != op.Eol {
 			return nil, fmt.Errorf("newline expected")
 		}
-		err := directiveTrie.Configure(ident, val, &ctx.config)
-		if err != nil {
-			return nil, err
-		}
+		_, _ = ident, val
 	}
 
 	ps := NewParser(grammar)
@@ -772,7 +766,7 @@ func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) 
 	if err != nil {
 		return nil, err
 	}
-	ctx.config.Printer().Print(v)
+	eg.Printer().Print(v)
 	return value.Empty(), nil
 }
 

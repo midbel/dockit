@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
@@ -17,65 +16,14 @@ var (
 	ErrMutate    = errors.New("context is not mutable")
 )
 
-type EngineConfig struct {
-	Print struct {
-		Cols  int
-		Rows  int
-		Debug bool
-	}
-
-	Formating struct {
-		Date        string
-		Bool        string
-		Number      string
-		ThousandSep rune
-		DecimalSep  rune
-	}
-
-	ContextDir string
-
-	Stdout io.Writer
-	Stderr io.Writer
-	Trace  bool
-
-	Csv struct {
-		Quoted bool
-		Comma  rune
-	}
-}
-
-func (c EngineConfig) Printer() Printer {
-	if c.Print.Debug {
-		return DebugValue(c.Stdout, c.Print.Rows, c.Print.Cols)
-	}
-	p := PrintValue(c.Stdout, c.Print.Rows, c.Print.Cols)
-	if x, ok := p.(valuePrinter); ok {
-		vs := format.FormatValue()
-		vs.Number(c.Formating.Number)
-
-		x.valfmt = vs
-		return x
-	}
-	return p
-}
-
 type EngineContext struct {
 	ctx          *grid.ScopedContext
-	config       EngineConfig
 	currentValue value.Value
 }
 
 func NewEngineContext() *EngineContext {
-	var cfg EngineConfig
-
-	cfg.Formating.Number = format.DefaultNumberPattern
-	cfg.Formating.Date = format.DefaultDatePattern
-	cfg.Formating.ThousandSep = ','
-	cfg.Formating.DecimalSep = '.'
-
 	eg := EngineContext{
 		ctx:    new(grid.ScopedContext),
-		config: cfg,
 	}
 	return &eg
 }
