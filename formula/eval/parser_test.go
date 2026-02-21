@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/midbel/dockit/formula/op"
@@ -950,4 +951,64 @@ func unwrapScriptExpr(expr Expr) Expr {
 		return s.Body[0]
 	}
 	return s
+}
+
+func TestPrecedences(t *testing.T) {
+	tests := []struct{
+		Expr string
+		Want string
+	}{
+		{
+			Expr: "A1 + 2 * A3",
+			Want: b(c("A1"), b(n(2), c("A3"), "*"), "+"),
+		},
+		{
+			Expr: "(A1+2) * A3",
+			Want: b(b(c("A1"), n(2), "+"), c("A3"), "*"),
+		},
+		{
+			Expr: "1 * 2 * 3",
+			Want: b(b(n(1), n(2), "*"), n(3), "*"),
+		},
+		{
+			Expr: "1 + 2 + 3",
+			Want: b(b(n(1), n(2), "+"), n(3), "+"),
+		},
+		{
+			Expr: "-1 + 2 + -3",
+			Want: b(b(u(n(1), "-"), n(2), "+"), u(n(3), "-"), "+"),
+		},
+	}
+	p := NewParser(ScriptGrammar())
+	for _, c := range tests {
+		expr, err := p.ParseString(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		got := DumpExpr(unwrapScriptExpr(expr))
+		if c.Want != got {
+			t.Errorf("%s: AST dump mismatched! want %s, got %s", c.Expr, c.Want, got)
+		}
+	}
+}
+
+func l(s string) string {
+    return fmt.Sprintf("literal(%s)", s)
+}
+
+func n(v int) string {
+    return fmt.Sprintf("number(%d)", v)
+}
+
+func c(name string) string {
+    return fmt.Sprintf("cell(%s, false, false)", name)
+}
+
+func b(left, right, op string) string {
+    return fmt.Sprintf("binary(%s, %s, %s)", left, right, op)
+}
+
+func u(left, op string) string {
+    return fmt.Sprintf("unary(%s, %s)", left, op)
 }
