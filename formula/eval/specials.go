@@ -1,16 +1,17 @@
 package eval
 
 import (
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
 type SpecialForm interface {
-	Eval(*Engine, []Expr, *EngineContext) (value.Value, error)
+	Eval(*Engine, []parse.Expr, *EngineContext) (value.Value, error)
 }
 
-type SpecialFunction func(*Engine, []Expr, *EngineContext) (value.Value, error)
+type SpecialFunction func(*Engine, []parse.Expr, *EngineContext) (value.Value, error)
 
 var specials = map[string]SpecialForm{
 	"inspect": inspectForm{},
@@ -19,31 +20,31 @@ var specials = map[string]SpecialForm{
 
 type inspectForm struct{}
 
-func (i inspectForm) Eval(eg *Engine, args []Expr, ctx *EngineContext) (value.Value, error) {
+func (i inspectForm) Eval(eg *Engine, args []parse.Expr, ctx *EngineContext) (value.Value, error) {
 	if len(args) == 0 {
 		return value.ErrValue, nil
 	}
 	switch a := args[0].(type) {
-	case cellAddr:
+	case parse.CellAddr:
 		return i.inspectCell(eg, a, ctx)
-	case rangeAddr:
+	case parse.RangeAddr:
 		return i.inspectRange(eg, a, ctx)
-	case qualifiedCellAddr:
+	case parse.QualifiedCellAddr:
 		return i.inspectQualified(eg, a, ctx)
-	case slice:
+	case parse.Slice:
 		return i.inspectSlice(eg, a, ctx)
-	case identifier:
+	case parse.Identifier:
 		return i.inspectIdent(eg, a, ctx)
-	case number:
+	case parse.Number:
 		return i.inspectNumber(eg, a, ctx)
-	case literal:
+	case parse.Literal:
 		return i.inspectLiteral(eg, a, ctx)
 	default:
 		return value.ErrNA, nil
 	}
 }
 
-func (i inspectForm) inspectCell(eg *Engine, expr cellAddr, ctx *EngineContext) (value.Value, error) {
+func (i inspectForm) inspectCell(eg *Engine, expr parse.CellAddr, ctx *EngineContext) (value.Value, error) {
 	iv := types.InspectCell()
 	iv.Set("position", value.Text(expr.Position.String()))
 	iv.Set("kind", value.Text(expr.KindOf()))
@@ -59,17 +60,17 @@ func (i inspectForm) inspectCell(eg *Engine, expr cellAddr, ctx *EngineContext) 
 	return iv, nil
 }
 
-func (i inspectForm) inspectQualified(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (value.Value, error) {
+func (i inspectForm) inspectQualified(eg *Engine, expr parse.QualifiedCellAddr, ctx *EngineContext) (value.Value, error) {
 	return nil, nil
 }
 
-func (i inspectForm) inspectRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {
+func (i inspectForm) inspectRange(eg *Engine, expr parse.RangeAddr, ctx *EngineContext) (value.Value, error) {
 	var (
 		iv = types.InspectRange()
-		rg = layout.NewRange(expr.startAddr.Position, expr.endAddr.Position)
+		rg = layout.NewRange(expr.StartAt().Position, expr.EndAt().Position)
 	)
-	iv.Set("start", value.Text(expr.startAddr.Position.String()))
-	iv.Set("end", value.Text(expr.endAddr.Position.String()))
+	iv.Set("start", value.Text(expr.StartAt().Position.String()))
+	iv.Set("end", value.Text(expr.EndAt().Position.String()))
 	iv.Set("kind", value.Text(expr.KindOf()))
 
 	if view := ctx.CurrentActiveView(); view != nil {
@@ -83,12 +84,12 @@ func (i inspectForm) inspectRange(eg *Engine, expr rangeAddr, ctx *EngineContext
 	return iv, nil
 }
 
-func (i inspectForm) inspectSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) {
+func (i inspectForm) inspectSlice(eg *Engine, expr parse.Slice, ctx *EngineContext) (value.Value, error) {
 	iv := types.InspectSlice()
-	if expr.view == nil {
+	if v := expr.View(); v == nil {
 		iv.Set("owner", value.Text("view"))
 	} else {
-		val, err := eg.exec(expr.view, ctx)
+		val, err := eg.exec(v, ctx)
 		if err != nil {
 			return value.ErrValue, err
 		}
@@ -98,30 +99,30 @@ func (i inspectForm) inspectSlice(eg *Engine, expr slice, ctx *EngineContext) (v
 		}
 		iv.Set("owner", value.Text(v.Type()))
 	}
-	switch e := expr.expr.(type) {
-	case rangeSlice:
+	switch e := expr.Expr().(type) {
+	case parse.RangeSlice:
 		iv.Set("type", value.Text("range"))
 
-		rg := layout.NewRange(e.startAddr.Position, e.endAddr.Position)
-		iv.Set("start", value.Text(e.startAddr.Position.String()))
-		iv.Set("end", value.Text(e.endAddr.Position.String()))
+		rg := layout.NewRange(e.StartAt().Position, e.EndAt().Position)
+		iv.Set("start", value.Text(e.StartAt().Position.String()))
+		iv.Set("end", value.Text(e.EndAt().Position.String()))
 
 		rg = rg.Normalize()
 		iv.Set("rows", value.Float(rg.Height()))
 		iv.Set("cols", value.Float(rg.Width()))
-	case columnsSlice:
+	case parse.ColumnsSlice:
 		iv.Set("type", value.Text("column"))
-		iv.Set("count", value.Float(len(e.columns)))
-	case binary, and, or:
-		iv.Set("type", value.Text("binary"))
+		iv.Set("count", value.Float(e.Count()))
+	case parse.Binary, parse.And, parse.Or, parse.Not:
+		iv.Set("type", value.Text("logical"))
 	default:
 		iv.Set("type", value.Text("unknown"))
 	}
 	return iv, nil
 }
 
-func (i inspectForm) inspectIdent(eg *Engine, expr identifier, ctx *EngineContext) (value.Value, error) {
-	val, err := ctx.Resolve(expr.name)
+func (i inspectForm) inspectIdent(eg *Engine, expr parse.Identifier, ctx *EngineContext) (value.Value, error) {
+	val, err := ctx.Resolve(expr.Ident())
 	if err != nil {
 		return value.ErrValue, err
 	}
@@ -131,7 +132,7 @@ func (i inspectForm) inspectIdent(eg *Engine, expr identifier, ctx *EngineContex
 	return types.InspectPrimitive(), nil
 }
 
-func (i inspectForm) inspectNumber(eg *Engine, expr number, ctx *EngineContext) (value.Value, error) {
+func (i inspectForm) inspectNumber(eg *Engine, expr parse.Number, ctx *EngineContext) (value.Value, error) {
 	val, err := eg.exec(expr, ctx)
 	if err != nil {
 		return value.ErrValue, err
@@ -140,7 +141,7 @@ func (i inspectForm) inspectNumber(eg *Engine, expr number, ctx *EngineContext) 
 	return types.ReinspectValue(iv, val), nil
 }
 
-func (i inspectForm) inspectLiteral(eg *Engine, expr literal, ctx *EngineContext) (value.Value, error) {
+func (i inspectForm) inspectLiteral(eg *Engine, expr parse.Literal, ctx *EngineContext) (value.Value, error) {
 	val, err := eg.exec(expr, ctx)
 	if err != nil {
 		return value.ErrValue, err
@@ -151,7 +152,7 @@ func (i inspectForm) inspectLiteral(eg *Engine, expr literal, ctx *EngineContext
 
 type kindofForm struct{}
 
-func (kindofForm) Eval(eg *Engine, args []Expr, ctx *EngineContext) (value.Value, error) {
+func (kindofForm) Eval(eg *Engine, args []parse.Expr, ctx *EngineContext) (value.Value, error) {
 	if len(args) == 0 {
 		return value.ErrValue, nil
 	}

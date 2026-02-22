@@ -12,6 +12,7 @@ import (
 	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/op"
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
@@ -22,70 +23,25 @@ var (
 	ErrCallable = errors.New("expression is not callable")
 )
 
-func Eval(expr Expr, ctx value.Context) (value.Value, error) {
+func Eval(expr parse.Expr, ctx value.Context) (value.Value, error) {
 	switch e := expr.(type) {
-	case binary:
+	case parse.Binary:
 		return evalBinary(e, ctx)
-	case unary:
+	case parse.Unary:
 		return evalUnary(e, ctx)
-	case literal:
-		return value.Text(e.value), nil
-	case number:
-		return value.Float(e.value), nil
-	case call:
+	case parse.Literal:
+		return value.Text(e.Text()), nil
+	case parse.Number:
+		return value.Float(e.Float()), nil
+	case parse.Call:
 		return evalCall(e, ctx)
-	case cellAddr:
+	case parse.CellAddr:
 		return evalCellAddr(e, ctx)
-	case rangeAddr:
+	case parse.RangeAddr:
 		return evalRangeAddr(e, ctx)
 	default:
 		return nil, ErrEval
 	}
-}
-
-type scriptPhase int8
-
-const (
-	phaseStmt scriptPhase = 1 << iota
-	phaseImport
-	phaseBinary
-	phaseCall
-	phaseAssign
-)
-
-func (p scriptPhase) Allows(k Kind) bool {
-	switch p {
-	case phaseStmt:
-		return k == KindStmt
-	case phaseImport:
-		return k == KindStmt || k == KindImport
-	default:
-		return false
-	}
-}
-
-func (p scriptPhase) Next(k Kind) scriptPhase {
-	switch {
-	case p == phaseImport && k == KindImport:
-		return p
-	case p == phaseImport && k == KindStmt:
-		return phaseStmt
-	case p == phaseStmt && k == KindStmt:
-		return p
-	default:
-		return p
-	}
-}
-
-func execPhase(expr Expr, phase scriptPhase) (scriptPhase, error) {
-	currKind := KindStmt
-	if ek, ok := expr.(ExprKind); ok {
-		currKind = ek.Kind()
-	}
-	if !phase.Allows(currKind) {
-		return phase, fmt.Errorf("unknown script phase!")
-	}
-	return phase.Next(currKind), nil
 }
 
 type Engine struct {
@@ -136,13 +92,13 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 	return val, nil
 }
 
-func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
-	scan, err := Scan(r, ModeScript)
+func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*parse.Parser, error) {
+	scan, err := parse.Scan(r, parse.ModeScript)
 	if err != nil {
 		return nil, err
 	}
 	var (
-		grammar *Grammar
+		grammar *parse.Grammar
 		mode    string
 		cfg     = NewConfig()
 	)
@@ -152,14 +108,14 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
 	}
 	switch mode {
 	case "", "script":
-		grammar = ScriptGrammar()
+		grammar = parse.ScriptGrammar()
 	case "pipeline":
 	case "cube":
 	case "command":
 	default:
 		return nil, fmt.Errorf("%s: unsupported mode", mode)
 	}
-	scan.skipNL()
+	scan.SkipNL()
 	for {
 		tok := scan.Peek()
 		if tok.Type != op.Pragma {
@@ -189,7 +145,7 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
 		return nil, err
 	}
 
-	ps := NewParser(grammar)
+	ps := parse.NewParser(grammar)
 	ps.Attach(scan)
 	return ps, nil
 }
@@ -214,64 +170,64 @@ func (e *Engine) inPhase(ph scriptPhase) bool {
 	return slices.Contains(e.phases, ph)
 }
 
-func (e *Engine) exec(expr Expr, ctx *EngineContext) (value.Value, error) {
+func (e *Engine) exec(expr parse.Expr, ctx *EngineContext) (value.Value, error) {
 	switch expr := expr.(type) {
-	case importFile:
+	case parse.ImportFile:
 		return evalImport(e, expr, ctx)
-	case printRef:
+	case parse.PrintRef:
 		return evalPrint(e, expr, ctx)
-	case useRef:
+	case parse.UseRef:
 		return evalUse(e, expr, ctx)
-	case lockRef:
+	case parse.LockRef:
 		return evalLock(e, expr, ctx)
-	case unlockRef:
+	case parse.UnlockRef:
 		return evalUnlock(e, expr, ctx)
-	case assignment:
+	case parse.Assignment:
 		e.enterPhase(phaseAssign)
 		defer e.leavePhase()
 		return evalAssignment(e, expr, ctx)
-	case access:
+	case parse.Access:
 		return evalAccess(e, expr, ctx)
-	case literal:
-		return value.Text(expr.value), nil
-	case template:
+	case parse.Literal:
+		return value.Text(expr.Text()), nil
+	case parse.Template:
 		return evalTemplate(e, expr, ctx)
-	case number:
-		return value.Float(expr.value), nil
-	case identifier:
+	case parse.Number:
+		return value.Float(expr.Float()), nil
+	case parse.Identifier:
 		return evalScriptIdent(e, expr, ctx)
-	case not:
+	case parse.Not:
 		return evalScriptNot(e, expr, ctx)
-	case and:
+	case parse.And:
 		return evalScriptAnd(e, expr, ctx)
-	case or:
+	case parse.Or:
 		return evalScriptOr(e, expr, ctx)
-	case binary:
+	case parse.Binary:
 		e.enterPhase(phaseBinary)
 		defer e.leavePhase()
 		return evalScriptBinary(e, expr, ctx)
-	case unary:
+	case parse.Unary:
 		return evalScriptUnary(e, expr, ctx)
-	case deferred:
+	case parse.Deferred:
 		return evalDeferred(e, expr, ctx)
-	case call:
+	case parse.Call:
 		e.enterPhase(phaseCall)
 		defer e.leavePhase()
 		return evalScriptCall(e, expr, ctx)
-	case qualifiedCellAddr:
+	case parse.QualifiedCellAddr:
 		return evalQualifiedCell(e, expr, ctx)
-	case cellAddr:
+	case parse.CellAddr:
 		return evalCell(e, expr, ctx)
-	case rangeAddr:
+	case parse.RangeAddr:
 		return evalRange(e, expr, ctx)
-	case slice:
+	case parse.Slice:
 		return evalSlice(e, expr, ctx)
 	default:
 		return nil, ErrEval
 	}
 }
 
-func (e *Engine) execAndNormalize(expr Expr, ctx *EngineContext) (value.Value, error) {
+func (e *Engine) execAndNormalize(expr parse.Expr, ctx *EngineContext) (value.Value, error) {
 	val, err := e.exec(expr, ctx)
 	if err != nil {
 		return value.ErrValue, err
@@ -294,15 +250,15 @@ func (e *Engine) normalizeValue(val value.Value, ctx *EngineContext) (value.Valu
 	}
 }
 
-func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) {
+func evalSlice(eg *Engine, expr parse.Slice, ctx *EngineContext) (value.Value, error) {
 	var (
 		val value.Value
 		err error
 	)
-	if expr.view == nil {
+	if v := expr.View(); v == nil {
 		val = ctx.CurrentActiveView()
 	} else {
-		val, err = eg.exec(expr.view, ctx)
+		val, err = eg.exec(v, ctx)
 	}
 	if err != nil {
 		return nil, err
@@ -311,39 +267,39 @@ func evalSlice(eg *Engine, expr slice, ctx *EngineContext) (value.Value, error) 
 	if !ok {
 		return nil, fmt.Errorf("slice can only be used on view")
 	}
-	switch e := expr.expr.(type) {
-	case rangeAddr:
+	switch e := expr.Expr().(type) {
+	case parse.RangeAddr:
 		view = view.BoundedView(e.Range())
-	case rangeSlice:
+	case parse.RangeSlice:
 		view = view.BoundedView(e.Range())
-	case columnsSlice:
+	case parse.ColumnsSlice:
 		view = view.ProjectView(e.Selection())
-	case binary:
+	case parse.Binary:
 		view = view.FilterView(e.Predicate())
-	case and:
+	case parse.And:
 		view = view.FilterView(e.Predicate())
-	case or:
+	case parse.Or:
 		view = view.FilterView(e.Predicate())
-	case not:
+	case parse.Not:
 		view = view.FilterView(e.Predicate())
-	case identifier:
+	case parse.Identifier:
 	default:
 		return nil, fmt.Errorf("invalid slice expression")
 	}
 	return view, nil
 }
 
-func evalScriptCall(eg *Engine, expr call, ctx *EngineContext) (value.Value, error) {
-	id, ok := expr.ident.(identifier)
+func evalScriptCall(eg *Engine, expr parse.Call, ctx *EngineContext) (value.Value, error) {
+	id, ok := expr.Name().(parse.Identifier)
 	if !ok {
 		return value.ErrName, nil
 	}
-	if fn, ok := specials[id.name]; ok {
-		return fn.Eval(eg, expr.args, ctx)
+	if fn, ok := specials[id.Ident()]; ok {
+		return fn.Eval(eg, expr.Args(), ctx)
 	}
-	if fn, ok := builtins.Registry[id.name]; ok {
+	if fn, ok := builtins.Registry[id.Ident()]; ok {
 		var args []value.Value
-		for _, a := range expr.args {
+		for _, a := range expr.Args() {
 			v, err := eg.exec(a, ctx)
 			if err != nil {
 				return nil, err
@@ -355,25 +311,25 @@ func evalScriptCall(eg *Engine, expr call, ctx *EngineContext) (value.Value, err
 	return value.ErrName, nil
 }
 
-func evalRange(eg *Engine, expr rangeAddr, ctx *EngineContext) (value.Value, error) {
-	rg := types.NewRangeValue(expr.startAddr.Position, expr.endAddr.Position)
+func evalRange(eg *Engine, expr parse.RangeAddr, ctx *EngineContext) (value.Value, error) {
+	rg := types.NewRangeValue(expr.StartAt().Position, expr.EndAt().Position)
 	return rg, nil
 }
 
-func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (value.Value, error) {
+func evalQualifiedCell(eg *Engine, expr parse.QualifiedCellAddr, ctx *EngineContext) (value.Value, error) {
 	var (
 		cl  io.Closer
 		err error
 	)
-	switch expr := expr.path.(type) {
-	case access:
+	switch expr := expr.Path().(type) {
+	case parse.Access:
 		val, err := eg.exec(expr, ctx)
 		if err != nil {
 			return nil, err
 		}
-		cl, err = ctx.PushValue(val, expr.prop)
-	case identifier:
-		cl, err = ctx.PushReadable(expr.name)
+		cl, err = ctx.PushValue(val, expr.Property())
+	case parse.Identifier:
+		cl, err = ctx.PushReadable(expr.Ident())
 	default:
 		return nil, fmt.Errorf("no view can be found from expr")
 	}
@@ -382,17 +338,17 @@ func evalQualifiedCell(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (
 	}
 	defer cl.Close()
 
-	switch a := expr.addr.(type) {
-	case cellAddr:
+	switch a := expr.Addr().(type) {
+	case parse.CellAddr:
 		return ctx.Context().At(a.Position)
-	case rangeAddr:
-		return ctx.Context().Range(a.startAddr.Position, a.endAddr.Position)
+	case parse.RangeAddr:
+		return ctx.Context().Range(a.StartAt().Position, a.EndAt().Position)
 	default:
 		return value.ErrValue, nil
 	}
 }
 
-func evalCell(eg *Engine, expr cellAddr, ctx *EngineContext) (value.Value, error) {
+func evalCell(eg *Engine, expr parse.CellAddr, ctx *EngineContext) (value.Value, error) {
 	cl, err := ctx.PushReadable(expr.Sheet)
 	if err != nil {
 		return nil, err
@@ -401,25 +357,25 @@ func evalCell(eg *Engine, expr cellAddr, ctx *EngineContext) (value.Value, error
 	return ctx.Context().At(expr.Position)
 }
 
-func evalDeferred(eg *Engine, expr deferred, ctx *EngineContext) (value.Value, error) {
+func evalDeferred(eg *Engine, expr parse.Deferred, ctx *EngineContext) (value.Value, error) {
 	return expr, nil
 }
 
-func evalScriptIdent(eg *Engine, expr identifier, ctx *EngineContext) (value.Value, error) {
-	v, err := ctx.Resolve(expr.name)
+func evalScriptIdent(eg *Engine, expr parse.Identifier, ctx *EngineContext) (value.Value, error) {
+	v, err := ctx.Resolve(expr.Ident())
 	if err != nil {
 		return nil, err
 	}
-	if d, ok := v.(deferred); !eg.inAssignment() && ok {
-		return eg.exec(d.expr, ctx)
+	if d, ok := v.(parse.Deferred); !eg.inAssignment() && ok {
+		return eg.exec(d.Expr(), ctx)
 	}
 	return v, nil
 }
 
-func evalTemplate(eg *Engine, expr template, ctx *EngineContext) (value.Value, error) {
+func evalTemplate(eg *Engine, expr parse.Template, ctx *EngineContext) (value.Value, error) {
 	var str strings.Builder
-	for i := range expr.expr {
-		v, err := eg.exec(expr.expr[i], ctx)
+	for _, e := range expr.Parts() {
+		v, err := eg.exec(e, ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -428,8 +384,8 @@ func evalTemplate(eg *Engine, expr template, ctx *EngineContext) (value.Value, e
 	return value.Text(str.String()), nil
 }
 
-func evalScriptNot(eg *Engine, e not, ctx *EngineContext) (value.Value, error) {
-	val, err := eg.exec(e.expr, ctx)
+func evalScriptNot(eg *Engine, e parse.Not, ctx *EngineContext) (value.Value, error) {
+	val, err := eg.exec(e.Expr(), ctx)
 	if err != nil {
 		return value.ErrValue, err
 	}
@@ -437,12 +393,12 @@ func evalScriptNot(eg *Engine, e not, ctx *EngineContext) (value.Value, error) {
 	return value.Boolean(!ok), nil
 }
 
-func evalScriptAnd(eg *Engine, e and, ctx *EngineContext) (value.Value, error) {
-	left, err := eg.exec(e.left, ctx)
+func evalScriptAnd(eg *Engine, e parse.And, ctx *EngineContext) (value.Value, error) {
+	left, err := eg.exec(e.Left(), ctx)
 	if err != nil {
 		return value.ErrValue, err
 	}
-	right, err := eg.exec(e.right, ctx)
+	right, err := eg.exec(e.Right(), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -450,12 +406,12 @@ func evalScriptAnd(eg *Engine, e and, ctx *EngineContext) (value.Value, error) {
 	return value.Boolean(ok), nil
 }
 
-func evalScriptOr(eg *Engine, e or, ctx *EngineContext) (value.Value, error) {
-	left, err := eg.exec(e.left, ctx)
+func evalScriptOr(eg *Engine, e parse.Or, ctx *EngineContext) (value.Value, error) {
+	left, err := eg.exec(e.Left(), ctx)
 	if err != nil {
 		return value.ErrValue, err
 	}
-	right, err := eg.exec(e.right, ctx)
+	right, err := eg.exec(e.Right(), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -463,24 +419,24 @@ func evalScriptOr(eg *Engine, e or, ctx *EngineContext) (value.Value, error) {
 	return value.Boolean(ok), nil
 }
 
-func evalScriptBinary(eg *Engine, e binary, ctx *EngineContext) (value.Value, error) {
-	left, err := eg.execAndNormalize(e.left, ctx)
+func evalScriptBinary(eg *Engine, e parse.Binary, ctx *EngineContext) (value.Value, error) {
+	left, err := eg.execAndNormalize(e.Left(), ctx)
 	if err != nil {
 		return nil, err
 	}
-	right, err := eg.execAndNormalize(e.right, ctx)
+	right, err := eg.execAndNormalize(e.Right(), ctx)
 	if err != nil {
 		return nil, err
 	}
 	switch {
 	case value.IsScalar(left) && value.IsScalar(right):
-		return evalScalarBinary(left, right, e.op)
+		return evalScalarBinary(left, right, e.Op())
 	case (value.IsArray(left) || value.IsObject(left)) && value.IsScalar(right):
-		return evalScalarArrayBinary(right, left, e.op)
+		return evalScalarArrayBinary(right, left, e.Op())
 	case value.IsArray(left) && value.IsArray(right):
-		return evalArrayBinary(left, right, e.op)
+		return evalArrayBinary(left, right, e.Op())
 	case value.IsObject(left) && value.IsObject(right):
-		return evalViewBinary(left, right, e.op)
+		return evalViewBinary(left, right, e.Op())
 	default:
 		return value.ErrValue, nil
 	}
@@ -603,13 +559,13 @@ func evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	return types.NewViewValue(view), nil
 }
 
-func evalScriptUnary(eg *Engine, e unary, ctx *EngineContext) (value.Value, error) {
-	val, err := eg.exec(e.expr, ctx)
+func evalScriptUnary(eg *Engine, e parse.Unary, ctx *EngineContext) (value.Value, error) {
+	val, err := eg.exec(e.Expr(), ctx)
 	if err != nil {
 		return nil, err
 	}
 	n, err := value.CastToFloat(val)
-	switch e.op {
+	switch e.Op() {
 	case op.Add:
 		return n, nil
 	case op.Sub:
@@ -619,55 +575,55 @@ func evalScriptUnary(eg *Engine, e unary, ctx *EngineContext) (value.Value, erro
 	}
 }
 
-func evalQualifiedAssignment(eg *Engine, expr qualifiedCellAddr, ctx *EngineContext) (LValue, io.Closer, error) {
+func evalQualifiedAssignment(eg *Engine, expr parse.QualifiedCellAddr, ctx *EngineContext) (LValue, io.Closer, error) {
 	var (
 		lv  LValue
 		cl  io.Closer
 		err error
 	)
-	switch expr := expr.path.(type) {
-	case identifier:
-		cl, err = ctx.PushMutable(expr.name)
-	case access:
+	switch expr := expr.Path().(type) {
+	case parse.Identifier:
+		cl, err = ctx.PushMutable(expr.Ident())
+	case parse.Access:
 		val, err1 := eg.exec(expr, ctx)
 		if err1 != nil {
 			err = err1
 			break
 		}
-		cl, err = ctx.PushValue(val, expr.prop)
+		cl, err = ctx.PushValue(val, expr.Property())
 	default:
 		err = fmt.Errorf("expression can not be assigned to %s", expr)
 	}
 	if err != nil {
 		return nil, nil, err
 	}
-	lv, err = resolveQualified(ctx, expr.addr)
+	lv, err = resolveQualified(ctx, expr.Addr())
 	return lv, cl, err
 }
 
-func evalAssignmentTarget(eg *Engine, expr Expr, ctx *EngineContext) (LValue, io.Closer, error) {
+func evalAssignmentTarget(eg *Engine, expr parse.Expr, ctx *EngineContext) (LValue, io.Closer, error) {
 	var (
 		lv  LValue
 		cl  io.Closer
 		err error
 	)
 	switch expr := expr.(type) {
-	case cellAddr:
+	case parse.CellAddr:
 		cl, err = ctx.PushMutable("")
 		if err != nil {
 			break
 		}
 		lv, err = resolveCell(ctx, expr)
-	case rangeAddr:
+	case parse.RangeAddr:
 		cl, err = ctx.PushMutable("")
 		if err != nil {
 			break
 		}
 		lv, err = resolveRange(ctx, expr)
-	case qualifiedCellAddr:
+	case parse.QualifiedCellAddr:
 		return evalQualifiedAssignment(eg, expr, ctx)
-	case access:
-	case identifier:
+	case parse.Access:
+	case parse.Identifier:
 		lv, err = resolveIdent(ctx, expr)
 	default:
 		err = fmt.Errorf("value can not be assigned to %s", expr)
@@ -675,31 +631,28 @@ func evalAssignmentTarget(eg *Engine, expr Expr, ctx *EngineContext) (LValue, io
 	return lv, cl, err
 }
 
-func evalAssignment(eg *Engine, e assignment, ctx *EngineContext) (value.Value, error) {
-	lv, cl, err := evalAssignmentTarget(eg, e.ident, ctx)
+func evalAssignment(eg *Engine, e parse.Assignment, ctx *EngineContext) (value.Value, error) {
+	lv, cl, err := evalAssignmentTarget(eg, e.Ident(), ctx)
 	if err != nil {
 		return nil, err
 	}
 	if cl != nil {
 		defer cl.Close()
 	}
-	value, err := eg.execAndNormalize(e.expr, ctx)
+	value, err := eg.execAndNormalize(e.Expr(), ctx)
 	if err != nil {
 		return nil, err
 	}
 	return nil, lv.Set(value)
 }
 
-func evalImport(eg *Engine, e importFile, ctx *EngineContext) (value.Value, error) {
-	file, err := eg.Loader.Open(e.file)
+func evalImport(eg *Engine, e parse.ImportFile, ctx *EngineContext) (value.Value, error) {
+	file, err := eg.Loader.Open(e.File())
 	if err != nil {
 		return nil, err
 	}
-	if e.alias == "" {
-		var (
-			alias string
-			file  = e.file
-		)
+	alias := e.Alias()
+	if file := e.File(); alias == "" {
 		for {
 			ext := filepath.Ext(file)
 			if ext == "" {
@@ -707,40 +660,39 @@ func evalImport(eg *Engine, e importFile, ctx *EngineContext) (value.Value, erro
 			}
 			alias = strings.TrimSuffix(file, ext)
 		}
-		e.alias = alias
 	}
-	book := types.NewFileValue(file, e.readOnly)
+	book := types.NewFileValue(file, e.ReadOnly())
 	if ev, ok := ctx.Context().(interface{ Define(string, value.Value) }); ok {
-		ev.Define(e.alias, book)
+		ev.Define(alias, book)
 	}
-	if e.defaultFile {
+	if e.Default() {
 		ctx.SetDefault(book)
 	}
 	return value.Empty(), nil
 }
 
-func evalPush(eg *Engine, e push, ctx *EngineContext) (value.Value, error) {
+func evalPush(eg *Engine, e parse.Push, ctx *EngineContext) (value.Value, error) {
 	return value.Empty(), nil
 }
 
-func evalPop(eg *Engine, e pop, ctx *EngineContext) (value.Value, error) {
+func evalPop(eg *Engine, e parse.Pop, ctx *EngineContext) (value.Value, error) {
 	return value.Empty(), nil
 }
 
-func evalClear(eg *Engine, e clear, ctx *EngineContext) (value.Value, error) {
+func evalClear(eg *Engine, e parse.Clear, ctx *EngineContext) (value.Value, error) {
 	return value.Empty(), nil
 }
 
-func evalLock(eg *Engine, e lockRef, ctx *EngineContext) (value.Value, error) {
+func evalLock(eg *Engine, e parse.LockRef, ctx *EngineContext) (value.Value, error) {
 	return value.Empty(), nil
 }
 
-func evalUnlock(eg *Engine, e unlockRef, ctx *EngineContext) (value.Value, error) {
+func evalUnlock(eg *Engine, e parse.UnlockRef, ctx *EngineContext) (value.Value, error) {
 	return value.Empty(), nil
 }
 
-func evalUse(eg *Engine, e useRef, ctx *EngineContext) (value.Value, error) {
-	v, err := ctx.Resolve(e.ident)
+func evalUse(eg *Engine, e parse.UseRef, ctx *EngineContext) (value.Value, error) {
+	v, err := ctx.Resolve(e.Identifier())
 	if err != nil {
 		return nil, err
 	}
@@ -753,8 +705,8 @@ func evalUse(eg *Engine, e useRef, ctx *EngineContext) (value.Value, error) {
 	return value.Empty(), nil
 }
 
-func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) {
-	v, err := eg.execAndNormalize(e.expr, ctx)
+func evalPrint(eg *Engine, e parse.PrintRef, ctx *EngineContext) (value.Value, error) {
+	v, err := eg.execAndNormalize(e.Expr(), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -762,8 +714,8 @@ func evalPrint(eg *Engine, e printRef, ctx *EngineContext) (value.Value, error) 
 	return value.Empty(), nil
 }
 
-func evalAccess(eg *Engine, e access, ctx *EngineContext) (value.Value, error) {
-	obj, err := eg.exec(e.expr, ctx)
+func evalAccess(eg *Engine, e parse.Access, ctx *EngineContext) (value.Value, error) {
+	obj, err := eg.exec(e.Object(), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -771,20 +723,20 @@ func evalAccess(eg *Engine, e access, ctx *EngineContext) (value.Value, error) {
 	if !ok {
 		return nil, fmt.Errorf("object expected")
 	}
-	return g.Get(e.prop)
+	return g.Get(e.Property())
 }
 
-func evalBinary(e binary, ctx value.Context) (value.Value, error) {
-	left, err := Eval(e.left, ctx)
+func evalBinary(e parse.Binary, ctx value.Context) (value.Value, error) {
+	left, err := Eval(e.Left(), ctx)
 	if err != nil {
 		return nil, err
 	}
-	right, err := Eval(e.right, ctx)
+	right, err := Eval(e.Right(), ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	switch e.op {
+	switch e.Op() {
 	case op.Add:
 		return value.Add(left, right)
 	case op.Sub:
@@ -820,8 +772,8 @@ func evalBinary(e binary, ctx value.Context) (value.Value, error) {
 	}
 }
 
-func evalUnary(e unary, ctx value.Context) (value.Value, error) {
-	val, err := Eval(e.expr, ctx)
+func evalUnary(e parse.Unary, ctx value.Context) (value.Value, error) {
+	val, err := Eval(e.Expr(), ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -829,7 +781,7 @@ func evalUnary(e unary, ctx value.Context) (value.Value, error) {
 	if !ok {
 		return value.ErrValue, nil
 	}
-	switch e.op {
+	switch e.Op() {
 	case op.Not:
 		ok := value.True(val)
 		return value.Boolean(!ok), nil
@@ -842,44 +794,30 @@ func evalUnary(e unary, ctx value.Context) (value.Value, error) {
 	}
 }
 
-func evalCall(e call, ctx value.Context) (value.Value, error) {
-	id, ok := e.ident.(identifier)
+func evalCall(e parse.Call, ctx value.Context) (value.Value, error) {
+	id, ok := e.Name().(parse.Identifier)
 	if !ok {
 		return value.ErrName, nil
 	}
 	var args []value.Arg
-	for i := range e.args {
-		args = append(args, makeArg(e.args[i]))
+	for _, a := range e.Args() {
+		args = append(args, makeArg(a))
 	}
-	fn, err := ctx.Resolve(id.name)
+	fn, err := ctx.Resolve(id.Ident())
 	if err != nil {
 		return nil, err
 	}
 	if fn.Kind() != value.KindFunction {
-		return nil, fmt.Errorf("%s: %w", id.name, ErrCallable)
+		return nil, fmt.Errorf("%s: %w", id.Ident(), ErrCallable)
 	}
 	call, ok := fn.(value.FunctionValue)
 	return call.Call(args, ctx)
 }
 
-func evalCellAddr(e cellAddr, ctx value.Context) (value.Value, error) {
+func evalCellAddr(e parse.CellAddr, ctx value.Context) (value.Value, error) {
 	return ctx.At(e.Position)
 }
 
-func evalRangeAddr(e rangeAddr, ctx value.Context) (value.Value, error) {
-	return ctx.Range(e.startAddr.Position, e.endAddr.Position)
-}
-
-type arg struct {
-	expr Expr
-}
-
-func makeArg(expr Expr) value.Arg {
-	return arg{
-		expr: expr,
-	}
-}
-
-func (a arg) Eval(ctx value.Context) (value.Value, error) {
-	return Eval(a.expr, ctx)
+func evalRangeAddr(e parse.RangeAddr, ctx value.Context) (value.Value, error) {
+	return ctx.Range(e.StartAt().Position, e.EndAt().Position)
 }

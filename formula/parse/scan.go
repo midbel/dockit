@@ -184,7 +184,7 @@ func (s *Scanner) Scan() Token {
 }
 
 func (s *Scanner) scanNL(tok *Token) {
-	s.skipNL()
+	s.SkipNL()
 	tok.Type = op.Eol
 }
 
@@ -201,7 +201,7 @@ func (s *Scanner) scanComment(tok *Token) {
 		s.write()
 		s.read()
 	}
-	s.skipNL()
+	s.SkipNL()
 	tok.Type = op.Comment
 	tok.Literal = s.literal()
 }
@@ -427,7 +427,7 @@ func (s *Scanner) done() bool {
 	return s.pos >= len(s.input) || s.char == 0
 }
 
-func (s *Scanner) skipNL() {
+func (s *Scanner) SkipNL() {
 	for isNL(s.char) {
 		s.read()
 	}

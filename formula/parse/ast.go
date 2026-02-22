@@ -98,8 +98,16 @@ type UseRef struct {
 	Position
 }
 
-func (i UseRef) String() string {
-	return fmt.Sprintf("use(%s, ro: %t)", i.ident, i.readOnly)
+func (u UseRef) Identifier() string {
+	return u.ident
+}
+
+func (u UseRef) ReadOnly() bool {
+	return u.readOnly
+}
+
+func (u UseRef) String() string {
+	return fmt.Sprintf("use(%s, ro: %t)", u.ident, u.readOnly)
 }
 
 type ImportFile struct {
@@ -116,6 +124,22 @@ type ImportFile struct {
 	Position
 }
 
+func (i ImportFile) File() string {
+	return i.file
+}
+
+func (i ImportFile) Alias() string {
+	return i.alias
+}
+
+func (i ImportFile) Default() bool {
+	return i.defaultFile
+}
+
+func (i ImportFile) ReadOnly() bool {
+	return i.readOnly
+}
+
 func (i ImportFile) String() string {
 	return fmt.Sprintf("import(%s, default: %t, ro: %t)", i.file, i.defaultFile, i.readOnly)
 }
@@ -128,6 +152,14 @@ type PrintRef struct {
 	expr    Expr
 	pattern string
 	Position
+}
+
+func (p PrintRef) Expr() Expr {
+	return p.expr
+}
+
+func (p PrintRef) Pattern() string {
+	return p.pattern
 }
 
 func (p PrintRef) String() string {
@@ -178,6 +210,14 @@ func NewAccess(expr Expr, prop string) Expr {
 	}
 }
 
+func (a Access) Object() Expr {
+	return a.expr
+}
+
+func (a Access) Property() string {
+	return a.prop
+}
+
 func (a Access) String() string {
 	return fmt.Sprintf("%s.%s", a.expr.String(), a.prop)
 }
@@ -197,6 +237,10 @@ func NewTemplate(list []Expr) Expr {
 	}
 }
 
+func (t Template) Parts() []Expr {
+	return t.expr
+}
+
 func (t Template) String() string {
 	return "<template>"
 }
@@ -214,6 +258,10 @@ func NewDeferred(expr Expr) Expr {
 	return Deferred{
 		expr: expr,
 	}
+}
+
+func (d Deferred) Expr() Expr {
+	return d.expr
 }
 
 func (d Deferred) Type() string {
@@ -245,6 +293,14 @@ func NewAssignment(ident, expr Expr) Expr {
 	}
 }
 
+func (a Assignment) Ident() Expr {
+	return a.ident
+}
+
+func (a Assignment) Expr() Expr {
+	return a.expr
+}
+
 func (a Assignment) String() string {
 	return fmt.Sprintf("%s := %s", a.ident.String(), a.expr.String())
 }
@@ -262,6 +318,18 @@ func NewBinary(left, right Expr, oper op.Op) Expr {
 		right: right,
 		op:    oper,
 	}
+}
+
+func (b Binary) Left() Expr {
+	return b.left
+}
+
+func (b Binary) Right() Expr {
+	return b.right
+}
+
+func (b Binary) Op() op.Op {
+	return b.op
 }
 
 func (b Binary) String() string {
@@ -308,6 +376,14 @@ func NewPostfix(expr Expr, oper op.Op) Expr {
 	}
 }
 
+func (p Postfix) Expr() Expr {
+	return p.expr
+}
+
+func (p Postfix) Op() op.Op {
+	return p.op
+}
+
 func (p Postfix) String() string {
 	oper := op.Symbol(p.op)
 	return fmt.Sprintf("%s%s", p.expr.String(), oper)
@@ -334,6 +410,10 @@ func NewNot(expr Expr) Expr {
 	return Not{
 		expr: expr,
 	}
+}
+
+func (n Not) Expr() Expr {
+	return n.expr
 }
 
 func (n Not) String() string {
@@ -364,6 +444,14 @@ func NewAnd(left, right Expr) Expr {
 	}
 }
 
+func (a And) Left() Expr {
+	return a.left
+}
+
+func (a And) Right() Expr {
+	return a.right
+}
+
 func (a And) String() string {
 	return fmt.Sprintf("and(%s, %s)", a.left, a.right)
 }
@@ -391,6 +479,14 @@ func NewOr(left, right Expr) Expr {
 		left:  left,
 		right: right,
 	}
+}
+
+func (o Or) Left() Expr {
+	return o.left
+}
+
+func (o Or) Right() Expr {
+	return o.right
 }
 
 func (o Or) String() string {
@@ -437,6 +533,14 @@ func NewUnary(expr Expr, oper op.Op) Expr {
 	}
 }
 
+func (u Unary) Expr() Expr {
+	return u.expr
+}
+
+func (u Unary) Op() op.Op {
+	return u.op
+}
+
 func (u Unary) String() string {
 	oper := op.Symbol(u.op)
 	return fmt.Sprintf("%s%s", oper, u.expr.String())
@@ -465,6 +569,10 @@ func NewLiteral(value string) Expr {
 	}
 }
 
+func (i Literal) Text() string {
+	return i.value
+}
+
 func (i Literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
@@ -482,6 +590,10 @@ func NewNumber(value float64) Expr {
 	return Number{
 		value: value,
 	}
+}
+
+func (n Number) Float() float64 {
+	return n.value
 }
 
 func (n Number) String() string {
@@ -503,6 +615,14 @@ func NewCall(id Expr, args []Expr) Expr {
 		ident: id,
 		args:  args,
 	}
+}
+
+func (c Call) Name() Expr {
+	return c.ident
+}
+
+func (c Call) Args() []Expr {
+	return c.args
 }
 
 func (c Call) String() string {
@@ -549,6 +669,14 @@ func NewSlice(view, expr Expr) Expr {
 	}
 }
 
+func (s Slice) View() Expr {
+	return s.view
+}
+
+func (s Slice) Expr() Expr {
+	return s.expr
+}
+
 func (s Slice) String() string {
 	return fmt.Sprintf("slice(%s, %s)", s.view, s.expr)
 }
@@ -561,6 +689,14 @@ type RangeSlice struct {
 	startAddr CellAddr
 	endAddr   CellAddr
 	Position
+}
+
+func (s RangeSlice) StartAt() CellAddr {
+	return s.startAddr
+}
+
+func (s RangeSlice) EndAt() CellAddr {
+	return s.endAddr
 }
 
 func (s RangeSlice) String() string {
@@ -586,6 +722,10 @@ func NewColumnsSlice(cols []Expr) Expr {
 	return ColumnsSlice{
 		columns: columns,
 	}
+}
+
+func (s ColumnsSlice) Count() int {
+	return len(s.columns)
 }
 
 func (s ColumnsSlice) String() string {
@@ -647,6 +787,10 @@ func NewIdentifier(id string) Expr {
 	}
 }
 
+func (i Identifier) Ident() string {
+	return i.name
+}
+
 func (i Identifier) String() string {
 	return i.name
 }
@@ -666,6 +810,14 @@ func NewQualifiedAddr(path, addr Expr) Expr {
 		path: path,
 		addr: addr,
 	}
+}
+
+func (a QualifiedCellAddr) Path() Expr {
+	return a.path
+}
+
+func (a QualifiedCellAddr) Addr() Expr {
+	return a.addr
 }
 
 func (a QualifiedCellAddr) String() string {
@@ -720,6 +872,14 @@ func NewRangeAddr(start, end Expr) Expr {
 		startAddr: start.(CellAddr),
 		endAddr:   end.(CellAddr),
 	}
+}
+
+func (a RangeAddr) StartAt() CellAddr {
+	return a.startAddr
+}
+
+func (a RangeAddr) EndAt() CellAddr {
+	return a.endAddr
 }
 
 func (a RangeAddr) String() string {

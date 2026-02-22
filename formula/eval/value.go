@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -20,16 +21,16 @@ type LValue interface {
 	Set(value.Value) error
 }
 
-func resolveQualified(ctx *EngineContext, addr Expr) (LValue, error) {
+func resolveQualified(ctx *EngineContext, addr parse.Expr) (LValue, error) {
 	var lv LValue
 	switch a := addr.(type) {
-	case cellAddr:
+	case parse.CellAddr:
 		lv = cellValue{
 			ctx: ctx.Context(),
 			pos: a.Position,
 		}
-	case rangeAddr:
-		rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
+	case parse.RangeAddr:
+		rg := layout.NewRange(a.StartAt().Position, a.EndAt().Position)
 		lv = rangeValue{
 			ctx: ctx.Context(),
 			rg:  rg.Normalize(),
@@ -40,8 +41,8 @@ func resolveQualified(ctx *EngineContext, addr Expr) (LValue, error) {
 	return lv, nil
 }
 
-func resolveRange(ctx *EngineContext, rg rangeAddr) (LValue, error) {
-	r := layout.NewRange(rg.startAddr.Position, rg.endAddr.Position)
+func resolveRange(ctx *EngineContext, rg parse.RangeAddr) (LValue, error) {
+	r := layout.NewRange(rg.StartAt().Position, rg.EndAt().Position)
 	val := rangeValue{
 		rg:  r.Normalize(),
 		ctx: ctx.Context(),
@@ -49,7 +50,7 @@ func resolveRange(ctx *EngineContext, rg rangeAddr) (LValue, error) {
 	return val, nil
 }
 
-func resolveCell(ctx *EngineContext, addr cellAddr) (LValue, error) {
+func resolveCell(ctx *EngineContext, addr parse.CellAddr) (LValue, error) {
 	val := cellValue{
 		pos: addr.Position,
 		ctx: ctx.Context(),
@@ -57,9 +58,9 @@ func resolveCell(ctx *EngineContext, addr cellAddr) (LValue, error) {
 	return val, nil
 }
 
-func resolveIdent(ctx *EngineContext, ident identifier) (LValue, error) {
+func resolveIdent(ctx *EngineContext, ident parse.Identifier) (LValue, error) {
 	id := identValue{
-		ident: ident.name,
+		ident: ident.Ident(),
 		ctx:   ctx.Context(),
 	}
 	return id, nil
@@ -97,9 +98,9 @@ type rangeValue struct {
 func (v rangeValue) Set(val value.Value) error {
 	var err error
 	switch val := val.(type) {
-	case deferred:
+	case parse.Deferred:
 		f := deferredFormula{
-			expr: val.expr,
+			expr: val.Expr(),
 		}
 		err = v.setFormula(&f)
 	case value.ScalarValue:
@@ -221,7 +222,7 @@ type cellValue struct {
 
 func (v cellValue) Set(val value.Value) error {
 	switch val := val.(type) {
-	case deferred:
+	case parse.Deferred:
 		return v.setFormula(val)
 	case value.ScalarValue:
 		return v.setValue(val)
@@ -230,7 +231,7 @@ func (v cellValue) Set(val value.Value) error {
 	}
 }
 
-func (v cellValue) setFormula(val deferred) error {
+func (v cellValue) setFormula(val parse.Deferred) error {
 	f, ok := v.ctx.(interface {
 		SetFormula(layout.Position, value.Formula) error
 	})
@@ -238,7 +239,7 @@ func (v cellValue) setFormula(val deferred) error {
 		return ErrValue
 	}
 	df := deferredFormula{
-		expr: val.expr,
+		expr: val.Expr(),
 	}
 	return f.SetFormula(v.pos, &df)
 }
@@ -251,4 +252,38 @@ func (v cellValue) setValue(val value.ScalarValue) error {
 		return ErrValue
 	}
 	return f.SetValue(v.pos, val)
+}
+
+type arg struct {
+	expr parse.Expr
+}
+
+func makeArg(expr parse.Expr) value.Arg {
+	return arg{
+		expr: expr,
+	}
+}
+
+func (a arg) Eval(ctx value.Context) (value.Value, error) {
+	return Eval(a.expr, ctx)
+}
+
+type deferredFormula struct {
+	expr parse.Expr
+}
+
+func (deferredFormula) Type() string {
+	return "formula"
+}
+
+func (deferredFormula) Kind() value.ValueKind {
+	return value.KindFunction
+}
+
+func (f deferredFormula) String() string {
+	return f.expr.String()
+}
+
+func (f deferredFormula) Eval(ctx value.Context) (value.Value, error) {
+	return Eval(f.expr, ctx)
 }
