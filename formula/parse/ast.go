@@ -1,9 +1,7 @@
-package eval
+package parse
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 
@@ -59,52 +57,52 @@ func (Script) String() string {
 	return "<script>"
 }
 
-type push struct {
+type Push struct {
 	readOnly bool
 	Position
 }
 
-func (push) String() string {
+func (Push) String() string {
 	return "<push>"
 }
 
-type pop struct {
+type Pop struct {
 	Position
 }
 
-func (pop) String() string {
+func (Pop) String() string {
 	return "<pop>"
 }
 
-type lockRef struct {
+type LockRef struct {
 	ident string
 	Position
 }
 
-func (k lockRef) String() string {
+func (k LockRef) String() string {
 	return fmt.Sprintf("lock(%s)", k.ident)
 }
 
-type unlockRef struct {
+type UnlockRef struct {
 	ident string
 	Position
 }
 
-func (k unlockRef) String() string {
+func (k UnlockRef) String() string {
 	return fmt.Sprintf("unlock(%s)", k.ident)
 }
 
-type useRef struct {
+type UseRef struct {
 	ident    string
 	readOnly bool
 	Position
 }
 
-func (i useRef) String() string {
+func (i UseRef) String() string {
 	return fmt.Sprintf("use(%s, ro: %t)", i.ident, i.readOnly)
 }
 
-type importFile struct {
+type ImportFile struct {
 	file string
 
 	format    string // using
@@ -118,140 +116,140 @@ type importFile struct {
 	Position
 }
 
-func (i importFile) String() string {
+func (i ImportFile) String() string {
 	return fmt.Sprintf("import(%s, default: %t, ro: %t)", i.file, i.defaultFile, i.readOnly)
 }
 
-func (importFile) Kind() Kind {
+func (ImportFile) Kind() Kind {
 	return KindImport
 }
 
-type printRef struct {
+type PrintRef struct {
 	expr    Expr
 	pattern string
 	Position
 }
 
-func (p printRef) String() string {
+func (p PrintRef) String() string {
 	return fmt.Sprintf("print %s", p.expr.String())
 }
 
-type exportRef struct {
+type ExportRef struct {
 	expr   Expr
 	file   Expr
 	format Expr
 	Position
 }
 
-func (p exportRef) String() string {
+func (p ExportRef) String() string {
 	return fmt.Sprintf("export %s", p.expr.String())
 }
 
-type saveRef struct {
+type SaveRef struct {
 	expr Expr
 	Position
 }
 
-func (p saveRef) String() string {
+func (p SaveRef) String() string {
 	return fmt.Sprintf("save %s", p.expr.String())
 }
 
-type macroDef struct {
-	ident identifier
+type MacroDef struct {
+	ident Expr
 	args  []Expr
 	body  Expr
 	Position
 }
 
-func (d macroDef) String() string {
+func (d MacroDef) String() string {
 	return fmt.Sprintf("macro")
 }
 
-type access struct {
+type Access struct {
 	expr Expr
 	prop string
 	Position
 }
 
 func NewAccess(expr Expr, prop string) Expr {
-	return access{
+	return Access{
 		expr: expr,
 		prop: prop,
 	}
 }
 
-func (a access) String() string {
+func (a Access) String() string {
 	return fmt.Sprintf("%s.%s", a.expr.String(), a.prop)
 }
 
-func (access) KindOf() string {
+func (Access) KindOf() string {
 	return "access"
 }
 
-type template struct {
+type Template struct {
 	expr []Expr
 	Position
 }
 
 func NewTemplate(list []Expr) Expr {
-	return template{
+	return Template{
 		expr: list,
 	}
 }
 
-func (t template) String() string {
+func (t Template) String() string {
 	return "<template>"
 }
 
-func (template) KindOf() string {
+func (Template) KindOf() string {
 	return "template"
 }
 
-type deferred struct {
+type Deferred struct {
 	expr Expr
 	Position
 }
 
 func NewDeferred(expr Expr) Expr {
-	return deferred{
+	return Deferred{
 		expr: expr,
 	}
 }
 
-func (d deferred) Type() string {
+func (d Deferred) Type() string {
 	return d.KindOf()
 }
 
-func (deferred) KindOf() string {
+func (Deferred) KindOf() string {
 	return "deferred"
 }
 
-func (d deferred) String() string {
+func (d Deferred) String() string {
 	return fmt.Sprintf("=%s", d.expr.String())
 }
 
-func (d deferred) Kind() value.ValueKind {
+func (d Deferred) Kind() value.ValueKind {
 	return 0
 }
 
-type assignment struct {
+type Assignment struct {
 	ident Expr
 	expr  Expr
 	Position
 }
 
 func NewAssignment(ident, expr Expr) Expr {
-	return assignment{
+	return Assignment{
 		ident: ident,
 		expr:  expr,
 	}
 }
 
-func (a assignment) String() string {
+func (a Assignment) String() string {
 	return fmt.Sprintf("%s := %s", a.ident.String(), a.expr.String())
 }
 
-type binary struct {
+type Binary struct {
 	left  Expr
 	right Expr
 	op    op.Op
@@ -259,19 +257,19 @@ type binary struct {
 }
 
 func NewBinary(left, right Expr, oper op.Op) Expr {
-	return binary{
+	return Binary{
 		left:  left,
 		right: right,
 		op:    oper,
 	}
 }
 
-func (b binary) String() string {
+func (b Binary) String() string {
 	oper := op.Symbol(b.op)
 	return fmt.Sprintf("%s %s %s", b.left.String(), oper, b.right.String())
 }
 
-func (b binary) CloneWithOffset(pos layout.Position) Expr {
+func (b Binary) CloneWithOffset(pos layout.Position) Expr {
 	var (
 		left  = b.left
 		right = b.right
@@ -282,7 +280,7 @@ func (b binary) CloneWithOffset(pos layout.Position) Expr {
 	if c, ok := b.right.(Clonable); ok {
 		right = c.CloneWithOffset(pos)
 	}
-	x := binary{
+	x := Binary{
 		left:  left,
 		right: right,
 		op:    b.op,
@@ -290,60 +288,60 @@ func (b binary) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
-func (b binary) Predicate() value.Predicate {
+func (b Binary) Predicate() value.Predicate {
 	f := deferredFormula{
 		expr: b,
 	}
 	return types.NewExprPredicate(&f)
 }
 
-type postfix struct {
+type Postfix struct {
 	expr Expr
 	op   op.Op
 	Position
 }
 
 func NewPostfix(expr Expr, oper op.Op) Expr {
-	return postfix{
+	return Postfix{
 		expr: expr,
 		op:   oper,
 	}
 }
 
-func (p postfix) String() string {
+func (p Postfix) String() string {
 	oper := op.Symbol(p.op)
 	return fmt.Sprintf("%s%s", p.expr.String(), oper)
 }
 
-func (p postfix) CloneWithOffset(pos layout.Position) Expr {
+func (p Postfix) CloneWithOffset(pos layout.Position) Expr {
 	expr := p.expr
 	if c, ok := p.expr.(Clonable); ok {
 		expr = c.CloneWithOffset(pos)
 	}
-	x := postfix{
+	x := Postfix{
 		expr: expr,
 		op:   p.op,
 	}
 	return x
 }
 
-type not struct {
+type Not struct {
 	expr Expr
 	Position
 }
 
 func NewNot(expr Expr) Expr {
-	return not{
+	return Not{
 		expr: expr,
 	}
 }
 
-func (n not) String() string {
+func (n Not) String() string {
 	return fmt.Sprintf("not(%s)", n.expr)
 }
 
-func (n not) Predicate() value.Predicate {
-	e := unary{
+func (n Not) Predicate() value.Predicate {
+	e := Unary{
 		expr: n.expr,
 		op:   op.Not,
 	}
@@ -353,25 +351,25 @@ func (n not) Predicate() value.Predicate {
 	return types.NewExprPredicate(&f)
 }
 
-type and struct {
+type And struct {
 	left  Expr
 	right Expr
 	Position
 }
 
 func NewAnd(left, right Expr) Expr {
-	return and{
+	return And{
 		left:  left,
 		right: right,
 	}
 }
 
-func (a and) String() string {
+func (a And) String() string {
 	return fmt.Sprintf("and(%s, %s)", a.left, a.right)
 }
 
-func (a and) Predicate() value.Predicate {
-	b := binary{
+func (a And) Predicate() value.Predicate {
+	b := Binary{
 		op:    op.And,
 		left:  a.left,
 		right: a.right,
@@ -382,25 +380,25 @@ func (a and) Predicate() value.Predicate {
 	return types.NewExprPredicate(&f)
 }
 
-type or struct {
+type Or struct {
 	left  Expr
 	right Expr
 	Position
 }
 
 func NewOr(left, right Expr) Expr {
-	return or{
+	return Or{
 		left:  left,
 		right: right,
 	}
 }
 
-func (o or) String() string {
+func (o Or) String() string {
 	return fmt.Sprintf("or(%s, %s)", o.left, o.right)
 }
 
-func (o or) Predicate() value.Predicate {
-	b := binary{
+func (o Or) Predicate() value.Predicate {
+	b := Binary{
 		op:    op.Or,
 		left:  o.left,
 		right: o.right,
@@ -411,97 +409,103 @@ func (o or) Predicate() value.Predicate {
 	return types.NewExprPredicate(&f)
 }
 
-type spread struct {
+type Spread struct {
 	expr Expr
 	Position
 }
 
-func (s spread) String() string {
+func NewSpread(expr Expr) Expr {
+	return Spread{
+		expr: expr,
+	}
+}
+
+func (s Spread) String() string {
 	return fmt.Sprintf("...%s", s.expr)
 }
 
-type unary struct {
+type Unary struct {
 	expr Expr
 	op   op.Op
 	Position
 }
 
 func NewUnary(expr Expr, oper op.Op) Expr {
-	return unary{
+	return Unary{
 		expr: expr,
 		op:   oper,
 	}
 }
 
-func (u unary) String() string {
+func (u Unary) String() string {
 	oper := op.Symbol(u.op)
 	return fmt.Sprintf("%s%s", oper, u.expr.String())
 }
 
-func (u unary) CloneWithOffset(pos layout.Position) Expr {
+func (u Unary) CloneWithOffset(pos layout.Position) Expr {
 	expr := u.expr
 	if c, ok := u.expr.(Clonable); ok {
 		expr = c.CloneWithOffset(pos)
 	}
-	x := unary{
+	x := Unary{
 		expr: expr,
 		op:   u.op,
 	}
 	return x
 }
 
-type literal struct {
+type Literal struct {
 	value string
 	Position
 }
 
 func NewLiteral(value string) Expr {
-	return literal{
+	return Literal{
 		value: value,
 	}
 }
 
-func (i literal) String() string {
+func (i Literal) String() string {
 	return fmt.Sprintf("\"%s\"", i.value)
 }
 
-func (literal) KindOf() string {
+func (Literal) KindOf() string {
 	return "primitive"
 }
 
-type number struct {
+type Number struct {
 	value float64
 	Position
 }
 
 func NewNumber(value float64) Expr {
-	return number{
+	return Number{
 		value: value,
 	}
 }
 
-func (n number) String() string {
+func (n Number) String() string {
 	return strconv.FormatFloat(n.value, 'f', -1, 64)
 }
 
-func (number) KindOf() string {
+func (Number) KindOf() string {
 	return "primitive"
 }
 
-type call struct {
+type Call struct {
 	ident Expr
 	args  []Expr
 	Position
 }
 
 func NewCall(id Expr, args []Expr) Expr {
-	return call{
+	return Call{
 		ident: id,
 		args:  args,
 	}
 }
 
-func (c call) String() string {
+func (c Call) String() string {
 	var args []string
 	for i := range c.args {
 		args = append(args, c.args[i].String())
@@ -509,8 +513,8 @@ func (c call) String() string {
 	return fmt.Sprintf("%s(%s)", c.ident.String(), strings.Join(args, ", "))
 }
 
-func (c call) CloneWithOffset(pos layout.Position) Expr {
-	x := call{
+func (c Call) CloneWithOffset(pos layout.Position) Expr {
+	x := Call{
 		ident: c.ident,
 	}
 	for i := range c.args {
@@ -523,72 +527,72 @@ func (c call) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
-type clear struct {
+type Clear struct {
 	name string
 	Position
 }
 
-func (c clear) String() string {
+func (c Clear) String() string {
 	return fmt.Sprintf("clear(%s)", c.name)
 }
 
-type slice struct {
+type Slice struct {
 	view Expr
 	expr Expr
 	Position
 }
 
 func NewSlice(view, expr Expr) Expr {
-	return slice{
+	return Slice{
 		view: view,
 		expr: expr,
 	}
 }
 
-func (s slice) String() string {
+func (s Slice) String() string {
 	return fmt.Sprintf("slice(%s, %s)", s.view, s.expr)
 }
 
-func (slice) KindOf() string {
+func (Slice) KindOf() string {
 	return "slice"
 }
 
-type rangeSlice struct {
-	startAddr cellAddr
-	endAddr   cellAddr
+type RangeSlice struct {
+	startAddr CellAddr
+	endAddr   CellAddr
 	Position
 }
 
-func (s rangeSlice) String() string {
+func (s RangeSlice) String() string {
 	return fmt.Sprintf("range(%s, %s)", s.startAddr, s.endAddr)
 }
 
-func (s rangeSlice) Range() *layout.Range {
+func (s RangeSlice) Range() *layout.Range {
 	rg := layout.NewRange(s.startAddr.Position, s.endAddr.Position)
 	return rg
 }
 
-type columnsSlice struct {
-	columns []columnsRange
+type ColumnsSlice struct {
+	columns []ColumnsRange
 	Position
 }
 
 func NewColumnsSlice(cols []Expr) Expr {
-	var columns []columnsRange
+	var columns []ColumnsRange
 	for i := range cols {
-		c := cols[i].(columnsRange)
+		c := cols[i].(ColumnsRange)
 		columns = append(columns, c)
 	}
-	return columnsSlice{
+	return ColumnsSlice{
 		columns: columns,
 	}
 }
 
-func (s columnsSlice) String() string {
+func (s ColumnsSlice) String() string {
 	return fmt.Sprintf("columns(%v)", s.columns)
 }
 
-func (s columnsSlice) Selection() layout.Selection {
+func (s ColumnsSlice) Selection() layout.Selection {
 	all := make([]layout.Selection, 0, len(s.columns))
 	for _, r := range s.columns {
 		all = append(all, r.Selection())
@@ -596,105 +600,105 @@ func (s columnsSlice) Selection() layout.Selection {
 	return layout.Combine(all...)
 }
 
-type columnsRange struct {
+type ColumnsRange struct {
 	from int
 	to   int
 	step int
 }
 
 func SelectRange(from, to, step int) Expr {
-	return columnsRange{
+	return ColumnsRange{
 		from: from,
 		to:   to,
 		step: step,
 	}
 }
 
-func (c columnsRange) String() string {
+func (c ColumnsRange) String() string {
 	return fmt.Sprintf("columns(%d, %d, %d)", c.from, c.to, c.step)
 }
 
-func (c columnsRange) Selection() layout.Selection {
+func (c ColumnsRange) Selection() layout.Selection {
 	if c.from == c.to {
 		return layout.SelectSingle(int64(c.from))
 	}
 	return layout.SelectSpan(int64(c.from), int64(c.to), int64(c.step))
 }
 
-type exprRange struct {
+type ExprRange struct {
 	from Expr
 	to   Expr
 	step Expr
 	Position
 }
 
-func (e exprRange) String() string {
+func (e ExprRange) String() string {
 	return fmt.Sprintf("range(%v, %v)", e.from, e.to)
 }
 
-type identifier struct {
+type Identifier struct {
 	name string
 	Position
 }
 
 func NewIdentifier(id string) Expr {
-	return identifier{
+	return Identifier{
 		name: id,
 	}
 }
 
-func (i identifier) String() string {
+func (i Identifier) String() string {
 	return i.name
 }
 
-func (identifier) KindOf() string {
+func (Identifier) KindOf() string {
 	return "identifier"
 }
 
-type qualifiedCellAddr struct {
+type QualifiedCellAddr struct {
 	path Expr
 	addr Expr
 	Position
 }
 
 func NewQualifiedAddr(path, addr Expr) Expr {
-	return qualifiedCellAddr{
+	return QualifiedCellAddr{
 		path: path,
 		addr: addr,
 	}
 }
 
-func (a qualifiedCellAddr) String() string {
+func (a QualifiedCellAddr) String() string {
 	return fmt.Sprintf("qualified(%s.%s)", a.path.String(), a.addr.String())
 }
 
-func (qualifiedCellAddr) KindOf() string {
+func (QualifiedCellAddr) KindOf() string {
 	return "qualified-address"
 }
 
-type cellAddr struct {
+type CellAddr struct {
 	layout.Position
 	AbsCol bool
 	AbsRow bool
 }
 
 func NewCellAddr(pos layout.Position, col, row bool) Expr {
-	return cellAddr{
+	return CellAddr{
 		Position: pos,
 		AbsCol:   col,
 		AbsRow:   row,
 	}
 }
 
-func (a cellAddr) String() string {
+func (a CellAddr) String() string {
 	return formatCellAddr(a)
 }
 
-func (cellAddr) KindOf() string {
+func (CellAddr) KindOf() string {
 	return "address"
 }
 
-func (a cellAddr) CloneWithOffset(pos layout.Position) Expr {
+func (a CellAddr) CloneWithOffset(pos layout.Position) Expr {
 	x := a
 	if !x.AbsRow {
 		x.Line += pos.Line
@@ -705,41 +709,41 @@ func (a cellAddr) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
-type rangeAddr struct {
-	startAddr cellAddr
-	endAddr   cellAddr
+type RangeAddr struct {
+	startAddr CellAddr
+	endAddr   CellAddr
 	Position
 }
 
 func NewRangeAddr(start, end Expr) Expr {
-	return rangeAddr{
-		startAddr: start.(cellAddr),
-		endAddr:   end.(cellAddr),
+	return RangeAddr{
+		startAddr: start.(CellAddr),
+		endAddr:   end.(CellAddr),
 	}
 }
 
-func (a rangeAddr) String() string {
+func (a RangeAddr) String() string {
 	return fmt.Sprintf("%s:%s", a.startAddr.String(), a.endAddr.String())
 }
 
-func (rangeAddr) KindOf() string {
+func (RangeAddr) KindOf() string {
 	return "range"
 }
 
-func (a rangeAddr) CloneWithOffset(pos layout.Position) Expr {
-	x := rangeAddr{
-		startAddr: a.startAddr.CloneWithOffset(pos).(cellAddr),
-		endAddr:   a.endAddr.CloneWithOffset(pos).(cellAddr),
+func (a RangeAddr) CloneWithOffset(pos layout.Position) Expr {
+	x := RangeAddr{
+		startAddr: a.startAddr.CloneWithOffset(pos).(CellAddr),
+		endAddr:   a.endAddr.CloneWithOffset(pos).(CellAddr),
 	}
 	return x
 }
 
-func (a rangeAddr) Range() *layout.Range {
+func (a RangeAddr) Range() *layout.Range {
 	rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
 	return rg
 }
 
-func formatCellAddr(addr cellAddr) string {
+func formatCellAddr(addr CellAddr) string {
 	if addr.Column == 0 {
 		return ""
 	}
@@ -768,9 +772,9 @@ func formatCellAddr(addr cellAddr) string {
 	return strings.Join(parts, "")
 }
 
-func parseCellAddr(addr string) (cellAddr, error) {
+func parseCellAddr(addr string) (CellAddr, error) {
 	var (
-		pos    cellAddr
+		pos    CellAddr
 		err    error
 		offset int
 		size   int
@@ -840,190 +844,5 @@ func (f deferredFormula) String() string {
 }
 
 func (f deferredFormula) Eval(ctx value.Context) (value.Value, error) {
-	return Eval(f.expr, ctx)
-}
-
-func DumpExpr(expr Expr) string {
-	var buf bytes.Buffer
-	dumpExpr(&buf, expr)
-	return buf.String()
-}
-
-func dumpExpr(w io.Writer, expr Expr) {
-	switch e := expr.(type) {
-	case identifier:
-		io.WriteString(w, "identifier(")
-		io.WriteString(w, e.name)
-		io.WriteString(w, ")")
-	case literal:
-		io.WriteString(w, "literal(")
-		io.WriteString(w, e.value)
-		io.WriteString(w, ")")
-	case number:
-		io.WriteString(w, "number(")
-		io.WriteString(w, strconv.FormatFloat(e.value, 'f', -1, 64))
-		io.WriteString(w, ")")
-	case template:
-		io.WriteString(w, "template(")
-		for i := range e.expr {
-			if i > 0 {
-				io.WriteString(w, ", ")
-			}
-			dumpExpr(w, e.expr[i])
-		}
-		io.WriteString(w, ")")
-	case binary:
-		io.WriteString(w, "binary(")
-		dumpExpr(w, e.left)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.right)
-		io.WriteString(w, ", ")
-		io.WriteString(w, op.Symbol(e.op))
-		io.WriteString(w, ")")
-	case unary:
-		io.WriteString(w, "unary(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ", ")
-		io.WriteString(w, op.Symbol(e.op))
-		io.WriteString(w, ")")
-	case spread:
-		io.WriteString(w, "spread(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ")")
-	case not:
-		io.WriteString(w, "not(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ")")
-	case and:
-		io.WriteString(w, "and(")
-		dumpExpr(w, e.left)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.right)
-		io.WriteString(w, ")")
-	case or:
-		io.WriteString(w, "or(")
-		dumpExpr(w, e.left)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.right)
-		io.WriteString(w, ")")
-	case postfix:
-		io.WriteString(w, "postfix(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ", ")
-		io.WriteString(w, op.Symbol(e.op))
-		io.WriteString(w, ")")
-	case access:
-		io.WriteString(w, "access(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ", ")
-		io.WriteString(w, e.prop)
-		io.WriteString(w, ")")
-	case deferred:
-		io.WriteString(w, "deferred(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ")")
-	case call:
-		io.WriteString(w, "call(")
-		dumpExpr(w, e.ident)
-		io.WriteString(w, ", args: ")
-		for i := range e.args {
-			if i > 0 {
-				io.WriteString(w, ", ")
-			}
-			dumpExpr(w, e.args[i])
-		}
-		io.WriteString(w, ")")
-	case assignment:
-		io.WriteString(w, "assignment(")
-		dumpExpr(w, e.ident)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ")")
-	case cellAddr:
-		io.WriteString(w, "cell(")
-		io.WriteString(w, e.Position.String())
-		io.WriteString(w, ", ")
-		io.WriteString(w, strconv.FormatBool(e.AbsCol))
-		io.WriteString(w, ", ")
-		io.WriteString(w, strconv.FormatBool(e.AbsRow))
-		io.WriteString(w, ")")
-	case rangeAddr:
-		io.WriteString(w, "range(")
-		dumpExpr(w, e.startAddr)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.endAddr)
-		io.WriteString(w, ")")
-	case qualifiedCellAddr:
-		io.WriteString(w, "qualified(")
-		dumpExpr(w, e.path)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.addr)
-		io.WriteString(w, ")")
-	case slice:
-		io.WriteString(w, "slice(")
-		dumpExpr(w, e.view)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ")")
-	case columnsSlice:
-		io.WriteString(w, "selection(")
-		for i := range e.columns {
-			if i > 0 {
-				io.WriteString(w, ",")
-			}
-			var fix, tix string
-			if e.columns[i].from != 0 {
-				fix = strconv.Itoa(e.columns[i].from)
-			}
-			if e.columns[i].to != 0 {
-				tix = strconv.Itoa(e.columns[i].to)
-			}
-			io.WriteString(w, fix)
-			if fix != tix {
-				io.WriteString(w, ":")
-				io.WriteString(w, tix)
-			}
-		}
-		io.WriteString(w, ")")
-	case importFile:
-		io.WriteString(w, "import(")
-		io.WriteString(w, e.file)
-		if e.format != "" {
-			io.WriteString(w, ", format: ")
-			io.WriteString(w, e.format)
-		}
-		if e.alias != "" {
-			io.WriteString(w, ", alias: ")
-			io.WriteString(w, e.alias)
-		}
-		if e.defaultFile {
-			io.WriteString(w, ", default")
-		}
-		if e.readOnly {
-			io.WriteString(w, ", readonly")
-		}
-		io.WriteString(w, ")")
-	case useRef:
-		io.WriteString(w, "use(")
-		io.WriteString(w, e.ident)
-		io.WriteString(w, ")")
-	case printRef:
-		io.WriteString(w, "print(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ")")
-	case exportRef:
-	case saveRef:
-		io.WriteString(w, "save(")
-		io.WriteString(w, ")")
-	case push:
-		io.WriteString(w, "push()")
-	case pop:
-		io.WriteString(w, "pop()")
-	case clear:
-		io.WriteString(w, "clear(")
-		io.WriteString(w, e.name)
-		io.WriteString(w, ")")
-	default:
-		io.WriteString(w, fmt.Sprintf("unknown(%T)", e))
-	}
+	return nil, nil
 }

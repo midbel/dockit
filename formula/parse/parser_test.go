@@ -1,4 +1,4 @@
-package eval
+package parse
 
 import (
 	"fmt"
@@ -170,7 +170,7 @@ func TestImportStmt(t *testing.T) {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
 		}
-		got, ok := unwrapScriptExpr(expr).(importFile)
+		got, ok := unwrapScriptExpr(expr).(ImportFile)
 		if !ok {
 			t.Errorf("%s: expected import statement, got %T", c.Expr, expr)
 			continue
@@ -179,7 +179,7 @@ func TestImportStmt(t *testing.T) {
 	}
 }
 
-func assertImportRef(t *testing.T, expr string, got importFile, want importExpect) {
+func assertImportRef(t *testing.T, expr string, got ImportFile, want importExpect) {
 	t.Helper()
 	if want.File != got.file {
 		t.Errorf("%s: file mismatched! want %s, got %s", expr, want.File, got.file)
@@ -249,7 +249,7 @@ func TestUseStmt(t *testing.T) {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
 		}
-		got, ok := unwrapScriptExpr(expr).(useRef)
+		got, ok := unwrapScriptExpr(expr).(UseRef)
 		if !ok {
 			t.Errorf("%s: expected use statement, got %T", c.Expr, expr)
 			continue
@@ -258,7 +258,7 @@ func TestUseStmt(t *testing.T) {
 	}
 }
 
-func assertUseRef(t *testing.T, expr string, got useRef, want useExpect) {
+func assertUseRef(t *testing.T, expr string, got UseRef, want useExpect) {
 	t.Helper()
 	if want.Value != got.ident {
 		t.Errorf("%s: identifier mismatched! want %s, got %s", expr, want.Value, got.ident)
@@ -318,7 +318,7 @@ func TestPrintStmt(t *testing.T) {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
 		}
-		pr, ok := unwrapScriptExpr(expr).(printRef)
+		pr, ok := unwrapScriptExpr(expr).(PrintRef)
 		if !ok {
 			t.Errorf("%s: expected print statement, got %T", c.Expr, expr)
 			continue
@@ -674,7 +674,7 @@ func TestSlices(t *testing.T) {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
 		}
-		got, ok := unwrapScriptExpr(expr).(slice)
+		got, ok := unwrapScriptExpr(expr).(Slice)
 		if !ok {
 			t.Errorf("%s: expected slice expression, got %T", c.Expr, expr)
 			continue
@@ -736,16 +736,16 @@ func TestScript(t *testing.T) {
 func assertEqualExpr(t *testing.T, want, got Expr) {
 	t.Helper()
 	switch w := want.(type) {
-	case rangeAddr:
-		g, ok := got.(rangeAddr)
+	case RangeAddr:
+		g, ok := got.(RangeAddr)
 		if !ok {
 			t.Errorf("rangeAddr expression expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.startAddr, g.startAddr)
 		assertEqualExpr(t, w.endAddr, g.endAddr)
-	case cellAddr:
-		g, ok := got.(cellAddr)
+	case CellAddr:
+		g, ok := got.(CellAddr)
 		if !ok {
 			t.Errorf("cellAddr expression expected but got %T", got)
 			return
@@ -759,24 +759,24 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.AbsRow != g.AbsRow {
 			t.Errorf("absolute column mismatched!")
 		}
-	case qualifiedCellAddr:
-		g, ok := got.(qualifiedCellAddr)
+	case QualifiedCellAddr:
+		g, ok := got.(QualifiedCellAddr)
 		if !ok {
 			t.Errorf("qualifiedCellAddr expression expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.path, g.path)
 		assertEqualExpr(t, w.addr, g.addr)
-	case assignment:
-		g, ok := got.(assignment)
+	case Assignment:
+		g, ok := got.(Assignment)
 		if !ok {
 			t.Errorf("assignment expression expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.ident, g.ident)
 		assertEqualExpr(t, w.expr, g.expr)
-	case binary:
-		g, ok := got.(binary)
+	case Binary:
+		g, ok := got.(Binary)
 		if !ok {
 			t.Errorf("binary expression expected but got %T", got)
 			return
@@ -786,31 +786,31 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		}
 		assertEqualExpr(t, w.left, g.left)
 		assertEqualExpr(t, w.right, g.right)
-	case and:
-		g, ok := got.(and)
+	case And:
+		g, ok := got.(And)
 		if !ok {
 			t.Errorf("and expression expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.left, g.left)
 		assertEqualExpr(t, w.right, g.right)
-	case or:
-		g, ok := got.(or)
+	case Or:
+		g, ok := got.(Or)
 		if !ok {
 			t.Errorf("or expression expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.left, g.left)
 		assertEqualExpr(t, w.right, g.right)
-	case not:
-		g, ok := got.(not)
+	case Not:
+		g, ok := got.(Not)
 		if !ok {
 			t.Errorf("not expression expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.expr, g.expr)
-	case unary:
-		g, ok := got.(unary)
+	case Unary:
+		g, ok := got.(Unary)
 		if !ok {
 			t.Errorf("unary expression expected but got %T", got)
 			return
@@ -819,8 +819,8 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 			t.Errorf("unary operator mismatched!")
 		}
 		assertEqualExpr(t, w.expr, g.expr)
-	case postfix:
-		g, ok := got.(postfix)
+	case Postfix:
+		g, ok := got.(Postfix)
 		if !ok {
 			t.Errorf("postfix expression expected but got %T", got)
 			return
@@ -829,15 +829,15 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if g.op != w.op {
 			t.Errorf("unary operator mismatched!")
 		}
-	case deferred:
-		g, ok := got.(deferred)
+	case Deferred:
+		g, ok := got.(Deferred)
 		if !ok {
 			t.Errorf("deferred expression expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.expr, g.expr)
-	case call:
-		g, ok := got.(call)
+	case Call:
+		g, ok := got.(Call)
 		if !ok {
 			t.Errorf("call expression expected but got %T", got)
 			return
@@ -849,8 +849,8 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		for i := range w.args {
 			assertEqualExpr(t, w.args[i], g.args[i])
 		}
-	case number:
-		g, ok := got.(number)
+	case Number:
+		g, ok := got.(Number)
 		if !ok {
 			t.Errorf("number expected but got %T", got)
 			return
@@ -858,8 +858,8 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.value != g.value {
 			t.Errorf("number value mismatched! want %f, got %f", w.value, g.value)
 		}
-	case literal:
-		g, ok := got.(literal)
+	case Literal:
+		g, ok := got.(Literal)
 		if !ok {
 			t.Errorf("literal expected but got %T", got)
 			return
@@ -867,8 +867,8 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.value != g.value {
 			t.Errorf("literal value mismatched! want %s, got %s", w.value, g.value)
 		}
-	case template:
-		g, ok := got.(template)
+	case Template:
+		g, ok := got.(Template)
 		if !ok {
 			t.Errorf("template expected but got %T", got)
 			return
@@ -880,8 +880,8 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		for i := range w.expr {
 			assertEqualExpr(t, w.expr[i], g.expr[i])
 		}
-	case access:
-		g, ok := got.(access)
+	case Access:
+		g, ok := got.(Access)
 		if !ok {
 			t.Errorf("access expression expected but got %T", got)
 			return
@@ -890,8 +890,8 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.prop != g.prop {
 			t.Errorf("property mismatched! want %s, got %s", w.prop, g.prop)
 		}
-	case identifier:
-		g, ok := got.(identifier)
+	case Identifier:
+		g, ok := got.(Identifier)
 		if !ok {
 			t.Errorf("identifier expected but got %T", got)
 			return
@@ -899,16 +899,16 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.name != g.name {
 			t.Errorf("identifier name mismatched! want %s, got %s", w.name, g.name)
 		}
-	case slice:
-		g, ok := got.(slice)
+	case Slice:
+		g, ok := got.(Slice)
 		if !ok {
 			t.Errorf("slice expected but got %T", got)
 			return
 		}
 		assertEqualExpr(t, w.view, g.view)
 		assertEqualExpr(t, w.expr, g.expr)
-	case columnsSlice:
-		g, ok := got.(columnsSlice)
+	case ColumnsSlice:
+		g, ok := got.(ColumnsSlice)
 		if !ok {
 			t.Errorf("columns slice expected but got %T", got)
 			return

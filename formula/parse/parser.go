@@ -1,4 +1,4 @@
-package eval
+package parse
 
 import (
 	"fmt"
@@ -356,10 +356,7 @@ func parseSpread(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	expr := spread{
-		expr: next,
-	}
-	return expr, nil
+	return NewSpread(next), nil
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
@@ -492,11 +489,11 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 		return nil, err
 	}
 
-	start, ok := left.(cellAddr)
+	start, ok := left.(CellAddr)
 	if !ok {
 		return nil, p.makeError("range: address expected")
 	}
-	end, ok := addr.(cellAddr)
+	end, ok := addr.(CellAddr)
 	if !ok {
 		return nil, p.makeError("range: address expected")
 	}
@@ -535,10 +532,7 @@ func parseDeferred(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	e := deferred{
-		expr: expr,
-	}
-	return e, nil
+	return NewDeferred(expr), nil
 }
 
 func parseAccess(p *Parser, left Expr) (Expr, error) {
@@ -546,10 +540,7 @@ func parseAccess(p *Parser, left Expr) (Expr, error) {
 	if !p.is(op.Ident) {
 		return nil, p.expectedIdent()
 	}
-	a := access{
-		expr: left,
-		prop: p.currentLiteral(),
-	}
+	a := NewAccess(left, p.currentLiteral())
 	p.next()
 	return a, nil
 }
@@ -587,7 +578,7 @@ func parsePrint(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	stmt := printRef{
+	stmt := PrintRef{
 		expr: expr,
 	}
 	if p.is(op.Literal) {
@@ -603,7 +594,7 @@ func parseSave(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	stmt := saveRef{
+	stmt := SaveRef{
 		expr: expr,
 	}
 	return stmt, nil
@@ -612,7 +603,7 @@ func parseSave(p *Parser) (Expr, error) {
 func parseExport(p *Parser) (Expr, error) {
 	p.next()
 	var (
-		stmt exportRef
+		stmt ExportRef
 		err  error
 	)
 	if stmt.expr, err = p.parse(powLowest); err != nil {
@@ -640,7 +631,7 @@ func parseUse(p *Parser) (Expr, error) {
 	if !p.is(op.Ident) {
 		return nil, p.expectedIdent()
 	}
-	stmt := useRef{
+	stmt := UseRef{
 		ident: p.currentLiteral(),
 	}
 	p.next()
@@ -690,7 +681,7 @@ func parseKeyValuePairs(p *Parser) (map[string]string, error) {
 
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
-	var stmt importFile
+	var stmt ImportFile
 	if !p.is(op.Literal) {
 		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
 		return nil, p.makeError(msg)
@@ -757,7 +748,7 @@ func parseLock(p *Parser) (Expr, error) {
 	if !p.is(op.Ident) {
 		return nil, p.expectedIdent()
 	}
-	stmt := lockRef{
+	stmt := LockRef{
 		ident: p.currentLiteral(),
 	}
 	p.next()
@@ -769,7 +760,7 @@ func parseUnlock(p *Parser) (Expr, error) {
 	if !p.is(op.Ident) {
 		return nil, p.expectedIdent()
 	}
-	stmt := unlockRef{
+	stmt := UnlockRef{
 		ident: p.currentLiteral(),
 	}
 	p.next()
@@ -818,20 +809,20 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 		return nil, p.makeError("expected ] at end of slice expression")
 	}
 	p.next()
-	if _, ok := expr.(exprRange); ok {
+	if _, ok := expr.(ExprRange); ok {
 		rg, err := getColumnsRangeFromExpr(expr)
 		if err != nil {
 			return nil, err
 		}
-		expr = columnsSlice{
-			columns: []columnsRange{rg},
+		expr = ColumnsSlice{
+			columns: []ColumnsRange{rg},
 		}
 	}
 	return NewSlice(left, expr), nil
 }
 
 func parseColumnExpr(expr Expr) (int, error) {
-	e, ok := expr.(identifier)
+	e, ok := expr.(Identifier)
 	if !ok {
 		return 0, fmt.Errorf("columns identifier expected")
 	}
@@ -842,19 +833,19 @@ func parseColumnExpr(expr Expr) (int, error) {
 	return int(ix), nil
 }
 
-func getColumnsRangeFromExpr(expr Expr) (columnsRange, error) {
+func getColumnsRangeFromExpr(expr Expr) (ColumnsRange, error) {
 	var (
-		crg columnsRange
+		crg ColumnsRange
 		err error
 	)
-	if _, ok := expr.(rangeAddr); ok {
+	if _, ok := expr.(RangeAddr); ok {
 		return crg, fmt.Errorf("address range not allowed in selection list")
 	}
 	switch expr := expr.(type) {
-	case identifier:
+	case Identifier:
 		crg.from, err = parseColumnExpr(expr)
 		crg.to = crg.from
-	case exprRange:
+	case ExprRange:
 		if expr.from != nil {
 			crg.from, err = parseColumnExpr(expr.from)
 			if err != nil {
@@ -867,7 +858,7 @@ func getColumnsRangeFromExpr(expr Expr) (columnsRange, error) {
 				break
 			}
 		}
-		if n, ok := expr.step.(number); ok {
+		if n, ok := expr.step.(Number); ok {
 			crg.step = int(n.value)
 		}
 	default:
@@ -879,7 +870,7 @@ func getColumnsRangeFromExpr(expr Expr) (columnsRange, error) {
 func parseOpenSelectedColumns(p *Parser) (Expr, error) {
 	p.next()
 	var (
-		expr exprRange
+		expr ExprRange
 		err  error
 	)
 	if !p.is(op.EndProp) && !p.is(op.Semi) {
@@ -901,15 +892,11 @@ func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
 		return nil, err
 	}
 
-	leftAddr, leftAddrOk := left.(cellAddr)
-	rightAddr, rightAddrOk := right.(cellAddr)
+	leftAddr, leftAddrOk := left.(CellAddr)
+	rightAddr, rightAddrOk := right.(CellAddr)
 
 	if leftAddrOk && rightAddrOk {
-		expr := rangeAddr{
-			startAddr: leftAddr,
-			endAddr:   rightAddr,
-		}
-		return expr, nil
+		return NewRangeAddr(leftAddr, rightAddr), nil
 	}
 	if !leftAddrOk && (!rightAddrOk || right == nil) {
 		var step Expr
@@ -920,7 +907,7 @@ func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
 				return nil, err
 			}
 		}
-		expr := exprRange{
+		expr := ExprRange{
 			from: left,
 			to:   right,
 			step: step,
@@ -931,7 +918,7 @@ func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
 }
 
 func parseSelectedColumns(p *Parser, left Expr) (Expr, error) {
-	var cs columnsSlice
+	var cs ColumnsSlice
 
 	crg, err := getColumnsRangeFromExpr(left)
 	if err != nil {
@@ -959,10 +946,7 @@ func parseNot(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	ret := not{
-		expr: expr,
-	}
-	return ret, nil
+	return NewNot(expr), nil
 }
 
 func parseAnd(p *Parser, left Expr) (Expr, error) {
@@ -971,11 +955,7 @@ func parseAnd(p *Parser, left Expr) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	a := and{
-		left:  left,
-		right: right,
-	}
-	return a, nil
+	return NewAnd(left, right), nil
 }
 
 func parseOr(p *Parser, left Expr) (Expr, error) {
@@ -984,9 +964,5 @@ func parseOr(p *Parser, left Expr) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	o := or{
-		left:  left,
-		right: right,
-	}
-	return o, nil
+	return NewOr(left, right), nil
 }
