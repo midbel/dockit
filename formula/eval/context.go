@@ -92,7 +92,7 @@ func (c *EngineConfig) Set(ident []string, val any) error {
 }
 
 func (c *EngineConfig) SetDefaults() {
-	c.Set(slx.Make("base", "dir"), ".")
+	c.Set(slx.Make("context", "dir"), ".")
 	c.Set(slx.Make("print", "debug"), false)
 	c.Set(slx.Make("print", "cols"), maxCols)
 	c.Set(slx.Make("print", "rows"), maxRows)
@@ -105,8 +105,9 @@ type EngineContext struct {
 	ctx          *grid.ScopedContext
 	currentValue value.Value
 
-	printer Printer
-	formatter format.Formatter
+	printer    Printer
+	formatter  format.Formatter
+	contextDir string
 }
 
 func NewEngineContext() *EngineContext {

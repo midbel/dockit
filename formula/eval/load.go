@@ -6,6 +6,8 @@ import (
 	"github.com/midbel/dockit/grid"
 )
 
+type LoaderOptions map[string]any
+
 type Loader interface {
 	Open(string) (grid.File, error)
 }
@@ -18,4 +20,24 @@ func (noopLoader) Open(_ string) (grid.File, error) {
 
 func defaultLoader() Loader {
 	return noopLoader{}
+}
+
+type csvLoader struct{}
+
+func CsvLoader() Loader {
+	return csvLoader{}
+}
+
+func (c csvLoader) Open(file string) (grid.File, error) {
+	return nil, nil
+}
+
+type xlsxLoader struct{}
+
+func XlsxLoader(ctx *EngineContext) Loader {
+	return xlsxLoader{}
+}
+
+func (x xlsxLoader) Open(file string) (grid.File, error) {
+	return nil, nil
 }

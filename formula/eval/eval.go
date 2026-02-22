@@ -93,14 +93,14 @@ type Engine struct {
 	Stdout io.Writer
 	Stderr io.Writer
 
-	phases    []scriptPhase
+	phases []scriptPhase
 }
 
 func NewEngine(loader Loader) *Engine {
 	e := Engine{
-		Loader:    loader,
-		Stdout:    os.Stdout,
-		Stderr:    os.Stderr,
+		Loader: loader,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
 	}
 	return &e
 }
@@ -144,7 +144,7 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*Parser, error) {
 	var (
 		grammar *Grammar
 		mode    string
-		cfg = NewConfig()
+		cfg     = NewConfig()
 	)
 	if tok := scan.Peek(); tok.Type == op.Directive {
 		mode = tok.Literal

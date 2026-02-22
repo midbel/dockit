@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	dir   := flag.String("d", "", "context directory")
+	dir := flag.String("d", "", "context directory")
 	flag.Parse()
 
 	r, err := os.Open(flag.Arg(0))
