@@ -143,7 +143,6 @@ func (c *EngineContext) Configure(cfg *EngineConfig) error {
 }
 
 func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error) {
-	fmt.Println("context.Open", file)
 	ext := filepath.Ext(file)
 	loader, ok := c.loaders[ext]
 	if !ok {
