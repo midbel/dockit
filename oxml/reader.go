@@ -10,8 +10,6 @@ import (
 	"strings"
 
 	sax "github.com/midbel/codecs/xml"
-	"github.com/midbel/dockit/formula/eval"
-	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -296,11 +294,10 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		return nil
 	}
 	rs.OnText(func(_ *sax.Reader, str string) error {
-		expr, err := parse.ParseFormula(str)
+		formula, err := grid.ParseFormula(str)
 		if err != nil {
 			return err
 		}
-		formula := eval.NewFormula(expr)
 		if _, ok := r.sharedFormulas[index]; shared == "shared" && !ok {
 			r.sharedFormulas[index] = sharedFormula{
 				Position: cell.Position,

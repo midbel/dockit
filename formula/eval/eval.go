@@ -24,26 +24,6 @@ var (
 	ErrCallable = errors.New("expression is not callable")
 )
 
-func Eval(expr parse.Expr, ctx value.Context) (value.Value, error) {
-	switch e := expr.(type) {
-	case parse.Binary:
-		return evalBinary(e, ctx)
-	case parse.Unary:
-		return evalUnary(e, ctx)
-	case parse.Literal:
-		return value.Text(e.Text()), nil
-	case parse.Number:
-		return value.Float(e.Float()), nil
-	case parse.Call:
-		return evalCall(e, ctx)
-	case parse.CellAddr:
-		return evalCellAddr(e, ctx)
-	case parse.RangeAddr:
-		return evalRangeAddr(e, ctx)
-	default:
-		return nil, ErrEval
-	}
-}
 
 type Engine struct {
 	Stdout io.Writer
@@ -286,18 +266,18 @@ func evalSlice(eg *Engine, expr parse.Slice, ctx *EngineContext) (value.Value, e
 	case parse.ColumnsSlice:
 		view = view.ProjectView(e.Selection())
 	case parse.Binary:
-		p := types.NewExprPredicate(NewFormula(e))
+		p := types.NewExprPredicate(grid.NewFormula(e))
 		view = view.FilterView(p)
 	case parse.And:
-		f := NewFormula(parse.NewBinary(e.Left(), e.Right(), op.And))
+		f := grid.NewFormula(parse.NewBinary(e.Left(), e.Right(), op.And))
 		p := types.NewExprPredicate(f)
 		view = view.FilterView(p)
 	case parse.Or:
-		f := NewFormula(parse.NewBinary(e.Left(), e.Right(), op.Or))
+		f := grid.NewFormula(parse.NewBinary(e.Left(), e.Right(), op.Or))
 		p := types.NewExprPredicate(f)
 		view = view.FilterView(p)
 	case parse.Not:
-		f := NewFormula(parse.NewUnary(e.Expr(), op.Not))
+		f := grid.NewFormula(parse.NewUnary(e.Expr(), op.Not))
 		p := types.NewExprPredicate(f)
 		view = view.FilterView(p)
 	case parse.Identifier:
@@ -742,100 +722,4 @@ func evalAccess(eg *Engine, e parse.Access, ctx *EngineContext) (value.Value, er
 		return nil, fmt.Errorf("object expected")
 	}
 	return g.Get(e.Property())
-}
-
-func evalBinary(e parse.Binary, ctx value.Context) (value.Value, error) {
-	left, err := Eval(e.Left(), ctx)
-	if err != nil {
-		return nil, err
-	}
-	right, err := Eval(e.Right(), ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	switch e.Op() {
-	case op.Add:
-		return value.Add(left, right)
-	case op.Sub:
-		return value.Sub(left, right)
-	case op.Mul:
-		return value.Mul(left, right)
-	case op.Div:
-		return value.Div(left, right)
-	case op.Pow:
-		return value.Pow(left, right)
-	case op.Concat:
-		return value.Concat(left, right)
-	case op.Eq:
-		return value.Eq(left, right)
-	case op.Ne:
-		return value.Ne(left, right)
-	case op.Lt:
-		return value.Lt(left, right)
-	case op.Le:
-		return value.Le(left, right)
-	case op.Gt:
-		return value.Gt(left, right)
-	case op.Ge:
-		return value.Ge(left, right)
-	case op.And:
-		ok := value.True(left) && value.True(right)
-		return value.Boolean(ok), nil
-	case op.Or:
-		ok := value.True(left) || value.True(right)
-		return value.Boolean(ok), nil
-	default:
-		return value.ErrValue, nil
-	}
-}
-
-func evalUnary(e parse.Unary, ctx value.Context) (value.Value, error) {
-	val, err := Eval(e.Expr(), ctx)
-	if err != nil {
-		return nil, err
-	}
-	n, ok := val.(value.Float)
-	if !ok {
-		return value.ErrValue, nil
-	}
-	switch e.Op() {
-	case op.Not:
-		ok := value.True(val)
-		return value.Boolean(!ok), nil
-	case op.Add:
-		return n, nil
-	case op.Sub:
-		return value.Float(float64(-n)), nil
-	default:
-		return value.ErrValue, nil
-	}
-}
-
-func evalCall(e parse.Call, ctx value.Context) (value.Value, error) {
-	id, ok := e.Name().(parse.Identifier)
-	if !ok {
-		return value.ErrName, nil
-	}
-	var args []value.Arg
-	for _, a := range e.Args() {
-		args = append(args, makeArg(a))
-	}
-	fn, err := ctx.Resolve(id.Ident())
-	if err != nil {
-		return nil, err
-	}
-	if fn.Kind() != value.KindFunction {
-		return nil, fmt.Errorf("%s: %w", id.Ident(), ErrCallable)
-	}
-	call, ok := fn.(value.FunctionValue)
-	return call.Call(args, ctx)
-}
-
-func evalCellAddr(e parse.CellAddr, ctx value.Context) (value.Value, error) {
-	return ctx.At(e.Position)
-}
-
-func evalRangeAddr(e parse.RangeAddr, ctx value.Context) (value.Value, error) {
-	return ctx.Range(e.StartAt().Position, e.EndAt().Position)
 }

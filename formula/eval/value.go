@@ -7,6 +7,7 @@ import (
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
+	"github.com/midbel/dockit/grid"
 )
 
 var (
@@ -99,7 +100,7 @@ func (v rangeValue) Set(val value.Value) error {
 	var err error
 	switch val := val.(type) {
 	case parse.Deferred:
-		f := NewFormula(val.Expr())
+		f := grid.NewFormula(val.Expr())
 		err = v.setFormula(f)
 	case value.ScalarValue:
 		err = v.setScalar(val)
@@ -236,7 +237,7 @@ func (v cellValue) setFormula(val parse.Deferred) error {
 	if !ok {
 		return ErrValue
 	}
-	return f.SetFormula(v.pos, NewFormula(val.Expr()))
+	return f.SetFormula(v.pos, grid.NewFormula(val.Expr()))
 }
 
 func (v cellValue) setValue(val value.ScalarValue) error {
@@ -247,51 +248,4 @@ func (v cellValue) setValue(val value.ScalarValue) error {
 		return ErrValue
 	}
 	return f.SetValue(v.pos, val)
-}
-
-type arg struct {
-	expr parse.Expr
-}
-
-func makeArg(expr parse.Expr) value.Arg {
-	return arg{
-		expr: expr,
-	}
-}
-
-func (a arg) Eval(ctx value.Context) (value.Value, error) {
-	return Eval(a.expr, ctx)
-}
-
-type formula struct {
-	expr parse.Expr
-}
-
-func NewFormula(expr parse.Expr) value.Formula {
-	return formula{
-		expr: expr,
-	}
-}
-
-func (formula) Type() string {
-	return "formula"
-}
-
-func (formula) Kind() value.ValueKind {
-	return value.KindFunction
-}
-
-func (f formula) String() string {
-	return f.expr.String()
-}
-
-func (f formula) Eval(ctx value.Context) (value.Value, error) {
-	return Eval(f.expr, ctx)
-}
-
-func (f formula) Clone(pos layout.Position) value.Formula {
-	if c, ok := f.expr.(parse.Clonable); ok {
-		return NewFormula(c.CloneWithOffset(pos))
-	}
-	return f
 }
