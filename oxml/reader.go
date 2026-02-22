@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	sax "github.com/midbel/codecs/xml"
-	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/eval"
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -284,7 +284,9 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 			Line:   cell.Line - sf.Line,
 			Column: cell.Column - sf.Column,
 		}
-		if c, ok := sf.Expr.(interface{ Clone(layout.Position) value.Formula }); ok {
+		if c, ok := sf.Expr.(interface {
+			Clone(layout.Position) value.Formula
+		}); ok {
 			cell.formula = c.Clone(pos)
 		} else {
 			cell.formula = sf.Expr

@@ -8,7 +8,6 @@ import (
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/doc"
-	_ "github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/grid"
 )
 

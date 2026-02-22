@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -45,20 +46,29 @@ func Eval(expr parse.Expr, ctx value.Context) (value.Value, error) {
 }
 
 type Engine struct {
-	Loader
 	Stdout io.Writer
 	Stderr io.Writer
 
-	phases []scriptPhase
+	phases  []scriptPhase
+	loaders map[string]Loader
 }
 
-func NewEngine(loader Loader) *Engine {
+func NewEngine() *Engine {
 	e := Engine{
-		Loader: loader,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Stdout:  os.Stdout,
+		Stderr:  os.Stderr,
+		loaders: make(map[string]Loader),
 	}
+	e.RegisterLoader(".csv", CsvLoader())
+	e.RegisterLoader(".xlsx", XlsxLoader())
+	e.RegisterLoader(".ods", OdsLoader())
+	e.RegisterLoader(".csv", CsvLoader())
+	e.RegisterLoader(".log", LogLoader())
 	return &e
+}
+
+func (e *Engine) RegisterLoader(kind string, loader Loader) {
+	e.loaders[kind] = loader
 }
 
 func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
@@ -67,6 +77,7 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 		phase = phaseImport
 		ctx   = NewEngineContext()
 	)
+	ctx.loaders = maps.Clone(e.loaders)
 	ctx.PushContext(environ)
 
 	ps, err := e.bootstrap(r, ctx)
@@ -654,7 +665,7 @@ func evalAssignment(eg *Engine, e parse.Assignment, ctx *EngineContext) (value.V
 }
 
 func evalImport(eg *Engine, e parse.ImportFile, ctx *EngineContext) (value.Value, error) {
-	file, err := eg.Loader.Open(e.File())
+	file, err := ctx.Open(e.File(), nil)
 	if err != nil {
 		return nil, err
 	}

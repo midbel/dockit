@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/types"
@@ -30,6 +31,11 @@ func NewConfig() *EngineConfig {
 	}
 	c.SetDefaults()
 	return &c
+}
+
+func (c *EngineConfig) ContextDir() string {
+	dir, _ := c.registry.Get(slx.Make("context", "dir"))
+	return dir.(string)
 }
 
 func (c *EngineConfig) Printer() (Printer, error) {
@@ -102,6 +108,7 @@ func (c *EngineConfig) SetDefaults() {
 }
 
 type EngineContext struct {
+	loaders      map[string]Loader
 	ctx          *grid.ScopedContext
 	currentValue value.Value
 
@@ -130,7 +137,20 @@ func (c *EngineContext) Configure(cfg *EngineConfig) error {
 	}
 	c.printer = p
 
+	c.contextDir = cfg.ContextDir()
+
 	return nil
+}
+
+func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error) {
+	fmt.Println("context.Open", file)
+	ext := filepath.Ext(file)
+	loader, ok := c.loaders[ext]
+	if !ok {
+		return nil, fmt.Errorf("file %s can not be loaded!", ext)
+	}
+	file = filepath.Join(c.contextDir, file)
+	return loader.Open(file, opts)
 }
 
 func (c *EngineContext) Print(v value.Value) {
