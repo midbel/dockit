@@ -275,13 +275,20 @@ func evalSlice(eg *Engine, expr parse.Slice, ctx *EngineContext) (value.Value, e
 	case parse.ColumnsSlice:
 		view = view.ProjectView(e.Selection())
 	case parse.Binary:
-		view = view.FilterView(e.Predicate())
+		p := types.NewExprPredicate(NewFormula(e))
+		view = view.FilterView(p)
 	case parse.And:
-		view = view.FilterView(e.Predicate())
+		f := NewFormula(parse.NewBinary(e.Left(), e.Right(), op.And))
+		p := types.NewExprPredicate(f)
+		view = view.FilterView(p)
 	case parse.Or:
-		view = view.FilterView(e.Predicate())
+		f := NewFormula(parse.NewBinary(e.Left(), e.Right(), op.Or))
+		p := types.NewExprPredicate(f)
+		view = view.FilterView(p)
 	case parse.Not:
-		view = view.FilterView(e.Predicate())
+		f := NewFormula(parse.NewUnary(e.Expr(), op.Not))
+		p := types.NewExprPredicate(f)
+		view = view.FilterView(p)
 	case parse.Identifier:
 	default:
 		return nil, fmt.Errorf("invalid slice expression")

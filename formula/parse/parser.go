@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
-	"github.com/midbel/dockit/value"
 )
 
 func FormulaGrammar() *Grammar {
@@ -135,16 +134,9 @@ type Parser struct {
 	stack *GrammarStack
 }
 
-func ParseFormula(str string) (value.Formula, error) {
+func ParseFormula(str string) (Expr, error) {
 	p := NewParser(FormulaGrammar())
-	expr, err := p.ParseString(str)
-	if err != nil {
-		return nil, err
-	}
-	f := deferredFormula{
-		expr: expr,
-	}
-	return f, nil
+	return p.ParseString(str)
 }
 
 func NewParser(g *Grammar) *Parser {

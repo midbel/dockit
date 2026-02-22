@@ -99,10 +99,8 @@ func (v rangeValue) Set(val value.Value) error {
 	var err error
 	switch val := val.(type) {
 	case parse.Deferred:
-		f := deferredFormula{
-			expr: val.Expr(),
-		}
-		err = v.setFormula(&f)
+		f := NewFormula(val.Expr())
+		err = v.setFormula(f)
 	case value.ScalarValue:
 		err = v.setScalar(val)
 	case value.ArrayValue:
@@ -238,10 +236,7 @@ func (v cellValue) setFormula(val parse.Deferred) error {
 	if !ok {
 		return ErrValue
 	}
-	df := deferredFormula{
-		expr: val.Expr(),
-	}
-	return f.SetFormula(v.pos, &df)
+	return f.SetFormula(v.pos, NewFormula(val.Expr()))
 }
 
 func (v cellValue) setValue(val value.ScalarValue) error {
@@ -268,22 +263,35 @@ func (a arg) Eval(ctx value.Context) (value.Value, error) {
 	return Eval(a.expr, ctx)
 }
 
-type deferredFormula struct {
+type formula struct {
 	expr parse.Expr
 }
 
-func (deferredFormula) Type() string {
+func NewFormula(expr parse.Expr) value.Formula {
+	return formula{
+		expr: expr,
+	}
+}
+
+func (formula) Type() string {
 	return "formula"
 }
 
-func (deferredFormula) Kind() value.ValueKind {
+func (formula) Kind() value.ValueKind {
 	return value.KindFunction
 }
 
-func (f deferredFormula) String() string {
+func (f formula) String() string {
 	return f.expr.String()
 }
 
-func (f deferredFormula) Eval(ctx value.Context) (value.Value, error) {
+func (f formula) Eval(ctx value.Context) (value.Value, error) {
 	return Eval(f.expr, ctx)
+}
+
+func (f formula) Clone(pos layout.Position) value.Formula {
+	if c, ok := f.expr.(parse.Clonable); ok {
+		return NewFormula(c.CloneWithOffset(pos))
+	}
+	return f
 }

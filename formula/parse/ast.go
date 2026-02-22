@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
-	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -17,17 +16,6 @@ type Expr interface {
 
 type Clonable interface {
 	CloneWithOffset(layout.Position) Expr
-}
-
-func CloneWithOffset(expr value.Formula, pos layout.Position) value.Formula {
-	e, ok := expr.(*deferredFormula)
-	if !ok {
-		return expr
-	}
-	if c, ok := e.expr.(Clonable); ok {
-		e.expr = c.CloneWithOffset(pos)
-	}
-	return e
 }
 
 type Kind int8
@@ -356,13 +344,6 @@ func (b Binary) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
-func (b Binary) Predicate() value.Predicate {
-	f := deferredFormula{
-		expr: b,
-	}
-	return types.NewExprPredicate(&f)
-}
-
 type Postfix struct {
 	expr Expr
 	op   op.Op
@@ -420,17 +401,6 @@ func (n Not) String() string {
 	return fmt.Sprintf("not(%s)", n.expr)
 }
 
-func (n Not) Predicate() value.Predicate {
-	e := Unary{
-		expr: n.expr,
-		op:   op.Not,
-	}
-	f := deferredFormula{
-		expr: e,
-	}
-	return types.NewExprPredicate(&f)
-}
-
 type And struct {
 	left  Expr
 	right Expr
@@ -456,18 +426,6 @@ func (a And) String() string {
 	return fmt.Sprintf("and(%s, %s)", a.left, a.right)
 }
 
-func (a And) Predicate() value.Predicate {
-	b := Binary{
-		op:    op.And,
-		left:  a.left,
-		right: a.right,
-	}
-	f := deferredFormula{
-		expr: b,
-	}
-	return types.NewExprPredicate(&f)
-}
-
 type Or struct {
 	left  Expr
 	right Expr
@@ -491,18 +449,6 @@ func (o Or) Right() Expr {
 
 func (o Or) String() string {
 	return fmt.Sprintf("or(%s, %s)", o.left, o.right)
-}
-
-func (o Or) Predicate() value.Predicate {
-	b := Binary{
-		op:    op.Or,
-		left:  o.left,
-		right: o.right,
-	}
-	f := deferredFormula{
-		expr: b,
-	}
-	return types.NewExprPredicate(&f)
 }
 
 type Spread struct {
@@ -985,24 +931,4 @@ func parseIndex(str string) (int64, int) {
 		offset++
 	}
 	return int64(index), offset
-}
-
-type deferredFormula struct {
-	expr Expr
-}
-
-func (deferredFormula) Type() string {
-	return "formula"
-}
-
-func (deferredFormula) Kind() value.ValueKind {
-	return value.KindFunction
-}
-
-func (f deferredFormula) String() string {
-	return f.expr.String()
-}
-
-func (f deferredFormula) Eval(ctx value.Context) (value.Value, error) {
-	return nil, nil
 }
