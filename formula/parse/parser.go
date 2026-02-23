@@ -73,7 +73,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwUse, parseUse)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
-	g.RegisterPrefixKeyword(kwSave, parseSave)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
 	g.RegisterPrefixKeyword(kwWith, parseWith)
 	g.RegisterPrefixKeyword(kwLock, parseLock)
@@ -580,18 +579,6 @@ func parsePrint(p *Parser) (Expr, error) {
 	return stmt, nil
 }
 
-func parseSave(p *Parser) (Expr, error) {
-	p.next()
-	expr, err := p.parse(powLowest)
-	if err != nil {
-		return nil, err
-	}
-	stmt := SaveRef{
-		expr: expr,
-	}
-	return stmt, nil
-}
-
 func parseExport(p *Parser) (Expr, error) {
 	p.next()
 	var (
@@ -601,20 +588,38 @@ func parseExport(p *Parser) (Expr, error) {
 	if stmt.expr, err = p.parse(powLowest); err != nil {
 		return nil, err
 	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwUsing {
+		p.next()
+		if !p.is(op.Ident) {
+			return nil, p.makeError("identifier expected")
+		}
+		stmt.format = p.currentLiteral()
+		p.next()
+	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwWith {
+		p.next()
+		if p.is(op.Literal) {
+			stmt.specifier = p.currentLiteral()
+			p.next()
+		} else if p.is(op.BegGrp) {
+			opts, err := parseKeyValuePairs(p)
+			if err != nil {
+				return nil, err
+			}
+			stmt.options = opts
+		} else {
+			return nil, p.makeError("literal or key/value pair expected")
+		}
+	}
 	if !p.is(op.Keyword) && p.currentLiteral() != kwTo {
 		return nil, p.makeError("keyword 'to' expected")
 	}
 	p.next()
-	if stmt.file, err = p.parse(powLowest); err != nil {
-		return nil, err
+	if !p.is(op.Literal) {
+		return nil, p.makeError("literal expected")
 	}
-	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
-		p.next()
-		stmt.format, err = p.parse(powLowest)
-		if err != nil {
-			return nil, err
-		}
-	}
+	stmt.file = p.currentLiteral()
+	p.next()
 	return stmt, nil
 }
 

@@ -3,10 +3,10 @@ package grid
 import (
 	"fmt"
 
-	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/op"
-	"github.com/midbel/dockit/value"
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/value"
 )
 
 func Eval(expr value.Formula, ctx value.Context) (value.Value, error) {
@@ -35,7 +35,7 @@ func eval(expr parse.Expr, ctx value.Context) (value.Value, error) {
 		return evalRangeAddr(e, ctx)
 	default:
 		return value.ErrValue, nil
-	}	
+	}
 }
 
 func evalBinary(e parse.Binary, ctx value.Context) (value.Value, error) {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/midbel/dockit/formula/parse"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
-	"github.com/midbel/dockit/grid"
 )
 
 var (

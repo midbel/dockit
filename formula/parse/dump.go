@@ -178,9 +178,6 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
 	case ExportRef:
-	case SaveRef:
-		io.WriteString(w, "save(")
-		io.WriteString(w, ")")
 	case Push:
 		io.WriteString(w, "push()")
 	case Pop:

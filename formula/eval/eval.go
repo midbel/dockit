@@ -24,7 +24,6 @@ var (
 	ErrCallable = errors.New("expression is not callable")
 )
 
-
 type Engine struct {
 	Stdout io.Writer
 	Stderr io.Writer

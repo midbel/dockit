@@ -155,23 +155,19 @@ func (p PrintRef) String() string {
 }
 
 type ExportRef struct {
-	expr   Expr
-	file   Expr
-	format Expr
+	expr Expr
+
+	file string
+
+	format    string // using
+	specifier string // with
+	options   map[string]string
+
 	Position
 }
 
 func (p ExportRef) String() string {
 	return fmt.Sprintf("export %s", p.expr.String())
-}
-
-type SaveRef struct {
-	expr Expr
-	Position
-}
-
-func (p SaveRef) String() string {
-	return fmt.Sprintf("save %s", p.expr.String())
 }
 
 type MacroDef struct {
