@@ -1,6 +1,7 @@
 package builtins
 
 import (
+	"time"
 	"errors"
 
 	"github.com/midbel/dockit/value"
@@ -41,7 +42,11 @@ var Registry = map[string]func([]value.Value) (value.Value, error){
 }
 
 func Now(args []value.Value) (value.Value, error) {
-	return nil, nil
+	if len(args) != 0 {
+		return nil, ErrArity
+	}
+	n := time.Now()
+	return value.Date(n), nil
 }
 
 func Rand(args []value.Value) (value.Value, error) {
