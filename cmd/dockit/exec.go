@@ -1,6 +1,6 @@
 package main
 
-type RunCommand struct {}
+type RunCommand struct{}
 
 func (c RunCommand) Run(args []string) error {
 	return nil

@@ -123,7 +123,7 @@ var dumpCmd = cli.Command{
 
 const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
 
-type GetInfoCommand struct {}
+type GetInfoCommand struct{}
 
 func (c GetInfoCommand) Run(args []string) error {
 	set := cli.NewFlagSet("info")

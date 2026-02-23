@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/grid/format"
 	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"

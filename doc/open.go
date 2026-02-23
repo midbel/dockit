@@ -6,27 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/oxml"
 )
-
-type Loader struct {
-	base string
-}
-
-func NewLoader(dir string) *Loader {
-	x := Loader{
-		base: dir,
-	}
-	return &x
-}
-
-func (r *Loader) Open(file string) (grid.File, error) {
-	return Open(filepath.Join(r.base, file))
-}
 
 func Infos(file string) ([]grid.ViewInfo, error) {
 	f, err := Open(file)

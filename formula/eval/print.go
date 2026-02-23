@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/midbel/dockit/format"
 	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/grid/format"
 	"github.com/midbel/dockit/value"
 )
 

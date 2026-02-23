@@ -10,12 +10,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/value"
 )
 
