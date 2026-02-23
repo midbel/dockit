@@ -1,8 +1,8 @@
 package builtins
 
 import (
-	"time"
 	"errors"
+	"time"
 
 	"github.com/midbel/dockit/value"
 )
