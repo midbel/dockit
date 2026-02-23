@@ -26,6 +26,6 @@ func (c MoveCommand) Run(args []string) error {
 
 type RenameCommand struct{}
 
-func (c AddCommand) Run(args []string) error {
+func (c RenameCommand) Run(args []string) error {
 	return nil
 }

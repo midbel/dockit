@@ -7,9 +7,11 @@ import (
 	"os"
 
 	"github.com/midbel/cli"
-	"github.com/midbel/dockit/doc"
+	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/slx"
+	"github.com/midbel/dockit/oxml"
+	"github.com/midbel/dockit/wbl"
 )
 
 var errFail = errors.New("fail")
@@ -18,6 +20,11 @@ var (
 	summary = "dockit"
 	help    = ""
 )
+
+func init() {
+	wbl.Register(oxml.NewLoader())
+	wbl.Register(csv.NewLoader())
+}
 
 func main() {
 	var (
@@ -130,11 +137,11 @@ func (c GetInfoCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	infos, err := doc.Infos(set.Arg(0))
+	file, err := wbl.Open(set.Arg(0))
 	if err != nil {
 		return err
 	}
-	for j, i := range infos {
+	for j, i := range file.Infos() {
 		c.printInfo(i, j)
 	}
 	return nil
