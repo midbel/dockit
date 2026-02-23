@@ -44,10 +44,6 @@ func TestParseFormula(t *testing.T) {
 	}
 }
 
-func TestSaveStmt(t *testing.T) {
-	t.SkipNow()
-}
-
 func TestExportStmt(t *testing.T) {
 	t.SkipNow()
 }
