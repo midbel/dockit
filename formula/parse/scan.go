@@ -3,7 +3,6 @@ package parse
 import (
 	"bytes"
 	"io"
-	"strconv"
 	"unicode/utf8"
 
 	"github.com/midbel/dockit/formula/op"
@@ -12,8 +11,8 @@ import (
 type ScanMode int8
 
 const (
-	ModeFormula ScanMode = 1 << iota
-	ModeScript
+	ScanFormula ScanMode = 1 << iota
+	ScanScript
 )
 
 type ScannerState struct {
@@ -75,24 +74,6 @@ func (s *Scanner) Peek() Token {
 	return s.Scan()
 }
 
-func (s *Scanner) Value() any {
-	tok := s.Scan()
-	switch tok.Type {
-	case op.Number:
-		f, _ := strconv.ParseFloat(tok.Literal, 64)
-		return f
-	case op.Ident:
-		if tok.Literal == "true" {
-			return true
-		}
-		return false
-	case op.Literal:
-		return tok.Literal
-	default:
-		return nil
-	}
-}
-
 func (s *Scanner) Scan() Token {
 	if s.char == backslash && isNL(s.peek()) {
 		s.read()
@@ -108,9 +89,9 @@ func (s *Scanner) Scan() Token {
 	}
 	defer s.reset()
 	switch {
-	case isNL(s.char) && s.mode == ModeScript:
+	case s.inScript() && isNL(s.char):
 		s.scanNL(&tok)
-	case isComment(s.char) && s.mode == ModeScript:
+	case s.inScript() && isComment(s.char):
 		s.scanComment(&tok)
 	case isOperator(s.char):
 		s.scanOperator(&tok)
@@ -124,6 +105,10 @@ func (s *Scanner) Scan() Token {
 		s.scanIdent(&tok)
 	}
 	return tok
+}
+
+func (s *Scanner) inScript() bool {
+	return s.mode == ScanScript
 }
 
 func (s *Scanner) scanNL(tok *Token) {
@@ -173,7 +158,7 @@ func (s *Scanner) scanIdent(tok *Token) {
 	}
 	tok.Type = op.Ident
 	tok.Literal = s.literal()
-	if s.allowKeywords() && isKeyword(tok.Literal) {
+	if s.inScript() && isKeyword(tok.Literal) {
 		tok.Type = op.Keyword
 		if tok.Literal == kwAnd {
 			tok.Type = op.And
@@ -241,7 +226,7 @@ func (s *Scanner) scanOperator(tok *Token) {
 		tok.Type = op.Union
 	case amper:
 		tok.Type = op.Concat
-		if s.peek() == equal && s.mode == ModeScript {
+		if s.inScript() && s.peek() == equal {
 			s.read()
 			tok.Type = op.ConcatAssign
 		}
@@ -249,31 +234,31 @@ func (s *Scanner) scanOperator(tok *Token) {
 		tok.Type = op.Percent
 	case plus:
 		tok.Type = op.Add
-		if s.peek() == equal && s.mode == ModeScript {
+		if s.inScript() && s.peek() == equal {
 			s.read()
 			tok.Type = op.AddAssign
 		}
 	case minus:
 		tok.Type = op.Sub
-		if s.peek() == equal && s.mode == ModeScript {
+		if s.inScript() && s.peek() == equal {
 			s.read()
 			tok.Type = op.SubAssign
 		}
 	case star:
 		tok.Type = op.Mul
-		if s.peek() == equal && s.mode == ModeScript {
+		if s.inScript() && s.peek() == equal {
 			s.read()
 			tok.Type = op.MulAssign
 		}
 	case slash:
 		tok.Type = op.Div
-		if s.peek() == equal && s.mode == ModeScript {
+		if s.inScript() && s.peek() == equal {
 			s.read()
 			tok.Type = op.DivAssign
 		}
 	case caret:
 		tok.Type = op.Pow
-		if s.peek() == equal && s.mode == ModeScript {
+		if s.inScript() && s.peek() == equal {
 			s.read()
 			tok.Type = op.PowAssign
 		}
@@ -295,7 +280,7 @@ func (s *Scanner) scanOperator(tok *Token) {
 		tok.Type = op.Eq
 	case colon:
 		tok.Type = op.RangeRef
-		if s.peek() == equal && s.mode == ModeScript {
+		if s.inScript() && s.peek() == equal {
 			s.read()
 			tok.Type = op.Assign
 		}
@@ -324,10 +309,6 @@ func (s *Scanner) scanDelimiter(tok *Token) {
 	default:
 	}
 	s.read()
-}
-
-func (s *Scanner) allowKeywords() bool {
-	return s.mode == ModeScript
 }
 
 func (s *Scanner) literal() string {
@@ -518,6 +499,10 @@ func isUpper(c rune) bool {
 
 func isLetter(c rune) bool {
 	return isLower(c) || isUpper(c) || c == underscore
+}
+
+func isAbsolute(c rune) bool {
+	return c == dollar
 }
 
 func isDigit(c rune) bool {

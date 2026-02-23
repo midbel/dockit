@@ -10,7 +10,7 @@ import (
 )
 
 func FormulaGrammar() *Grammar {
-	g := NewGrammar("formula", ModeFormula)
+	g := NewGrammar("formula", ScanFormula)
 
 	g.terminators = []op.Op{op.EOF}
 
@@ -46,7 +46,7 @@ func FormulaGrammar() *Grammar {
 func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
 	g.name = "script"
-	g.mode = ModeScript
+	g.mode = ScanScript
 
 	g.terminators = []op.Op{op.EOF, op.Eol, op.Semi}
 
@@ -88,14 +88,11 @@ func LambdaGrammar() *Grammar {
 	g := FormulaGrammar()
 	g.name = "lambda"
 	g.scope = GrammarIsolated
-
-	g.RegisterPostfix(op.BegProp, parseSlice)
-
 	return g
 }
 
 func SliceGrammar() *Grammar {
-	g := NewGrammar("slice", ModeScript)
+	g := NewGrammar("slice", ScanScript)
 	g.scope = GrammarIsolated
 	g.bindings[op.Semi] = powList
 
@@ -125,29 +122,79 @@ func SliceGrammar() *Grammar {
 	return g
 }
 
+type ConfigEntry struct {
+	Path  []string
+	Value any
+}
+
+type Mode string
+
+const (
+	ModeScript   = "script"
+	ModePipeline = "pipeline"
+	ModeCube     = "cube"
+	ModeCommand  = "command"
+	ModeFormula  = "formula"
+)
+
 type Parser struct {
 	scan *Scanner
 	curr Token
 	peek Token
 
+	mode Mode
+
 	stack *GrammarStack
 }
 
 func ParseFormula(str string) (Expr, error) {
-	p := NewParser(FormulaGrammar())
-	return p.ParseString(str)
+	scan, err := Scan(strings.NewReader(str), ScanFormula)
+	if err != nil {
+		return nil, err
+	}
+	p, err := NewParser(scan)
+	if err != nil {
+		return nil, err
+	}
+	return p.Parse()
 }
 
-func NewParser(g *Grammar) *Parser {
-	var p Parser
-	p.stack = new(GrammarStack)
-	p.pushGrammar(g)
-	return &p
+func NewParser(scan *Scanner) (*Parser, error) {
+	p := Parser{
+		scan:  scan,
+		stack: new(GrammarStack),
+		mode:  ModeScript,
+	}
+	p.next()
+	p.next()
+	if scan.inScript() {
+		mode, err := p.parseMode()
+		if err != nil {
+			return nil, err
+		}
+		switch mode {
+		case "", ModeScript:
+			p.pushGrammar(ScriptGrammar())
+		default:
+			return nil, fmt.Errorf("%s: mode not yet supported", mode)
+		}
+		p.mode = mode
+	} else {
+		p.pushGrammar(FormulaGrammar())
+	}
+	return &p, nil
 }
 
 func parseExprFromString(str string) (Expr, error) {
-	p := NewParser(ScriptGrammar())
-	x, err := p.ParseString(str)
+	scan, err := Scan(strings.NewReader(str), ScanFormula)
+	if err != nil {
+		return nil, err
+	}
+	p, err := NewParser(scan)
+	if err != nil {
+		return nil, err
+	}
+	x, err := p.Parse()
 	if err != nil {
 		return nil, err
 	}
@@ -158,36 +205,48 @@ func parseExprFromString(str string) (Expr, error) {
 	return s.Body[0], nil
 }
 
-func (p *Parser) ParseString(str string) (Expr, error) {
-	return p.Parse(strings.NewReader(str))
-}
-
-func (p *Parser) Parse(r io.Reader) (Expr, error) {
-	if err := p.Init(r); err != nil {
-		return nil, err
-	}
-	if p.stack.Mode() == ModeFormula {
+func (p *Parser) Parse() (Expr, error) {
+	if p.stack.Mode() == ScanFormula {
 		return p.parseFormula()
 	}
 	return p.parseScript()
 }
 
-func (p *Parser) Attach(scan *Scanner) {
-	p.scan = scan
-	p.next()
-	p.next()
-	p.skipTerminator()
+func (p *Parser) ExtractConfigEntries() ([]ConfigEntry, error) {
+	p.skipEOL()
+	var entries []ConfigEntry
+	for p.is(op.Pragma) {
+		var entry ConfigEntry
+		for !p.done() {
+			p.next()
+			if p.is(op.Dot) {
+				continue
+			}
+			if p.is(op.Assign) {
+				break
+			}
+			if !p.is(op.Ident) && !p.is(op.Keyword) {
+				return nil, fmt.Errorf("identifier expected")
+			}
+			entry.Path = append(entry.Path, p.currentLiteral())
+		}
+		if !p.is(op.Assign) {
+			return nil, fmt.Errorf("assignment operator is expected")
+		}
+		p.next()
+		entry.Value = p.value()
+		p.next()
+		if !p.isEOL() {
+			return nil, p.makeError("eol expected")
+		}
+		p.skipEOL()
+		entries = append(entries, entry)
+	}
+	return entries, nil
 }
 
-func (p *Parser) Init(r io.Reader) error {
-	scan, err := Scan(r, p.stack.Mode())
-	if err != nil {
-		return err
-	}
-	p.scan = scan
-	p.next()
-	p.next()
-	return nil
+func (p *Parser) Mode() Mode {
+	return p.mode
 }
 
 func (p *Parser) ParseNext() (Expr, error) {
@@ -197,6 +256,21 @@ func (p *Parser) ParseNext() (Expr, error) {
 	p.skipTerminator()
 	p.skipComment()
 	return p.parse(powLowest)
+}
+
+func (p *Parser) parseMode() (Mode, error) {
+	if p.scan.mode == ScanFormula {
+		return ModeFormula, nil
+	}
+	if !p.is(op.Directive) {
+		return ModeScript, nil
+	}
+	if p.currentLiteral() == "" {
+		return "", fmt.Errorf("empty directive")
+	}
+	p.next()
+	p.scan.SkipNL()
+	return Mode(p.currentLiteral()), nil
 }
 
 func (p *Parser) parseFormula() (Expr, error) {
@@ -262,6 +336,23 @@ func (p *Parser) parse(pow int) (Expr, error) {
 	return left, nil
 }
 
+func (p *Parser) value() any {
+	switch str := p.currentLiteral(); p.curr.Type {
+	case op.Number:
+		f, _ := strconv.ParseFloat(str, 64)
+		return f
+	case op.Ident:
+		if str == "true" {
+			return true
+		}
+		return false
+	case op.Literal:
+		return str
+	default:
+		return nil
+	}
+}
+
 func (p *Parser) next() {
 	p.curr = p.peek
 	p.peek = p.scan.Scan()
@@ -277,6 +368,10 @@ func (p *Parser) is(kind op.Op) bool {
 
 func (p *Parser) isTerminator() bool {
 	return p.currGrammar().IsTerminator(p.curr)
+}
+
+func (p *Parser) isEOL() bool {
+	return p.is(op.Eol)
 }
 
 func (p *Parser) skipEOL() {

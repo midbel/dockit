@@ -83,60 +83,25 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 }
 
 func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*parse.Parser, error) {
-	scan, err := parse.Scan(r, parse.ModeScript)
+	scan, err := parse.Scan(r, parse.ScanScript)
 	if err != nil {
 		return nil, err
 	}
-	var (
-		grammar *parse.Grammar
-		mode    string
-		cfg     = NewConfig()
-	)
-	if tok := scan.Peek(); tok.Type == op.Directive {
-		mode = tok.Literal
-		scan.Scan()
+	ps, err := parse.NewParser(scan)
+	if err != nil {
+		return nil, err
 	}
-	switch mode {
-	case "", "script":
-		grammar = parse.ScriptGrammar()
-	case "pipeline":
-	case "cube":
-	case "command":
-	default:
-		return nil, fmt.Errorf("%s: unsupported mode", mode)
+	entries, err := ps.ExtractConfigEntries()
+	if err != nil {
+		return nil, err
 	}
-	scan.SkipNL()
-	for {
-		tok := scan.Peek()
-		if tok.Type != op.Pragma {
-			break
-		}
-		scan.Scan()
-		var ident []string
-		for {
-			tok := scan.Scan()
-			if tok.Type == op.Dot {
-				continue
-			}
-			if tok.Type == op.Assign {
-				break
-			}
-			ident = append(ident, strings.TrimSpace(tok.Literal))
-		}
-		val := scan.Value()
-		if tok := scan.Scan(); tok.Type != op.Eol {
-			return nil, fmt.Errorf("newline expected")
-		}
-		if err := cfg.Set(ident, val); err != nil {
-			return nil, err
-		}
+	cfg := NewConfig()
+	for _, e := range entries {
+		cfg.Set(e.Path, e.Value)
 	}
 	if err := ctx.Configure(cfg); err != nil {
 		return nil, err
 	}
-
-	ps := parse.NewParser(grammar)
-	ps.Attach(scan)
 	return ps, nil
 }
 
