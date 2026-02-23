@@ -2,6 +2,7 @@ package parse
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/midbel/dockit/formula/op"
@@ -39,12 +40,7 @@ func TestParseFormula(t *testing.T) {
 			t.Errorf("%s: error parsing formumla: %s", c.Expr, err)
 			continue
 		}
-		e, ok := f.(deferredFormula)
-		if !ok {
-			t.Errorf("formula expected - got %T", f)
-			continue
-		}
-		assertEqualExpr(t, c.Want, e.expr)
+		assertEqualExpr(t, c.Want, f)
 	}
 }
 
@@ -163,9 +159,8 @@ func TestImportStmt(t *testing.T) {
 			},
 		},
 	}
-	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
-		expr, err := p.ParseString(c.Expr)
+		expr, err := parseExpr(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
@@ -242,9 +237,8 @@ func TestUseStmt(t *testing.T) {
 			},
 		},
 	}
-	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
-		expr, err := p.ParseString(c.Expr)
+		expr, err := parseExpr(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
@@ -311,9 +305,8 @@ func TestPrintStmt(t *testing.T) {
 			Value: NewBinary(NewIdentifier("x"), NewIdentifier("y"), op.Mul),
 		},
 	}
-	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
-		expr, err := p.ParseString(c.Expr)
+		expr, err := parseExpr(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
@@ -567,9 +560,8 @@ func TestExpr(t *testing.T) {
 			),
 		},
 	}
-	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
-		expr, err := p.ParseString(c.Expr)
+		expr, err := parseExpr(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
@@ -667,9 +659,8 @@ func TestSlices(t *testing.T) {
 			),
 		},
 	}
-	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
-		expr, err := p.ParseString(c.Expr)
+		expr, err := parseExpr(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
@@ -717,9 +708,8 @@ func TestScript(t *testing.T) {
 			}),
 		},
 	}
-	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
-		expr, err := p.ParseString(c.Expr)
+		expr, err := parseExpr(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
@@ -979,9 +969,8 @@ func TestPrecedences(t *testing.T) {
 			Want: b(b(u(n(1), "-"), n(2), "+"), u(n(3), "-"), "+"),
 		},
 	}
-	p := NewParser(ScriptGrammar())
 	for _, c := range tests {
-		expr, err := p.ParseString(c.Expr)
+		expr, err := parseExpr(c.Expr)
 		if err != nil {
 			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
 			continue
@@ -1011,4 +1000,16 @@ func b(left, right, op string) string {
 
 func u(left, op string) string {
 	return fmt.Sprintf("unary(%s, %s)", left, op)
+}
+
+func parseExpr(str string) (Expr, error) {
+	scan, err := Scan(strings.NewReader(str), ScanScript)
+	if err != nil {
+		return nil, err
+	}
+	ps, err := NewParser(scan)
+	if err != nil {
+		return nil, err
+	}
+	return ps.Parse()
 }

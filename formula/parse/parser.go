@@ -186,7 +186,7 @@ func NewParser(scan *Scanner) (*Parser, error) {
 }
 
 func parseExprFromString(str string) (Expr, error) {
-	scan, err := Scan(strings.NewReader(str), ScanFormula)
+	scan, err := Scan(strings.NewReader(str), ScanScript)
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +200,7 @@ func parseExprFromString(str string) (Expr, error) {
 	}
 	s, ok := x.(Script)
 	if !ok || len(s.Body) != 1 {
+		fmt.Println(str)
 		return nil, fmt.Errorf("invalid script string")
 	}
 	return s.Body[0], nil
