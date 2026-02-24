@@ -1,4 +1,4 @@
-package wbl
+package workbook
 
 import (
 	"fmt"
@@ -22,6 +22,7 @@ func Register(loader Loader) {
 func Open(file string) (grid.File, error) {
 	ix := slices.IndexFunc(registry, func(loader Loader) bool {
 		ok, err := loader.Detect(file)
+		fmt.Println(file, ok, err)
 		if err != nil {
 			ok = false
 		}

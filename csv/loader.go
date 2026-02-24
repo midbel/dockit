@@ -2,14 +2,34 @@ package csv
 
 import (
 	"github.com/midbel/dockit/grid"
-	"github.com/midbel/dockit/wbl"
+	"github.com/midbel/dockit/workbook"
 	"path/filepath"
 )
 
-type loader struct{}
+type loader struct {
+	sep byte
+}
 
-func NewLoader() wbl.Loader {
-	return loader{}
+func NewCommaLoader() workbook.Loader {
+	return createLoader(',')
+}
+
+func NewTabLoader() workbook.Loader {
+	return createLoader('\t')
+}
+
+func NewSemicolonLoader() workbook.Loader {
+	return createLoader(';')
+}
+
+func NewColonLoader() workbook.Loader {
+	return createLoader(':')
+}
+
+func createLoader(sep byte) workbook.Loader {
+	return loader{
+		sep: sep,
+	}
 }
 
 func (loader) Name() string {

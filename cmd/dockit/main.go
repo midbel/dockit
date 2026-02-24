@@ -11,7 +11,7 @@ import (
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/oxml"
-	"github.com/midbel/dockit/wbl"
+	"github.com/midbel/dockit/workbook"
 )
 
 var errFail = errors.New("fail")
@@ -22,8 +22,11 @@ var (
 )
 
 func init() {
-	wbl.Register(oxml.NewLoader())
-	wbl.Register(csv.NewLoader())
+	workbook.Register(oxml.NewLoader())
+	workbook.Register(csv.NewCommaLoader())
+	workbook.Register(csv.NewTabLoader())
+	workbook.Register(csv.NewSemicolonLoader())
+	workbook.Register(csv.NewColonLoader())
 }
 
 func main() {
@@ -137,7 +140,7 @@ func (c GetInfoCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	file, err := wbl.Open(set.Arg(0))
+	file, err := workbook.Open(set.Arg(0))
 	if err != nil {
 		return err
 	}

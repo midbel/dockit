@@ -5,12 +5,12 @@ import (
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/sniff"
-	"github.com/midbel/dockit/wbl"
+	"github.com/midbel/dockit/workbook"
 )
 
 type loader struct{}
 
-func NewLoader() wbl.Loader {
+func NewLoader() workbook.Loader {
 	return loader{}
 }
 
