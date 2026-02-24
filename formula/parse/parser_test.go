@@ -9,6 +9,31 @@ import (
 	"github.com/midbel/dockit/layout"
 )
 
+// func FuzzParser(f *testing.F) {
+// 	f.Add("=A1 + 1")
+// 	f.Add("=A1 + sum(A3, 5, B10:C100)")
+// 	f.Add("=A1 + min(A3, B100) ^ (10 - 2)")
+// 	f.Add("=#AA143")
+// 	f.Add("upper('hello' & ' ' & 'word')")
+// 	f.Add("=A1 ++ 1")
+// 	f.Add("=sum(,)")
+// 	f.Add("=min(A1, )")
+
+// 	f.Fuzz(func(t *testing.T, input string) {
+// 		scan, err := Scan(strings.NewReader(input), ScanFormula)
+// 		if err != nil {
+// 			panic(initScanner(err))
+// 		}
+// 		ps, err := NewParser(scan)
+// 		if err != nil {
+// 			panic(initParser(err))
+// 		}
+// 		if _, err = ps.Parse(); err != nil {
+// 			panic(err)
+// 		}
+// 	})
+// }
+
 func TestParseFormula(t *testing.T) {
 	tests := []struct {
 		Expr string

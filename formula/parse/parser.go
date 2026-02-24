@@ -88,6 +88,7 @@ func LambdaGrammar() *Grammar {
 	g := FormulaGrammar()
 	g.name = "lambda"
 	g.scope = GrammarIsolated
+	g.RegisterPostfix(op.BegProp, parseSlice)
 	return g
 }
 

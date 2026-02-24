@@ -75,7 +75,7 @@ func (s *Scanner) Peek() Token {
 }
 
 func (s *Scanner) Scan() Token {
-	if s.char == backslash && isNL(s.peek()) {
+	if s.inScript() && s.char == backslash && isNL(s.peek()) {
 		s.read()
 		s.read()
 	}
@@ -132,6 +132,9 @@ func (s *Scanner) scanComment(tok *Token) {
 	s.SkipNL()
 	tok.Type = op.Comment
 	tok.Literal = s.literal()
+	if !s.inScript() {
+		tok.Type = op.Invalid
+	}
 }
 
 func (s *Scanner) scanDirective(tok *Token) {
