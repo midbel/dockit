@@ -98,6 +98,10 @@ func (u UseRef) String() string {
 	return fmt.Sprintf("use(%s, ro: %t)", u.ident, u.readOnly)
 }
 
+func (u UseRef) Accept(v Visitor) error {
+	return v.VisitUseRef(u)
+}
+
 type ImportFile struct {
 	file string
 
@@ -136,6 +140,10 @@ func (ImportFile) Kind() Kind {
 	return KindImport
 }
 
+func (i ImportFile) Accept(v Visitor) error {
+	return v.VisitImportFile(i)
+}
+
 type PrintRef struct {
 	expr    Expr
 	pattern string
@@ -154,6 +162,10 @@ func (p PrintRef) String() string {
 	return fmt.Sprintf("print %s", p.expr.String())
 }
 
+func (p PrintRef) Accept(v Visitor) error {
+	return v.VisitPrintRef(p)
+}
+
 type ExportRef struct {
 	expr Expr
 
@@ -166,19 +178,12 @@ type ExportRef struct {
 	Position
 }
 
-func (p ExportRef) String() string {
-	return fmt.Sprintf("export %s", p.expr.String())
+func (e ExportRef) String() string {
+	return fmt.Sprintf("export %s", e.expr.String())
 }
 
-type MacroDef struct {
-	ident Expr
-	args  []Expr
-	body  Expr
-	Position
-}
-
-func (d MacroDef) String() string {
-	return fmt.Sprintf("macro")
+func (e ExportRef) Accept(v Visitor) error {
+	return v.VisitExportRef(e)
 }
 
 type Access struct {
@@ -210,6 +215,10 @@ func (Access) KindOf() string {
 	return "access"
 }
 
+func (a Access) Accept(v Visitor) error {
+	return v.VisitAccess(a)
+}
+
 type Template struct {
 	expr []Expr
 	Position
@@ -231,6 +240,10 @@ func (t Template) String() string {
 
 func (Template) KindOf() string {
 	return "template"
+}
+
+func (t Template) Accept(v Visitor) error {
+	return v.VisitTemplate(t)
 }
 
 type Deferred struct {
@@ -264,6 +277,10 @@ func (d Deferred) Kind() value.ValueKind {
 	return 0
 }
 
+func (d Deferred) Accept(v Visitor) error {
+	return v.VisitDeferred(d)
+}
+
 type Assignment struct {
 	ident Expr
 	expr  Expr
@@ -287,6 +304,10 @@ func (a Assignment) Expr() Expr {
 
 func (a Assignment) String() string {
 	return fmt.Sprintf("%s := %s", a.ident.String(), a.expr.String())
+}
+
+func (a Assignment) Accept(v Visitor) error {
+	return v.VisitAssignment(a)
 }
 
 type Binary struct {
@@ -340,6 +361,10 @@ func (b Binary) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
+func (b Binary) Accept(v Visitor) error {
+	return v.VisitBinary(b)
+}
+
 type Postfix struct {
 	expr Expr
 	op   op.Op
@@ -378,6 +403,10 @@ func (p Postfix) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
+func (p Postfix) Accept(v Visitor) error {
+	return v.VisitPostfix(p)
+}
+
 type Not struct {
 	expr Expr
 	Position
@@ -395,6 +424,10 @@ func (n Not) Expr() Expr {
 
 func (n Not) String() string {
 	return fmt.Sprintf("not(%s)", n.expr)
+}
+
+func (n Not) Accept(v Visitor) error {
+	return v.VisitNot(n)
 }
 
 type And struct {
@@ -422,6 +455,10 @@ func (a And) String() string {
 	return fmt.Sprintf("and(%s, %s)", a.left, a.right)
 }
 
+func (a And) Accept(v Visitor) error {
+	return v.VisitAnd(a)
+}
+
 type Or struct {
 	left  Expr
 	right Expr
@@ -445,6 +482,10 @@ func (o Or) Right() Expr {
 
 func (o Or) String() string {
 	return fmt.Sprintf("or(%s, %s)", o.left, o.right)
+}
+
+func (o Or) Accept(v Visitor) error {
+	return v.VisitOr(o)
 }
 
 type Spread struct {
@@ -500,6 +541,10 @@ func (u Unary) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
+func (u Unary) Accept(v Visitor) error {
+	return v.VisitUnary(u)
+}
+
 type Literal struct {
 	value string
 	Position
@@ -523,6 +568,10 @@ func (Literal) KindOf() string {
 	return "primitive"
 }
 
+func (i Literal) Accept(v Visitor) error {
+	return v.VisitLiteral(i)
+}
+
 type Number struct {
 	value float64
 	Position
@@ -544,6 +593,10 @@ func (n Number) String() string {
 
 func (Number) KindOf() string {
 	return "primitive"
+}
+
+func (n Number) Accept(v Visitor) error {
+	return v.VisitNumber(n)
 }
 
 type Call struct {
@@ -589,6 +642,10 @@ func (c Call) CloneWithOffset(pos layout.Position) Expr {
 	return x
 }
 
+func (c Call) Accept(v Visitor) error {
+	return v.VisitCall(c)
+}
+
 type Clear struct {
 	name string
 	Position
@@ -596,6 +653,10 @@ type Clear struct {
 
 func (c Clear) String() string {
 	return fmt.Sprintf("clear(%s)", c.name)
+}
+
+func (c Clear) Accept(v Visitor) error {
+	return v.VisitClear(c)
 }
 
 type Slice struct {
@@ -625,6 +686,10 @@ func (s Slice) String() string {
 
 func (Slice) KindOf() string {
 	return "slice"
+}
+
+func (s Slice) Accept(v Visitor) error {
+	return v.VisitSlice(s)
 }
 
 type RangeSlice struct {
@@ -741,6 +806,10 @@ func (Identifier) KindOf() string {
 	return "identifier"
 }
 
+func (i Identifier) Accept(v Visitor) error {
+	return v.VisitIdentifier(i)
+}
+
 type QualifiedCellAddr struct {
 	path Expr
 	addr Expr
@@ -768,6 +837,10 @@ func (a QualifiedCellAddr) String() string {
 
 func (QualifiedCellAddr) KindOf() string {
 	return "qualified-address"
+}
+
+func (q QualifiedCellAddr) Accept(v Visitor) error {
+	return v.VisitQualifiedCellAddr(q)
 }
 
 type CellAddr struct {
@@ -801,6 +874,10 @@ func (a CellAddr) CloneWithOffset(pos layout.Position) Expr {
 		x.Column += pos.Column
 	}
 	return x
+}
+
+func (a CellAddr) Accept(v Visitor) error {
+	return v.VisitCellAddr(a)
 }
 
 type RangeAddr struct {
@@ -843,6 +920,10 @@ func (a RangeAddr) CloneWithOffset(pos layout.Position) Expr {
 func (a RangeAddr) Range() *layout.Range {
 	rg := layout.NewRange(a.startAddr.Position, a.endAddr.Position)
 	return rg
+}
+
+func (a RangeAddr) Accept(v Visitor) error {
+	return v.VisitRangeAddr(a)
 }
 
 func formatCellAddr(addr CellAddr) string {

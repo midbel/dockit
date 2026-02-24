@@ -1,37 +1,33 @@
 package parse
 
-type Visitor[T any] interface {
-	VisitPush(Push) (T, error)
-	VisitPop(Pop) (T, error)
-	VisitLockRef(LockRef) (T, error)
-	VisitUnlockRef(UnlockRef) (T, error)
-	VisitUseRef(UseRef) (T, error)
-	VisitImportFile(ImportFile) (T, error)
-	VisitPrintRef(PrintRef) (T, error)
-	VisitExportRef(ExportRef) (T, error)
-	VisitMacroDef(MacroDef) (T, error)
-	VisitAccess(Access) (T, error)
-	VisitTemplate(Template) (T, error)
-	VisitDeferred(Deferred) (T, error)
-	VisitAssignment(Assignment) (T, error)
-	VisitBinary(Binary) (T, error)
-	VisitPostfix(Postfix) (T, error)
-	VisitNot(Not) (T, error)
-	VisitAnd(And) (T, error)
-	VisitOr(Or) (T, error)
-	VisitSpread(Spread) (T, error)
-	VisitUnary(Unary) (T, error)
-	VisitLiteral(Literal) (T, error)
-	VisitNumber(Number) (T, error)
-	VisitCall(Call) (T, error)
-	VisitClear(Clear) (T, error)
-	VisitSlice(Slice) (T, error)
-	VisitIdentifier(Identifier) (T, error)
-	VisitQualifiedCellAddr(QualifiedCellAddr) (T, error)
-	VisitCellAddr(CellAddr) (T, error)
-	VisitRangeAddr(RangeAddr) (T, error)
+type Visitor interface {
+	VisitLockRef(LockRef) error
+	VisitUnlockRef(UnlockRef) error
+	VisitUseRef(UseRef) error
+	VisitImportFile(ImportFile) error
+	VisitExportRef(ExportRef) error
+	VisitPrintRef(PrintRef) error
+	VisitAccess(Access) error
+	VisitTemplate(Template) error
+	VisitDeferred(Deferred) error
+	VisitAssignment(Assignment) error
+	VisitBinary(Binary) error
+	VisitPostfix(Postfix) error
+	VisitNot(Not) error
+	VisitAnd(And) error
+	VisitOr(Or) error
+	VisitUnary(Unary) error
+	VisitLiteral(Literal) error
+	VisitNumber(Number) error
+	VisitCall(Call) error
+	VisitClear(Clear) error
+	VisitSlice(Slice) error
+	VisitIdentifier(Identifier) error
+	VisitQualifiedCellAddr(QualifiedCellAddr) error
+	VisitCellAddr(CellAddr) error
+	VisitRangeAddr(RangeAddr) error
 }
 
-type VisitableExpr[T any] interface {
-	Accept(Visitor[T]) (T, error)
+type VisitableExpr interface {
+	Accept(Visitor) error
 }
