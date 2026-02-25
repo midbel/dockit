@@ -175,6 +175,7 @@ func NewParser(scan *Scanner) (*Parser, error) {
 		}
 		switch mode {
 		case "", ModeScript:
+			mode = ModeScript
 			p.pushGrammar(ScriptGrammar())
 		default:
 			return nil, fmt.Errorf("%s: mode not yet supported", mode)

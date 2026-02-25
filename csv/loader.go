@@ -1,9 +1,10 @@
 package csv
 
 import (
+	"path/filepath"
+
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/workbook"
-	"path/filepath"
 )
 
 type loader struct {

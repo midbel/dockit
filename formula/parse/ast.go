@@ -45,6 +45,10 @@ func (Script) String() string {
 	return "<script>"
 }
 
+func (s Script) Accept(v Visitor) error {
+	return v.VisitScript(s)
+}
+
 type Push struct {
 	readOnly bool
 	Position

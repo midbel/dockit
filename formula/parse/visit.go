@@ -1,31 +1,35 @@
 package parse
 
 type Visitor interface {
-	VisitLockRef(LockRef) error
-	VisitUnlockRef(UnlockRef) error
-	VisitUseRef(UseRef) error
+	VisitScript(Script) error
+
 	VisitImportFile(ImportFile) error
 	VisitExportRef(ExportRef) error
 	VisitPrintRef(PrintRef) error
-	VisitAccess(Access) error
+	VisitUseRef(UseRef) error
+	VisitLockRef(LockRef) error
+	VisitUnlockRef(UnlockRef) error
+	VisitClear(Clear) error
+
+	VisitIdentifier(Identifier) error
+	VisitLiteral(Literal) error
+	VisitNumber(Number) error
+	VisitQualifiedCellAddr(QualifiedCellAddr) error
+	VisitCellAddr(CellAddr) error
+	VisitRangeAddr(RangeAddr) error
 	VisitTemplate(Template) error
+	VisitAccess(Access) error
 	VisitDeferred(Deferred) error
-	VisitAssignment(Assignment) error
+	VisitCall(Call) error
+	VisitSlice(Slice) error
+
 	VisitBinary(Binary) error
+	VisitAssignment(Assignment) error
 	VisitPostfix(Postfix) error
 	VisitNot(Not) error
 	VisitAnd(And) error
 	VisitOr(Or) error
 	VisitUnary(Unary) error
-	VisitLiteral(Literal) error
-	VisitNumber(Number) error
-	VisitCall(Call) error
-	VisitClear(Clear) error
-	VisitSlice(Slice) error
-	VisitIdentifier(Identifier) error
-	VisitQualifiedCellAddr(QualifiedCellAddr) error
-	VisitCellAddr(CellAddr) error
-	VisitRangeAddr(RangeAddr) error
 }
 
 type VisitableExpr interface {

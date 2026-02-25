@@ -40,7 +40,7 @@ func (p scriptPhase) Next(k parse.Kind) scriptPhase {
 	}
 }
 
-func execPhase(expr parse.Expr, phase scriptPhase) (scriptPhase, error) {
+func nextPhase(expr parse.Expr, phase scriptPhase) (scriptPhase, error) {
 	currKind := parse.KindStmt
 	if ek, ok := expr.(parse.ExprKind); ok {
 		currKind = ek.Kind()
