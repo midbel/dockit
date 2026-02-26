@@ -39,6 +39,8 @@ var Registry = map[string]func([]value.Value) (value.Value, error){
 	"or":        Or,
 	"xor":       Xor,
 	"not":       Not,
+	"lock":      Lock,
+	"unlock":    Unlock,
 }
 
 func Now(args []value.Value) (value.Value, error) {
@@ -50,5 +52,13 @@ func Now(args []value.Value) (value.Value, error) {
 }
 
 func Rand(args []value.Value) (value.Value, error) {
+	return nil, nil
+}
+
+func Lock(args []value.Value) (value.Value, error) {
+	return nil, nil
+}
+
+func Unlock(args []value.Value) (value.Value, error) {
 	return nil, nil
 }

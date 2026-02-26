@@ -52,10 +52,6 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		io.WriteString(w, op.Symbol(e.op))
 		io.WriteString(w, ")")
-	case Spread:
-		io.WriteString(w, "spread(")
-		dumpExpr(w, e.expr)
-		io.WriteString(w, ")")
 	case Not:
 		io.WriteString(w, "not(")
 		dumpExpr(w, e.expr)

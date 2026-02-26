@@ -55,7 +55,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
-	g.RegisterPrefix(op.SpreadRef, parseSpread)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
@@ -74,12 +73,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
-	g.RegisterPrefixKeyword(kwWith, parseWith)
-	g.RegisterPrefixKeyword(kwLock, parseLock)
-	g.RegisterPrefixKeyword(kwUnlock, parseUnlock)
 	g.RegisterPrefixKeyword(kwClear, parseClear)
-	g.RegisterPrefixKeyword(kwPush, parsePush)
-	g.RegisterPrefixKeyword(kwPop, parsePop)
 
 	return g
 }
@@ -104,7 +98,6 @@ func SliceGrammar() *Grammar {
 	g.RegisterPrefix(op.RangeRef, parseOpenSelectedColumns)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 	g.RegisterPrefix(op.Not, parseNot)
-	g.RegisterPrefix(op.SpreadRef, parseSpread)
 
 	g.RegisterInfix(op.BegGrp, parseCall)
 
@@ -437,15 +430,6 @@ func (p *Parser) expectedEOL() error {
 
 func (p *Parser) expectedIdent() error {
 	return p.makeError("identifier expected")
-}
-
-func parseSpread(p *Parser) (Expr, error) {
-	p.next()
-	next, err := p.parse(powSpread)
-	if err != nil {
-		return nil, err
-	}
-	return NewSpread(next), nil
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
@@ -827,42 +811,6 @@ func parseImport(p *Parser) (Expr, error) {
 }
 
 func parseClear(p *Parser) (Expr, error) {
-	return nil, nil
-}
-
-func parsePush(p *Parser) (Expr, error) {
-	return nil, nil
-}
-
-func parsePop(p *Parser) (Expr, error) {
-	return nil, nil
-}
-
-func parseLock(p *Parser) (Expr, error) {
-	p.next()
-	if !p.is(op.Ident) {
-		return nil, p.expectedIdent()
-	}
-	stmt := LockRef{
-		ident: p.currentLiteral(),
-	}
-	p.next()
-	return stmt, nil
-}
-
-func parseUnlock(p *Parser) (Expr, error) {
-	p.next()
-	if !p.is(op.Ident) {
-		return nil, p.expectedIdent()
-	}
-	stmt := UnlockRef{
-		ident: p.currentLiteral(),
-	}
-	p.next()
-	return stmt, nil
-}
-
-func parseWith(p *Parser) (Expr, error) {
 	return nil, nil
 }
 

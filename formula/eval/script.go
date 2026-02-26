@@ -97,14 +97,6 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitLockRef(expr parse.LockRef) error {
-	return nil
-}
-
-func (v *evalVisitor) VisitUnlockRef(expr parse.UnlockRef) error {
-	return nil
-}
-
 func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	if err := v.visitExpr(expr.Object()); err != nil {
 		return err

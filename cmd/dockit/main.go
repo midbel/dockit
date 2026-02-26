@@ -126,6 +126,7 @@ var runCmd = cli.Command{
 
 var dumpCmd = cli.Command{
 	Name:    "dump",
+	Alias:   []string{"inspect"},
 	Summary: "",
 	Usage:   "",
 	Handler: &DumpCommand{},

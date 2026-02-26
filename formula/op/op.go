@@ -48,25 +48,23 @@ const (
 	EndProp
 	RangeRef
 	SheetRef
-	SpreadRef
 )
 
 var mapping = map[Op]string{
-	Add:       "+",
-	Sub:       "-",
-	Mul:       "*",
-	Pow:       "^",
-	Div:       "/",
-	Percent:   "%",
-	Concat:    "&",
-	Union:     "|",
-	Eq:        "=",
-	Ne:        "<>",
-	Lt:        "<",
-	Le:        "<=",
-	Gt:        ">",
-	Ge:        ">=",
-	SpreadRef: "...",
+	Add:     "+",
+	Sub:     "-",
+	Mul:     "*",
+	Pow:     "^",
+	Div:     "/",
+	Percent: "%",
+	Concat:  "&",
+	Union:   "|",
+	Eq:      "=",
+	Ne:      "<>",
+	Lt:      "<",
+	Le:      "<=",
+	Gt:      ">",
+	Ge:      ">=",
 }
 
 func Symbol(oper Op) string {

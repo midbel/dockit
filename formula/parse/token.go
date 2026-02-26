@@ -76,8 +76,6 @@ func (t Token) String() string {
 		return "<greater>"
 	case op.Ge:
 		return "<greateq>"
-	case op.SpreadRef:
-		return "<spread>"
 	case op.Comma:
 		return "<comma>"
 	case op.Semi:

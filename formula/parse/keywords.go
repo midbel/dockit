@@ -15,10 +15,6 @@ const (
 	kwEnd     = "end"
 	kwRo      = "ro"
 	kwRw      = "rw"
-	kwLock    = "lock"
-	kwUnlock  = "unlock"
-	kwPush    = "push"
-	kwPop     = "pop"
 	kwClear   = "clear"
 	kwAnd     = "and"
 	kwOr      = "or"
@@ -41,10 +37,6 @@ func isKeyword(str string) bool {
 	case kwEnd:
 	case kwRo:
 	case kwRw:
-	case kwLock:
-	case kwUnlock:
-	case kwPush:
-	case kwPop:
 	case kwClear:
 	case kwAnd:
 	case kwOr:

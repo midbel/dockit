@@ -73,22 +73,6 @@ func TestExportStmt(t *testing.T) {
 	t.SkipNow()
 }
 
-func TestPushStmt(t *testing.T) {
-	t.SkipNow()
-}
-
-func TestPopStmt(t *testing.T) {
-	t.SkipNow()
-}
-
-func TestLockStmt(t *testing.T) {
-	t.SkipNow()
-}
-
-func TestUnlockStmt(t *testing.T) {
-	t.SkipNow()
-}
-
 func TestClearStmt(t *testing.T) {
 	t.SkipNow()
 }

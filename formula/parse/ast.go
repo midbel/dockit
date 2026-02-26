@@ -124,6 +124,10 @@ func (i ImportFile) File() string {
 	return i.file
 }
 
+func (i ImportFile) Format() string {
+	return i.format
+}
+
 func (i ImportFile) Alias() string {
 	return i.alias
 }
@@ -490,21 +494,6 @@ func (o Or) String() string {
 
 func (o Or) Accept(v Visitor) error {
 	return v.VisitOr(o)
-}
-
-type Spread struct {
-	expr Expr
-	Position
-}
-
-func NewSpread(expr Expr) Expr {
-	return Spread{
-		expr: expr,
-	}
-}
-
-func (s Spread) String() string {
-	return fmt.Sprintf("...%s", s.expr)
 }
 
 type Unary struct {
