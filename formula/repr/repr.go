@@ -3,6 +3,7 @@ package repr
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
@@ -25,6 +26,8 @@ type Param struct {
 
 type Envelop struct {
 	Version string
+	Mode    string
+	Meta    []Param
 	Root    *Node
 }
 
@@ -46,6 +49,16 @@ func Inspect(r io.Reader) (*Envelop, error) {
 	if err != nil {
 		return nil, err
 	}
+	var meta []Param
+	if list, err := ps.ExtractConfigEntries(); err == nil {
+		for _, e := range list {
+			p := Param{
+				Name:  strings.Join(e.Path, "."),
+				Value: e.Value,
+			}
+			meta = append(meta, p)
+		}
+	}
 	expr, err := ps.Parse()
 	if err != nil {
 		return nil, err
@@ -58,9 +71,11 @@ func Inspect(r io.Reader) (*Envelop, error) {
 		return nil, err
 	}
 	node, _ := v.stack.Peek()
+	node.Params = meta
 
 	e := Envelop{
 		Version: Version1,
+		Mode:    string(ps.Mode()),
 		Root:    node,
 	}
 	return &e, err

@@ -264,9 +264,10 @@ func (p *Parser) parseMode() (Mode, error) {
 	if p.currentLiteral() == "" {
 		return "", fmt.Errorf("empty directive")
 	}
+	mode := p.currentLiteral()
 	p.next()
-	p.scan.SkipNL()
-	return Mode(p.currentLiteral()), nil
+	p.skipEOL()
+	return Mode(mode), nil
 }
 
 func (p *Parser) parseFormula() (Expr, error) {
