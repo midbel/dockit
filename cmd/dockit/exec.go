@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
+	"encoding/json"
 	"os"
 
 	"github.com/midbel/cli"
@@ -31,6 +32,7 @@ func (c DumpCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%+v\n", root)
-	return nil
+	encode := json.NewEncoder(os.Stdout)
+	encode.SetIndent("", "  ")
+	return encode.Encode(root)
 }
