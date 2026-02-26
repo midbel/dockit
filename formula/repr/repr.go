@@ -23,6 +23,11 @@ type Param struct {
 	Value any    `json:"value"`
 }
 
+type Envelop struct {
+	Version string
+	Root    *Node
+}
+
 type Node struct {
 	Id       string  `json:"id"`
 	Type     string  `json:"type"`
@@ -32,7 +37,7 @@ type Node struct {
 	Children []*Node `json:"nodes,omitempty"`
 }
 
-func Inspect(r io.Reader) (any, error) {
+func Inspect(r io.Reader) (*Envelop, error) {
 	scan, err := parse.Scan(r, parse.ScanScript)
 	if err != nil {
 		return nil, err
@@ -53,14 +58,12 @@ func Inspect(r io.Reader) (any, error) {
 		return nil, err
 	}
 	node, _ := v.stack.Peek()
-	root := struct {
-		Version string
-		Root    *Node
-	}{
+
+	e := Envelop{
 		Version: Version1,
 		Root:    node,
 	}
-	return root, err
+	return &e, err
 }
 
 type astVisitor struct {
@@ -401,7 +404,7 @@ func (v astVisitor) newValue(name string) *Node {
 func (v astVisitor) newStmt(name string) *Node {
 	return &Node{
 		Id:   v.nextID(TypeStmt),
-		Type: TypeExpr,
+		Type: TypeStmt,
 		Name: name,
 	}
 }
