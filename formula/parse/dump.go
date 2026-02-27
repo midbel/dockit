@@ -127,24 +127,13 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
-	case ColumnsSlice:
-		io.WriteString(w, "selection(")
-		for i := range e.columns {
+	case IntervalList:
+		io.WriteString(w, "interval(")
+		for i := range e.items {
 			if i > 0 {
 				io.WriteString(w, ",")
 			}
-			var fix, tix string
-			if e.columns[i].from != 0 {
-				fix = strconv.Itoa(e.columns[i].from)
-			}
-			if e.columns[i].to != 0 {
-				tix = strconv.Itoa(e.columns[i].to)
-			}
-			io.WriteString(w, fix)
-			if fix != tix {
-				io.WriteString(w, ":")
-				io.WriteString(w, tix)
-			}
+			dumpExpr(w, e.items[i])
 		}
 		io.WriteString(w, ")")
 	case ImportFile:

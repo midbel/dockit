@@ -853,13 +853,9 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 		return nil, p.makeError("expected ] at end of slice expression")
 	}
 	p.next()
-	if _, ok := expr.(ExprRange); ok {
-		rg, err := getColumnsRangeFromExpr(expr)
-		if err != nil {
-			return nil, err
-		}
-		expr = ColumnsSlice{
-			columns: []ColumnsRange{rg},
+	if _, ok := expr.(IntervalExpr); ok {
+		expr = IntervalList{
+			items: []Expr{expr},
 		}
 	}
 	return NewSlice(left, expr), nil
@@ -877,44 +873,10 @@ func parseColumnExpr(expr Expr) (int, error) {
 	return int(ix), nil
 }
 
-func getColumnsRangeFromExpr(expr Expr) (ColumnsRange, error) {
-	var (
-		crg ColumnsRange
-		err error
-	)
-	if _, ok := expr.(RangeAddr); ok {
-		return crg, fmt.Errorf("address range not allowed in selection list")
-	}
-	switch expr := expr.(type) {
-	case Identifier:
-		crg.from, err = parseColumnExpr(expr)
-		crg.to = crg.from
-	case ExprRange:
-		if expr.from != nil {
-			crg.from, err = parseColumnExpr(expr.from)
-			if err != nil {
-				break
-			}
-		}
-		if expr.to != nil {
-			crg.to, err = parseColumnExpr(expr.to)
-			if err != nil {
-				break
-			}
-		}
-		if n, ok := expr.step.(Number); ok {
-			crg.step = int(n.value)
-		}
-	default:
-		return crg, fmt.Errorf("invalid columns selector")
-	}
-	return crg, err
-}
-
 func parseOpenSelectedColumns(p *Parser) (Expr, error) {
 	p.next()
 	var (
-		expr ExprRange
+		expr IntervalExpr
 		err  error
 	)
 	if !p.is(op.EndProp) && !p.is(op.Semi) {
@@ -951,37 +913,25 @@ func parseRangeColumns(p *Parser, left Expr) (Expr, error) {
 				return nil, err
 			}
 		}
-		expr := ExprRange{
-			from: left,
-			to:   right,
-			step: step,
-		}
+		expr := NewInterval(left, right, step)
 		return expr, nil
 	}
 	return nil, fmt.Errorf("use range address or columns range not both")
 }
 
 func parseSelectedColumns(p *Parser, left Expr) (Expr, error) {
-	var cs ColumnsSlice
+	var list []Expr
+	list = append(list, left)
 
-	crg, err := getColumnsRangeFromExpr(left)
-	if err != nil {
-		return nil, err
-	}
-	cs.columns = append(cs.columns, crg)
 	for !p.done() && p.is(op.Semi) {
 		p.next()
 		expr, err := p.parse(powList)
 		if err != nil {
 			return nil, err
 		}
-		crg, err := getColumnsRangeFromExpr(expr)
-		if err != nil {
-			return nil, err
-		}
-		cs.columns = append(cs.columns, crg)
+		list = append(list, expr)
 	}
-	return cs, nil
+	return NewIntervalList(list), nil
 }
 
 func parseNot(p *Parser) (Expr, error) {

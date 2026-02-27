@@ -272,8 +272,10 @@ func (v astVisitor) VisitCall(expr parse.Call) error {
 func (v astVisitor) VisitSlice(expr parse.Slice) error {
 	node := v.newExpr("slice")
 	v.stack.Push(node)
-	if err := v.visitExpr(expr.View()); err != nil {
-		return err
+	if view := expr.View(); view != nil {
+		if err := v.visitExpr(expr.View()); err != nil {
+			return err
+		}
 	}
 	if _, ok := expr.Expr().(parse.VisitableExpr); ok {
 		v.visitExpr(expr.Expr())
@@ -286,7 +288,8 @@ func (v astVisitor) VisitSlice(expr parse.Slice) error {
 			if err := e.EndAt().Accept(v); err != nil {
 				return err
 			}
-		case parse.ColumnsSlice:
+		case parse.IntervalList:
+		case parse.IntervalExpr:
 			//TODO
 		default:
 			//ignore

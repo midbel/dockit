@@ -696,72 +696,51 @@ func (s Slice) Accept(v Visitor) error {
 	return v.VisitSlice(s)
 }
 
-type ColumnsSlice struct {
-	columns []ColumnsRange
+type IntervalList struct {
+	items []Expr
 	Position
 }
 
-func NewColumnsSlice(cols []Expr) Expr {
-	var columns []ColumnsRange
-	for i := range cols {
-		c := cols[i].(ColumnsRange)
-		columns = append(columns, c)
-	}
-	return ColumnsSlice{
-		columns: columns,
+func NewIntervalList(expr []Expr) Expr {
+	return IntervalList{
+		items: expr,
 	}
 }
 
-func (s ColumnsSlice) Count() int {
-	return len(s.columns)
+func (i IntervalList) Count() int {
+	return len(i.items)
 }
 
-func (s ColumnsSlice) String() string {
-	return fmt.Sprintf("columns(%v)", s.columns)
+func (i IntervalList) String() string {
+	return fmt.Sprintf("internval(%v)", i.items)
 }
 
-func (s ColumnsSlice) Selection() layout.Selection {
-	all := make([]layout.Selection, 0, len(s.columns))
-	for _, r := range s.columns {
-		all = append(all, r.Selection())
-	}
-	return layout.Combine(all...)
+func (i IntervalList) Selection() layout.Selection {
+	// all := make([]layout.Selection, 0, len(s.columns))
+	// for _, r := range s.columns {
+	// 	all = append(all, r.Selection())
+	// }
+	// return layout.Combine(all...)
+	return nil
 }
 
-type ColumnsRange struct {
-	from int
-	to   int
-	step int
-}
-
-func SelectRange(from, to, step int) Expr {
-	return ColumnsRange{
-		from: from,
-		to:   to,
-		step: step,
-	}
-}
-
-func (c ColumnsRange) String() string {
-	return fmt.Sprintf("columns(%d, %d, %d)", c.from, c.to, c.step)
-}
-
-func (c ColumnsRange) Selection() layout.Selection {
-	if c.from == c.to {
-		return layout.SelectSingle(int64(c.from))
-	}
-	return layout.SelectSpan(int64(c.from), int64(c.to), int64(c.step))
-}
-
-type ExprRange struct {
+type IntervalExpr struct {
 	from Expr
 	to   Expr
 	step Expr
 	Position
 }
 
-func (e ExprRange) String() string {
-	return fmt.Sprintf("range(%v, %v)", e.from, e.to)
+func NewInterval(from, to, step Expr) Expr {
+	return IntervalExpr{
+		from: from,
+		to:   to,
+		step: step,
+	}
+}
+
+func (e IntervalExpr) String() string {
+	return fmt.Sprintf("interval(%v, %v)", e.from, e.to)
 }
 
 type Identifier struct {

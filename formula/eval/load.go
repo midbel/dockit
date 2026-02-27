@@ -44,7 +44,7 @@ func (c csvLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
 	return flat.OpenReader(rs)
 }
 
-func (csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, error) {
+func (x csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, error) {
 	r, err := os.Open(file)
 	if err != nil {
 		return nil, err
@@ -61,11 +61,21 @@ func (csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, err
 			rs.Comma = '\t'
 		case "colon", ":":
 			rs.Comma = ':'
+		case "detect":
+			delim, err := x.detectDelim(file)
+			if err != nil {
+				return nil, err
+			}
+			rs.Comma = delim
 		default:
 			return nil, fmt.Errorf("unsupported csv delimiter %q", delim)
 		}
 	}
 	return rs, nil
+}
+
+func (x csvLoader) detectDelim(file string) (byte, error) {
+	return csv.Sniff(file)
 }
 
 type xlsxLoader struct{}

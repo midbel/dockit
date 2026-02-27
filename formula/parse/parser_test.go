@@ -584,10 +584,10 @@ func TestSlices(t *testing.T) {
 			Expr: "view1[A;B;C]",
 			Want: NewSlice(
 				NewIdentifier("view1"),
-				NewColumnsSlice([]Expr{
-					SelectRange(1, 1, 0),
-					SelectRange(2, 2, 0),
-					SelectRange(3, 3, 0),
+				NewIntervalList([]Expr{
+					NewInterval(NewNumber(1), NewNumber(1), nil),
+					NewInterval(NewNumber(2), NewNumber(2), nil),
+					NewInterval(NewNumber(3), NewNumber(3), nil),
 				}),
 			),
 		},
@@ -595,10 +595,10 @@ func TestSlices(t *testing.T) {
 			Expr: "view2[:E;B:D:2;C::3]",
 			Want: NewSlice(
 				NewIdentifier("view2"),
-				NewColumnsSlice([]Expr{
-					SelectRange(0, 5, 0),
-					SelectRange(2, 4, 2),
-					SelectRange(3, 0, 3),
+				NewIntervalList([]Expr{
+					NewInterval(nil, NewNumber(5), nil),
+					NewInterval(NewNumber(2), NewNumber(4), NewNumber(2)),
+					NewInterval(NewNumber(3), nil, NewNumber(3)),
 				}),
 			),
 		},
@@ -616,8 +616,8 @@ func TestSlices(t *testing.T) {
 			Expr: "view4[A:C]",
 			Want: NewSlice(
 				NewIdentifier("view4"),
-				NewColumnsSlice([]Expr{
-					SelectRange(1, 3, 0),
+				NewIntervalList([]Expr{
+					NewInterval(NewNumber(1), NewNumber(3), nil),
 				}),
 			),
 		},
@@ -902,26 +902,27 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		}
 		assertEqualExpr(t, w.view, g.view)
 		assertEqualExpr(t, w.expr, g.expr)
-	case ColumnsSlice:
-		g, ok := got.(ColumnsSlice)
+	case IntervalList:
+		g, ok := got.(IntervalList)
 		if !ok {
 			t.Errorf("columns slice expected but got %T", got)
 			return
 		}
-		if len(w.columns) != len(g.columns) {
-			t.Errorf("selected columns count mismatched! want %d, got %d", len(w.columns), len(g.columns))
+		if len(w.items) != len(g.items) {
+			t.Errorf("selected columns count mismatched! want %d, got %d", len(w.items), len(g.items))
 		}
-		for i := range w.columns {
-			if w.columns[i].from != g.columns[i].from {
-				t.Errorf("column \"from\" mismatched! want %d, got %d", w.columns[i].from, g.columns[i].from)
-			}
-			if w.columns[i].to != g.columns[i].to {
-				t.Errorf("column \"to\" mismatched! want %d, got %d", w.columns[i].to, g.columns[i].to)
-			}
-			if w.columns[i].step != g.columns[i].step {
-				t.Errorf("columns \"step\" mismatched! want %d, got %d", w.columns[i].step, g.columns[i].step)
-			}
+		for i := range w.items {
+			assertEqualExpr(t, w.items[i], g.items[i])
 		}
+	case IntervalExpr:
+		g, ok := got.(IntervalExpr)
+		if !ok {
+			t.Errorf("interval expression expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.from, g.from)
+		assertEqualExpr(t, w.to, g.to)
+		assertEqualExpr(t, w.step, g.step)
 	case Script:
 		g, ok := got.(Script)
 		if !ok {

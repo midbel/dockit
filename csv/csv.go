@@ -17,6 +17,10 @@ const (
 
 var errUnterminated = errors.New("unterminated")
 
+func Sniff(file string) (byte, error) {
+	return ',', nil
+}
+
 type Reader struct {
 	inner         *bufio.Reader
 	Comma         byte
