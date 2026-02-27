@@ -60,7 +60,15 @@ func (v *evalVisitor) VisitUseRef(expr parse.UseRef) error {
 }
 
 func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
-	file, err := v.ctx.Open(expr.File(), nil)
+	options := expr.Options()
+	switch spec := expr.Specifier(); expr.Format() {
+	case "csv":
+		options["delimiter"] = spec
+	case "log":
+		options["pattern"] = spec
+	default:
+	}
+	file, err := v.ctx.Open(expr.File(), options)
 	if err != nil {
 		return err
 	}
@@ -491,8 +499,6 @@ func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 	}
 	switch e := expr.Expr().(type) {
 	case parse.RangeAddr:
-		view = view.BoundedView(e.Range())
-	case parse.RangeSlice:
 		view = view.BoundedView(e.Range())
 	case parse.ColumnsSlice:
 		view = view.ProjectView(e.Selection())

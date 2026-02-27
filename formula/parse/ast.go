@@ -111,13 +111,24 @@ type ImportFile struct {
 
 	format    string // using
 	specifier string // with
-	options   map[string]string
+	options   map[string]any
 
 	alias       string // as
 	defaultFile bool   // default
 	readOnly    bool   // ro
 
 	Position
+}
+
+func (i ImportFile) Options() map[string]any {
+	if i.options == nil {
+		return make(map[string]any)
+	}
+	return i.options
+}
+
+func (i ImportFile) Specifier() string {
+	return i.specifier
 }
 
 func (i ImportFile) File() string {
@@ -181,7 +192,7 @@ type ExportRef struct {
 
 	format    string // using
 	specifier string // with
-	options   map[string]string
+	options   map[string]any
 
 	Position
 }

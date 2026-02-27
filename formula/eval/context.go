@@ -109,7 +109,7 @@ func (c *EngineConfig) SetDefaults() {
 	c.Set(slx.Make("csv", "quoted"), true)
 }
 
-func (c *EngineContext) Merge(other *EngineContext) error {
+func (c *EngineConfig) Merge(other *EngineConfig) error {
 	return c.registry.Merge(other.registry)
 }
 

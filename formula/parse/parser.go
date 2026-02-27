@@ -723,9 +723,9 @@ func parseUse(p *Parser) (Expr, error) {
 	return stmt, nil
 }
 
-func parseKeyValuePairs(p *Parser) (map[string]string, error) {
+func parseKeyValuePairs(p *Parser) (map[string]any, error) {
 	p.next()
-	kvs := make(map[string]string)
+	kvs := make(map[string]any)
 	for !p.done() && !p.is(op.EndGrp) {
 		p.skipEOL()
 		if !p.is(op.Ident) && !p.is(op.Literal) {

@@ -100,7 +100,7 @@ func (i inspectForm) inspectSlice(eg Runnable, expr parse.Slice, ctx *EngineCont
 		iv.Set("owner", value.Text(v.Type()))
 	}
 	switch e := expr.Expr().(type) {
-	case parse.RangeSlice:
+	case parse.RangeAddr:
 		iv.Set("type", value.Text("range"))
 
 		rg := layout.NewRange(e.StartAt().Position, e.EndAt().Position)
