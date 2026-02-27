@@ -134,17 +134,21 @@ var dumpCmd = cli.Command{
 
 const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
 
-type GetInfoCommand struct{}
+type GetInfoCommand struct {
+	Format    string
+	Pattern   string
+	Delimiter string
+}
 
 func (c GetInfoCommand) Run(args []string) error {
-	var (
-		set    = cli.NewFlagSet("info")
-		format = set.String("f", "", "format")
-	)
+	set    := cli.NewFlagSet("info")
+	set.StringVar(&c.Format, "f", "", "format")
+	set.StringVar(&c.Pattern, "p", "", "format")
+	set.StringVar(&c.Delimiter, "d", "", "format")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	file, err := workbook.OpenFormat(set.Arg(0), *format)
+	file, err := c.openFile(set.Arg(0))
 	if err != nil {
 		return err
 	}
@@ -152,6 +156,13 @@ func (c GetInfoCommand) Run(args []string) error {
 		c.printInfo(i, j)
 	}
 	return nil
+}
+
+func (c GetInfoCommand) openFile(file string) (grid.File, error) {
+	if c.Format == "log" {
+		return flat.OpenLog(file, c.Pattern)
+	}
+	return workbook.OpenFormat(file, c.Format)
 }
 
 func (c GetInfoCommand) printInfo(info grid.ViewInfo, j int) {

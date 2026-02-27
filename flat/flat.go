@@ -7,7 +7,6 @@ import (
 	"iter"
 	"os"
 
-
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -24,7 +23,15 @@ type File struct {
 }
 
 func OpenLog(file, pattern string) (*File, error) {
-	return nil, nil
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	rs, err := log.NewReader(r, pattern, "")
+	if err != nil {
+		return nil, err
+	}
+	return OpenReader(rs)
 }
 
 func OpenCsv(file string) (*File, error) {
