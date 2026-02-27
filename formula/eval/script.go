@@ -114,7 +114,7 @@ func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 		return fmt.Errorf("object expected")
 	}
 	val, err := obj.Get(expr.Property())
-	if err == nil {
+	if err != nil {
 		val = value.ErrValue
 	}
 	v.pushValue(val)
