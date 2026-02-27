@@ -585,9 +585,9 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view1"),
 				NewIntervalList([]Expr{
-					NewInterval(NewIdentifier("A"), NewIdentifier("A"), nil),
-					NewInterval(NewIdentifier("B"), NewIdentifier("B"), nil),
-					NewInterval(NewIdentifier("C"), NewIdentifier("C"), nil),
+					NewIdentifier("A"),
+					NewIdentifier("B"),
+					NewIdentifier("C"),
 				}),
 			),
 		},
