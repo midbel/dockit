@@ -685,29 +685,6 @@ func (s Slice) Accept(v Visitor) error {
 	return v.VisitSlice(s)
 }
 
-type RangeSlice struct {
-	startAddr CellAddr
-	endAddr   CellAddr
-	Position
-}
-
-func (s RangeSlice) StartAt() CellAddr {
-	return s.startAddr
-}
-
-func (s RangeSlice) EndAt() CellAddr {
-	return s.endAddr
-}
-
-func (s RangeSlice) String() string {
-	return fmt.Sprintf("range(%s, %s)", s.startAddr, s.endAddr)
-}
-
-func (s RangeSlice) Range() *layout.Range {
-	rg := layout.NewRange(s.startAddr.Position, s.endAddr.Position)
-	return rg
-}
-
 type ColumnsSlice struct {
 	columns []ColumnsRange
 	Position

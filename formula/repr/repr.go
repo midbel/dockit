@@ -279,7 +279,7 @@ func (v astVisitor) VisitSlice(expr parse.Slice) error {
 		v.visitExpr(expr.Expr())
 	} else {
 		switch e := expr.Expr().(type) {
-		case parse.RangeSlice:
+		case parse.RangeAddr:
 			if err := e.StartAt().Accept(v); err != nil {
 				return err
 			}
