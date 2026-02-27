@@ -66,6 +66,10 @@ func (t *Trie[T]) Walk(path []string, fn func(path []string, v T)) {
 	walk(node, path)
 }
 
+func (t *Trie[T]) Merge(other *Trie[T]) error {
+	return nil
+}
+
 func (t *Trie[T]) Register(path []string, value T) {
 	node := t.root
 	for _, name := range path {

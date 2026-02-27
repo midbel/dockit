@@ -21,8 +21,37 @@ func CsvLoader() Loader {
 }
 
 func (c csvLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	fmt.Println(file)
-	return csv.Open(file)
+	rs, err := c.createReader(file, opts)
+	if err != nil {
+		return nil, err
+	}
+	return csv.OpenReader(rs)
+}
+
+func (c csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, error) {
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}	
+	rs := csv.NewReader(r)
+
+
+	if delim, ok := opts["delimiter"]; ok {
+		switch delimiter {
+		case "comma", ",":
+			rs.Comma = ','
+		case "semi", "semicolon", ";":
+			rs.Comma = ';'
+		case "tab", "\t":
+			rs.Comma = '\t'
+		case "colon", ":":
+			rs.Comma = ':'
+		default:
+			return nil, fmt.Errorf("unsupported csv delimiter %q", delim)
+		}
+	}
+
+	return rs, nil
 }
 
 type xlsxLoader struct{}

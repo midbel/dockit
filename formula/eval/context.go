@@ -105,6 +105,12 @@ func (c *EngineConfig) SetDefaults() {
 	c.Set(slx.Make("format", "number"), format.DefaultNumberPattern)
 	c.Set(slx.Make("format", "date"), format.DefaultDatePattern)
 	c.Set(slx.Make("format", "bool"), "")
+	c.Set(slx.Make("csv", "delimiter"), ",")
+	c.Set(slx.Make("csv", "quoted"), true)
+}
+
+func (c *EngineContext) Merge(other *EngineContext) error {
+	return c.registry.Merge(other.registry)
 }
 
 type EngineContext struct {
