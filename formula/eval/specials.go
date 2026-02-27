@@ -110,7 +110,7 @@ func (i inspectForm) inspectSlice(eg Runnable, expr parse.Slice, ctx *EngineCont
 		rg = rg.Normalize()
 		iv.Set("rows", value.Float(rg.Height()))
 		iv.Set("cols", value.Float(rg.Width()))
-	case parse.ColumnsSlice:
+	case parse.IntervalList:
 		iv.Set("type", value.Text("column"))
 		iv.Set("count", value.Float(e.Count()))
 	case parse.Binary, parse.And, parse.Or, parse.Not:

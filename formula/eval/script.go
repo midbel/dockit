@@ -500,7 +500,7 @@ func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 	switch e := expr.Expr().(type) {
 	case parse.RangeAddr:
 		view = view.BoundedView(e.Range())
-	case parse.ColumnsSlice:
+	case parse.IntervalList:
 		view = view.ProjectView(e.Selection())
 	case parse.Binary:
 		p := types.NewExprPredicate(grid.NewFormula(e))

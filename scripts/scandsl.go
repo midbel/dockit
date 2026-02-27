@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/midbel/dockit/formula/eval"
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/op"
 )
 
@@ -22,9 +22,9 @@ func main() {
 	defer r.Close()
 
 	if *lex {
-		err = scan(r)
+		err = scanReader(r)
 	} else {
-		err = parse(r)
+		err = parseReader(r)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -32,25 +32,32 @@ func main() {
 	}
 }
 
-func parse(r io.Reader) error {
-	ps := eval.NewParser(eval.ScriptGrammar())
-	expr, err := ps.Parse(r)
+func parseReader(r io.Reader) error {
+	scan, err := parse.Scan(r, parse.ScanScript)
 	if err != nil {
 		return err
 	}
-	script, ok := expr.(eval.Script)
+	ps, err := parse.NewParser(scan)
+	if err != nil {
+		return err
+	}
+	expr, err := ps.Parse()
+	if err != nil {
+		return err
+	}
+	script, ok := expr.(parse.Script)
 	if !ok {
 		return nil
 	}
 	for _, e := range script.Body {
-		str := eval.DumpExpr(e)
+		str := parse.DumpExpr(e)
 		fmt.Println(str)
 	}
 	return nil
 }
 
-func scan(r io.Reader) error {
-	scan, err := eval.Scan(r, eval.ModeScript)
+func scanReader(r io.Reader) error {
+	scan, err := parse.Scan(r, parse.ScanScript)
 	if err != nil {
 		return err
 	}

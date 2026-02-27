@@ -585,9 +585,9 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view1"),
 				NewIntervalList([]Expr{
-					NewInterval(NewNumber(1), NewNumber(1), nil),
-					NewInterval(NewNumber(2), NewNumber(2), nil),
-					NewInterval(NewNumber(3), NewNumber(3), nil),
+					NewInterval(NewIdentifier("A"), NewIdentifier("A"), nil),
+					NewInterval(NewIdentifier("B"), NewIdentifier("B"), nil),
+					NewInterval(NewIdentifier("C"), NewIdentifier("C"), nil),
 				}),
 			),
 		},
@@ -596,9 +596,9 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view2"),
 				NewIntervalList([]Expr{
-					NewInterval(nil, NewNumber(5), nil),
-					NewInterval(NewNumber(2), NewNumber(4), NewNumber(2)),
-					NewInterval(NewNumber(3), nil, NewNumber(3)),
+					NewInterval(nil, NewIdentifier("E"), nil),
+					NewInterval(NewIdentifier("B"), NewIdentifier("D"), NewNumber(2)),
+					NewInterval(NewIdentifier("C"), nil, NewNumber(3)),
 				}),
 			),
 		},
@@ -617,7 +617,7 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view4"),
 				NewIntervalList([]Expr{
-					NewInterval(NewNumber(1), NewNumber(3), nil),
+					NewInterval(NewIdentifier("A"), NewIdentifier("C"), nil),
 				}),
 			),
 		},
@@ -920,9 +920,15 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 			t.Errorf("interval expression expected but got %T", got)
 			return
 		}
-		assertEqualExpr(t, w.from, g.from)
-		assertEqualExpr(t, w.to, g.to)
-		assertEqualExpr(t, w.step, g.step)
+		if w.from != nil || g.from != nil {
+			assertEqualExpr(t, w.from, g.from)
+		}
+		if w.to != nil || g.to != nil {
+			assertEqualExpr(t, w.to, g.to)
+		}
+		if w.step != nil || g.step != nil {
+			assertEqualExpr(t, w.step, g.step)
+		}
 	case Script:
 		g, ok := got.(Script)
 		if !ok {

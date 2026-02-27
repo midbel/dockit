@@ -136,6 +136,20 @@ func dumpExpr(w io.Writer, expr Expr) {
 			dumpExpr(w, e.items[i])
 		}
 		io.WriteString(w, ")")
+	case IntervalExpr:
+		io.WriteString(w, "interval(")
+		if e.from != nil {
+			dumpExpr(w, e.from)
+		}
+		io.WriteString(w, ", ")
+		if e.to != nil {
+			dumpExpr(w, e.to)
+		}
+		io.WriteString(w, ", ")
+		if e.step != nil {
+			dumpExpr(w, e.step)
+		}
+		io.WriteString(w, ")")
 	case ImportFile:
 		io.WriteString(w, "import(")
 		io.WriteString(w, e.file)
