@@ -1,46 +1,94 @@
 package csv
 
 import (
-	"path/filepath"
+	"errors"
+	"io"
+	"os"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/workbook"
 )
 
 type loader struct {
-	sep byte
+	delimiter byte
+	name      string
 }
 
 func NewCommaLoader() workbook.Loader {
-	return createLoader(',')
+	return createLoader(',', "comma")
 }
 
 func NewTabLoader() workbook.Loader {
-	return createLoader('\t')
+	return createLoader('\t', "tab")
 }
 
 func NewSemicolonLoader() workbook.Loader {
-	return createLoader(';')
+	return createLoader(';', "semi")
 }
 
 func NewColonLoader() workbook.Loader {
-	return createLoader(':')
+	return createLoader(':', "colon")
 }
 
-func createLoader(sep byte) workbook.Loader {
+func createLoader(delimiter byte, name string) workbook.Loader {
 	return loader{
-		sep: sep,
+		delimiter: delimiter,
+		name: name,
 	}
 }
 
-func (loader) Name() string {
-	return "csv"
+func (x loader) Name() string {
+	return x.name
 }
 
-func (loader) Detect(file string) (bool, error) {
-	return filepath.Ext(file) == ".csv", nil
+func (x loader) Detect(file string) (bool, error) {
+	r, err := os.Open(file)
+	if err != nil {
+		return false, nil
+	}
+	rs := NewReader(r)
+	rs.Comma = x.delimiter
+
+	var (
+		rows = make(map[int]int)
+		iter = 16
+	)
+	for i := 0; i < iter; i++ {
+		rec, err := rs.Read()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				iter = i
+				break
+			}
+			return false, err
+		}
+		if len(rec) <= 1 {
+			continue
+		}
+		rows[len(rec)]++
+	}
+	if len(rows) == 0 {
+		return false, nil
+	}
+	var best int
+	for _, f := range rows {
+		best = max(best, f)
+	}
+	if len(rows) == 1 {
+		return true, nil
+	}
+	return float64(len(rows))/float64(iter) >= 0.6 && best > 2, nil
 }
 
-func (loader) Open(file string) (grid.File, error) {
-	return Open(file)
+func (x loader) Open(file string) (grid.File, error) {
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	rs := NewReader(r)
+	rs.Comma = x.delimiter
+
+	return OpenReader(rs)
 }

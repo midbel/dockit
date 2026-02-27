@@ -137,11 +137,14 @@ const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
 type GetInfoCommand struct{}
 
 func (c GetInfoCommand) Run(args []string) error {
-	set := cli.NewFlagSet("info")
+	var (
+		set    = cli.NewFlagSet("info")
+		format = set.String("f", "", "format")
+	)
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	file, err := workbook.Open(set.Arg(0))
+	file, err := workbook.OpenFormat(set.Arg(0), *format)
 	if err != nil {
 		return err
 	}

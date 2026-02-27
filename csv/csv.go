@@ -184,13 +184,7 @@ func NewFile() *File {
 	return &file
 }
 
-func Open(file string) (*File, error) {
-	r, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
+func OpenReader(r *Reader) (*File, error) {
 	sh, err := readSheet(r)
 	if err != nil {
 		return nil, err
@@ -199,6 +193,15 @@ func Open(file string) (*File, error) {
 		sheet: sh,
 	}
 	return &f, nil
+}
+
+func Open(file string) (*File, error) {
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return OpenReader(NewReader(r))
 }
 
 func (f *File) WriteFile(file string) error {
@@ -271,11 +274,8 @@ func writeSheet(w io.Writer, sh *Sheet) error {
 	return ws.Error()
 }
 
-func readSheet(r io.Reader) (*Sheet, error) {
-	var (
-		rs = NewReader(r)
-		sh = emptySheet()
-	)
+func readSheet(rs *Reader) (*Sheet, error) {
+	sh := emptySheet()
 	for line := 1; ; line++ {
 		fields, err := rs.Read()
 		if err != nil {
