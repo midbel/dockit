@@ -3,7 +3,7 @@ package eval
 import (
 	"fmt"
 
-	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/oxml"
 )
@@ -25,16 +25,15 @@ func (c csvLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return csv.OpenReader(rs)
+	return flat.OpenReader(rs)
 }
 
 func (c csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, error) {
 	r, err := os.Open(file)
 	if err != nil {
 		return nil, err
-	}	
+	}
 	rs := csv.NewReader(r)
-
 
 	if delim, ok := opts["delimiter"]; ok {
 		switch delimiter {

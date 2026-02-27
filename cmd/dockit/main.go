@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/midbel/cli"
-	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/oxml"
@@ -23,10 +23,10 @@ var (
 
 func init() {
 	workbook.Register(oxml.NewLoader())
-	workbook.Register(csv.NewCommaLoader())
-	workbook.Register(csv.NewTabLoader())
-	workbook.Register(csv.NewSemicolonLoader())
-	workbook.Register(csv.NewColonLoader())
+	workbook.Register(flat.NewCommaLoader())
+	workbook.Register(flat.NewTabLoader())
+	workbook.Register(flat.NewSemicolonLoader())
+	workbook.Register(flat.NewColonLoader())
 }
 
 func main() {

@@ -1,46 +1,116 @@
 package flat
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"iter"
+	"os"
 
+
+	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
+	"github.com/midbel/log"
 )
 
 type Reader interface {
 	Read() ([]string, error)
 }
 
-const defaultSheetName = "sheet"
-
-type Cell struct {
-	layout.Position
-	raw    string
-	parsed value.ScalarValue
+type File struct {
+	sheet *Sheet
 }
 
-func (c *Cell) At() layout.Position {
-	return c.Position
+func OpenLog(file, pattern string) (*File, error) {
+	return nil, nil
 }
 
-func (c *Cell) Display() string {
-	return c.raw
+func OpenCsv(file string) (*File, error) {
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	return OpenReader(csv.NewReader(r))
 }
 
-func (c *Cell) Value() value.ScalarValue {
-	return c.parsed
+func OpenReader(r Reader) (*File, error) {
+	sh, err := readSheet(r)
+	if err != nil {
+		return nil, err
+	}
+	file := File{
+		sheet: sh,
+	}
+	return &file, nil
 }
 
-func (c *Cell) Reload(ctx value.Context) error {
+func NewFile() *File {
+	file := File{
+		sheet: emptySheet(),
+	}
+	return &file
+}
+
+func Open(r Reader) (*File, error) {
+	return nil, nil
+}
+
+func (f *File) WriteFile(file string) error {
+	return nil
+}
+
+func (f *File) ActiveSheet() (grid.View, error) {
+	return f.sheet, nil
+}
+
+func (f *File) Sheet(ident string) (grid.View, error) {
+	if ident != defaultSheetName {
+		return nil, fmt.Errorf("sheet not found")
+	}
+	return f.sheet, nil
+}
+
+func (f *File) Sheets() []grid.View {
+	return []grid.View{f.sheet}
+}
+
+func (f *File) Infos() []grid.ViewInfo {
+	rg := f.sheet.Bounds()
+
+	i := grid.ViewInfo{
+		Name:      f.sheet.Name(),
+		Active:    true,
+		Protected: false,
+		Hidden:    false,
+		Size: layout.Dimension{
+			Lines:   rg.Height(),
+			Columns: rg.Width(),
+		},
+	}
+	return []grid.ViewInfo{i}
+}
+
+func (*File) Rename(_, _ string) error {
 	return grid.ErrSupported
 }
 
-type row struct {
-	Line  int64
-	cells []*Cell
+func (*File) Copy(_, _ string) error {
+	return grid.ErrSupported
 }
+
+func (*File) Remove(_ string) error {
+	return grid.ErrSupported
+}
+
+func (*File) Reload() error {
+	return nil
+}
+
+const defaultSheetName = "sheet"
 
 type Sheet struct {
 	rows  []*row
@@ -52,6 +122,37 @@ func emptySheet() *Sheet {
 	return &Sheet{
 		cells: make(map[layout.Position]*Cell),
 	}
+}
+
+func readSheet(rs Reader) (*Sheet, error) {
+	sh := emptySheet()
+	for line := 1; ; line++ {
+		fields, err := rs.Read()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, err
+		}
+		r := row{
+			Line: int64(line),
+		}
+		for col, f := range fields {
+			p := layout.Position{
+				Line:   r.Line,
+				Column: int64(col) + 1,
+			}
+			c := Cell{
+				Position: p,
+				raw:      f,
+				parsed:   value.Text(f),
+			}
+			r.cells = append(r.cells, &c)
+			sh.cells[p] = &c
+		}
+		sh.rows = append(sh.rows, &r)
+	}
+	return sh, nil
 }
 
 func (s *Sheet) Name() string {
@@ -172,68 +273,29 @@ func (s *Sheet) DeleteRow(ix int64) error {
 	return nil
 }
 
-type File struct {
-	sheet *Sheet
+type row struct {
+	Line  int64
+	cells []*Cell
 }
 
-func NewFile() *File {
-	file := File{
-		sheet: emptySheet(),
-	}
-	return &file
+type Cell struct {
+	layout.Position
+	raw    string
+	parsed value.ScalarValue
 }
 
-func Open(r Reader) (*File, error) {
-	return nil, nil
+func (c *Cell) At() layout.Position {
+	return c.Position
 }
 
-func (f *File) WriteFile(file string) error {
-	return nil
+func (c *Cell) Display() string {
+	return c.raw
 }
 
-func (f *File) ActiveSheet() (grid.View, error) {
-	return f.sheet, nil
+func (c *Cell) Value() value.ScalarValue {
+	return c.parsed
 }
 
-func (f *File) Sheet(ident string) (grid.View, error) {
-	if ident != defaultSheetName {
-		return nil, fmt.Errorf("sheet not found")
-	}
-	return f.sheet, nil
-}
-
-func (f *File) Sheets() []grid.View {
-	return []grid.View{f.sheet}
-}
-
-func (f *File) Infos() []grid.ViewInfo {
-	rg := f.sheet.Bounds()
-
-	i := grid.ViewInfo{
-		Name:      f.sheet.Name(),
-		Active:    true,
-		Protected: false,
-		Hidden:    false,
-		Size: layout.Dimension{
-			Lines:   rg.Height(),
-			Columns: rg.Width(),
-		},
-	}
-	return []grid.ViewInfo{i}
-}
-
-func (*File) Rename(_, _ string) error {
+func (c *Cell) Reload(ctx value.Context) error {
 	return grid.ErrSupported
-}
-
-func (*File) Copy(_, _ string) error {
-	return grid.ErrSupported
-}
-
-func (*File) Remove(_ string) error {
-	return grid.ErrSupported
-}
-
-func (*File) Reload() error {
-	return nil
 }
