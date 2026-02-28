@@ -501,7 +501,11 @@ func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 	case parse.RangeAddr:
 		view = view.BoundedView(e.Range())
 	case parse.IntervalList:
-		view = view.ProjectView(e.Selection())
+		sel, err := e.Selection()
+		if err != nil {
+			return err
+		}
+		view = view.ProjectView(sel)
 	case parse.Binary:
 		p := types.NewExprPredicate(grid.NewFormula(e))
 		view = view.FilterView(p)

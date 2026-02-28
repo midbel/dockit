@@ -861,18 +861,6 @@ func parseSlice(p *Parser, left Expr) (Expr, error) {
 	return NewSlice(left, expr), nil
 }
 
-func parseColumnExpr(expr Expr) (int, error) {
-	e, ok := expr.(Identifier)
-	if !ok {
-		return 0, fmt.Errorf("columns identifier expected")
-	}
-	ix, size := parseIndex(e.name)
-	if size != len(e.name) {
-		return 0, fmt.Errorf("invalid column index")
-	}
-	return int(ix), nil
-}
-
 func parseOpenSelectedColumns(p *Parser) (Expr, error) {
 	p.next()
 	var (

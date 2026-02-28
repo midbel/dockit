@@ -10,6 +10,10 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+type Selectable interface {
+    Selection() (layout.Selection, error)
+}
+
 type Expr interface {
 	fmt.Stringer
 }
@@ -715,13 +719,20 @@ func (i IntervalList) String() string {
 	return fmt.Sprintf("internval(%v)", i.items)
 }
 
-func (i IntervalList) Selection() layout.Selection {
-	// all := make([]layout.Selection, 0, len(s.columns))
-	// for _, r := range s.columns {
-	// 	all = append(all, r.Selection())
-	// }
-	// return layout.Combine(all...)
-	return nil
+func (i IntervalList) Selection() (layout.Selection, error) {
+	all := make([]layout.Selection, 0, len(i.items))
+	for _, r := range i.items {
+		s, ok := r.(Selectable)
+		if !ok {
+			continue
+		}
+		e, err := s.Selection()
+		if err != nil {
+			return nil, err
+		}
+		all = append(all, e)
+	}
+	return layout.Combine(all...), nil
 }
 
 type IntervalExpr struct {
@@ -741,6 +752,22 @@ func NewInterval(from, to, step Expr) Expr {
 
 func (e IntervalExpr) String() string {
 	return fmt.Sprintf("interval(%v, %v)", e.from, e.to)
+}
+
+func (e IntervalExpr) Selection() (layout.Selection, error) {
+	from, err := parseColumnExpr(e.from)
+	if err != nil {
+		return nil, err
+	}
+	to, err := parseColumnExpr(e.to)
+	if err != nil {
+		return nil, err
+	}
+	step, err := parseColumnExpr(e.step)
+	if err != nil {
+		return nil, err
+	}
+	return layout.SelectSpan(int64(from), int64(to), int64(step)), nil
 }
 
 type Identifier struct {
@@ -766,9 +793,18 @@ func (Identifier) KindOf() string {
 	return "identifier"
 }
 
+func (i Identifier) Selection() (layout.Selection, error) {
+	ix, err := parseColumnExpr(i)
+	if err != nil {
+		return nil, err
+	}
+	return layout.SelectSingle(int64(ix)), nil
+}
+
 func (i Identifier) Accept(v Visitor) error {
 	return v.VisitIdentifier(i)
 }
+
 
 type QualifiedCellAddr struct {
 	path Expr
@@ -968,4 +1004,16 @@ func parseIndex(str string) (int64, int) {
 		offset++
 	}
 	return int64(index), offset
+}
+
+func parseColumnExpr(expr Expr) (int, error) {
+	e, ok := expr.(Identifier)
+	if !ok {
+		return 0, fmt.Errorf("columns identifier expected")
+	}
+	ix, size := parseIndex(e.name)
+	if size != len(e.name) {
+		return 0, fmt.Errorf("invalid column index")
+	}
+	return int(ix), nil
 }
