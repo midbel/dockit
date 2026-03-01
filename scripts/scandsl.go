@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/op"
+	"github.com/midbel/dockit/formula/parse"
 )
 
 func main() {

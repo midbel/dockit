@@ -11,7 +11,7 @@ import (
 )
 
 type Selectable interface {
-    Selection() (layout.Selection, error)
+	Selection() (layout.Selection, error)
 }
 
 type Expr interface {
@@ -804,7 +804,6 @@ func (i Identifier) Selection() (layout.Selection, error) {
 func (i Identifier) Accept(v Visitor) error {
 	return v.VisitIdentifier(i)
 }
-
 
 type QualifiedCellAddr struct {
 	path Expr
