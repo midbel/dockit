@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/midbel/dockit/csv"
+	"github.com/midbel/dockit/driver"
 	"github.com/midbel/dockit/grid"
-	"github.com/midbel/dockit/workbook"
 )
 
 type csvLoader struct {
@@ -15,23 +15,23 @@ type csvLoader struct {
 	name      string
 }
 
-func NewCommaLoader() workbook.Loader {
+func NewCommaLoader() driver.Loader {
 	return createLoader(',', "comma")
 }
 
-func NewTabLoader() workbook.Loader {
+func NewTabLoader() driver.Loader {
 	return createLoader('\t', "tab")
 }
 
-func NewSemicolonLoader() workbook.Loader {
+func NewSemicolonLoader() driver.Loader {
 	return createLoader(';', "semi")
 }
 
-func NewColonLoader() workbook.Loader {
+func NewColonLoader() driver.Loader {
 	return createLoader(':', "colon")
 }
 
-func createLoader(delimiter byte, name string) workbook.Loader {
+func createLoader(delimiter byte, name string) driver.Loader {
 	return csvLoader{
 		delimiter: delimiter,
 		name:      name,
@@ -79,6 +79,14 @@ func (x csvLoader) Detect(file string) (bool, error) {
 		return true, nil
 	}
 	return float64(len(rows))/float64(iter) >= 0.6 && best > 2, nil
+}
+
+func (csvLoader) New() (grid.File, error) {
+	return NewFile(), nil
+}
+
+func (csvLoader) IsSupportedExt(ext string) bool {
+	return ext == ".csv"
 }
 
 func (x csvLoader) Open(file string) (grid.File, error) {

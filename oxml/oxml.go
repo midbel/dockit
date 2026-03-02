@@ -580,6 +580,8 @@ func (f *File) AppendSheet(sheet *Sheet) error {
 	if n, ok := f.names[sheet.Label]; ok {
 		f.names[sheet.Label] = n + 1
 		sheet.Label = fmt.Sprintf("%s_%03d", sheet.Label, f.names[sheet.Label])
+	} else {
+		f.names[sheet.Label] = 1
 	}
 	sheet.Index = len(f.sheets) + 1
 	sheet.Id = fmt.Sprintf("rId%d", sheet.Index)
@@ -588,10 +590,20 @@ func (f *File) AppendSheet(sheet *Sheet) error {
 }
 
 // append sheets of given file to current fule
-func (f *File) Merge(other *File) error {
+func (f *File) Merge(other grid.File) error {
 	if f.locked {
 		return grid.ErrLock
 	}
+	var err error
+	if x, ok := other.(*File); ok {
+		err = f.mergeFile(x)
+	} else {
+		err = f.mergeSheetsFromFile(other)
+	}
+	return err
+}
+
+func (f *File) mergeFile(other *File) error {
 	ix := make(map[int]int)
 	for i, s := range other.sharedStrings {
 		ok := slices.Contains(f.sharedStrings, s)
@@ -601,18 +613,21 @@ func (f *File) Merge(other *File) error {
 		ix[i] = len(f.sharedStrings)
 		f.sharedStrings = append(f.sharedStrings, s)
 	}
-	for i, s := range other.sheets {
-		s.Index = len(f.sheets) + i + 1
-		s.Id = fmt.Sprintf("rId%d", s.Index)
-
-		s.Label = cleanSheetName(s.Label)
-		if n, ok := f.names[s.Label]; ok {
-			f.names[s.Label] = n + 1
-			s.Label = fmt.Sprintf("%s_%03d", s.Label, f.names[s.Label])
+	for _, s := range other.sheets {
+		if err := f.AppendSheet(s); err != nil {
+			return err
 		}
-		f.sheets = append(f.sheets, s)
 		s.resetSharedIndex(ix)
 	}
+	return nil
+}
+
+func (f *File) mergeSheetsFromFile(other grid.File) error {
+	// for _, s := range other.Sheets() {
+	// 	if err := f.AppendSheet(s); err != nil {
+	// 		return err
+	// 	}
+	// }
 	return nil
 }
 

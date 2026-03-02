@@ -27,7 +27,7 @@ func OpenLog(file, pattern string) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
-	rs, err := log.NewReader(r, pattern, "")
+	rs, err := log.NewReader(r, pattern)
 	if err != nil {
 		return nil, err
 	}

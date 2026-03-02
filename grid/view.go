@@ -136,7 +136,6 @@ type File interface {
 
 	Reload() error
 
-	// Merge(File) error
 	Rename(string, string) error
 	Copy(string, string) error
 	Remove(string) error

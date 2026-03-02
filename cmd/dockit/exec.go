@@ -10,6 +10,55 @@ import (
 	"github.com/midbel/dockit/formula/repr"
 )
 
+var runCmd = cli.Command{
+	Name:    "run",
+	Summary: "",
+	Usage:   "",
+	Handler: &RunCommand{},
+}
+
+var dumpCmd = cli.Command{
+	Name:    "dump",
+	Alias:   []string{"inspect"},
+	Summary: "",
+	Usage:   "",
+	Handler: &DumpCommand{},
+}
+
+var queryCmd = cli.Command{
+	Name:    "query",
+	Summary: "",
+	Usage:   "",
+	Handler: &QueryCommand{},
+}
+
+var extractCmd = cli.Command{
+	Name:    "extract",
+	Summary: "",
+	Usage:   "",
+	Handler: &ExtractCommand{},
+}
+
+type QueryCommand struct{}
+
+func (c QueryCommand) Run(args []string) error {
+	set := cli.NewFlagSet("query")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	return nil
+}
+
+type ExtractCommand struct{}
+
+func (c ExtractCommand) Run(args []string) error {
+	set := cli.NewFlagSet("extract")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	return nil
+}
+
 type RunCommand struct{}
 
 func (c RunCommand) Run(args []string) error {

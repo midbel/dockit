@@ -112,7 +112,7 @@ func (z *writer) writeContentTypes(file *File) {
 		},
 	}
 	for _, s := range file.sheets {
-		addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", s.Name))
+		addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", s.Name()))
 		ox := xmlOverride{
 			PartName:    "/" + z.fromBase(addr),
 			ContentType: mimeWorksheet,
@@ -182,7 +182,7 @@ func (z *writer) writeRelationForSheets(file *File) {
 		Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
 	}
 	for _, sh := range file.sheets {
-		addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sh.Name))
+		addr := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sh.Name()))
 		rx := xmlRelation{
 			Id:     sh.Id,
 			Type:   typeSheetUrl,
@@ -206,7 +206,7 @@ func (z *writer) writeWorksheet(sheet *Sheet) {
 	if z.invalid() {
 		return
 	}
-	name := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sheet.Name))
+	name := z.createTarget("worksheets", fmt.Sprintf("%s.xml", sheet.Name()))
 	writer, err := z.writer.Create(name)
 	if err != nil {
 		z.err = err
