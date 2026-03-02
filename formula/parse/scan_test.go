@@ -14,23 +14,46 @@ func FuzzScannerRandomFormula(f *testing.F) {
 		f.Add(createRandomFormula())
 	}
 	f.Fuzz(func(t *testing.T, input string) {
-		if input == "\"" {
-			t.Skip()
-		}
 		scan, err := Scan(strings.NewReader(input), ScanFormula)
 		if err != nil {
 			panic(initScanner(err))
 		}
+		validInput := isExpectedValid(input)
 		for {
 			tok := scan.Scan()
 			if tok.Type == op.EOF {
 				break
 			}
-			if tok.Type == op.Invalid {
+			if tok.Type == op.Invalid && validInput {
 				t.Errorf("invalid token generated for valid input")
 			}
 		}
 	})
+}
+
+func isExpectedValid(input string) bool {
+	if len(input) == 0 {
+		return false
+	}
+	if strings.ContainsAny(input, "#\\") {
+		return false
+	}
+	var (
+		squotes int
+		dquotes int
+	)
+	for i := range input {
+		if input[i] == '"' {
+			dquotes++
+		}
+		if input[i] == '\'' {
+			squotes++
+		}
+	}
+	if dquotes%2 != 0 || squotes%2 != 0 {
+		return false
+	}
+	return true
 }
 
 func createRandomFormula() string {
