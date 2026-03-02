@@ -663,6 +663,16 @@ func TestSlices(t *testing.T) {
 				),
 			),
 		},
+		{
+			Expr: "view8[E:A:2;F:]",
+			Want: NewSlice(
+				NewIdentifier("view8"),
+				NewIntervalList([]Expr{
+					NewInterval(NewIdentifier("E"), NewIdentifier("A"), NewNumber(2)),
+					NewInterval(NewIdentifier("F"), nil, nil),
+				}),
+			),
+		},
 	}
 	for _, c := range tests {
 		expr, err := parseExpr(c.Expr)

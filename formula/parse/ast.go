@@ -756,18 +756,22 @@ func (e IntervalExpr) String() string {
 
 func (e IntervalExpr) Selection() (layout.Selection, error) {
 	from, err := parseColumnExpr(e.from)
-	if err != nil {
+	if err != nil && e.from != nil {
 		return nil, err
 	}
 	to, err := parseColumnExpr(e.to)
-	if err != nil {
+	if err != nil && e.to != nil {
 		return nil, err
 	}
-	step, err := parseColumnExpr(e.step)
-	if err != nil {
-		return nil, err
+	var step int64
+	if e.step != nil {
+		x, ok := e.step.(Number)
+		if !ok {
+			return nil, fmt.Errorf("step should be a number")
+		}
+		step = int64(x.Float())
 	}
-	return layout.SelectSpan(int64(from), int64(to), int64(step)), nil
+	return layout.SelectSpan(int64(from), int64(to), step), nil
 }
 
 type Identifier struct {
@@ -1008,7 +1012,7 @@ func parseIndex(str string) (int64, int) {
 func parseColumnExpr(expr Expr) (int, error) {
 	e, ok := expr.(Identifier)
 	if !ok {
-		return 0, fmt.Errorf("columns identifier expected")
+		return 0, fmt.Errorf("invalid column identifier")
 	}
 	ix, size := parseIndex(e.name)
 	if size != len(e.name) {
