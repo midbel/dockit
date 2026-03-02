@@ -46,7 +46,7 @@ func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
 	}
 	scan.Position.Line = 1
 	scan.read()
-	if scan.char == equal {
+	if mode == ScanFormula && scan.char == equal {
 		scan.read()
 	}
 	return &scan, nil
@@ -102,6 +102,11 @@ func (s *Scanner) Scan() Token {
 	case isDigit(s.char):
 		s.scanNumber(&tok)
 	default:
+		if !s.inScript() && (!isAbsolute(s.char) && !isAlpha(s.char)) {
+			s.read()
+			tok.Type = op.Invalid
+			break
+		}
 		s.scanIdent(&tok)
 	}
 	return tok
@@ -201,6 +206,11 @@ func (s *Scanner) scanLiteral(tok *Token) {
 	for !s.done() && !isQuote(s.char) {
 		s.write()
 		s.read()
+		if s.char == dquote && s.peek() == s.char {
+			s.write()
+			s.read()
+			s.read()
+		}
 	}
 	tok.Type = op.Literal
 	tok.Literal = s.literal()

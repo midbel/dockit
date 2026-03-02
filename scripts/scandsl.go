@@ -11,7 +11,10 @@ import (
 )
 
 func main() {
-	lex := flag.Bool("x", false, "lex")
+	var (
+		lex  = flag.Bool("x", false, "lex")
+		mode = flag.String("m", "", "mode")
+	)
 	flag.Parse()
 
 	r, err := os.Open(flag.Arg(0))
@@ -22,9 +25,9 @@ func main() {
 	defer r.Close()
 
 	if *lex {
-		err = scanReader(r)
+		err = scanReader(r, *mode)
 	} else {
-		err = parseReader(r)
+		err = parseReader(r, *mode)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -32,8 +35,12 @@ func main() {
 	}
 }
 
-func parseReader(r io.Reader) error {
-	scan, err := parse.Scan(r, parse.ScanScript)
+func parseReader(r io.Reader, mode string) error {
+	scanHint := parse.ScanScript
+	if mode == "formula" {
+		scanHint = parse.ScanFormula
+	}
+	scan, err := parse.Scan(r, scanHint)
 	if err != nil {
 		return err
 	}
@@ -56,8 +63,12 @@ func parseReader(r io.Reader) error {
 	return nil
 }
 
-func scanReader(r io.Reader) error {
-	scan, err := parse.Scan(r, parse.ScanScript)
+func scanReader(r io.Reader, mode string) error {
+	scanHint := parse.ScanScript
+	if mode == "formula" {
+		scanHint = parse.ScanFormula
+	}
+	scan, err := parse.Scan(r, scanHint)
 	if err != nil {
 		return err
 	}
@@ -65,7 +76,7 @@ func scanReader(r io.Reader) error {
 	for {
 		tok := scan.Scan()
 		fmt.Println(tok)
-		if tok.Type == op.EOF {
+		if tok.Type == op.EOF || tok.Type == op.Invalid {
 			break
 		}
 	}

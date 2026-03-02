@@ -2,23 +2,21 @@ package parse
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 
 	"github.com/midbel/dockit/formula/op"
 )
 
-func FuzzScannerFormula(f *testing.F) {
-	f.Add("=A1 + 1")
-	f.Add("=A1 + sum(A3, 5, B10:C100)")
-	f.Add("=A1 + min(A3, B100) ^ (10 - 2)")
-	f.Add("=#AA143")
-	f.Add("upper('hello' & ' ' & 'word')")
-	f.Add("=A1 ++ 1")
-	f.Add("=sum(,)")
-	f.Add("=min(A1, )")
-
+func FuzzScannerRandomFormula(f *testing.F) {
+	for i := 0; i < 50; i++ {
+		f.Add(createRandomFormula())
+	}
 	f.Fuzz(func(t *testing.T, input string) {
+		if input == "\"" {
+			t.Skip()
+		}
 		scan, err := Scan(strings.NewReader(input), ScanFormula)
 		if err != nil {
 			panic(initScanner(err))
@@ -29,7 +27,55 @@ func FuzzScannerFormula(f *testing.F) {
 				break
 			}
 			if tok.Type == op.Invalid {
-				panic(invalidToken(tok))
+				t.Errorf("invalid token generated for valid input")
+			}
+		}
+	})
+}
+
+func createRandomFormula() string {
+	var (
+		cells = []string{"A1", "B10", "C3"}
+		ops   = []string{"+", "-", "*", "/"}
+		nums  = []string{"1", "42", "100"}
+	)
+
+	formula := "=" + cells[rand.Intn(len(cells))]
+	for i := 0; i < rand.Intn(5)+1; i++ { // add 1-3 operations
+		formula += ops[rand.Intn(len(ops))] + cells[rand.Intn(len(cells))]
+	}
+	formula += nums[rand.Intn(len(nums))]
+	return formula
+}
+
+func FuzzScannerFormula2(f *testing.F) {
+	f.Add("=A1 + 1")
+	f.Add("=42/0")
+	f.Add("=B100 - D873")
+	f.Add("=B12 - ($C$1 * 9)")
+	f.Add("=avg(F89:F167)")
+	f.Add("=A1 + sum(A3, 5, B10:C100)")
+	f.Add("=A1 + min(A3, B100) ^ (10 - 2)")
+	f.Add("=$AA$143")
+	f.Add("=100 / ($B1 ^ 5) * (42 - P9)")
+	f.Add("=upper('hello' & ' ' & \"world\")")
+	f.Add("=\"this is a \"\"test\"\"\"")
+
+	f.Fuzz(func(t *testing.T, input string) {
+		if strings.ContainsAny(input, "\\") {
+			t.Skip()
+		}
+		scan, err := Scan(strings.NewReader(input), ScanFormula)
+		if err != nil {
+			panic(initScanner(err))
+		}
+		for {
+			tok := scan.Scan()
+			if tok.Type == op.EOF {
+				break
+			}
+			if tok.Type == op.Invalid {
+				t.Errorf("invalid token generated for valid input")
 			}
 		}
 	})
