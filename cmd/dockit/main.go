@@ -8,6 +8,7 @@ import (
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/flat"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/oxml"
 	"github.com/midbel/dockit/workbook"
@@ -65,10 +66,21 @@ func prepare() *cli.CommandTrie {
 	root.Register(slx.One("dump"), &dumpCmd)
 	// root.Register(slx.One("query"), &queryCmd)
 	// root.Register(slx.One("extract"), &extractCmd)
-	root.Register(slx.Make("sheet", "add"), &addCmd)
-	root.Register(slx.Make("sheet", "drop"), &dropCmd)
-	root.Register(slx.Make("sheet", "rename"), &renameCmd)
-	root.Register(slx.Make("sheet", "copy"), &copyCmd)
+	root.Register(slx.One("add"), &addCmd)
+	root.Register(slx.One("drop"), &dropCmd)
+	root.Register(slx.One("rename"), &renameCmd)
+	root.Register(slx.One("copy"), &copyCmd)
 
 	return root
+}
+
+func updateFile(path string, fn func(grid.File) error) error {
+	wb, err := workbook.Open(path)
+	if err != nil {
+		return err
+	}
+	if err := fn(wb); err != nil {
+		return err
+	}
+	return workbook.WriteFile(wb, path)
 }

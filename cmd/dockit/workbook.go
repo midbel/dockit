@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -14,14 +13,14 @@ import (
 
 var infoCmd = cli.Command{
 	Name:    "info",
-	Summary: "get informations about sheets in given file",
+	Summary: "Display metadata, sheet names, and structural details of a file",
 	Usage:   "info [-a] <spreadsheet>",
 	Handler: &GetInfoCommand{},
 }
 
 var mergeCmd = cli.Command{
 	Name:    "merge",
-	Summary: "merge multiple files in one spreadsheet",
+	Summary: "Consolidate multiple spreadsheet files into a single workbooks",
 	Usage:   "merge [-o] [-r] <file1> <file2> [...<fileN>]",
 	Handler: &MergeCommand{},
 }
@@ -29,7 +28,7 @@ var mergeCmd = cli.Command{
 var formatCmd = cli.Command{
 	Name:    "format",
 	Summary: "retrieve list of supported formats",
-	Usage:   "",
+	Usage:   "List all compatible spreadsheet file format",
 	Handler: &FormatCommand{},
 }
 
@@ -69,16 +68,7 @@ func (c MergeCommand) mergeFiles(file string, sources []string) (grid.File, erro
 }
 
 func (c MergeCommand) writeFile(wb grid.File, file string) error {
-	w, ok := wb.(interface{ WriteTo(io.Writer) error })
-	if !ok {
-		return fmt.Errorf("file can not be written")
-	}
-	x, err := os.Create(file)
-	if err != nil {
-		return err
-	}
-	defer x.Close()
-	return w.WriteTo(x)
+	return workbook.WriteFile(wb, file)
 }
 
 func (c MergeCommand) removeFiles(files []string) {

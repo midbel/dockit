@@ -2,13 +2,14 @@ package main
 
 import (
 	"github.com/midbel/cli"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/slx"
 )
 
 var addCmd = cli.Command{
 	Name:    "add",
 	Alias:   slx.Make("append"),
-	Summary: "add one or multiple sheets from a spreadsheet like file to another",
+	Summary: "Import specific sheets from a source spreadsheet into a target file",
 	Usage:   "add <target> <source> <sheet> [<sheet>...]",
 	Handler: &AddCommand{},
 }
@@ -16,14 +17,14 @@ var addCmd = cli.Command{
 var dropCmd = cli.Command{
 	Name:    "drop",
 	Alias:   slx.Make("remove", "rm"),
-	Summary: "remove one or multiple sheets from a spreadsheet file",
+	Summary: "Delete one or more sheets from a spreadsheet",
 	Usage:   "drop <file> <sheet> [<sheet>...]",
 	Handler: &DropCommand{},
 }
 
 var renameCmd = cli.Command{
 	Name:    "rename",
-	Summary: "rename a sheet from a spreadsheet file",
+	Summary: "Change the display name of a specific sheet within a file",
 	Usage:   "rename <file> <source> <target>",
 	Handler: &RenameCommand{},
 }
@@ -31,7 +32,7 @@ var renameCmd = cli.Command{
 var copyCmd = cli.Command{
 	Name:    "copy",
 	Alias:   slx.Make("cp"),
-	Summary: "copy a sheet from a spreadsheet file to the same file to another",
+	Summary: "Duplicate a sheet within its original file or transfer it to a new one",
 	Usage:   "copy <file> <sheet>",
 	Handler: &CopyCommand{},
 }
@@ -49,29 +50,40 @@ func (c AddCommand) Run(args []string) error {
 type DropCommand struct{}
 
 func (c DropCommand) Run(args []string) error {
-	set := cli.NewFlagSet("add")
+	set := cli.NewFlagSet("drop")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	return nil
+	return updateFile(set.Arg(0), func(wb grid.File) error {
+		for i := 1; i < set.NArg(); i++ {
+			if err := wb.RemoveSheet(set.Arg(i)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 type CopyCommand struct{}
 
 func (c CopyCommand) Run(args []string) error {
-	set := cli.NewFlagSet("add")
+	set := cli.NewFlagSet("copy")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	return nil
+	return updateFile(set.Arg(0), func(wb grid.File) error {
+		return wb.Copy(set.Arg(1), set.Arg(2))
+	})
 }
 
 type RenameCommand struct{}
 
 func (c RenameCommand) Run(args []string) error {
-	set := cli.NewFlagSet("add")
+	set := cli.NewFlagSet("rename")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	return nil
+	return updateFile(set.Arg(0), func(wb grid.File) error {
+		return wb.Rename(set.Arg(1), set.Arg(2))
+	})
 }

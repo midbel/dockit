@@ -2,6 +2,9 @@ package workbook
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"slices"
 
 	"github.com/midbel/dockit/driver"
@@ -39,6 +42,33 @@ func Open(file string) (grid.File, error) {
 		return nil, fmt.Errorf("unable to open given %s - unsupported format", file)
 	}
 	return registry[ix].Open(file)
+}
+
+func WriteFile(wb grid.File, file string) error {
+	wt, ok := wb.(interface{ WriteTo(io.Writer) error })
+	if ok {
+		dir := filepath.Dir(file)
+		tmp, err := os.CreateTemp(dir, ".dockit_tmp*")
+		if err != nil {
+			return err
+		}
+		defer func() {
+			tmp.Close()
+			os.Remove(tmp.Name())
+		}()
+		if err := wt.WriteTo(tmp); err != nil {
+			return err
+		}
+		if err := tmp.Close(); err != nil {
+			return err
+		}
+		return os.Rename(tmp.Name(), file)
+	}
+	wf, ok := wb.(interface{ WriteFile(string) error })
+	if ok {
+		return wf.WriteFile(file)
+	}
+	return fmt.Errorf("fail to write workbook to file %s", file)
 }
 
 func Formats() []string {

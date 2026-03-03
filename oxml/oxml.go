@@ -7,11 +7,11 @@ import (
 	"iter"
 	"maps"
 	"math"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
 	"unicode"
-	"os"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -311,18 +311,14 @@ func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 	return it
 }
 
-func (s *Sheet) Copy(other *Sheet) error {
+func (s *Sheet) Copy(other grid.View) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return grid.ErrLock
 	}
-	for _, rs := range other.rows {
-		s.Size.Lines++
-		x := row{
-			Line:  rs.Line,
-			Cells: rs.cloneCells(),
-		}
-		s.rows = append(other.rows, &x)
-		s.Size.Columns = max(s.Size.Columns, int64(len(x.Cells)))
+	b := other.Bounds()
+	for p := range b.Positions() {
+		c, _ := other.Cell(p)
+		s.put(c)
 	}
 	return nil
 }
@@ -637,10 +633,8 @@ func (f *File) AppendSheet(sheet grid.View) error {
 	} else {
 		f.names[sh.Label] = 1
 	}
-	b := sheet.Bounds()
-	for p := range b.Positions() {
-		c, _ := sheet.Cell(p)
-		sh.put(c)
+	if err := sh.Copy(sheet); err != nil {
+		return err
 	}
 	sh.Index = len(f.sheets) + 1
 	sh.Id = fmt.Sprintf("rId%d", sh.Index)
@@ -682,11 +676,11 @@ func (f *File) mergeFile(other *File) error {
 }
 
 func (f *File) mergeSheetsFromFile(other grid.File) error {
-	// for _, s := range other.Sheets() {
-	// 	if err := f.AppendSheet(s); err != nil {
-	// 		return err
-	// 	}
-	// }
+	for _, s := range other.Sheets() {
+		if err := f.AppendSheet(s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
