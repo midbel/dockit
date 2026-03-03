@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/workbook"
 	"github.com/midbel/dockit/internal/slx"
 )
 
@@ -44,7 +45,22 @@ func (c AddCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	return nil
+	return updateFile(set.Arg(0), func(wb grid.File) error {
+		other, err := workbook.Open(set.Arg(1))
+		if err != nil {
+			return err
+		}
+		for i := 2; i < set.NArg(); i++ {
+			sh, err := other.Sheet(set.Arg(i))
+			if err != nil {
+				return err
+			}
+			if err := wb.AppendSheet(sh); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 type DropCommand struct{}
