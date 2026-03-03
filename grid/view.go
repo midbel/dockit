@@ -138,7 +138,8 @@ type File interface {
 
 	Rename(string, string) error
 	Copy(string, string) error
-	Remove(string) error
+	AppendSheet(View) error
+	RemoveSheet(string) error
 }
 
 type filteredView struct {

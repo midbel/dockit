@@ -67,6 +67,15 @@ func Open(r Reader) (*File, error) {
 }
 
 func (f *File) WriteFile(file string) error {
+	w, err := os.Create(file)
+	if err == nil {
+		defer w.Close()
+		err = f.WriteTo(w)
+	}
+	return err
+}
+
+func (f *File) WriteTo(w io.Writer) error {
 	return nil
 }
 
@@ -109,7 +118,11 @@ func (*File) Copy(_, _ string) error {
 	return grid.ErrSupported
 }
 
-func (*File) Remove(_ string) error {
+func (*File) AppendSheet(_ grid.View) error {
+	return grid.ErrSupported
+}
+
+func (*File) RemoveSheet(_ string) error {
 	return grid.ErrSupported
 }
 

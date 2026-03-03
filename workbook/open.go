@@ -2,7 +2,6 @@ package workbook
 
 import (
 	"fmt"
-	"path/filepath"
 	"slices"
 
 	"github.com/midbel/dockit/driver"
@@ -50,32 +49,29 @@ func Formats() []string {
 	return names
 }
 
-func Merge(file string, sources []string) error {
+func Merge(format string, sources []string) (grid.File, error) {
 	ix := slices.IndexFunc(registry, func(x driver.Loader) bool {
-		return x.IsSupportedExt(filepath.Ext(file))
+		return x.IsSupportedExt(format)
 	})
 	if ix < 0 {
-		return fmt.Errorf("new file can not be created for %s", filepath.Ext(file))
+		return nil, fmt.Errorf("new file can not be created for %s", format)
 	}
 	wb, err := registry[ix].New()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	mg, ok := wb.(driver.Merger)
 	if !ok {
-		return fmt.Errorf("%s does not support merging files", registry[ix].Name())
+		return nil, fmt.Errorf("%s does not support merging files", registry[ix].Name())
 	}
 	for _, s := range sources {
 		wb, err := Open(s)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if err := mg.Merge(wb); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if w, ok := wb.(interface{ WriteFile(string) error }); ok {
-		return w.WriteFile(file)
-	}
-	return nil
+	return wb, nil
 }

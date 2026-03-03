@@ -236,7 +236,13 @@ func (r *sheetReader) Update() error {
 	r.reader.Element(sax.LocalName("sheetProtection"), r.onProtection)
 	r.reader.Element(sax.LocalName("row"), r.onRow)
 	r.reader.Element(sax.LocalName("c"), r.onCell)
-	return r.reader.Start()
+	err := r.reader.Start()
+	if err == nil {
+		slices.SortFunc(r.sheet.rows, func(r1, r2 *row) int {
+			return int(r1.Line) - int(r2.Line)
+		})
+	}
+	return err
 }
 
 func (r *sheetReader) parseCellValue(cell *Cell, str string) error {

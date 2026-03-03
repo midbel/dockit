@@ -3,6 +3,7 @@ package oxml
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 	"iter"
 	"maps"
 	"math"
@@ -10,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"os"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -69,6 +71,21 @@ func (c *Cell) Reload(ctx value.Context) error {
 		c.dirty = false
 	}
 	return err
+}
+
+func typeFromValue(val value.ScalarValue) string {
+	switch val.Type() {
+	case value.TypeNumber:
+		return TypeNumber
+	case value.TypeText:
+		return TypeInlineStr
+	case value.TypeBool:
+		return TypeBool
+	case value.TypeDate:
+		return TypeDate
+	default:
+		return TypeInlineStr
+	}
 }
 
 type row struct {
@@ -396,6 +413,33 @@ func (s *Sheet) DeleteRow(ix int64) error {
 	return nil
 }
 
+func (s *Sheet) put(cell grid.Cell) {
+	var (
+		pos = cell.At()
+		val = cell.Value()
+	)
+	ix := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line == pos.Line
+	})
+	var r *row
+	if ix < 0 {
+		r = &row{
+			Line: pos.Line,
+		}
+		s.rows = append(s.rows, r)
+	} else {
+		r = s.rows[ix]
+	}
+	c := &Cell{
+		Type:     typeFromValue(val),
+		Position: pos,
+		raw:      val.String(),
+		parsed:   val,
+	}
+	r.Cells = append(r.Cells, c)
+	s.cells[pos] = c
+}
+
 func (s *Sheet) resetSharedIndex(ix map[int]int) {
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
@@ -439,12 +483,21 @@ func Open(file string) (*File, error) {
 }
 
 func (f *File) WriteFile(file string) error {
-	w, err := writeFile(file)
+	w, err := os.Create(file)
+	if err == nil {
+		defer w.Close()
+		err = f.WriteTo(w)
+	}
+	return err
+}
+
+func (f *File) WriteTo(w io.Writer) error {
+	ws, err := writeFile(w)
 	if err != nil {
 		return err
 	}
-	defer w.Close()
-	return w.WriteFile(f)
+	defer ws.Close()
+	return ws.WriteFile(f)
 }
 
 func (f *File) Infos() []grid.ViewInfo {
@@ -534,7 +587,7 @@ func (f *File) Rename(oldName, newName string) error {
 	if err != nil {
 		return err
 	}
-	if err := f.Remove(oldName); err != nil {
+	if err := f.RemoveSheet(oldName); err != nil {
 		return err
 	}
 	sh.Label = cleanSheetName(newName)
@@ -558,7 +611,7 @@ func (f *File) Copy(oldName, newName string) error {
 	return f.AppendSheet(target)
 }
 
-func (f *File) Remove(name string) error {
+func (f *File) RemoveSheet(name string) error {
 	if f.locked {
 		return grid.ErrLock
 	}
@@ -572,20 +625,26 @@ func (f *File) Remove(name string) error {
 	return nil
 }
 
-func (f *File) AppendSheet(sheet *Sheet) error {
+func (f *File) AppendSheet(sheet grid.View) error {
 	if f.locked {
 		return grid.ErrLock
 	}
-	sheet.Label = cleanSheetName(sheet.Label)
-	if n, ok := f.names[sheet.Label]; ok {
-		f.names[sheet.Label] = n + 1
-		sheet.Label = fmt.Sprintf("%s_%03d", sheet.Label, f.names[sheet.Label])
+	sh := NewSheet(sheet.Name())
+	sh.Label = cleanSheetName(sheet.Name())
+	if n, ok := f.names[sh.Label]; ok {
+		f.names[sh.Label] = n + 1
+		sh.Label = fmt.Sprintf("%s_%03d", sh.Label, f.names[sh.Label])
 	} else {
-		f.names[sheet.Label] = 1
+		f.names[sh.Label] = 1
 	}
-	sheet.Index = len(f.sheets) + 1
-	sheet.Id = fmt.Sprintf("rId%d", sheet.Index)
-	f.sheets = append(f.sheets, sheet)
+	b := sheet.Bounds()
+	for p := range b.Positions() {
+		c, _ := sheet.Cell(p)
+		sh.put(c)
+	}
+	sh.Index = len(f.sheets) + 1
+	sh.Id = fmt.Sprintf("rId%d", sh.Index)
+	f.sheets = append(f.sheets, sh)
 	return nil
 }
 
@@ -654,11 +713,17 @@ func (f *File) sheetByName(name string) (*Sheet, error) {
 	return f.sheets[ix], nil
 }
 
+const maxSheetNameLen = 31
+
 func cleanSheetName(str string) string {
-	return strings.Map(func(r rune) rune {
+	ret := strings.Map(func(r rune) rune {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' {
 			return r
 		}
 		return -1
 	}, str)
+	if len(ret) > maxSheetNameLen {
+		ret = ret[:maxSheetNameLen]
+	}
+	return ret
 }

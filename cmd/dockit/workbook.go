@@ -2,16 +2,27 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/midbel/cli"
+	"github.com/midbel/dockit/flat"
+	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/workbook"
 )
+
+var infoCmd = cli.Command{
+	Name:    "info",
+	Summary: "get informations about sheets in given file",
+	Usage:   "info [-a] <spreadsheet>",
+	Handler: &GetInfoCommand{},
+}
 
 var mergeCmd = cli.Command{
 	Name:    "merge",
 	Summary: "merge multiple files in one spreadsheet",
-	Usage:   "merge [-o] <file1> <file2> [...<fileN>]",
+	Usage:   "merge [-o] [-r] <file1> <file2> [...<fileN>]",
 	Handler: &MergeCommand{},
 }
 
@@ -29,11 +40,22 @@ func (c MergeCommand) Run(args []string) error {
 		set    = cli.NewFlagSet("merge")
 		file   = set.String("f", "merge.xlsx", "write merge result into given file")
 		remove = set.Bool("r", false, "remove files merged")
+		reload = set.Bool("c", false, "recompute all values in final file")
 	)
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	if err := c.mergeFiles(*file, set.Args()); err != nil {
+	wb, err := c.mergeFiles(*file, set.Args())
+	if err != nil {
+		return err
+	}
+
+	if *reload {
+		if err := wb.Reload(); err != nil {
+			return err
+		}
+	}
+	if err := c.writeFile(wb, *file); err != nil {
 		return err
 	}
 	if *remove {
@@ -42,8 +64,21 @@ func (c MergeCommand) Run(args []string) error {
 	return nil
 }
 
-func (c MergeCommand) mergeFiles(file string, sources []string) error {
-	return workbook.Merge(file, sources)
+func (c MergeCommand) mergeFiles(file string, sources []string) (grid.File, error) {
+	return workbook.Merge(filepath.Ext(file), sources)
+}
+
+func (c MergeCommand) writeFile(wb grid.File, file string) error {
+	w, ok := wb.(interface{ WriteTo(io.Writer) error })
+	if !ok {
+		return fmt.Errorf("file can not be written")
+	}
+	x, err := os.Create(file)
+	if err != nil {
+		return err
+	}
+	defer x.Close()
+	return w.WriteTo(x)
 }
 
 func (c MergeCommand) removeFiles(files []string) {
@@ -63,4 +98,59 @@ func (c FormatCommand) Run(args []string) error {
 		fmt.Fprintln(os.Stdout, n)
 	}
 	return nil
+}
+
+const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
+
+type GetInfoCommand struct {
+	Format    string
+	Pattern   string
+	Delimiter string
+}
+
+func (c GetInfoCommand) Run(args []string) error {
+	set := cli.NewFlagSet("info")
+	set.StringVar(&c.Format, "f", "", "format")
+	set.StringVar(&c.Pattern, "p", "", "format")
+	set.StringVar(&c.Delimiter, "d", "", "format")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	file, err := c.openFile(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	for j, i := range file.Infos() {
+		c.printInfo(i, j)
+	}
+	return nil
+}
+
+func (c GetInfoCommand) openFile(file string) (grid.File, error) {
+	if c.Format == "log" {
+		return flat.OpenLog(file, c.Pattern)
+	}
+	return workbook.OpenFormat(file, c.Format)
+}
+
+func (c GetInfoCommand) printInfo(info grid.ViewInfo, j int) {
+	var (
+		active string
+		state  = "visible"
+		locked = "unlocked"
+	)
+	if info.Hidden {
+		state = "hidden"
+	}
+	if info.Active {
+		active = "*"
+	} else {
+		active = " "
+	}
+	if info.Protected {
+		locked = "locked"
+	}
+
+	fmt.Fprintf(os.Stdout, infoPattern, j+1, active, info.Name, state, info.Size.Lines, info.Size.Columns, locked)
+	fmt.Fprintln(os.Stdout)
 }

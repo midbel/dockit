@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,16 +24,14 @@ type writer struct {
 	err        error
 }
 
-func writeFile(file string) (*writer, error) {
-	w, err := os.Create(file)
-	if err != nil {
-		return nil, err
-	}
+func writeFile(w io.Writer) (*writer, error) {
 	z := writer{
 		base:       wbBaseDir,
 		writer:     zip.NewWriter(w),
-		Closer:     w,
 		lastUsedId: startIx,
+	}
+	if c, ok := w.(io.Closer); ok {
+		z.Closer = c
 	}
 	z.writer.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
 		return flate.NewWriter(out, flate.BestCompression)
@@ -60,6 +57,9 @@ func (z *writer) WriteFile(file *File) error {
 
 func (w *writer) Close() error {
 	w.writer.Close()
+	if w.Closer == nil {
+		return nil
+	}
 	return w.Closer.Close()
 }
 
