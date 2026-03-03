@@ -20,7 +20,7 @@ var runCmd = cli.Command{
 var dumpCmd = cli.Command{
 	Name:    "dump",
 	Alias:   []string{"inspect"},
-	Summary: "",
+	Summary: "Export the detailed AST representation of a given script",
 	Usage:   "",
 	Handler: &DumpCommand{},
 }

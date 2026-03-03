@@ -25,7 +25,7 @@ var dropCmd = cli.Command{
 
 var renameCmd = cli.Command{
 	Name:    "rename",
-	Summary: "Change the display name of a specific sheet within a file",
+	Summary: "Change the name of a specific sheet within a file",
 	Usage:   "rename <file> <source> <target>",
 	Handler: &RenameCommand{},
 }
@@ -33,7 +33,7 @@ var renameCmd = cli.Command{
 var copyCmd = cli.Command{
 	Name:    "copy",
 	Alias:   slx.Make("cp"),
-	Summary: "Duplicate a sheet within its original file or transfer it to a new one",
+	Summary: "Duplicate a sheet within its original file",
 	Usage:   "copy <file> <sheet>",
 	Handler: &CopyCommand{},
 }

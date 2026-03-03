@@ -13,7 +13,7 @@ import (
 
 var infoCmd = cli.Command{
 	Name:    "info",
-	Summary: "Display metadata, sheet names, and structural details of a file",
+	Summary: "Display metadata, sheet names of a spreadsheet file",
 	Usage:   "info [-a] <spreadsheet>",
 	Handler: &GetInfoCommand{},
 }
@@ -27,7 +27,7 @@ var mergeCmd = cli.Command{
 
 var formatCmd = cli.Command{
 	Name:    "format",
-	Summary: "retrieve list of supported formats",
+	Summary: "Print list of supported spreadsheet like formats",
 	Usage:   "List all compatible spreadsheet file format",
 	Handler: &FormatCommand{},
 }
