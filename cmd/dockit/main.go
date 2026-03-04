@@ -71,6 +71,8 @@ func prepare() *cli.CommandTrie {
 	root.Register(slx.One("rename"), &renameCmd)
 	root.Register(slx.One("copy"), &copyCmd)
 
+	root.Register(slx.Make("terminal", "browse-ast"), &terminalBrowseAstCmd)
+
 	return root
 }
 

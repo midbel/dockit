@@ -3,6 +3,7 @@ package repr
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
@@ -38,6 +39,15 @@ type Node struct {
 	Value    any     `json:"value,omitempty"`
 	Params   []Param `json:"params,omitempty"`
 	Children []*Node `json:"nodes,omitempty"`
+}
+
+func InspectFile(file string) (*Envelop, error) {
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return Inspect(r)
 }
 
 func Inspect(r io.Reader) (*Envelop, error) {

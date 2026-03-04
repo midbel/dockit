@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/grid"
-	"github.com/midbel/dockit/workbook"
 	"github.com/midbel/dockit/internal/slx"
+	"github.com/midbel/dockit/workbook"
 )
 
 var addCmd = cli.Command{
