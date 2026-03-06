@@ -2,8 +2,8 @@ package ast
 
 import (
 	tea "charm.land/bubbletea/v2"
-	"github.com/midbel/dockit/studio/screen"
 	"github.com/midbel/dockit/formula/repr"
+	"github.com/midbel/dockit/studio/screen"
 )
 
 type AstApp struct {

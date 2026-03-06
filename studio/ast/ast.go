@@ -9,9 +9,9 @@ import (
 )
 
 type astList struct {
-	width int
+	width  int
 	height int
-	list list.Model
+	list   list.Model
 
 	envelop *repr.Envelop
 	err     error

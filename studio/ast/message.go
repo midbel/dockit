@@ -15,7 +15,7 @@ func parseScript(file string) tea.Cmd {
 		e, err := repr.InspectFile(file)
 		return parseMsg{
 			envelop: e,
-			err: err,
+			err:     err,
 		}
 	}
 }

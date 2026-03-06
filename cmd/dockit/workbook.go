@@ -101,7 +101,7 @@ type GetInfoCommand struct {
 func (c GetInfoCommand) Run(args []string) error {
 	set := cli.NewFlagSet("info")
 	set.StringVar(&c.Format, "f", "", "format")
-	set.StringVar(&c.Pattern, "p", "", "format")
+	set.StringVar(&c.Pattern, "p", "", "pattern")
 	set.StringVar(&c.Delimiter, "d", "", "format")
 	if err := set.Parse(args); err != nil {
 		return err
