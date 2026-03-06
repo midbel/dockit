@@ -42,6 +42,10 @@ func IsNumber(v Value) bool {
 	_, ok := v.(Float)
 	return ok
 }
+func IsText(v Value) bool {
+	_, ok := v.(Text)
+	return ok
+}
 
 func IsScalar(v Value) bool {
 	return v.Kind() == KindScalar

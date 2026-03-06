@@ -157,13 +157,21 @@ func (c PrintCommand) openFile(file string) (grid.File, error) {
 }
 
 func sheet2Table(sheet grid.View) cli.Table {
-	var t cli.Table
+	var (
+		t cli.Table
+		i int
+	)
 	for r := range sheet.Rows() {
 		row := make([]string, 0, len(r))
 		for _, v := range r {
 			row = append(row, v.String())
 		}
-		t.Rows = append(t.Rows, row)
+		if i == 0 {
+			t.Headers = row
+		} else {
+			t.Rows = append(t.Rows, row)
+		}
+		i++
 	}
 	return t
 }

@@ -43,10 +43,19 @@ func Max(args []value.Value) (value.Value, error) {
 func Sum(args []value.Value) (value.Value, error) {
 	var total float64
 	for i := range args {
-		if !value.IsNumber(args[i]) {
-			return value.ErrValue, nil
+		if value.IsArray(args[i]) {
+			sum, err := sumArray(args[i].(value.Array))
+			if err != nil {
+				return nil, err
+			}
+			total += sum
+			continue
 		}
-		total += float64(args[i].(value.Float))
+		f, err := value.CastToFloat(args[i])
+		if err != nil {
+			return nil, err
+		}
+		total += float64(f)
 	}
 	return value.Float(total), nil
 }
@@ -55,14 +64,27 @@ func Avg(args []value.Value) (value.Value, error) {
 	if len(args) == 0 {
 		return value.Float(0), nil
 	}
-	var total float64
+	var (
+		total float64
+		count = len(args)
+	)
 	for i := range args {
+		if value.IsArray(args[i]) {
+			arr := args[i].(value.Array)
+			count += int(arr.Count()) - 1
+			sum, err := sumArray(arr)
+			if err != nil {
+				return nil, err
+			}
+			total += sum
+			continue
+		}
 		if !value.IsNumber(args[i]) {
 			return value.ErrValue, nil
 		}
 		total += float64(args[i].(value.Float))
 	}
-	return value.Float(total / float64(len(args))), nil
+	return value.Float(total / float64(count)), nil
 }
 
 func Count(args []value.Value) (value.Value, error) {
@@ -83,4 +105,16 @@ func Ceil(args []value.Value) (value.Value, error) {
 
 func Sqrt(args []value.Value) (value.Value, error) {
 	return nil, nil
+}
+
+func sumArray(arr value.Array) (float64, error) {
+	var total float64
+	for v := range arr.Values() {
+		v, err := value.CastToFloat(v)
+		if err != nil {
+			return total, err
+		}
+		total += float64(v)
+	}
+	return total, nil
 }

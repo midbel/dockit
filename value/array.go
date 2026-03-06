@@ -2,6 +2,7 @@ package value
 
 import (
 	"fmt"
+	"iter"
 
 	"github.com/midbel/dockit/layout"
 )
@@ -27,6 +28,11 @@ func (Array) Kind() ValueKind {
 
 func (Array) String() string {
 	return TypeArray
+}
+
+func (a Array) Count() int64 {
+	d := a.Dimension()
+	return d.Lines * d.Columns
 }
 
 func (a Array) Dimension() layout.Dimension {
@@ -61,6 +67,21 @@ func (a Array) SetAt(row, col int, val ScalarValue) {
 		return
 	}
 	a.Data[row][col] = val
+}
+
+func (a Array) Values() iter.Seq[ScalarValue] {
+	it := func(yield func(ScalarValue) bool) {
+		dim := a.Dimension()
+		for row := range dim.Lines {
+			for col := range dim.Columns {
+				ok := yield(a.At(int(row), int(col)))
+				if !ok {
+					return
+				}
+			}
+		}
+	}
+	return it
 }
 
 func (a Array) Apply(do func(ScalarValue) (ScalarValue, error)) error {

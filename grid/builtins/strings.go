@@ -7,7 +7,11 @@ import (
 )
 
 func IsText(args []value.Value) (value.Value, error) {
-	return nil, nil
+	if len(args) != 1 {
+		return value.ErrValue, ErrArity
+	}
+	ok := value.IsText(args[0])
+	return value.Boolean(ok), nil
 }
 
 func Concat(args []value.Value) (value.Value, error) {
