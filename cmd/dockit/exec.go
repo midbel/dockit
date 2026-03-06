@@ -94,6 +94,7 @@ func printNode(w io.Writer, node *repr.Node, level int) {
 	io.WriteString(w, node.Name)
 	io.WriteString(w, "]")
 	if node.Value == nil && len(node.Params) == 0 && len(node.Children) == 0 {
+		io.WriteString(w, "\n")
 		return
 	}
 	io.WriteString(w, "[\n")
