@@ -5,7 +5,11 @@ import (
 )
 
 func IsNumber(args []value.Value) (value.Value, error) {
-	return nil, nil
+	if len(args) != 1 {
+		return value.ErrValue, ErrArity
+	}
+	ok := value.IsNumber(args[0])
+	return value.Boolean(ok), nil
 }
 
 func Min(args []value.Value) (value.Value, error) {
