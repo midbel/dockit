@@ -53,6 +53,9 @@ func (c *Cell) Display() string {
 }
 
 func (c *Cell) Value() value.ScalarValue {
+	if c.parsed == nil {
+		return value.Empty()
+	}
 	return c.parsed
 }
 

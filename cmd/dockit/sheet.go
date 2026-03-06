@@ -132,6 +132,9 @@ func (c PrintCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	if err := wb.Reload(); err != nil {
+		return err
+	}
 	var sheet grid.View
 	if set.NArg() == 1 {
 		sheet, err = wb.ActiveSheet()

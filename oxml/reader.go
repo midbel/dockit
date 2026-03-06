@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -118,7 +119,7 @@ func (r *reader) readWorksheets(file *File) {
 			return r.Id == s.Id
 		})
 		if ix < 0 {
-			r.err = grid.ErrFile
+			r.err = fmt.Errorf("%w: file with id %s not found", grid.ErrFile, s.Id)
 			return
 		}
 		r.readWorksheet(s, file.sharedStrings, relations[ix].Target)
@@ -155,7 +156,7 @@ func (r *reader) readWorkbookLocation() string {
 		return strings.HasSuffix(r.Type, "relationships/officeDocument")
 	})
 	if ix < 0 {
-		r.err = grid.ErrFile
+		r.err = fmt.Errorf("%w: bad type in relationship", grid.ErrFile)
 		return ""
 	}
 	return root.Relations[ix].Target
@@ -192,12 +193,15 @@ func (r *reader) openFile(name string) (io.Reader, error) {
 		return f.Name == name
 	})
 	if ix < 0 {
-		return nil, grid.ErrFile
+		return nil, fmt.Errorf("%w: file %s not found in archive", grid.ErrFile, name)
 	}
 	return r.reader.File[ix].Open()
 }
 
 func (r *reader) fromBase(name string) string {
+	if path.IsAbs(name) {
+		return name[1:]
+	}
 	parts := append([]string{r.base}, name)
 	return strings.Join(parts, "/")
 }

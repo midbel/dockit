@@ -5,6 +5,7 @@ import (
 
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
+	"github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -111,19 +112,19 @@ func evalCall(e parse.Call, ctx value.Context) (value.Value, error) {
 	if !ok {
 		return value.ErrName, nil
 	}
-	var args []value.Arg
-	for _, a := range e.Args() {
-		args = append(args, makeArg(a))
+	var args []value.Value
+	for _, e := range e.Args() {
+		a, err := eval(e, ctx)
+		if err != nil {
+			return value.ErrValue, err
+		}
+		args = append(args, a)
 	}
-	fn, err := ctx.Resolve(id.Ident())
+	fn, err := builtins.Lookup(id.Ident())
 	if err != nil {
-		return nil, err
+		return value.ErrRef, err
 	}
-	if fn.Kind() != value.KindFunction {
-		return nil, fmt.Errorf("%s: not a function", id.Ident())
-	}
-	call, ok := fn.(value.FunctionValue)
-	return call.Call(args, ctx)
+	return fn(args)
 }
 
 func evalCellAddr(e parse.CellAddr, ctx value.Context) (value.Value, error) {
