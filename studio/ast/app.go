@@ -2,13 +2,9 @@ package ast
 
 import (
 	tea "charm.land/bubbletea/v2"
+	"github.com/midbel/dockit/studio/screen"
 	"github.com/midbel/dockit/formula/repr"
 )
-
-type parseMsg struct {
-	envelop *repr.Envelop
-	err     error
-}
 
 type AstApp struct {
 	width  int
@@ -17,14 +13,16 @@ type AstApp struct {
 
 	envelop *repr.Envelop
 	err     error
+
+	screen screen.Screen
 }
 
 func App(script string) *AstApp {
-	mod := &AstApp{
+	a := &AstApp{
 		script: script,
+		screen: NewList(),
 	}
-
-	return mod
+	return a
 }
 
 func (m *AstApp) Init() tea.Cmd {
@@ -32,39 +30,38 @@ func (m *AstApp) Init() tea.Cmd {
 }
 
 func (m *AstApp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		m.screen.Resize(m.width, m.height)
 	case tea.KeyMsg:
-		return m.updateKeys(msg)
+		cmd = m.updateKeys(msg)
 	case parseMsg:
+		m.envelop = msg.envelop
+		m.err = msg.err
 	}
-	return m, nil
+	var scmd tea.Cmd
+	m.screen, scmd = m.screen.Update(msg)
+	return m, tea.Batch(cmd, scmd)
 }
 
 func (m *AstApp) View() tea.View {
+	view := tea.NewView("")
+	view.AltScreen = true
 	if m.width == 0 || m.height == 0 {
-		return tea.NewView("")
+		return view
 	}
-	return tea.NewView("")
+	view.SetContent(m.screen.View())
+	return view
 }
 
-func (m *AstApp) updateKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m *AstApp) updateKeys(msg tea.KeyMsg) tea.Cmd {
 	switch msg.String() {
 	case "q", "ctrl+c":
-		return m, tea.Quit
+		return tea.Quit
 	default:
-		return m, nil
-	}
-}
-
-func parseScript(file string) tea.Cmd {
-	return func() tea.Msg {
-		e, err := repr.InspectFile(file)
-		return parseMsg{
-			envelop: e,
-			err: err,
-		}
+		return nil
 	}
 }

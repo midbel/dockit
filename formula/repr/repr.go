@@ -39,6 +39,12 @@ type Node struct {
 	Value    any     `json:"value,omitempty"`
 	Params   []Param `json:"params,omitempty"`
 	Children []*Node `json:"nodes,omitempty"`
+
+	expr parse.Expr
+}
+
+func (n Node) Raw() string {
+	return n.expr.String()
 }
 
 func InspectFile(file string) (*Envelop, error) {
@@ -99,6 +105,7 @@ type astVisitor struct {
 func (v astVisitor) VisitScript(expr parse.Script) error {
 	node := Node{
 		Type: TypeScript,
+		expr: expr,
 	}
 	v.stack.Push(&node)
 	for _, e := range expr.Body {
@@ -114,7 +121,7 @@ func (v astVisitor) VisitScript(expr parse.Script) error {
 }
 
 func (v astVisitor) VisitImportFile(expr parse.ImportFile) error {
-	node := v.newStmt("import")
+	node := v.newStmt("import", expr)
 	node.Params = []Param{
 		{Name: "file", Value: expr.File()},
 		{Name: "alias", Value: expr.Alias()},
@@ -127,13 +134,13 @@ func (v astVisitor) VisitImportFile(expr parse.ImportFile) error {
 }
 
 func (v astVisitor) VisitExportRef(expr parse.ExportRef) error {
-	node := v.newStmt("export")
+	node := v.newStmt("export", expr)
 	v.pushNode(node)
 	return nil
 }
 
 func (v astVisitor) VisitPrintRef(expr parse.PrintRef) error {
-	node := v.newStmt("print")
+	node := v.newStmt("print", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
@@ -145,7 +152,7 @@ func (v astVisitor) VisitPrintRef(expr parse.PrintRef) error {
 }
 
 func (v astVisitor) VisitUseRef(expr parse.UseRef) error {
-	node := v.newStmt("use")
+	node := v.newStmt("use", expr)
 	node.Params = []Param{
 		{Name: "identifier", Value: expr.Identifier()},
 		{Name: "ro", Value: expr.ReadOnly()},
@@ -159,7 +166,7 @@ func (v astVisitor) VisitClear(expr parse.Clear) error {
 }
 
 func (v astVisitor) VisitIdentifier(expr parse.Identifier) error {
-	node := v.newValue("identifier")
+	node := v.newValue("identifier", expr)
 	node.Params = []Param{
 		{Name: "name", Value: expr.Ident()},
 	}
@@ -168,7 +175,7 @@ func (v astVisitor) VisitIdentifier(expr parse.Identifier) error {
 }
 
 func (v astVisitor) VisitLiteral(expr parse.Literal) error {
-	node := v.newValue("literal")
+	node := v.newValue("literal", expr)
 	node.Value = expr.Text()
 	node.Params = []Param{
 		{Name: "value", Value: expr.Text()},
@@ -178,7 +185,7 @@ func (v astVisitor) VisitLiteral(expr parse.Literal) error {
 }
 
 func (v astVisitor) VisitNumber(expr parse.Number) error {
-	node := v.newValue("number")
+	node := v.newValue("number", expr)
 	node.Value = expr.Float()
 	node.Params = []Param{
 		{Name: "value", Value: expr.Float()},
@@ -188,7 +195,7 @@ func (v astVisitor) VisitNumber(expr parse.Number) error {
 }
 
 func (v astVisitor) VisitQualifiedCellAddr(expr parse.QualifiedCellAddr) error {
-	node := v.newValue("address")
+	node := v.newValue("address", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Path()); err != nil {
 		return err
@@ -202,7 +209,7 @@ func (v astVisitor) VisitQualifiedCellAddr(expr parse.QualifiedCellAddr) error {
 }
 
 func (v astVisitor) VisitCellAddr(expr parse.CellAddr) error {
-	node := v.newValue("address")
+	node := v.newValue("address", expr)
 	node.Value = expr.String()
 	node.Params = []Param{
 		{Name: "sheet", Value: expr.Sheet},
@@ -216,7 +223,7 @@ func (v astVisitor) VisitCellAddr(expr parse.CellAddr) error {
 }
 
 func (v astVisitor) VisitRangeAddr(expr parse.RangeAddr) error {
-	node := v.newValue("range")
+	node := v.newValue("range", expr)
 	node.Value = expr.String()
 	v.stack.Push(node)
 	if err := expr.StartAt().Accept(v); err != nil {
@@ -232,7 +239,7 @@ func (v astVisitor) VisitRangeAddr(expr parse.RangeAddr) error {
 }
 
 func (v astVisitor) VisitTemplate(expr parse.Template) error {
-	node := v.newValue("template")
+	node := v.newValue("template", expr)
 	v.stack.Push(node)
 	for _, e := range expr.Parts() {
 		if err := v.visitExpr(e); err != nil {
@@ -246,13 +253,13 @@ func (v astVisitor) VisitTemplate(expr parse.Template) error {
 }
 
 func (v astVisitor) VisitAccess(expr parse.Access) error {
-	node := v.newValue("access")
+	node := v.newValue("access", expr)
 	v.pushNode(node)
 	return nil
 }
 
 func (v astVisitor) VisitDeferred(expr parse.Deferred) error {
-	node := v.newValue("formula")
+	node := v.newValue("formula", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
@@ -263,7 +270,7 @@ func (v astVisitor) VisitDeferred(expr parse.Deferred) error {
 }
 
 func (v astVisitor) VisitCall(expr parse.Call) error {
-	node := v.newExpr("call")
+	node := v.newExpr("call", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Name()); err != nil {
 		return err
@@ -280,7 +287,7 @@ func (v astVisitor) VisitCall(expr parse.Call) error {
 }
 
 func (v astVisitor) VisitSlice(expr parse.Slice) error {
-	node := v.newExpr("slice")
+	node := v.newExpr("slice", expr)
 	v.stack.Push(node)
 	if view := expr.View(); view != nil {
 		if err := v.visitExpr(expr.View()); err != nil {
@@ -311,7 +318,7 @@ func (v astVisitor) VisitSlice(expr parse.Slice) error {
 }
 
 func (v astVisitor) VisitBinary(expr parse.Binary) error {
-	node := v.newExpr("binary")
+	node := v.newExpr("binary", expr)
 	node.Params = []Param{
 		{Name: "operator", Value: op.Symbol(expr.Op())},
 	}
@@ -328,7 +335,7 @@ func (v astVisitor) VisitBinary(expr parse.Binary) error {
 }
 
 func (v astVisitor) VisitAssignment(expr parse.Assignment) error {
-	node := v.newExpr("assignment")
+	node := v.newExpr("assignment", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Ident()); err != nil {
 		return err
@@ -342,7 +349,7 @@ func (v astVisitor) VisitAssignment(expr parse.Assignment) error {
 }
 
 func (v astVisitor) VisitPostfix(expr parse.Postfix) error {
-	node := v.newExpr("postfix")
+	node := v.newExpr("postfix", expr)
 	node.Params = []Param{
 		{Name: "operator", Value: op.Symbol(expr.Op())},
 	}
@@ -356,7 +363,7 @@ func (v astVisitor) VisitPostfix(expr parse.Postfix) error {
 }
 
 func (v astVisitor) VisitNot(expr parse.Not) error {
-	node := v.newExpr("not")
+	node := v.newExpr("not", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
@@ -367,7 +374,7 @@ func (v astVisitor) VisitNot(expr parse.Not) error {
 }
 
 func (v astVisitor) VisitAnd(expr parse.And) error {
-	node := v.newExpr("and")
+	node := v.newExpr("and", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Left()); err != nil {
 		return err
@@ -381,7 +388,7 @@ func (v astVisitor) VisitAnd(expr parse.And) error {
 }
 
 func (v astVisitor) VisitOr(expr parse.Or) error {
-	node := v.newExpr("or")
+	node := v.newExpr("or", expr)
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Left()); err != nil {
 		return err
@@ -395,7 +402,7 @@ func (v astVisitor) VisitOr(expr parse.Or) error {
 }
 
 func (v astVisitor) VisitUnary(expr parse.Unary) error {
-	node := v.newExpr("unary")
+	node := v.newExpr("unary", expr)
 	node.Params = []Param{
 		{Name: "operator", Value: op.Symbol(expr.Op())},
 	}
@@ -421,27 +428,30 @@ func (v astVisitor) pushNode(node *Node) {
 	top.Children = append(top.Children, node)
 }
 
-func (v astVisitor) newValue(name string) *Node {
+func (v astVisitor) newValue(name string, expr parse.Expr) *Node {
 	return &Node{
 		Id:   v.nextID(TypeValue),
 		Type: TypeValue,
 		Name: name,
+		expr: expr,
 	}
 }
 
-func (v astVisitor) newStmt(name string) *Node {
+func (v astVisitor) newStmt(name string, expr parse.Expr) *Node {
 	return &Node{
 		Id:   v.nextID(TypeStmt),
 		Type: TypeStmt,
 		Name: name,
+		expr: expr,
 	}
 }
 
-func (v astVisitor) newExpr(name string) *Node {
+func (v astVisitor) newExpr(name string, expr parse.Expr) *Node {
 	return &Node{
 		Id:   v.nextID(TypeExpr),
 		Type: TypeExpr,
 		Name: name,
+		expr: expr,
 	}
 }
 
