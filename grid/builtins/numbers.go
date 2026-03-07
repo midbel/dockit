@@ -16,54 +16,38 @@ func IsNumber(args []value.Value) (value.Value, error) {
 
 func Min(args []value.Value) (value.Value, error) {
 	var res float64
-	for i := range args {
-		if !value.IsNumber(args[i]) {
-			return value.ErrValue, nil
+	err := Each(args, func(v value.Value) error {
+		f, err := value.CastToFloat(v)
+		if err == nil {
+			res = min(res, float64(f))
 		}
-		v := args[i].(value.Float)
-		if i == 0 {
-			res = float64(v)
-			continue
-		}
-		res = min(res, float64(v))
-	}
-	return value.Float(res), nil
+		return err
+	})
+	return value.Float(res), err
 }
 
 func Max(args []value.Value) (value.Value, error) {
 	var res float64
-	for i := range args {
-		if !value.IsNumber(args[i]) {
-			return value.ErrValue, nil
+	err := Each(args, func(v value.Value) error {
+		f, err := value.CastToFloat(v)
+		if err == nil {
+			res = max(res, float64(f))
 		}
-		v := args[i].(value.Float)
-		if i == 0 {
-			res = float64(v)
-			continue
-		}
-		res = max(res, float64(v))
-	}
-	return value.Float(res), nil
+		return err
+	})
+	return value.Float(res), err
 }
 
 func Sum(args []value.Value) (value.Value, error) {
 	var total float64
-	for i := range args {
-		if value.IsArray(args[i]) {
-			sum, err := sumArray(args[i].(value.Array))
-			if err != nil {
-				return nil, err
-			}
-			total += sum
-			continue
+	err := Each(args, func(v value.Value) error {
+		f, err := value.CastToFloat(v)
+		if err == nil {
+			total += float64(f)
 		}
-		f, err := value.CastToFloat(args[i])
-		if err != nil {
-			return nil, err
-		}
-		total += float64(f)
-	}
-	return value.Float(total), nil
+		return err
+	})
+	return value.Float(total), err
 }
 
 func Avg(args []value.Value) (value.Value, error) {
@@ -72,25 +56,20 @@ func Avg(args []value.Value) (value.Value, error) {
 	}
 	var (
 		total float64
-		count = len(args)
+		count int
 	)
-	for i := range args {
-		if value.IsArray(args[i]) {
-			arr := args[i].(value.Array)
-			count += int(arr.Count()) - 1
-			sum, err := sumArray(arr)
-			if err != nil {
-				return nil, err
-			}
-			total += sum
-			continue
+	err := Each(args, func(v value.Value) error {
+		f, err := value.CastToFloat(v)
+		if err == nil {
+			total += float64(f)
+			count++
 		}
-		if !value.IsNumber(args[i]) {
-			return value.ErrValue, nil
-		}
-		total += float64(args[i].(value.Float))
+		return err
+	})
+	if count == 0 {
+		return value.ErrValue, nil
 	}
-	return value.Float(total / float64(count)), nil
+	return value.Float(total / float64(count)), err
 }
 
 func Count(args []value.Value) (value.Value, error) {
@@ -194,16 +173,4 @@ func Pow(args []value.Value) (value.Value, error) {
 
 func Int(args []value.Value) (value.Value, error) {
 	return value.Float(0), nil
-}
-
-func sumArray(arr value.Array) (float64, error) {
-	var total float64
-	for v := range arr.Values() {
-		v, err := value.CastToFloat(v)
-		if err != nil {
-			return total, err
-		}
-		total += float64(v)
-	}
-	return total, nil
 }
