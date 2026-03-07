@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/flat"
@@ -110,10 +111,23 @@ func (c GetInfoCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	for j, i := range file.Infos() {
-		c.printInfo(i, j)
+	var (
+		tbl cli.Table
+		rd  = cli.NewTableRenderer(os.Stdout)
+	)
+	tbl.Headers = []string{"sheet", "active", "locked", "visibility", "rows", "columns"}
+	for _, i := range file.Infos() {
+		r := []string{
+			i.Name,
+			strconv.FormatBool(i.Active),
+			strconv.FormatBool(i.Protected),
+			strconv.FormatBool(!i.Hidden),
+			strconv.FormatInt(i.Size.Lines, 10),
+			strconv.FormatInt(i.Size.Columns, 10),
+		}
+		tbl.Rows = append(tbl.Rows, r)
 	}
-	return nil
+	return rd.Render(tbl)
 }
 
 func (c GetInfoCommand) openFile(file string) (grid.File, error) {
@@ -121,26 +135,4 @@ func (c GetInfoCommand) openFile(file string) (grid.File, error) {
 		return flat.OpenLog(file, c.Pattern)
 	}
 	return workbook.OpenFormat(file, c.Format)
-}
-
-func (c GetInfoCommand) printInfo(info grid.ViewInfo, j int) {
-	var (
-		active string
-		state  = "visible"
-		locked = "unlocked"
-	)
-	if info.Hidden {
-		state = "hidden"
-	}
-	if info.Active {
-		active = "*"
-	} else {
-		active = " "
-	}
-	if info.Protected {
-		locked = "locked"
-	}
-
-	fmt.Fprintf(os.Stdout, infoPattern, j+1, active, info.Name, state, info.Size.Lines, info.Size.Columns, locked)
-	fmt.Fprintln(os.Stdout)
 }
