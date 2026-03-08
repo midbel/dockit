@@ -2,6 +2,7 @@ package grid
 
 import (
 	"fmt"
+	"iter"
 
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
@@ -176,16 +177,57 @@ func (f formula) Clone(pos layout.Position) value.Formula {
 	return f
 }
 
-type arg struct {
-	expr parse.Expr
+type arrayView struct {
+	inner View
 }
 
-func makeArg(expr parse.Expr) value.Arg {
-	return arg{
-		expr: expr,
+func ArrayView(view View) value.Value {
+	v := arrayView{
+		inner: view,
 	}
+	return &v
 }
 
-func (a arg) Eval(ctx value.Context) (value.Value, error) {
-	return eval(a.expr, ctx)
+func (*arrayView) Type() string {
+	return value.TypeArray
+}
+
+func (*arrayView) Kind() value.ValueKind {
+	return value.KindArray
+}
+
+func (v *arrayView) String() string {
+	return fmt.Sprintf("%s(%s)", value.TypeArray, v.inner.Name())
+}
+
+func (v *arrayView) Dimension() layout.Dimension {
+	rg := v.inner.Bounds()
+	dm := layout.Dimension{
+		Lines:   int64(rg.Height()),
+		Columns: int64(rg.Width()),
+	}
+	return dm
+}
+
+func (v *arrayView) At(row, col int) value.ScalarValue {
+	pos := layout.Position{
+		Line:   int64(row),
+		Column: int64(col),
+	}
+	c, _ := v.inner.Cell(pos)
+	return c.Value()
+}
+
+func (a arrayView) Values() iter.Seq[value.ScalarValue] {
+	it := func(yield func(value.ScalarValue) bool) {
+		for rs := range a.inner.Rows() {
+			for _, v := range rs {
+				ok := yield(v)
+				if !ok {
+					return
+				}
+			}
+		}
+	}
+	return it
 }

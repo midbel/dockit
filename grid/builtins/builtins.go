@@ -3,6 +3,7 @@ package builtins
 import (
 	"errors"
 	"fmt"
+	"iter"
 	"strings"
 	"time"
 
@@ -33,17 +34,17 @@ type Param struct {
 
 func (p Param) Value(val value.Value) (value.Value, error) {
 	switch p.Type {
-case value.TypeNumber:
-	return value.CastToFloat(val)
-case value.TypeText:
-	return value.CastToText(val)
-case value.TypeBool:
-	ok := value.True(val)
-	return value.Boolean(ok), nil
-case value.TypeDate:
-	return value.CastToDate(val)
-default:
-	return nil, value.ErrCompatible
+	case value.TypeNumber:
+		return value.CastToFloat(val)
+	case value.TypeText:
+		return value.CastToText(val)
+	case value.TypeBool:
+		ok := value.True(val)
+		return value.Boolean(ok), nil
+	case value.TypeDate:
+		return value.CastToDate(val)
+	default:
+		return nil, value.ErrCompatible
 	}
 }
 
@@ -78,6 +79,10 @@ func Var(p Param) Param {
 	return p
 }
 
+type ValueIterator interface {
+	Values() iter.Seq[value.ScalarValue]
+}
+
 func Each(args []value.Value, fn func(value.Value) error) error {
 	for _, a := range args {
 		if value.IsScalar(a) {
@@ -85,11 +90,12 @@ func Each(args []value.Value, fn func(value.Value) error) error {
 				return err
 			}
 		} else if value.IsArray(a) {
-			var (
-				arr = a.(value.Array)
-				dat []value.Value
-			)
-			for v := range arr.Values() {
+			it, ok := a.(ValueIterator)
+			if !ok {
+				return fmt.Errorf("array does not implement value iterator")
+			}
+			var dat []value.Value
+			for v := range it.Values() {
 				dat = append(dat, v)
 			}
 			if err := Each(dat, fn); err != nil {
