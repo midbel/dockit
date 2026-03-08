@@ -48,83 +48,93 @@ func Each(args []value.Value, fn func(value.Value) error) error {
 
 var Registry = map[string]Builtin{
 	"min": {
-		Name: "min",
-		Desc: "",
+		Name:     "min",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Var(ScalarArray("number", "", value.TypeNumber)),
 		},
 		Func: Min,
 	},
 	"max": {
-		Name: "max",
-		Desc: "",
+		Name:     "max",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Var(ScalarArray("number", "", value.TypeNumber)),
 		},
 		Func: Max,
 	},
 	"sum": {
-		Name: "sum",
-		Desc: "",
+		Name:     "sum",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Var(ScalarArray("number", "", value.TypeNumber)),
 		},
 		Func: Sum,
 	},
 	"average": {
-		Name:  "average",
-		Alias: slx.Make("avg"),
-		Desc:  "",
+		Name:     "average",
+		Alias:    slx.Make("avg"),
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Var(ScalarArray("number", "", value.TypeNumber)),
 		},
 		Func: Avg,
 	},
 	"round": {
-		Name: "round",
-		Desc: "",
+		Name:     "round",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 		},
 		Func: Round,
 	},
 	"rounddown": {
-		Name:  "rounddown",
-		Alias: slx.Make("floor"),
-		Desc:  "",
+		Name:     "rounddown",
+		Alias:    slx.Make("floor"),
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 		},
 		Func: Floor,
 	},
 	"roundup": {
-		Name:  "rounddown",
-		Alias: slx.Make("ceil"),
-		Desc:  "",
+		Name:     "rounddown",
+		Alias:    slx.Make("ceil"),
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 		},
 		Func: Ceil,
 	},
 	"sqrt": {
-		Name: "sqrt",
-		Desc: "",
+		Name:     "sqrt",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 		},
 		Func: Sqrt,
 	},
 	"abs": {
-		Name: "abs",
-		Desc: "",
+		Name:     "abs",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 		},
 		Func: Abs,
 	},
 	"mod": {
-		Name: "mod",
-		Desc: "",
+		Name:     "mod",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 			Scalar("number", "", value.TypeNumber),
@@ -132,9 +142,10 @@ var Registry = map[string]Builtin{
 		Func: Mod,
 	},
 	"power": {
-		Name:  "power",
-		Alias: slx.Make("pow"),
-		Desc:  "",
+		Name:     "power",
+		Alias:    slx.Make("pow"),
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 			Scalar("number", "", value.TypeNumber),
@@ -142,51 +153,60 @@ var Registry = map[string]Builtin{
 		Func: Pow,
 	},
 	"int": {
-		Name: "int",
-		Desc: "",
+		Name:     "int",
+		Desc:     "",
+		Category: "math",
 		Params: []Param{
 			Scalar("number", "", value.TypeNumber),
 		},
 		Func: Int,
 	},
 	"rand": {
-		Name:   "rand",
-		Alias:  slx.Make("random"),
-		Params: []Param{},
-		Func:   Rand,
+		Name:     "rand",
+		Alias:    slx.Make("random"),
+		Category: "math",
+		Params:   []Param{},
+		Func:     Rand,
 	},
 	// "sumif":       nil,
 	// "countif":     nil,
 	"count": {
-		Name: "count",
-		Desc: "",
+		Name:     "count",
+		Desc:     "",
+		Category: "miscel",
 		Params: []Param{
 			Array("value", "", value.TypeAny),
 		},
 		Func: Count,
 	},
 	"type": {
-		Name:  "type",
-		Alias: slx.Make("typeof"),
-		Desc:  "",
+		Name:     "type",
+		Alias:    slx.Make("typeof"),
+		Desc:     "",
+		Category: "miscel",
 		Params: []Param{
 			Scalar("value", "", value.TypeAny),
 		},
 		Func: TypeOf,
 	},
 	"now": {
-		Name:   "now",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Now,
+		Name:     "now",
+		Desc:     "",
+		Category: "time",
+		Params:   []Param{},
+		Func:     Now,
 	},
 	"today": {
-		Name:   "today",
-		Params: []Param{},
-		Func:   Today,
+		Name:     "today",
+		Desc:     "",
+		Category: "time",
+		Params:   []Param{},
+		Func:     Today,
 	},
 	"date": {
-		Name: "date",
+		Name:     "date",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("year", "", value.TypeNumber),
 			Scalar("month", "", value.TypeNumber),
@@ -195,72 +215,90 @@ var Registry = map[string]Builtin{
 		Func: Date,
 	},
 	"year": {
-		Name: "year",
+		Name:     "year",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: Year,
 	},
 	"month": {
-		Name: "month",
+		Name:     "month",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: Month,
 	},
 	"day": {
-		Name: "day",
+		Name:     "day",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: Day,
 	},
 	"yearday": {
-		Name: "ye	rday",
+		Name:     "yearday",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: YearDay,
 	},
 	"hour": {
-		Name: "hour",
+		Name:     "hour",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: Hour,
 	},
 	"minute": {
-		Name: "minute",
+		Name:     "minute",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: Minute,
 	},
 	"second": {
-		Name: "second",
+		Name:     "second",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: Second,
 	},
 	"weekday": {
-		Name: "weekday",
+		Name:     "weekday",
+		Desc:     "",
+		Category: "time",
 		Params: []Param{
 			Scalar("date", "", value.TypeDate),
 		},
 		Func: Weekday,
 	},
 	"isnumber": {
-		Name: "isnumber",
-		Desc: "",
+		Name:     "isnumber",
+		Desc:     "",
+		Category: "util",
 		Params: []Param{
 			ScalarArray("value", "", value.TypeAny),
 		},
 		Func: IsNumber,
 	},
 	"istext": {
-		Name: "istext",
-		Desc: "",
+		Name:     "istext",
+		Desc:     "",
+		Category: "util",
 		Params: []Param{
 			ScalarArray("value", "", value.TypeAny),
 		},
@@ -270,67 +308,76 @@ var Registry = map[string]Builtin{
 	// "iserror":     nil,
 	// "isna":        nil,
 	"concatenate": {
-		Name:  "concatenate",
-		Desc:  "",
-		Alias: slx.Make("concat"),
+		Name:     "concatenate",
+		Desc:     "",
+		Category: "text",
+		Alias:    slx.Make("concat"),
 		Params: []Param{
 			Var(Scalar("str", "", value.TypeText)),
 		},
 		Func: Concat,
 	},
 	"left": {
-		Name:   "left",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Left,
+		Name:     "left",
+		Desc:     "",
+		Category: "text",
+		Params:   []Param{},
+		Func:     Left,
 	},
 	"right": {
-		Name:   "right",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Right,
+		Name:     "right",
+		Desc:     "",
+		Category: "text",
+		Params:   []Param{},
+		Func:     Right,
 	},
 	"mid": {
-		Name:   "mid",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Mid,
+		Name:     "mid",
+		Desc:     "",
+		Category: "text",
+		Params:   []Param{},
+		Func:     Mid,
 	},
 	"len": {
-		Name: "len",
-		Desc: "",
+		Name:     "len",
+		Desc:     "",
+		Category: "text",
 		Params: []Param{
 			Scalar("str", "", value.TypeText),
 		},
 		Func: Len,
 	},
 	"upper": {
-		Name: "upper",
-		Desc: "",
+		Name:     "upper",
+		Desc:     "",
+		Category: "text",
 		Params: []Param{
 			Scalar("str", "", value.TypeText),
 		},
 		Func: Upper,
 	},
 	"lower": {
-		Name: "lower",
-		Desc: "",
+		Name:     "lower",
+		Desc:     "",
+		Category: "text",
 		Params: []Param{
 			Scalar("str", "", value.TypeText),
 		},
 		Func: Lower,
 	},
 	"substr": {
-		Name:   "substr",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Substr,
+		Name:     "substr",
+		Desc:     "",
+		Category: "text",
+		Params:   []Param{},
+		Func:     Substr,
 	},
 	"replace": {
-		Name:   "replace",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Replace,
+		Name:     "replace",
+		Desc:     "",
+		Category: "text",
+		Params:   []Param{},
+		Func:     Replace,
 	},
 	// "trim":        nil,
 	// "split":       nil,
@@ -343,37 +390,42 @@ var Registry = map[string]Builtin{
 	// "value":       nil,
 	// "textjoin":    nil,
 	"if": {
-		Name:   "if",
-		Desc:   "",
-		Params: []Param{},
-		Func:   If,
+		Name:     "if",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     If,
 	},
 	// "iferror":     nil,
 	// "ifs":         nil,
 	// "ifna":        nil,
 	"and": {
-		Name:   "and",
-		Desc:   "",
-		Params: []Param{},
-		Func:   And,
+		Name:     "and",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     And,
 	},
 	"or": {
-		Name:   "or",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Or,
+		Name:     "or",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     Or,
 	},
 	"xor": {
-		Name:   "xor",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Xor,
+		Name:     "xor",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     Xor,
 	},
 	"not": {
-		Name:   "not",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Not,
+		Name:     "not",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     Not,
 	},
 	// "index":       nil,
 	// "match":       nil,
@@ -383,16 +435,18 @@ var Registry = map[string]Builtin{
 	// "offset":      nil,
 	// "choose":      nil,
 	"lock": {
-		Name:   "lock",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Lock,
+		Name:     "lock",
+		Desc:     "",
+		Category: "miscel",
+		Params:   []Param{},
+		Func:     Lock,
 	},
 	"unlock": {
-		Name:   "unlock",
-		Desc:   "",
-		Params: []Param{},
-		Func:   Unlock,
+		Name:     "unlock",
+		Desc:     "",
+		Category: "miscel",
+		Params:   []Param{},
+		Func:     Unlock,
 	},
 }
 
@@ -411,14 +465,20 @@ func Lookup(ident string) (BuiltinFunc, error) {
 	return vs[ix].Make(), nil
 }
 
+func List() []Builtin {
+	vs := maps.Values(Registry)
+	return slices.Collect(vs)
+}
+
 type BuiltinFunc func([]value.Value) (value.Value, error)
 
 type Builtin struct {
-	Name   string
-	Desc   string
-	Alias  []string
-	Params []Param
-	Func   BuiltinFunc
+	Name     string
+	Desc     string
+	Category string
+	Alias    []string
+	Params   []Param
+	Func     BuiltinFunc
 }
 
 func (b Builtin) Make() BuiltinFunc {

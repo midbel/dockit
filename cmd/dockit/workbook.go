@@ -9,6 +9,7 @@ import (
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/workbook"
 )
 
@@ -31,6 +32,13 @@ var formatCmd = cli.Command{
 	Summary: "Print list of supported spreadsheet like formats",
 	Usage:   "List all compatible spreadsheet file format",
 	Handler: &FormatCommand{},
+}
+
+var builtinsCmd = cli.Command{
+	Name:    "builtins",
+	Summary: "Display list of supported builtins",
+	Usage:   "builtins",
+	Handler: &GetBuiltinCommand{},
 }
 
 type MergeCommand struct{}
@@ -135,4 +143,30 @@ func (c GetInfoCommand) openFile(file string) (grid.File, error) {
 		return flat.OpenLog(file, c.Pattern)
 	}
 	return workbook.OpenFormat(file, c.Format)
+}
+
+type GetBuiltinCommand struct{}
+
+func (c GetBuiltinCommand) Run(args []string) error {
+	set := cli.NewFlagSet("builtins")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	var (
+		list = builtins.List()
+		tbl  cli.Table
+	)
+	tbl.Headers = []string{"name", "desc", "category", "parameter"}
+	for _, b := range list {
+		r := []string{
+			b.Name,
+			b.Desc,
+			b.Category,
+			strconv.Itoa(len(b.Params)),
+		}
+		tbl.Rows = append(tbl.Rows, r)
+	}
+	rd := cli.NewTableRenderer(os.Stdout)
+	rd.Render(tbl)
+	return nil
 }
