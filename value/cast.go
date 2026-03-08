@@ -76,3 +76,8 @@ func CastToText(val Value) (Text, error) {
 		return "", ErrCast
 	}
 }
+
+func CastToDate(val Value) (Date, error) {
+	var d Date
+	return d, nil
+}

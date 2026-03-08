@@ -16,19 +16,35 @@ var (
 	ErrType  = errors.New("invalid type")
 )
 
-func Fn(sig Signature, impl BuiltinFunc) BuiltinFunc {
-	return impl
-}
-
-type Signature struct {
-	params []Param
+type Builtin struct {
+	Name   string
+	Desc   string
+	Params []Param
 }
 
 type Param struct {
+	Name     string
+	Desc     string
 	Type     string
 	Mode     value.ValueKind
 	Optional bool
 	Variadic bool
+}
+
+func (p Param) Value(val value.Value) (value.Value, error) {
+	switch p.Type {
+case value.TypeNumber:
+	return value.CastToFloat(val)
+case value.TypeText:
+	return value.CastToText(val)
+case value.TypeBool:
+	ok := value.True(val)
+	return value.Boolean(ok), nil
+case value.TypeDate:
+	return value.CastToDate(val)
+default:
+	return nil, value.ErrCompatible
+	}
 }
 
 func Scalar(k string) Param {
