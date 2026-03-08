@@ -16,6 +16,10 @@ type toBool interface {
 	ToBool() (ScalarValue, error)
 }
 
+type toDate interface {
+	ToDate() (ScalarValue, error)
+}
+
 func CastToArray(val Value) (Array, error) {
 	arr, ok := val.(Array)
 	if !ok {
@@ -78,6 +82,22 @@ func CastToText(val Value) (Text, error) {
 }
 
 func CastToDate(val Value) (Date, error) {
-	var d Date
-	return d, nil
+	switch v := val.(type) {
+	case Date:
+		return v, nil
+	case toDate:
+		x, err := v.ToDate()
+		if err != nil {
+			var z Date
+			return z, ErrCast
+		}
+		f, ok := x.(Date)
+		if !ok {
+			return f, fmt.Errorf("cast error to date")
+		}
+		return f, nil
+	default:
+		var z Date
+		return z, ErrCast
+	}
 }
