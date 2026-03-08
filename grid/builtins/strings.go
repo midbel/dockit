@@ -7,17 +7,11 @@ import (
 )
 
 func IsText(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	ok := value.IsText(args[0])
 	return value.Boolean(ok), nil
 }
 
 func Concat(args []value.Value) (value.Value, error) {
-	if len(args) < 2 {
-		return value.ErrValue, ErrArity
-	}
 	parts := make([]string, 0, len(args))
 	for i := range args {
 		t, err := value.CastToText(args[i])
@@ -43,9 +37,6 @@ func Mid(args []value.Value) (value.Value, error) {
 }
 
 func Len(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	t, err := value.CastToText(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -55,9 +46,6 @@ func Len(args []value.Value) (value.Value, error) {
 }
 
 func Upper(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	t, err := value.CastToText(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -67,9 +55,6 @@ func Upper(args []value.Value) (value.Value, error) {
 }
 
 func Lower(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	t, err := value.CastToText(args[0])
 	if err != nil {
 		return value.ErrValue, err

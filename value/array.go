@@ -3,6 +3,7 @@ package value
 import (
 	"fmt"
 	"iter"
+	"slices"
 
 	"github.com/midbel/dockit/layout"
 )
@@ -82,6 +83,14 @@ func (a Array) Values() iter.Seq[ScalarValue] {
 		}
 	}
 	return it
+}
+
+func (a Array) Clone() Array {
+	other := make([][]ScalarValue, 0, len(a.Data))
+	for i := range a.Data {
+		other = append(other, slices.Clone(a.Data[i]))
+	}
+	return NewArray(other).(Array)
 }
 
 func (a Array) Apply(do func(ScalarValue) (ScalarValue, error)) error {

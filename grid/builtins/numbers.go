@@ -7,9 +7,6 @@ import (
 )
 
 func IsNumber(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	ok := value.IsNumber(args[0])
 	return value.Boolean(ok), nil
 }
@@ -51,9 +48,6 @@ func Sum(args []value.Value) (value.Value, error) {
 }
 
 func Avg(args []value.Value) (value.Value, error) {
-	if len(args) == 0 {
-		return value.Float(0), nil
-	}
 	var (
 		total float64
 		count int
@@ -77,9 +71,6 @@ func Count(args []value.Value) (value.Value, error) {
 }
 
 func Round(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -89,9 +80,6 @@ func Round(args []value.Value) (value.Value, error) {
 }
 
 func Floor(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -101,9 +89,6 @@ func Floor(args []value.Value) (value.Value, error) {
 }
 
 func Ceil(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -113,9 +98,6 @@ func Ceil(args []value.Value) (value.Value, error) {
 }
 
 func Sqrt(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -125,9 +107,6 @@ func Sqrt(args []value.Value) (value.Value, error) {
 }
 
 func Abs(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return value.ErrValue, ErrArity
-	}
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -137,9 +116,6 @@ func Abs(args []value.Value) (value.Value, error) {
 }
 
 func Mod(args []value.Value) (value.Value, error) {
-	if len(args) != 2 {
-		return value.ErrValue, ErrArity
-	}
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -156,9 +132,6 @@ func Mod(args []value.Value) (value.Value, error) {
 }
 
 func Pow(args []value.Value) (value.Value, error) {
-	if len(args) != 2 {
-		return value.ErrValue, ErrArity
-	}
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
 		return value.ErrValue, err
@@ -173,4 +146,8 @@ func Pow(args []value.Value) (value.Value, error) {
 
 func Int(args []value.Value) (value.Value, error) {
 	return value.Float(0), nil
+}
+
+func Rand(args []value.Value) (value.Value, error) {
+	return nil, nil
 }

@@ -31,6 +31,7 @@ const (
 	TypeBlank  = "blank"
 	TypeArray  = "array"
 	TypeError  = "error"
+	TypeAny    = "any"
 )
 
 func IsComparable(v Value) bool {
