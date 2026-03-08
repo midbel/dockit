@@ -180,15 +180,76 @@ var Registry = map[string]Builtin{
 		Params: []Param{},
 		Func:   Now,
 	},
-	// "today":       nil,
-	// "date":        nil,
-	// "year":        nil,
-	// "month":       nil,
-	// "day":         nil,
-	// "hour":        nil,
-	// "minute":      nil,
-	// "second":      nil,
-	// "weekday":     nil,
+	"today": {
+		Name:   "today",
+		Params: []Param{},
+		Func:   Today,
+	},
+	"date": {
+		Name: "date",
+		Params: []Param{
+			Scalar("year", "", value.TypeNumber),
+			Scalar("month", "", value.TypeNumber),
+			Scalar("day", "", value.TypeNumber),
+		},
+		Func: Date,
+	},
+	"year": {
+		Name: "year",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: Year,
+	},
+	"month": {
+		Name: "month",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: Month,
+	},
+	"day": {
+		Name: "day",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: Day,
+	},
+	"yearday": {
+		Name: "ye	rday",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: YearDay,
+	},
+	"hour": {
+		Name: "hour",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: Hour,
+	},
+	"minute": {
+		Name: "minute",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: Minute,
+	},
+	"second": {
+		Name: "second",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: Second,
+	},
+	"weekday": {
+		Name: "weekday",
+		Params: []Param{
+			Scalar("date", "", value.TypeDate),
+		},
+		Func: Weekday,
+	},
 	"isnumber": {
 		Name: "isnumber",
 		Desc: "",

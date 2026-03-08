@@ -5,8 +5,5 @@ import (
 )
 
 func TypeOf(args []value.Value) (value.Value, error) {
-	if len(args) != 1 {
-		return nil, ErrArity
-	}
 	return value.Text(args[0].Type()), nil
 }
