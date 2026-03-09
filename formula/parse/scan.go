@@ -2,10 +2,19 @@ package parse
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/midbel/dockit/formula/op"
+)
+
+type Dialect int8
+
+const (
+	OxmlDialect Dialect = 1 << iota
+	OdsDialect
 )
 
 type ScanMode int8
@@ -23,6 +32,8 @@ type ScannerState struct {
 }
 
 type Scanner struct {
+	dialect Dialect
+
 	input []byte
 	pos   int
 	next  int
@@ -34,22 +45,45 @@ type Scanner struct {
 	mode ScanMode
 }
 
-func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
-	var (
-		scan Scanner
-		err  error
-	)
-	scan.mode = mode
-	scan.input, err = io.ReadAll(r)
+func ScanDialect(r io.Reader, mode ScanMode, dialect Dialect) (*Scanner, error) {
+	switch dialect {
+	case OdsDialect, OxmlDialect:
+	default:
+		return nil, fmt.Errorf("unsupported dialect given")
+	}
+	scan := Scanner{
+		mode:    mode,
+		dialect: dialect,
+	}
+	input, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
+	scan.input = input
 	scan.Position.Line = 1
 	scan.read()
 	if mode == ScanFormula && scan.char == equal {
 		scan.read()
+		if scan.dialect == OdsDialect {
+			str := s.readUntil(colon, true)
+			if str != "of" {
+				return nil, fmt.Errorf("invalid openformula namespace")
+			}
+		}
 	}
 	return &scan, nil
+}
+
+func ScanOxml(r io.Reader, mode ScanMode) (*Scanner, error) {
+	return ScanDialect(r, mode, OxmlDialect)
+}
+
+func ScanOds(r io.Reader, mode ScanMode) (*Scanner, error) {
+	return ScanDialect(r, mode, OdsDialect)
+}
+
+func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
+	return ScanDialect(r, mode, OxmlDialect)
 }
 
 func (s *Scanner) Save() ScannerState {
@@ -344,6 +378,18 @@ func (s *Scanner) read() {
 		s.Column = 0
 	}
 	s.Column++
+}
+
+func (s *Scanner) readUntil(char rune, eat bool) string {
+	defer s.reset()
+	for !s.done() && s.char != char {
+		s.write()
+		s.read()
+	}
+	if s.char == char && eat {
+		s.read()
+	}
+	return strings.ToLower(s.literal())
 }
 
 func (s *Scanner) peek() rune {

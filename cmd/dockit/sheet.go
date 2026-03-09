@@ -55,6 +55,9 @@ func (c AddCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
+	if set.NArg() <= 2 {
+		return cli.ErrUsage
+	}
 	return updateFile(set.Arg(0), func(wb grid.File) error {
 		other, err := workbook.Open(set.Arg(1))
 		if err != nil {
@@ -80,6 +83,9 @@ func (c DropCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
+	if set.NArg() <= 1 {
+		return cli.ErrUsage
+	}
 	return updateFile(set.Arg(0), func(wb grid.File) error {
 		for i := 1; i < set.NArg(); i++ {
 			if err := wb.RemoveSheet(set.Arg(i)); err != nil {
@@ -97,6 +103,9 @@ func (c CopyCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
+	if set.NArg() != 3 {
+		return cli.ErrUsage
+	}
 	return updateFile(set.Arg(0), func(wb grid.File) error {
 		return wb.Copy(set.Arg(1), set.Arg(2))
 	})
@@ -108,6 +117,9 @@ func (c RenameCommand) Run(args []string) error {
 	set := cli.NewFlagSet("rename")
 	if err := set.Parse(args); err != nil {
 		return err
+	}
+	if set.NArg() != 3 {
+		return cli.ErrUsage
 	}
 	return updateFile(set.Arg(0), func(wb grid.File) error {
 		return wb.Rename(set.Arg(1), set.Arg(2))

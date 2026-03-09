@@ -56,11 +56,11 @@ func (z *writer) WriteFile(file *File) error {
 }
 
 func (w *writer) Close() error {
-	w.writer.Close()
-	if w.Closer == nil {
-		return nil
-	}
-	return w.Closer.Close()
+	return w.writer.Close()
+	// if w.Closer == nil {
+	// 	return nil
+	// }
+	// return w.Closer.Close()
 }
 
 func (z *writer) writeContentTypes(file *File) {
