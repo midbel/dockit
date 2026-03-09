@@ -75,10 +75,6 @@ type Cell interface {
 	// Type() CellType
 }
 
-type Encoder interface {
-	EncodeSheet(View) error
-}
-
 type Callable interface {
 	Call(value.Context) (value.Value, error)
 }
@@ -102,7 +98,6 @@ type View interface {
 	Name() string
 	Bounds() *layout.Range
 	Rows() iter.Seq[[]value.ScalarValue]
-	Encode(Encoder) error
 	Cell(layout.Position) (Cell, error)
 
 	Reload(value.Context) error
@@ -198,10 +193,6 @@ func (v *filteredView) Unwrap() View {
 	return v.view
 }
 
-func (v *filteredView) Encode(encoder Encoder) error {
-	return encoder.EncodeSheet(v.view)
-}
-
 func (v *filteredView) Cell(layout.Position) (Cell, error) {
 	return nil, nil
 }
@@ -241,10 +232,6 @@ func (v *readonlyView) Rows() iter.Seq[[]value.ScalarValue] {
 
 func (v *readonlyView) Unwrap() View {
 	return v.view
-}
-
-func (v *readonlyView) Encode(encoder Encoder) error {
-	return encoder.EncodeSheet(v.view)
 }
 
 func (v *readonlyView) Cell(pos layout.Position) (Cell, error) {
@@ -309,10 +296,6 @@ func (v *transposedView) Rows() iter.Seq[[]value.ScalarValue] {
 
 func (v *transposedView) Unwrap() View {
 	return v.view
-}
-
-func (v *transposedView) Encode(encoder Encoder) error {
-	return encoder.EncodeSheet(v)
 }
 
 func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
@@ -406,10 +389,6 @@ func (v *horizontalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
 	return it
 }
 
-func (v *horizontalStackedView) Encode(e Encoder) error {
-	return e.EncodeSheet(v)
-}
-
 func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
 	return nil, nil
 }
@@ -479,10 +458,6 @@ func (v *verticalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
 		}
 	}
 	return it
-}
-
-func (v *verticalStackedView) Encode(e Encoder) error {
-	return e.EncodeSheet(v)
 }
 
 func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
@@ -629,10 +604,6 @@ func (v *projectedView) ClearRange(rg *layout.Range) error {
 		return err
 	}
 	return mv.ClearRange(rg)
-}
-
-func (v *projectedView) Encode(encoder Encoder) error {
-	return encoder.EncodeSheet(v)
 }
 
 func (v *projectedView) getOriginalPosition(pos layout.Position) layout.Position {
@@ -786,10 +757,6 @@ func (v *boundedView) ClearRange(rg *layout.Range) error {
 	// pos.Line += b.Width()
 	// pos.Column += b.Height()
 	return mv.ClearRange(rg)
-}
-
-func (v *boundedView) Encode(e Encoder) error {
-	return e.EncodeSheet(v)
 }
 
 func mutableView(v View) (MutableView, error) {

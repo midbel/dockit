@@ -229,10 +229,6 @@ func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 	return it
 }
 
-func (s *Sheet) Encode(encoder grid.Encoder) error {
-	return encoder.EncodeSheet(s)
-}
-
 func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	cell, ok := s.cells[pos]
 	if !ok {

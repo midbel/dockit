@@ -326,10 +326,6 @@ func (s *Sheet) Copy(other grid.View) error {
 	return nil
 }
 
-func (s *Sheet) Encode(e grid.Encoder) error {
-	return e.EncodeSheet(s)
-}
-
 func (s *Sheet) Lock() {
 	s.Protected = ProtectedAll - 1
 }
