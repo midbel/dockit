@@ -59,10 +59,25 @@ func (r *row) Sparse() bool {
 }
 
 type Sheet struct {
-	Size layout.Dimension
+	Label  string
+	Active bool
+	Size   layout.Dimension
 
 	rows  []*row
 	cells map[layout.Position]*Cell
+}
+
+func NewSheet(name string) *Sheet {
+	sh := Sheet{
+		Label:  name,
+		Active: false,
+		cells:  make(map[layout.Position]*Cell),
+	}
+	return &sh
+}
+
+func (s *Sheet) Name() string {
+	return s.Label
 }
 
 type File struct {
@@ -70,6 +85,21 @@ type File struct {
 	sheets []*Sheet
 }
 
+func NewFile() *File {
+	return &File{
+		names: make(map[string]int),
+	}
+}
+
 func Open(file string) (*File, error) {
-	return nil, nil
+	rs, err := readFile(file)
+	if err != nil {
+		return nil, err
+	}
+	defer rs.Close()
+	book, err := rs.ReadFile()
+	if err != nil {
+		return nil, err
+	}
+	return book, nil
 }

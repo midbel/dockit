@@ -65,7 +65,7 @@ func ScanDialect(r io.Reader, mode ScanMode, dialect Dialect) (*Scanner, error) 
 	if mode == ScanFormula && scan.char == equal {
 		scan.read()
 		if scan.dialect == OdsDialect {
-			str := s.readUntil(colon, true)
+			str := scan.readUntil(colon, true)
 			if str != "of" {
 				return nil, fmt.Errorf("invalid openformula namespace")
 			}

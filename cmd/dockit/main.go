@@ -10,6 +10,7 @@ import (
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/slx"
+	"github.com/midbel/dockit/ods"
 	"github.com/midbel/dockit/oxml"
 	"github.com/midbel/dockit/workbook"
 )
@@ -27,6 +28,7 @@ func init() {
 	workbook.Register(flat.NewTabLoader())
 	workbook.Register(flat.NewSemicolonLoader())
 	workbook.Register(flat.NewColonLoader())
+	workbook.Register(ods.NewLoader())
 }
 
 func main() {
