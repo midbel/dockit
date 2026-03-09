@@ -33,7 +33,7 @@ func (loader) New() (grid.File, error) {
 }
 
 func (loader) Open(file string) (grid.File, error) {
-	return nil, nil
+	return Open(file)
 }
 
 func (loader) IsSupportedExt(ext string) bool {
