@@ -85,8 +85,18 @@ func (r *reader) readContent(file *File) {
 		qn = sax.ExpandedName("table", "table", tableNS)
 	)
 	rx.Element(qn, func(rs *sax.Reader, e sax.E) error {
+		var (
+			vz = e.GetAttributeValue("display")
+			lk = e.GetAttributeValue("protected")
+		)
 		sr := updateSheet(e.GetAttributeValue("name"), rs)
 		sh, err := sr.Update()
+		if vz == "" || vz == "true" {
+			sh.Visible = true
+		}
+		if lk == "" || lk == "true" {
+			sh.Locked = true
+		}
 		if err == nil {
 			file.sheets = append(file.sheets, sh)
 		}
@@ -279,6 +289,7 @@ func (h *cellHandler) Close(rs *sax.Reader, e sax.E) error {
 	defer h.Reset()
 
 	if h.parsed == nil && h.text.Empty() {
+		h.column += h.repeat
 		return nil
 	}
 	var (

@@ -79,9 +79,11 @@ func (r *row) Len() int {
 }
 
 type Sheet struct {
-	Label  string
-	Active bool
-	Size   layout.Dimension
+	Label   string
+	Active  bool
+	Visible bool
+	Locked  bool
+	Size    layout.Dimension
 
 	rows  []*row
 	cells map[layout.Position]*Cell
@@ -249,7 +251,7 @@ func (f *File) Infos() []grid.ViewInfo {
 			Name:      s.Name(),
 			Active:    false,
 			Protected: false,
-			Hidden:    false,
+			Hidden:    !s.Visible,
 			Size:      s.Size,
 		}
 
