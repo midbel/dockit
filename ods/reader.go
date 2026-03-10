@@ -6,6 +6,8 @@ import (
 	"io"
 	"slices"
 	"strconv"
+	"strings"
+	"time"
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/grid"
@@ -120,70 +122,220 @@ func updateSheet(name string, rs *sax.Reader) *sheetReader {
 }
 
 func (r *sheetReader) Update() (*Sheet, error) {
-	var (
-		qCell = sax.ExpandedName("table-cell", "table", tableNS)
-		qRow  = sax.ExpandedName("table-row", "table", tableNS)
-	)
-	r.reader.Element(qRow, r.onRow)
-	r.reader.Element(qCell, r.onCell)
+	qn := sax.ExpandedName("table-row", "table", tableNS)
+	r.reader.HandleElement(qn, handleRow(r.sh))
 	return r.sh, nil
 }
 
-func (r *sheetReader) onRow(_ *sax.Reader, e sax.E) error {
-	var rs row
-	r.sh.rows = append(r.sh.rows, &rs)
-	r.sh.Size.Lines++
+type rowHandler struct {
+	line   int
+	repeat int
+	sheet  *Sheet
+
+	cell *cellHandler
+}
+
+func handleRow(sh *Sheet) *rowHandler {
+	h := &rowHandler{
+		sheet: sh,
+		cell:  handleCell(sh),
+	}
+	h.Reset()
+	return h
+}
+
+func (h *rowHandler) Reset() {
+	h.repeat = 1
+}
+
+func (h *rowHandler) Open(rs *sax.Reader, e sax.E) error {
+	h.cell.Reset()
+
+	var (
+		val   = e.GetAttributeValue("number-rows-repeated")
+		count = 1
+	)
+	if val != "" {
+		c, err := strconv.Atoi(val)
+		if err != nil || c < 1 {
+			return fmt.Errorf("%w: invalid value number-rows-repeated", grid.ErrFile)
+		}
+		count = c
+	}
+	h.repeat = count
+	h.sheet.rows = append(h.sheet.rows, &row{})
+	h.line++
+
+	qn := sax.ExpandedName("table-cell", "table", tableNS)
+	rs.HandleElement(qn, h.cell)
 	return nil
 }
 
-func (r *sheetReader) onCell(rs *sax.Reader, e sax.E) error {
-	if len(r.sh.rows) == 0 {
-		return fmt.Errorf("no row in worksheet")
+func (h *rowHandler) Close(rs *sax.Reader, e sax.E) error {
+	defer h.Reset()
+
+	pos := len(h.sheet.rows)
+	h.sheet.Size.Lines += int64(h.repeat)
+	h.sheet.Size.Columns = max(h.sheet.Size.Columns, int64(len(h.sheet.rows[pos-1].Cells)))
+
+	if h.repeat == 1 {
+		return nil
 	}
-	var (
-		pos  = len(r.sh.rows) - 1
-		cell = &Cell{
-			Position: layout.Position{
-				Line:   int64(pos + 1),
-				Column: int64(len(r.sh.rows[pos].Cells)) + 1,
-			},
+	h.line += h.repeat - 1
+
+	curr := h.sheet.rows[pos-1]
+	for i := 1; i < h.repeat; i++ {
+		rs := curr.Clone()
+		for j := range rs.Cells {
+			rs.Cells[j].Line += int64(i)
 		}
+		h.sheet.rows = append(h.sheet.rows, rs)
+
+	}
+	return nil
+}
+
+type cellHandler struct {
+	column int
+
+	repeat int
+	raw    string
+	parsed value.ScalarValue
+
+	sheet *Sheet
+	text  *textHandler
+}
+
+func handleCell(sh *Sheet) *cellHandler {
+	h := &cellHandler{
+		sheet: sh,
+		text:  new(textHandler),
+	}
+	h.Reset()
+	return h
+}
+
+func (h *cellHandler) Reset() {
+	h.repeat = 1
+	h.column = 0
+	h.raw = ""
+	h.parsed = nil
+	h.text.Reset()
+}
+
+func (h *cellHandler) Open(rs *sax.Reader, e sax.E) error {
+	if len(h.sheet.rows) == 0 {
+		return fmt.Errorf("%w: sheet is empty", grid.ErrFile)
+	}
+
+	var (
+		val   = e.GetAttributeValue("number-columns-repeated")
+		count = 1
 	)
-	r.sh.rows[pos].Cells = append(r.sh.rows[pos].Cells, cell)
-	r.sh.cells[cell.Position] = cell
+	if val != "" {
+		c, err := strconv.Atoi(val)
+		if err != nil || c < 1 {
+			return fmt.Errorf("%w: invalid value number-columns-repeated", grid.ErrFile)
+		}
+		count = c
+	}
+	h.repeat = count
 
 	switch e.GetAttributeValue("value-type") {
 	case "float", "currency", "percentage":
-		cell.raw = e.GetAttributeValue("value")
-		val, err := strconv.ParseFloat(cell.raw, 64)
+		h.raw = e.GetAttributeValue("value")
+		val, err := strconv.ParseFloat(h.raw, 64)
 		if err != nil {
 			return err
 		}
-		cell.parsed = value.Float(val)
+		h.parsed = value.Float(val)
 	case "boolean":
-		cell.raw = e.GetAttributeValue("boolean-value")
-		val, err := strconv.ParseBool(cell.raw)
+		h.raw = e.GetAttributeValue("boolean-value")
+		val, err := strconv.ParseBool(h.raw)
 		if err != nil {
 			return err
 		}
-		cell.parsed = value.Boolean(val)
+		h.parsed = value.Boolean(val)
 	case "date":
-		cell.raw = e.GetAttributeValue("date-value")
+		h.raw = e.GetAttributeValue("date-value")
+		val, err := time.Parse("2006-01-02", h.raw)
+		if err != nil {
+			return err
+		}
+		h.parsed = value.Date(val)
 	case "time":
-		cell.raw = e.GetAttributeValue("time-value")
+		h.raw = e.GetAttributeValue("time-value")
 	default:
 	}
-	if cell.raw != "" {
+	if h.raw != "" {
 		return nil
 	}
 	qn := sax.ExpandedName("p", "text", textNS)
-	rs.Element(qn, func(rs *sax.Reader, _ sax.E) error {
-		rs.OnText(func(_ *sax.Reader, str string) error {
-			cell.raw = str
-			cell.parsed = value.Text(str)
-			return nil
-		})
+	rs.HandleElement(qn, h.text)
+	return nil
+}
+
+func (h *cellHandler) Close(rs *sax.Reader, e sax.E) error {
+	defer h.Reset()
+
+	if h.parsed == nil && h.text.Empty() {
+		return nil
+	}
+	var (
+		ix  = len(h.sheet.rows)
+		row = h.sheet.rows[ix-1]
+	)
+	for i := 0; i < h.repeat; i++ {
+		h.column++
+		cell := h.create(int64(ix))
+		row.Cells = append(row.Cells, cell)
+		h.sheet.cells[cell.Position] = cell
+	}
+
+	return nil
+}
+
+func (h *cellHandler) create(line int64) *Cell {
+	cell := Cell{
+		raw:      h.raw,
+		parsed:   h.parsed,
+		Position: layout.NewPosition(line, int64(h.column)),
+	}
+	if cell.parsed == nil {
+		cell.raw = h.text.Raw()
+		cell.parsed = h.text.Value()
+	}
+	return &cell
+}
+
+type textHandler struct {
+	parts []string
+}
+
+func (h *textHandler) Reset() {
+	h.parts = h.parts[:0]
+}
+
+func (h *textHandler) Raw() string {
+	return strings.Join(h.parts, "\n")
+}
+
+func (h *textHandler) Value() value.ScalarValue {
+	return value.Text(h.Raw())
+}
+
+func (h *textHandler) Empty() bool {
+	return len(h.parts) == 0
+}
+
+func (h *textHandler) Open(rs *sax.Reader, el sax.E) error {
+	rs.OnText(func(_ *sax.Reader, str string) error {
+		h.parts = append(h.parts, str)
 		return nil
 	})
+	return nil
+}
+
+func (h *textHandler) Close(rs *sax.Reader, el sax.E) error {
 	return nil
 }

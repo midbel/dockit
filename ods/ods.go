@@ -65,6 +65,19 @@ func (r *row) Sparse() bool {
 	return false
 }
 
+func (r *row) Clone() *row {
+	var other row
+	for i := range r.Cells {
+		c := *r.Cells[i]
+		other.Cells = append(other.Cells, &c)
+	}
+	return &other
+}
+
+func (r *row) Len() int {
+	return len(r.Cells)
+}
+
 type Sheet struct {
 	Label  string
 	Active bool
