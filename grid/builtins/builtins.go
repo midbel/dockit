@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
 )
@@ -479,6 +480,30 @@ type Builtin struct {
 	Alias    []string
 	Params   []Param
 	Func     BuiltinFunc
+
+	Dialect parse.Dialect
+}
+
+func (b Builtin) OxmlSupported() bool {
+	if b.Dialect == 0 {
+		return true
+	}
+	return b.Dialect&parse.OxmlDialect != 0
+}
+
+func (b Builtin) OdsSupported() bool {
+	if b.Dialect == 0 {
+		return true
+	}
+	return b.Dialect&parse.OdsDialect != 0
+}
+
+func (b Builtin) OxmlOnly() bool {
+	return b.Dialect&parse.OxmlDialect == parse.OxmlDialect
+}
+
+func (b Builtin) OdsOnly() bool {
+	return b.Dialect&parse.OdsDialect == parse.OdsDialect
 }
 
 func (b Builtin) Make() BuiltinFunc {
