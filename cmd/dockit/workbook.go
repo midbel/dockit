@@ -145,6 +145,11 @@ func (c GetInfoCommand) openFile(file string) (grid.File, error) {
 	return workbook.OpenFormat(file, c.Format)
 }
 
+const (
+	oxmlStr = "openxml"
+	odocStr = "opendocument"
+)
+
 type GetBuiltinCommand struct{}
 
 func (c GetBuiltinCommand) Run(args []string) error {
@@ -156,13 +161,15 @@ func (c GetBuiltinCommand) Run(args []string) error {
 		list = builtins.List()
 		tbl  cli.Table
 	)
-	tbl.Headers = []string{"name", "desc", "category", "parameter"}
+	tbl.Headers = []string{"name", "desc", "category", "parameter", oxmlStr, odocStr}
 	for _, b := range list {
 		r := []string{
 			b.Name,
 			b.Desc,
 			b.Category,
-			strconv.Itoa(len(b.Params)),
+			cli.Center(strconv.Itoa(len(b.Params)), len("parameter")),
+			cli.Center(cli.MarkBool(b.OxmlSupported()), len(oxmlStr)),
+			cli.Center(cli.MarkBool(b.OdsSupported()), len(odocStr)),
 		}
 		tbl.Rows = append(tbl.Rows, r)
 	}
