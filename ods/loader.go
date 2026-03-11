@@ -29,7 +29,7 @@ func (loader) Detect(file string) (bool, error) {
 }
 
 func (loader) New() (grid.File, error) {
-	return nil, nil
+	return NewFile(), nil
 }
 
 func (loader) Open(file string) (grid.File, error) {

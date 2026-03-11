@@ -10,8 +10,6 @@ import (
 	"os"
 	"slices"
 	"strconv"
-	"strings"
-	"unicode"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -124,6 +122,10 @@ func (r *row) cloneCells() []*Cell {
 		cells = append(cells, &c)
 	}
 	return cells
+}
+
+func (r *row) Len() int {
+	return len(r.Cells)
 }
 
 type SheetState int8
@@ -709,12 +711,7 @@ func (f *File) sheetByName(name string) (*Sheet, error) {
 const maxSheetNameLen = 31
 
 func cleanSheetName(str string) string {
-	ret := strings.Map(func(r rune) rune {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-' {
-			return r
-		}
-		return -1
-	}, str)
+	ret := grid.CleanName(str)
 	if len(ret) > maxSheetNameLen {
 		ret = ret[:maxSheetNameLen]
 	}

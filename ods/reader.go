@@ -48,6 +48,9 @@ func (r *reader) Close() error {
 func (r *reader) ReadFile() (*File, error) {
 	file := NewFile()
 	r.readMime(file)
+	r.readSettings(file)
+	r.readMeta(file)
+	r.readStyle(file)
 	r.readContent(file)
 	return file, r.err
 }
@@ -71,6 +74,18 @@ func (r *reader) readMime(file *File) {
 	}
 }
 
+func (r *reader) readSettings(file *File) error {
+	return nil
+}
+
+func (r *reader) readMeta(file *File) error {
+	return nil
+}
+
+func (r *reader) readStyle(file *File) error {
+	return nil
+}
+
 func (r *reader) readContent(file *File) {
 	if r.invalid() {
 		return
@@ -84,24 +99,7 @@ func (r *reader) readContent(file *File) {
 		rx = sax.NewReader(rs)
 		qn = sax.ExpandedName("table", "table", tableNS)
 	)
-	rx.Element(qn, func(rs *sax.Reader, e sax.E) error {
-		var (
-			vz = e.GetAttributeValue("display")
-			lk = e.GetAttributeValue("protected")
-		)
-		sr := updateSheet(e.GetAttributeValue("name"), rs)
-		sh, err := sr.Update()
-		if vz == "" || vz == "true" {
-			sh.Visible = true
-		}
-		if lk == "" || lk == "true" {
-			sh.Locked = true
-		}
-		if err == nil {
-			file.sheets = append(file.sheets, sh)
-		}
-		return err
-	})
+	rx.HandleElement(qn, handleTable(file))
 	r.err = rx.Start()
 }
 
@@ -119,22 +117,41 @@ func (r *reader) invalid() bool {
 	return r.err != nil
 }
 
-type sheetReader struct {
-	sh     *Sheet
-	reader *sax.Reader
+type tableHandler struct {
+	sheet *Sheet
+	file  *File
 }
 
-func updateSheet(name string, rs *sax.Reader) *sheetReader {
-	return &sheetReader{
-		sh:     NewSheet(name),
-		reader: rs,
+func handleTable(file *File) *tableHandler {
+	h := &tableHandler{
+		file: file,
 	}
+	h.Reset()
+	return h
 }
 
-func (r *sheetReader) Update() (*Sheet, error) {
+func (h *tableHandler) Reset() {
+	h.sheet = NewSheet("")
+}
+
+func (h *tableHandler) Open(rs *sax.Reader, e sax.E) error {
+	h.sheet.Label = e.GetAttributeValue("name")
+	if vz := e.GetAttributeValue("display"); vz == "" || vz == "true" {
+		h.sheet.Visible = true
+	}
+	if lk := e.GetAttributeValue("protected"); lk == "" || lk == "true" {
+		h.sheet.Locked = true
+	}
+
 	qn := sax.ExpandedName("table-row", "table", tableNS)
-	r.reader.HandleElement(qn, handleRow(r.sh))
-	return r.sh, nil
+	rs.HandleElement(qn, handleRow(h.sheet))
+	return nil
+}
+
+func (h *tableHandler) Close(rs *sax.Reader, _ sax.E) error {
+	defer h.Reset()
+	h.file.sheets = append(h.file.sheets, h.sheet)
+	return nil
 }
 
 type rowHandler struct {
@@ -173,8 +190,11 @@ func (h *rowHandler) Open(rs *sax.Reader, e sax.E) error {
 		count = c
 	}
 	h.repeat = count
-	h.sheet.rows = append(h.sheet.rows, &row{})
 	h.line++
+	row := &row{
+		Line: int64(h.line),
+	}
+	h.sheet.rows = append(h.sheet.rows, row)
 
 	qn := sax.ExpandedName("table-cell", "table", tableNS)
 	rs.HandleElement(qn, h.cell)
@@ -194,6 +214,9 @@ func (h *rowHandler) Close(rs *sax.Reader, e sax.E) error {
 	h.line += h.repeat - 1
 
 	curr := h.sheet.rows[pos-1]
+	if len(curr.Cells) == 0 {
+		return nil
+	}
 	for i := 1; i < h.repeat; i++ {
 		rs := curr.Clone()
 		for j := range rs.Cells {

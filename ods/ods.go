@@ -42,6 +42,7 @@ func (c *Cell) Reload(ctx value.Context) error {
 }
 
 type row struct {
+	Line int64
 	Cells []*Cell
 }
 
@@ -171,6 +172,30 @@ func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 	return it
 }
 
+func (s *Sheet) Copy(other grid.View) error {
+	if s.Locked {
+		return grid.ErrLock
+	}
+	b := other.Bounds()
+	for p := range b.Positions() {
+		c, _ := other.Cell(p)
+		s.put(c)
+	}
+	return nil
+}
+
+func (s *Sheet) Lock() {
+	s.Locked = true
+}
+
+func (s *Sheet) Unlock() {
+	s.Locked = false
+}
+
+func (s *Sheet) IsLock() bool {
+	return s.Locked
+}
+
 func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	return nil
 }
@@ -207,14 +232,38 @@ func (s *Sheet) DeleteRow(ix int64) error {
 	return nil
 }
 
+func (s *Sheet) put(cell grid.Cell) {
+	var (
+		pos = cell.At()
+		val = cell.Value()
+	)
+	ix := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line == pos.Line
+	})
+	var r *row
+	if ix < 0 {
+		r = &row{}
+		s.rows = append(s.rows, r)
+	} else {
+		r = s.rows[ix]
+	}
+	c := &Cell{
+		Position: pos,
+		raw:      val.String(),
+		parsed:   val,
+	}
+	r.Cells = append(r.Cells, c)
+	s.cells[pos] = c
+}
+
 type File struct {
-	names  map[string]int
+	names  *grid.NameIndex
 	sheets []*Sheet
 }
 
 func NewFile() *File {
 	return &File{
-		names: make(map[string]int),
+		names: grid.NewNameIndex(),
 	}
 }
 
@@ -250,7 +299,7 @@ func (f *File) Infos() []grid.ViewInfo {
 		i := grid.ViewInfo{
 			Name:      s.Name(),
 			Active:    false,
-			Protected: false,
+			Protected: s.Locked,
 			Hidden:    !s.Visible,
 			Size:      s.Size,
 		}
@@ -284,26 +333,77 @@ func (f *File) Sheets() []grid.View {
 	return views
 }
 
+func (f *File) LockSheet(name string) error {
+	sh, err := f.sheetByName(name)
+	if err == nil {
+		sh.Lock()
+	}
+	return err
+}
+
+func (f *File) Unlock() {
+	for i := range f.sheets {
+		f.sheets[i].Unlock()
+	}
+}
+
 // rename a sheet
 func (f *File) Rename(oldName, newName string) error {
-	return nil
+	sh, err := f.sheetByName(oldName)
+	if err != nil {
+		return err
+	}
+	if err := f.RemoveSheet(oldName); err != nil {
+		return err
+	}
+	sh.Label = grid.CleanName(newName)
+	return f.AppendSheet(sh)
 }
 
 // copy a sheet
 func (f *File) Copy(oldName, newName string) error {
-	return nil
+	source, err := f.sheetByName(oldName)
+	if err != nil {
+		return err
+	}
+	if newName == "" {
+		newName = oldName
+	}
+	target := NewSheet(newName)
+	target.Copy(source)
+	return f.AppendSheet(target)
 }
 
 func (f *File) RemoveSheet(name string) error {
+	size := len(f.sheets)
+	f.sheets = slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
+		return s.Name() == name && !s.Locked
+	})
+	if size != len(f.sheets) {
+		f.names.Delete(name)
+	}
 	return nil
 }
 
 func (f *File) AppendSheet(sheet grid.View) error {
+	sh := NewSheet(sheet.Name())
+
+	sh.Label = grid.CleanName(sheet.Name())
+	sh.Label = f.names.Next(sh.Label)
+	if err := sh.Copy(sheet); err != nil {
+		return err
+	}
+	f.sheets = append(f.sheets, sh)
 	return nil
 }
 
 // append sheets of given file to current fule
 func (f *File) Merge(other grid.File) error {
+	for _, s := range other.Sheets() {
+		if err := f.AppendSheet(s); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -315,7 +415,7 @@ func (f *File) activeSheet() (*Sheet, error) {
 		return s.Active == true
 	})
 	if ix < 0 {
-		return nil, fmt.Errorf("missing active sheet")
+		return f.sheets[0], nil
 	}
 	return f.sheets[ix], nil
 }
