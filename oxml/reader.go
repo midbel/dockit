@@ -90,7 +90,7 @@ func (r *reader) readWorkbook(file *File) {
 	for i, xs := range root.Sheets {
 		s := Sheet{
 			Id:    xs.Id,
-			Label: xs.Name,
+			Label: file.names.Next(xs.Name),
 			Index: xs.Index,
 			State: xs.State,
 			cells: make(map[layout.Position]*Cell),
@@ -101,7 +101,6 @@ func (r *reader) readWorkbook(file *File) {
 		if s.State == 0 {
 			s.State = StateVisible
 		}
-		file.names[s.Label]++
 		file.sheets = append(file.sheets, &s)
 	}
 }

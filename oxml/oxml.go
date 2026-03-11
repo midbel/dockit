@@ -217,7 +217,7 @@ type Sheet struct {
 }
 
 func NewSheet(name string) *Sheet {
-	name = cleanSheetName(name)
+	name = cleanName(name)
 	s := Sheet{
 		Label:  name,
 		Active: false,
@@ -455,15 +455,16 @@ type File struct {
 	locked   bool
 	date1904 bool
 
-	names         map[string]int
+	names         *grid.NameIndex
 	sheets        []*Sheet
 	sharedStrings []string
 }
 
 func NewFile() *File {
-	var file File
-	file.names = make(map[string]int)
-	return &file
+	file := &File{
+		names: grid.NewNameIndex(),
+	}
+	return file
 }
 
 func Open(file string) (*File, error) {
@@ -587,7 +588,7 @@ func (f *File) Rename(oldName, newName string) error {
 	if err := f.RemoveSheet(oldName); err != nil {
 		return err
 	}
-	sh.Label = cleanSheetName(newName)
+	sh.Label = cleanName(newName)
 	return f.AppendSheet(sh)
 }
 
@@ -616,8 +617,8 @@ func (f *File) RemoveSheet(name string) error {
 	f.sheets = slices.DeleteFunc(f.sheets, func(s *Sheet) bool {
 		return s.Name() == name
 	})
-	if n, ok := f.names[name]; ok && n == 1 && len(f.sheets) < size {
-		delete(f.names, name)
+	if size != len(f.sheets) {
+		f.names.Delete(name)
 	}
 	return nil
 }
@@ -627,13 +628,8 @@ func (f *File) AppendSheet(sheet grid.View) error {
 		return grid.ErrLock
 	}
 	sh := NewSheet(sheet.Name())
-	sh.Label = cleanSheetName(sheet.Name())
-	if n, ok := f.names[sh.Label]; ok {
-		f.names[sh.Label] = n + 1
-		sh.Label = fmt.Sprintf("%s_%03d", sh.Label, f.names[sh.Label])
-	} else {
-		f.names[sh.Label] = 1
-	}
+	sh.Label = cleanName(sheet.Name())
+	sh.Label = f.names.Next(sh.Label)
 	if err := sh.Copy(sheet); err != nil {
 		return err
 	}
@@ -710,7 +706,7 @@ func (f *File) sheetByName(name string) (*Sheet, error) {
 
 const maxSheetNameLen = 31
 
-func cleanSheetName(str string) string {
+func cleanName(str string) string {
 	ret := grid.CleanName(str)
 	if len(ret) > maxSheetNameLen {
 		ret = ret[:maxSheetNameLen]
