@@ -199,7 +199,7 @@ func (h *rowHandler) Open(rs *sax.Reader, e sax.E) error {
 	h.repeat = count
 	h.line++
 	row := &row{
-		Line: int64(h.line),
+		Line:     int64(h.line),
 	}
 	h.sheet.rows = append(h.sheet.rows, row)
 

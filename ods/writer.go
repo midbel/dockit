@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"compress/flate"
 	"io"
+	"strconv"
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/value"
@@ -149,8 +150,18 @@ func (z *writer) writeContent(file *File) {
 			attrs = append(attrs, createAttr("protected", "table", "true"))
 		}
 		sx.Open(tableName, attrs)
-		for _, row := range sh.rows {
-			sx.Open(rowName, nil)
+		for i, row := range sh.rows {
+			var attrs []sax.A
+			if i > 0 && row.Line - sh.rows[i-1].Line > 1 {
+				diff := row.Line - sh.rows[i-1].Line
+				attrs = append(attrs, createAttr("number-rows-repeated", "table", strconv.FormatInt(diff-1, 10)))
+			}
+			if row.Len() == 0 {
+				sx.Empty(rowName, attrs)
+				continue
+			}
+			
+			sx.Open(rowName, attrs)
 			for _, c := range row.Cells {
 				var (
 					typeName string
