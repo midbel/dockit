@@ -42,7 +42,7 @@ func (c *Cell) Reload(ctx value.Context) error {
 }
 
 type row struct {
-	Line int64
+	Line  int64
 	Cells []*Cell
 }
 
@@ -290,7 +290,12 @@ func (f *File) WriteFile(file string) error {
 }
 
 func (f *File) WriteTo(w io.Writer) error {
-	return nil
+	ws, err := writeFile(w)
+	if err != nil {
+		return err
+	}
+	defer ws.Close()
+	return ws.WriteFile(f)
 }
 
 func (f *File) Infos() []grid.ViewInfo {

@@ -15,11 +15,18 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-const mimeODS = "application/vnd.oasis.opendocument.spreadsheet"
+const officeVersion = "1.2"
 
 const (
-	tableNS = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
-	textNS  = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+	mimeODS = "application/vnd.oasis.opendocument.spreadsheet"
+	mimeXML = "text/xml"
+)
+
+const (
+	officeNS   = "urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+	tableNS    = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+	textNS     = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+	manifestNS = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"
 )
 
 type reader struct {

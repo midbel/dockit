@@ -39,7 +39,7 @@ func Open(file string) (grid.File, error) {
 		return ok
 	})
 	if ix < 0 {
-		return nil, fmt.Errorf("unable to open given %s - unsupported format", file)
+		return nil, fmt.Errorf("unable to open %s - unsupported format", file)
 	}
 	return registry[ix].Open(file)
 }

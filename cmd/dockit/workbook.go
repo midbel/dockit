@@ -23,7 +23,7 @@ var infoCmd = cli.Command{
 var mergeCmd = cli.Command{
 	Name:    "merge",
 	Summary: "Consolidate multiple spreadsheet files into a single workbooks",
-	Usage:   "merge [-o] [-r] <file1> <file2> [...<fileN>]",
+	Usage:   "merge [-f <out>] [-r] [-c] <file1> <file2> [...<fileN>]",
 	Handler: &MergeCommand{},
 }
 

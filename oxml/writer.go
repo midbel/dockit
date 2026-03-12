@@ -18,7 +18,6 @@ const startIx = 1000
 type writer struct {
 	base   string
 	writer *zip.Writer
-	io.Closer
 
 	lastUsedId int
 	err        error
@@ -29,9 +28,6 @@ func writeFile(w io.Writer) (*writer, error) {
 		base:       wbBaseDir,
 		writer:     zip.NewWriter(w),
 		lastUsedId: startIx,
-	}
-	if c, ok := w.(io.Closer); ok {
-		z.Closer = c
 	}
 	z.writer.RegisterCompressor(zip.Deflate, func(out io.Writer) (io.WriteCloser, error) {
 		return flate.NewWriter(out, flate.BestCompression)
@@ -57,10 +53,6 @@ func (z *writer) WriteFile(file *File) error {
 
 func (w *writer) Close() error {
 	return w.writer.Close()
-	// if w.Closer == nil {
-	// 	return nil
-	// }
-	// return w.Closer.Close()
 }
 
 func (z *writer) writeContentTypes(file *File) {
