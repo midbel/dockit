@@ -242,7 +242,9 @@ func (s *Sheet) put(cell grid.Cell) {
 	})
 	var r *row
 	if ix < 0 {
-		r = &row{}
+		r = &row{
+			Line: pos.Line,
+		}
 		s.rows = append(s.rows, r)
 	} else {
 		r = s.rows[ix]

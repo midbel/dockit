@@ -150,11 +150,11 @@ func (z *writer) writeContent(file *File) {
 		}
 		sx.Open(tableName, attrs)
 		for _, row := range sh.rows {
-			sx.Open(rowName, nil) 
+			sx.Open(rowName, nil)
 			for _, c := range row.Cells {
 				var (
 					typeName string
-					val =  c.Value()
+					val      = c.Value()
 				)
 				switch t := val.Type(); t {
 				case value.TypeText:
