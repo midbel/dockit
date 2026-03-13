@@ -16,6 +16,12 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+var dateFormats = []string{
+	"2006-01-02",
+	"2006-01-02T15:04:05",
+	"2006-01-02T15:04:05Z",
+}
+
 type reader struct {
 	reader *zip.ReadCloser
 	base   string
@@ -261,7 +267,12 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 		}
 		cell.parsed = value.Text(r.sharedStrings[n])
 	case TypeDate:
-		// date: TBW
+		for _, f := range dateFormats {
+			when, err := time.Parse(f, str)
+			if err == nil {
+				cell.parsed = value.Date(when)
+			}
+		}
 	case TypeInlineStr:
 		cell.parsed = value.Text(str)
 	case TypeBool:

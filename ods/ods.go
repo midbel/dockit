@@ -41,6 +41,10 @@ func (c *Cell) Reload(ctx value.Context) error {
 	return nil
 }
 
+func (c *Cell) Equal(other *Cell) bool {
+	return c.raw == other.raw
+}
+
 type row struct {
 	Line  int64
 	Cells []*Cell
@@ -115,11 +119,27 @@ func (s *Sheet) Sub(start, end layout.Position) grid.View {
 }
 
 func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
-	cell, _ := s.cells[pos]
+	cell, ok := s.cells[pos]
+	if !ok {
+		c := Cell{
+			Position: pos,
+			raw:      "",
+			parsed:   value.Empty(),
+		}
+		return &c, nil
+	}
 	return cell, nil
 }
 
 func (s *Sheet) Reload(ctx value.Context) error {
+	ctx = grid.EvalContext(ctx, grid.SheetContext(s))
+	for _, r := range s.rows {
+		for _, c := range r.Cells {
+			if err := c.Reload(ctx); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -246,6 +266,7 @@ func (s *Sheet) put(cell grid.Cell) {
 			Line: pos.Line,
 		}
 		s.rows = append(s.rows, r)
+		s.Size.Lines++
 	} else {
 		r = s.rows[ix]
 	}
@@ -256,6 +277,7 @@ func (s *Sheet) put(cell grid.Cell) {
 	}
 	r.Cells = append(r.Cells, c)
 	s.cells[pos] = c
+	s.Size.Columns = max(s.Size.Columns, c.Column)
 }
 
 type File struct {
@@ -305,7 +327,7 @@ func (f *File) Infos() []grid.ViewInfo {
 	for _, s := range f.sheets {
 		i := grid.ViewInfo{
 			Name:      s.Name(),
-			Active:    false,
+			Active:    s.Active,
 			Protected: s.Locked,
 			Hidden:    !s.Visible,
 			Size:      s.Size,
@@ -317,6 +339,16 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Reload() error {
+	ctx := grid.EvalContext(grid.FileContext(f))
+	for _, s := range f.sheets {
+		p, ok := ctx.(interface{ Push(value.Context) })
+		if ok {
+			p.Push(grid.SheetContext(s))
+		}
+		if err := s.Reload(ctx); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

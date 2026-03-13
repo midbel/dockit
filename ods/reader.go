@@ -27,6 +27,7 @@ const (
 	tableNS    = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
 	textNS     = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
 	manifestNS = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"
+	configNS   = "urn:oasis:names:tc:opendocument:xmlns:config:1.0"
 )
 
 type reader struct {
@@ -55,10 +56,10 @@ func (r *reader) Close() error {
 func (r *reader) ReadFile() (*File, error) {
 	file := NewFile()
 	r.readMime(file)
-	r.readSettings(file)
 	r.readMeta(file)
 	r.readStyle(file)
 	r.readContent(file)
+	r.readSettings(file)
 	return file, r.err
 }
 
@@ -81,16 +82,51 @@ func (r *reader) readMime(file *File) {
 	}
 }
 
-func (r *reader) readSettings(file *File) error {
-	return nil
+func (r *reader) readSettings(file *File) {
+	if r.invalid() || len(file.sheets) == 0 {
+		return
+	}
+	rs, err := r.openFile("settings.xml")
+	if err != nil {
+		return
+	}
+	var (
+		rx    = sax.NewReader(rs)
+		qn    = sax.ExpandedName("config-item", "config", configNS)
+		found bool
+	)
+	rx.Element(qn, func(r *sax.Reader, el sax.E) error {
+		attr := el.GetAttributeValue("name")
+		if attr == "ActiveTable" {
+			r.OnText(func(_ *sax.Reader, value string) error {
+				ix := slices.IndexFunc(file.sheets, func(sh *Sheet) bool {
+					return sh.Label == value
+				})
+				if ix > 0 {
+					file.sheets[ix].Active = true
+					found = true
+				}
+				return nil
+			})
+		}
+		return nil
+	})
+	if err := rx.Start(); err != nil {
+		r.err = err
+		return
+	}
+	if !found {
+		file.sheets[0].Active = true
+	}
+	return
 }
 
-func (r *reader) readMeta(file *File) error {
-	return nil
+func (r *reader) readMeta(file *File) {
+
 }
 
-func (r *reader) readStyle(file *File) error {
-	return nil
+func (r *reader) readStyle(file *File) {
+
 }
 
 func (r *reader) readContent(file *File) {
@@ -146,7 +182,7 @@ func (h *tableHandler) Open(rs *sax.Reader, e sax.E) error {
 	if vz := e.GetAttributeValue("display"); vz == "" || vz == "true" {
 		h.sheet.Visible = true
 	}
-	if lk := e.GetAttributeValue("protected"); lk == "" || lk == "true" {
+	if lk := e.GetAttributeValue("protected"); lk == "true" {
 		h.sheet.Locked = true
 	}
 
@@ -157,7 +193,7 @@ func (h *tableHandler) Open(rs *sax.Reader, e sax.E) error {
 
 func (h *tableHandler) Close(rs *sax.Reader, _ sax.E) error {
 	defer h.Reset()
-	h.file.sheets = append(h.file.sheets, h.sheet)
+	h.file.AppendSheet(h.sheet)
 	return nil
 }
 
@@ -184,6 +220,7 @@ func (h *rowHandler) Reset() {
 
 func (h *rowHandler) Open(rs *sax.Reader, e sax.E) error {
 	h.cell.Reset()
+	h.cell.Restart()
 
 	var (
 		val   = e.GetAttributeValue("number-rows-repeated")
@@ -199,7 +236,7 @@ func (h *rowHandler) Open(rs *sax.Reader, e sax.E) error {
 	h.repeat = count
 	h.line++
 	row := &row{
-		Line:     int64(h.line),
+		Line: int64(h.line),
 	}
 	h.sheet.rows = append(h.sheet.rows, row)
 
@@ -255,9 +292,12 @@ func handleCell(sh *Sheet) *cellHandler {
 	return h
 }
 
+func (h *cellHandler) Restart() {
+	h.column = 0
+}
+
 func (h *cellHandler) Reset() {
 	h.repeat = 1
-	h.column = 0
 	h.raw = ""
 	h.parsed = nil
 	h.text.Reset()
@@ -322,15 +362,13 @@ func (h *cellHandler) Close(rs *sax.Reader, e sax.E) error {
 		h.column += h.repeat
 		return nil
 	}
-	var (
-		ix  = len(h.sheet.rows)
-		row = h.sheet.rows[ix-1]
-	)
+
+	ix := len(h.sheet.rows)
 	for i := 0; i < h.repeat; i++ {
 		h.column++
+
 		cell := h.create(int64(ix))
-		row.Cells = append(row.Cells, cell)
-		h.sheet.cells[cell.Position] = cell
+		h.sheet.put(cell)
 	}
 
 	return nil
