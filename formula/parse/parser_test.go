@@ -9,31 +9,6 @@ import (
 	"github.com/midbel/dockit/layout"
 )
 
-// func FuzzParser(f *testing.F) {
-// 	f.Add("=A1 + 1")
-// 	f.Add("=A1 + sum(A3, 5, B10:C100)")
-// 	f.Add("=A1 + min(A3, B100) ^ (10 - 2)")
-// 	f.Add("=#AA143")
-// 	f.Add("upper('hello' & ' ' & 'word')")
-// 	f.Add("=A1 ++ 1")
-// 	f.Add("=sum(,)")
-// 	f.Add("=min(A1, )")
-
-// 	f.Fuzz(func(t *testing.T, input string) {
-// 		scan, err := Scan(strings.NewReader(input), ScanFormula)
-// 		if err != nil {
-// 			panic(initScanner(err))
-// 		}
-// 		ps, err := NewParser(scan)
-// 		if err != nil {
-// 			panic(initParser(err))
-// 		}
-// 		if _, err = ps.Parse(); err != nil {
-// 			panic(err)
-// 		}
-// 	})
-// }
-
 func TestParseFormula(t *testing.T) {
 	tests := []struct {
 		Expr string
@@ -56,6 +31,14 @@ func TestParseFormula(t *testing.T) {
 					NewCellAddr(layout.NewPosition(2, 1), false, false),
 					NewCellAddr(layout.NewPosition(3, 1), false, false),
 				},
+			),
+		},
+		{
+			Expr: "=A1 + sheet2!A2",
+			Want: NewBinary(
+				NewCellAddr(layout.NewPosition(1, 1), false, false),
+				NewCellAddr(layout.NewSheetPosition("sheet2", 2, 1), false, false),
+				op.Add,
 			),
 		},
 	}
@@ -462,12 +445,9 @@ func TestExpr(t *testing.T) {
 							NewCellAddr(layout.NewPosition(100, 1), false, false),
 						},
 					),
-					NewQualifiedAddr(
-						NewIdentifier("view"),
-						NewRangeAddr(
-							NewCellAddr(layout.NewPosition(1, 1), false, false),
-							NewCellAddr(layout.NewPosition(100, 1), false, false),
-						),
+					NewRangeAddr(
+						NewCellAddr(layout.NewSheetPosition("view", 1, 1), false, false),
+						NewCellAddr(layout.NewSheetPosition("view", 100, 1), false, false),
 					),
 					op.Add,
 				),

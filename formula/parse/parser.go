@@ -578,11 +578,26 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 	p.next()
 
+	id, ok := left.(Identifier)
+	if !ok {
+		return nil, p.makeError("identifier expected")
+	}
 	right, err := p.parse(powSheet)
 	if err != nil {
 		return nil, err
 	}
-	return NewQualifiedAddr(left, right), nil
+	switch r := right.(type) {
+	case CellAddr:
+		r.Position.Sheet = id.Ident()
+		right = r
+	case RangeAddr:
+		r.startAddr.Sheet = id.Ident()
+		r.endAddr.Sheet = id.Ident()
+		right = r
+	default:
+		return nil, p.makeError("address/range expected")
+	}
+	return right, nil
 }
 
 func parseAddress(p *Parser) (Expr, error) {
