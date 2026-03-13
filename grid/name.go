@@ -16,54 +16,48 @@ func CleanName(str string) string {
 }
 
 type NameIndex struct {
-	registry map[string]int
+	counter map[string]int
+	used    map[string]struct{}
 }
 
 func NewNameIndex() *NameIndex {
 	return &NameIndex{
-		registry: make(map[string]int),
+		counter: make(map[string]int),
+		used:    make(map[string]struct{}),
 	}
-}
-
-func (n *NameIndex) Available(name string) bool {
-	_, ok := n.registry[name]
-	return ok
-}
-
-func (n *NameIndex) Count(name string) int {
-	return n.registry[name]
 }
 
 func (n *NameIndex) Next(name string) string {
-	if !n.Available(name) {
-		n.reset(name)
-		return name
+	base := n.cutSuffix(name)
+	if _, ok := n.used[base]; !ok {
+		n.used[base] = struct{}{}
+		n.counter[base] = 0
+		return base
 	}
-	ix := n.update(name)
-	return fmt.Sprintf("%s_%03d", name, ix)
+
+	for {
+		n.counter[base]++
+		name := fmt.Sprintf("%s_%03d", base, n.counter[base])
+
+		if _, ok := n.used[name]; !ok {
+			n.used[name] = struct{}{}
+			return name
+		}
+	}
 }
 
 func (n *NameIndex) Delete(name string) {
+	delete(n.used, name)
+}
+
+func (n *NameIndex) cutSuffix(name string) string {
 	ix := strings.LastIndexByte(name, '_')
 	if ix < 0 {
-		return
+		return name
 	}
-	name = name[:ix]
-	if c, ok := n.registry[name]; ok {
-		c--
-		n.registry[name] = c
-		if c == 0 {
-			delete(n.registry, name)
-		}
+	trim := strings.TrimRightFunc(name[ix+1:], unicode.IsDigit)
+	if trim != "" {
+		return name
 	}
-
-}
-
-func (n *NameIndex) update(name string) int {
-	n.registry[name] += 1
-	return n.registry[name]
-}
-
-func (n *NameIndex) reset(name string) {
-	n.registry[name] = 0
+	return name[:ix]
 }
