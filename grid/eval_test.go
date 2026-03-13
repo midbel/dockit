@@ -13,6 +13,50 @@ type FormulaTestCase struct {
 	Want    string
 }
 
+func TestEvalErrors(t *testing.T) {
+	tests := []struct {
+		Comment string
+		Formula string
+		Want    string
+	}{
+		{
+			Comment: "division by zero",
+			Formula: "=1/0",
+			Want:    "#DIV/0!",
+		},
+		{
+			Comment: "incompatible types",
+			Formula: "=\"foo\"+1",
+			Want:    "#VALUE!",
+		},
+		{
+			Comment: "references error",
+			Formula: "=Z9999",
+			Want:    "#REF!",
+		},
+		{
+			Comment: "unknown function",
+			Formula: "=FOOBAR(1)",
+			Want:    "#NAME?",
+		},
+	}
+	ctx := getContext()
+	for _, c := range tests {
+		val, err := grid.EvalString(c.Formula, ctx)
+		if err != nil {
+			t.Errorf("%s: error executing formula: %s", c.Comment, err)
+			continue
+		}
+		if val.Type() != value.TypeError {
+			t.Errorf("%s: expected error type, got %s", c.Comment, val.Type())
+			continue
+		}
+		if got := val.String(); got != c.Want {
+			t.Errorf("%s: result mismatched! want %s, got %s", c.Comment, c.Want, got)
+		}
+	}
+}
+
 func TestBasicFormula(t *testing.T) {
 	tests := []FormulaTestCase{
 		{

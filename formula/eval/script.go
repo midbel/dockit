@@ -459,7 +459,7 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 		v.pushValue(val)
 		return err
 	}
-	if fn, ok := builtins.Registry[id.Ident()]; ok {
+	if fn, err := builtins.Lookup(id.Ident()); err == nil {
 		var args []value.Value
 		for _, a := range expr.Args() {
 			if err := v.visitExpr(a); err != nil {
