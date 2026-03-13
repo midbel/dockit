@@ -12,7 +12,12 @@ type Position struct {
 }
 
 func NewPosition(line, column int64) Position {
+	return NewSheetPosition("", line, column)
+}
+
+func NewSheetPosition(sheet string, line, column int64) Position {
 	return Position{
+		Sheet:  sheet,
 		Line:   line,
 		Column: column,
 	}

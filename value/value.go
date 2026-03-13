@@ -60,6 +60,10 @@ func IsArray(v Value) bool {
 	return v.Kind() == KindArray
 }
 
+func Rows(rs ...[]ScalarValue) [][]ScalarValue {
+	return rs
+}
+
 type Context interface {
 	At(layout.Position) (Value, error)
 	Range(layout.Position, layout.Position) (Value, error)

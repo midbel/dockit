@@ -19,6 +19,14 @@ func Eval(expr value.Formula, ctx value.Context) (value.Value, error) {
 	return eval(e.expr, ctx)
 }
 
+func EvalString(expr string, ctx value.Context) (value.Value, error) {
+	e, err := ParseFormula(expr)
+	if err != nil {
+		return nil, err
+	}
+	return Eval(e, ctx)
+}
+
 func eval(expr parse.Expr, ctx value.Context) (value.Value, error) {
 	switch e := expr.(type) {
 	case parse.Binary:
@@ -49,7 +57,6 @@ func evalBinary(e parse.Binary, ctx value.Context) (value.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	switch e.Op() {
 	case op.Add:
 		return value.Add(left, right)

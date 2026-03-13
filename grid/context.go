@@ -170,47 +170,9 @@ func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
 	return ArrayView(NewBoundedView(c.view, rg)), nil
 }
 
-// func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
-// 	if start.Sheet != end.Sheet {
-// 		return nil, fmt.Errorf("cross sheet range not allowed")
-// 	}
-// 	var sh View
-// 	if start.Sheet == "" || start.Sheet == c.view.Name() {
-// 		sh = c.view
-// 	} else {
-// 		return value.ErrRef, nil
-// 	}
-// 	var (
-// 		startLine = min(start.Line, end.Line)
-// 		endLine   = max(start.Line, end.Line)
-// 		startCol  = min(start.Column, end.Column)
-// 		endCol    = max(start.Column, end.Column)
-// 		height    = int(endLine - startLine + 1)
-// 		width     = int(endCol - startCol + 1)
-// 		data      = make([][]value.ScalarValue, height)
-// 	)
-
-// 	for i := 0; i < height; i++ {
-// 		data[i] = make([]value.ScalarValue, width)
-
-// 		for j := 0; j < width; j++ {
-// 			pos := layout.Position{
-// 				Line:   startLine + int64(i),
-// 				Column: startCol + int64(j),
-// 			}
-// 			cell, err := sh.Cell(pos)
-// 			if err != nil || cell == nil {
-// 				data[i][j] = nil
-// 				continue
-// 			}
-// 			data[i][j] = cell.Value()
-// 		}
-// 	}
-// 	return value.NewArray(data), nil
-// }
-
 func (c sheetContext) At(pos layout.Position) (value.Value, error) {
 	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
+		pos.Sheet = ""
 		cell, err := c.view.Cell(pos)
 		if err != nil || cell == nil {
 			return value.ErrRef, nil
