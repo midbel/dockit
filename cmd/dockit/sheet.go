@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 
 	"github.com/midbel/cli"
@@ -196,7 +197,7 @@ func (c PrintCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := wb.Reload(); err != nil {
+	if err := wb.Reload(); err != nil && !errors.Is(err, grid.ErrSupported) {
 		return err
 	}
 	var sheet grid.View
