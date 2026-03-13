@@ -48,6 +48,58 @@ var printCmd = cli.Command{
 	Handler: &PrintCommand{},
 }
 
+var lockCmd = cli.Command{
+	Name:    "lock",
+	Summary: "Lock a sheet or all in a spreadsheet",
+	Usage:   "lock <file> [<sheet>]",
+	Handler: &LockCommand{},
+}
+
+var unlockCmd = cli.Command{
+	Name:    "unlock",
+	Summary: "Unlock a sheet or all from a spreadsheet",
+	Usage:   "unlock <file> [<sheet>]",
+	Handler: &UnlockCommand{},
+}
+
+type LockCommand struct{}
+
+func (c LockCommand) Run(args []string) error {
+	set := cli.NewFlagSet("lock")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	return updateFile(set.Arg(0), func(wb grid.File) error {
+		k, ok := wb.(interface{ LockSheet(string) })
+		if !ok {
+			return nil
+		}
+		for i := 1; i < set.NArg(); i++ {
+			k.LockSheet(set.Arg(i))
+		}
+		return nil
+	})
+}
+
+type UnlockCommand struct{}
+
+func (c UnlockCommand) Run(args []string) error {
+	set := cli.NewFlagSet("unlock")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	return updateFile(set.Arg(0), func(wb grid.File) error {
+		k, ok := wb.(interface{ UnLockSheet(string) })
+		if !ok {
+			return nil
+		}
+		for i := 1; i < set.NArg(); i++ {
+			k.UnLockSheet(set.Arg(i))
+		}
+		return nil
+	})
+}
+
 type AddCommand struct{}
 
 func (c AddCommand) Run(args []string) error {

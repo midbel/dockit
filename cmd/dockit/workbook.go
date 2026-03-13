@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -59,7 +60,7 @@ func (c MergeCommand) Run(args []string) error {
 	}
 
 	if *reload {
-		if err := wb.Reload(); err != nil {
+		if err := wb.Reload(); err != nil && !errors.Is(err, grid.ErrSupported) {
 			return err
 		}
 	}
@@ -123,13 +124,13 @@ func (c GetInfoCommand) Run(args []string) error {
 		tbl cli.Table
 		rd  = cli.NewTableRenderer(os.Stdout)
 	)
-	tbl.Headers = []string{"sheet", "active", "locked", "visibility", "rows", "columns"}
+	tbl.Headers = []string{"sheet", "active", "locked", "visible", "rows", "columns"}
 	for _, i := range file.Infos() {
 		r := []string{
 			i.Name,
-			strconv.FormatBool(i.Active),
-			strconv.FormatBool(i.Protected),
-			strconv.FormatBool(!i.Hidden),
+			cli.MarkBool(i.Active),
+			cli.MarkBool(i.Protected),
+			cli.MarkBool(!i.Hidden),
 			strconv.FormatInt(i.Size.Lines, 10),
 			strconv.FormatInt(i.Size.Columns, 10),
 		}
@@ -145,11 +146,6 @@ func (c GetInfoCommand) openFile(file string) (grid.File, error) {
 	return workbook.OpenFormat(file, c.Format)
 }
 
-const (
-	oxmlStr = "openxml"
-	odocStr = "opendocument"
-)
-
 type GetBuiltinCommand struct{}
 
 func (c GetBuiltinCommand) Run(args []string) error {
@@ -161,15 +157,15 @@ func (c GetBuiltinCommand) Run(args []string) error {
 		list = builtins.List()
 		tbl  cli.Table
 	)
-	tbl.Headers = []string{"name", "desc", "category", "parameter", oxmlStr, odocStr}
+	tbl.Headers = []string{"name", "desc", "category", "parameter", "openxml", "opendoc"}
 	for _, b := range list {
 		r := []string{
 			b.Name,
 			b.Desc,
 			b.Category,
-			cli.Center(strconv.Itoa(len(b.Params)), len("parameter")),
-			cli.Center(cli.MarkBool(b.OxmlSupported()), len(oxmlStr)),
-			cli.Center(cli.MarkBool(b.OdsSupported()), len(odocStr)),
+			strconv.Itoa(len(b.Params)),
+			cli.MarkBool(b.OxmlSupported()),
+			cli.MarkBool(b.OdsSupported()),
 		}
 		tbl.Rows = append(tbl.Rows, r)
 	}
