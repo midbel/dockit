@@ -12,11 +12,19 @@ func IsNumber(args []value.Value) (value.Value, error) {
 }
 
 func Min(args []value.Value) (value.Value, error) {
-	var res float64
+	var (
+		res float64
+		ix  int
+	)
 	err := Each(args, func(v value.Value) error {
 		f, err := value.CastToFloat(v)
 		if err == nil {
-			res = min(res, float64(f))
+			ix++
+			if ix == 1 {
+				res = float64(f)
+			} else {
+				res = min(res, float64(f))
+			}
 		}
 		return err
 	})
