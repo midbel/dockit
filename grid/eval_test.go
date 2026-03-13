@@ -8,11 +8,13 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-func TestFormula(t *testing.T) {
-	tests := []struct {
-		Formula string
-		Want    string
-	}{
+type FormulaTestCase struct {
+	Formula string
+	Want    string
+}
+
+func TestBasicFormula(t *testing.T) {
+	tests := []FormulaTestCase{
 		{
 			Formula: "=B1+B2",
 			Want:    "7",
@@ -46,6 +48,51 @@ func TestFormula(t *testing.T) {
 			Want:    "foo quz",
 		},
 		{
+			Formula: "=2^2",
+			Want:    "4",
+		},
+	}
+	runTests(t, tests)
+}
+
+func TestBuiltins(t *testing.T) {
+	t.Run("arithmetic", testMathBuiltins)
+	t.Run("text", testStringBuiltins)
+}
+
+func testStringBuiltins(t *testing.T) {
+	tests := []FormulaTestCase{
+		{
+			Formula: "=UPPER(sheet2!A1)",
+			Want:    "QUZ",
+		},
+		{
+			Formula: "=lower(UPPER(sheet2!A1))",
+			Want:    "quz",
+		},
+		{
+			Formula: "concat(A1, A2, sheet2!A1, sheet2!A2)",
+			Want:    "foobarquzbee",
+		},
+		{
+			Formula: "len('foobar')",
+			Want:    "6",
+		},
+		{
+			Formula: "=istext(sheet1!A1)",
+			Want:    "true",
+		},
+		{
+			Formula: "=istext(sheet1!B1)",
+			Want:    "false",
+		},
+	}
+	runTests(t, tests)
+}
+
+func testMathBuiltins(t *testing.T) {
+	tests := []FormulaTestCase{
+		{
 			Formula: "=MIN(B1:B2)",
 			Want:    "2",
 		},
@@ -54,10 +101,35 @@ func TestFormula(t *testing.T) {
 			Want:    "5",
 		},
 		{
-			Formula: "=UPPER(sheet2!A1)",
-			Want: "QUZ",
+			Formula: "=sum(sheet2!B1:B2, sheet1!B1:B2, 3) / 5",
+			Want:    "5",
+		},
+		{
+			Formula: "=pow(2, 2)",
+			Want:    "4",
+		},
+		{
+			Formula: "=abs(2)",
+			Want:    "2",
+		},
+		{
+			Formula: "=abs(-2)",
+			Want:    "2",
+		},
+		{
+			Formula: "=isnumber(sheet1!A1)",
+			Want:    "false",
+		},
+		{
+			Formula: "=isnumber(sheet1!B1)",
+			Want:    "true",
 		},
 	}
+	runTests(t, tests)
+}
+
+func runTests(t *testing.T, tests []FormulaTestCase) {
+	t.Helper()
 	ctx := getContext()
 	for _, c := range tests {
 		val, err := grid.EvalString(c.Formula, ctx)
