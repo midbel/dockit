@@ -50,7 +50,7 @@ func CastToFloat(val Value) (Float, error) {
 	case toFloat:
 		x, err := v.ToFloat()
 		if err != nil {
-			return 0, ErrCast
+			return 0, errorCast(val, TypeNumber)
 		}
 		f, ok := x.(Float)
 		if !ok {
@@ -58,7 +58,7 @@ func CastToFloat(val Value) (Float, error) {
 		}
 		return f, nil
 	default:
-		return 0, ErrCast
+		return 0, errorCast(val, TypeNumber)
 	}
 }
 
@@ -69,7 +69,7 @@ func CastToText(val Value) (Text, error) {
 	case toText:
 		x, err := v.ToText()
 		if err != nil {
-			return "", ErrCast
+			return "", errorCast(val, TypeText)
 		}
 		f, ok := x.(Text)
 		if !ok {
@@ -77,7 +77,7 @@ func CastToText(val Value) (Text, error) {
 		}
 		return f, nil
 	default:
-		return "", ErrCast
+		return "", errorCast(val, TypeText)
 	}
 }
 
@@ -89,7 +89,7 @@ func CastToDate(val Value) (Date, error) {
 		x, err := v.ToDate()
 		if err != nil {
 			var z Date
-			return z, ErrCast
+			return z, errorCast(val, TypeDate)
 		}
 		f, ok := x.(Date)
 		if !ok {
@@ -98,6 +98,10 @@ func CastToDate(val Value) (Date, error) {
 		return f, nil
 	default:
 		var z Date
-		return z, ErrCast
+		return z, errorCast(val, TypeDate)
 	}
+}
+
+func errorCast(val Value, target string) error {
+	return fmt.Errorf("%s(%s): %w (%s)", val.Type(), val.String(), ErrCast, target)
 }
