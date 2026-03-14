@@ -18,9 +18,9 @@ func (p ExprPredicate) Test(ctx value.Context) (bool, error) {
 	if p.expr == nil {
 		return false, nil
 	}
-	val, err := p.expr.Eval(ctx)
-	if err != nil {
-		return false, err
+	val := p.expr.Eval(ctx)
+	if value.IsError(val) {
+		return false, nil
 	}
 	return value.True(val), nil
 }

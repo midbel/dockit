@@ -1,17 +1,16 @@
 package types
 
 import (
+	"github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/value"
 )
 
-type BuiltinFunc func([]value.Value) (value.Value, error)
-
 type Function struct {
 	name string
-	fn   BuiltinFunc
+	fn   builtins.BuiltinFunc
 }
 
-func NewFunction(name string, fn BuiltinFunc) value.FunctionValue {
+func NewFunction(name string, fn builtins.BuiltinFunc) value.FunctionValue {
 	return Function{
 		name: name,
 		fn:   fn,
@@ -30,12 +29,12 @@ func (f Function) String() string {
 	return f.name
 }
 
-func (f Function) Call(args []value.Arg, ctx value.Context) (value.Value, error) {
+func (f Function) Call(args []value.Arg, ctx value.Context) value.Value {
 	var values []value.Value
 	for i := range args {
-		a, err := args[i].Eval(ctx)
-		if err != nil {
-			return nil, err
+		a, _ := args[i].Eval(ctx)
+		if value.IsError(a) {
+			return a
 		}
 		values = append(values, a)
 	}

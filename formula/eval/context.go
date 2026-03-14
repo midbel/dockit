@@ -162,12 +162,9 @@ func (c *EngineContext) Print(v value.Value) {
 	c.printer.Format(v, c.formatter)
 }
 
-func (c *EngineContext) Resolve(ident string) (value.Value, error) {
+func (c *EngineContext) Resolve(ident string) value.Value {
 	if obj, ok := c.currentValue.(value.ObjectValue); ok {
-		v, err := obj.Get(ident)
-		if err == nil {
-			return v, err
-		}
+		return obj.Get(ident)
 	}
 	return c.ctx.Resolve(ident)
 }

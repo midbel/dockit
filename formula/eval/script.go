@@ -113,12 +113,9 @@ func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	if !ok {
 		return fmt.Errorf("object expected")
 	}
-	val, err := obj.Get(expr.Property())
-	if err != nil {
-		val = value.ErrValue
-	}
+	val := obj.Get(expr.Property())
 	v.pushValue(val)
-	return err
+	return nil
 }
 
 func (v *evalVisitor) VisitTemplate(expr parse.Template) error {
@@ -247,34 +244,39 @@ func (v *evalVisitor) VisitBinary(expr parse.Binary) error {
 }
 
 func (v *evalVisitor) evalScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+	if err := value.HasErrors(left, right); err != nil {
+		return err, nil
+	}
+	var ret value.Value
 	switch oper {
 	case op.Add:
-		return value.Add(left, right)
+		ret = value.Add(left, right)
 	case op.Sub:
-		return value.Sub(left, right)
+		ret = value.Sub(left, right)
 	case op.Mul:
-		return value.Mul(left, right)
+		ret = value.Mul(left, right)
 	case op.Div:
-		return value.Div(left, right)
+		ret = value.Div(left, right)
 	case op.Pow:
-		return value.Pow(left, right)
+		ret = value.Pow(left, right)
 	case op.Concat:
-		return value.Concat(left, right)
+		ret = value.Concat(left, right)
 	case op.Eq:
-		return value.Eq(left, right)
+		ret = value.Eq(left, right)
 	case op.Ne:
-		return value.Ne(left, right)
+		ret = value.Ne(left, right)
 	case op.Lt:
-		return value.Lt(left, right)
+		ret = value.Lt(left, right)
 	case op.Le:
-		return value.Le(left, right)
+		ret = value.Le(left, right)
 	case op.Gt:
-		return value.Gt(left, right)
+		ret = value.Gt(left, right)
 	case op.Ge:
-		return value.Ge(left, right)
+		ret = value.Ge(left, right)
 	default:
-		return value.ErrValue, nil
+		ret = value.ErrValue
 	}
+	return ret, nil
 }
 
 func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
@@ -285,20 +287,17 @@ func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op)
 	if err != nil {
 		return value.ErrValue, nil
 	}
-	err = arr.Apply(func(val value.ScalarValue) (value.ScalarValue, error) {
+	arr.Apply(func(val value.ScalarValue) value.ScalarValue {
 		ret, err := v.evalScalarBinary(left, val, oper)
 		if err != nil {
-			return value.ErrValue, err
+			return value.ErrValue
 		}
 		scalar, ok := ret.(value.ScalarValue)
 		if !ok {
-			return value.ErrValue, nil
+			return value.ErrValue
 		}
-		return scalar, nil
+		return scalar
 	})
-	if err != nil {
-		return value.ErrValue, nil
-	}
 	return arr, nil
 }
 
@@ -311,20 +310,17 @@ func (v *evalVisitor) evalArrayBinary(left, right value.Value, oper op.Op) (valu
 	if err != nil {
 		return value.ErrValue, nil
 	}
-	res, err := larr.ApplyArray(rarr, func(left, right value.ScalarValue) (value.ScalarValue, error) {
+	res := larr.ApplyArray(rarr, func(left, right value.ScalarValue) value.ScalarValue {
 		ret, err := v.evalScalarBinary(left, right, oper)
 		if err != nil {
-			return value.ErrValue, err
+			return value.ErrValue
 		}
 		scalar, ok := ret.(value.ScalarValue)
 		if !ok {
-			return value.ErrValue, nil
+			return value.ErrValue
 		}
-		return scalar, nil
+		return scalar
 	})
-	if err != nil {
-		return value.ErrValue, err
-	}
 	return res, nil
 }
 
@@ -467,11 +463,9 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 			}
 			args = append(args, v.popValue())
 		}
-		val, err := fn(args)
-		if err == nil {
-			v.pushValue(val)
-		}
-		return err
+		val := fn(args)
+		v.pushValue(val)
+		return nil
 	}
 	return fmt.Errorf("%s: builtin undefined", id.Ident())
 }
@@ -563,9 +557,9 @@ func (v *evalVisitor) VisitQualifiedCellAddr(expr parse.QualifiedCellAddr) error
 
 	switch a := expr.Addr().(type) {
 	case parse.CellAddr:
-		val, err = v.ctx.Context().At(a.Position)
+		val = v.ctx.Context().At(a.Position)
 	case parse.RangeAddr:
-		val, err = v.ctx.Context().Range(a.StartAt().Position, a.EndAt().Position)
+		val = v.ctx.Context().Range(a.StartAt().Position, a.EndAt().Position)
 	default:
 		val = value.ErrValue
 	}
@@ -580,12 +574,8 @@ func (v *evalVisitor) VisitCellAddr(expr parse.CellAddr) error {
 	}
 	defer cl.Close()
 
-	val, err := v.ctx.Context().At(expr.Position)
-	if err == nil {
-		v.pushValue(val)
-	} else {
-		v.pushValue(value.ErrValue)
-	}
+	val := v.ctx.Context().At(expr.Position)
+	v.pushValue(val)
 	return nil
 }
 
@@ -620,14 +610,14 @@ func (v *evalVisitor) normalize(val value.Value) (value.Value, error) {
 		defer cl.Close()
 		rg := val.Range()
 
-		return v.ctx.Context().Range(rg.Starts, rg.Ends)
+		return v.ctx.Context().Range(rg.Starts, rg.Ends), nil
 	default:
 		return val, nil
 	}
 }
 
 func (v *evalVisitor) resolve(ident string) (value.Value, error) {
-	return v.ctx.Resolve(ident)
+	return v.ctx.Resolve(ident), nil
 }
 
 func (v *evalVisitor) top() value.Value {

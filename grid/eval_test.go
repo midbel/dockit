@@ -199,7 +199,7 @@ func assertBoolResult(t *testing.T, val value.Value) {
 
 func assertKnownError(t *testing.T, val value.Value) {
 	if !value.IsError(val) {
-		return 
+		return
 	}
 	switch val {
 	case value.ErrNull:

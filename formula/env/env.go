@@ -1,23 +1,9 @@
 package env
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
-
-var (
-	ErrUndefined = errors.New("undefined identifier")
-	ErrAvailable = errors.New("not available")
-)
-
-type Builtin interface {
-	Call(args []value.Value) (value.Value, error)
-	Arity() int
-	Variadic() bool
-}
 
 type Environment struct {
 	values map[string]value.Value
@@ -30,22 +16,22 @@ func Empty() *Environment {
 	return &ctx
 }
 
-func (c *Environment) Resolve(ident string) (value.Value, error) {
+func (c *Environment) Resolve(ident string) value.Value {
 	v, ok := c.values[ident]
 	if ok {
-		return v, nil
+		return v
 	}
-	return nil, fmt.Errorf("%s: %w", ident, ErrUndefined)
+	return value.ErrName
 }
 
 func (c *Environment) Define(ident string, val value.Value) {
 	c.values[ident] = val
 }
 
-func (c *Environment) At(_ layout.Position) (value.Value, error) {
-	return nil, ErrAvailable
+func (c *Environment) At(_ layout.Position) value.Value {
+	return value.ErrRef
 }
 
-func (c *Environment) Range(_, _ layout.Position) (value.Value, error) {
-	return nil, ErrAvailable
+func (c *Environment) Range(_, _ layout.Position) value.Value {
+	return value.ErrRef
 }

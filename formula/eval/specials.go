@@ -122,9 +122,9 @@ func (i inspectForm) inspectSlice(eg Runnable, expr parse.Slice, ctx *EngineCont
 }
 
 func (i inspectForm) inspectIdent(eg Runnable, expr parse.Identifier, ctx *EngineContext) (value.Value, error) {
-	val, err := ctx.Resolve(expr.Ident())
-	if err != nil {
-		return value.ErrValue, err
+	val := ctx.Resolve(expr.Ident())
+	if value.IsError(val) {
+		return val, nil
 	}
 	if i, ok := val.(interface{ Inspect() *types.InspectValue }); ok {
 		return i.Inspect(), nil
