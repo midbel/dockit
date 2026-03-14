@@ -1,6 +1,7 @@
 package grid_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/midbel/dockit/flat"
@@ -117,6 +118,59 @@ func testBasic(t *testing.T) {
 		},
 	}
 	runTests(t, tests)
+}
+
+func testCompareGenerated(t *testing.T) {
+	values := []string{
+		"1",
+		"5",
+		"\"foo\"",
+		"\"bar\"",
+		"true",
+		"false",
+	}
+	operators := []string{"=", "<>", ">", ">=", "<", "<="}
+
+	var tests []string
+	for _, left := range values {
+		for _, right := range values {
+			for _, op := range operators {
+				c := fmt.Sprintf("=%s %s %s", left, op, right)
+				tests = append(tests, c)
+			}
+		}
+	}
+	ctx := getContext()
+	for _, c := range tests {
+		val, err := grid.EvalString(c, ctx)
+		if err != nil {
+			t.Errorf("%s: error executing formula: %s", c, err)
+			continue
+		}
+		if !value.IsScalar(val) && !value.IsError(val) {
+			t.Errorf("comparison should produces a scalar value")
+			continue
+		}
+		if value.IsScalar(val) {
+			if got := val.String(); got != "true" && got != "false" {
+				t.Errorf("boolean should be true or false! got %s", got)
+			}
+			continue
+		}
+		if value.IsError(val) {
+			switch val {
+			case value.ErrNull:
+			case value.ErrDiv0:
+			case value.ErrValue:
+			case value.ErrRef:
+			case value.ErrName:
+			case value.ErrNum:
+			case value.ErrNA:
+			default:
+				t.Errorf("unknown error return: %s", val.String())
+			}
+		}
+	}
 }
 
 func testCompare(t *testing.T) {
