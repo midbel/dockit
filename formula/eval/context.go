@@ -164,7 +164,10 @@ func (c *EngineContext) Print(v value.Value) {
 
 func (c *EngineContext) Resolve(ident string) value.Value {
 	if obj, ok := c.currentValue.(value.ObjectValue); ok {
-		return obj.Get(ident)
+		val :=  obj.Get(ident)
+		if !value.IsError(val) {
+			return val
+		}
 	}
 	return c.ctx.Resolve(ident)
 }
