@@ -151,7 +151,7 @@ func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
 		return err
 	}
 	val, err := v.normalize(v.popValue())
-	if err == nil {
+	if err != nil {
 		return err
 	}
 	return lv.Set(val)

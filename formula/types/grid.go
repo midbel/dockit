@@ -69,29 +69,29 @@ func (c *File) File() grid.File {
 	return c.file
 }
 
-func (c *File) Get(ident string) (value.Value, error) {
+func (c *File) Get(ident string) value.Value {
 	switch ident {
 	case "names":
-		return value.Float(0), nil
+		return value.Float(0)
 	case "sheets":
 		x := c.file.Sheets()
-		return value.Float(float64(len(x))), nil
+		return value.Float(float64(len(x)))
 	case "readonly":
-		return value.Boolean(c.ro), nil
+		return value.Boolean(c.ro)
 	case "protected":
-		return value.Boolean(false), nil
+		return value.Boolean(false)
 	case "active":
 		sh, err := c.file.ActiveSheet()
 		if err != nil {
-			return value.ErrValue, nil
+			return value.ErrNA
 		}
-		return newView(sh, c.ro), nil
+		return newView(sh, c.ro)
 	default:
 		v, err := c.Sheet(ident)
 		if err == nil {
-			return v, nil
+			return v
 		}
-		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
+		return value.ErrName
 	}
 }
 
@@ -158,40 +158,40 @@ func (c *View) Inspect() *InspectValue {
 	return iv
 }
 
-func (c *View) Get(ident string) (value.Value, error) {
+func (c *View) Get(ident string) value.Value {
 	switch ident {
 	case "name":
-		return value.Text(c.view.Name()), nil
+		return value.Text(c.view.Name())
 	case "lines":
 		rg := c.view.Bounds()
 		lines := rg.Ends.Line - rg.Starts.Line
-		return value.Float(float64(lines)), nil
+		return value.Float(float64(lines))
 	case "columns":
 		rg := c.view.Bounds()
 		lines := rg.Ends.Column - rg.Starts.Column
-		return value.Float(float64(lines)), nil
+		return value.Float(float64(lines))
 	case "cells":
 		var count int
 		for x := range c.view.Rows() {
 			count += len(x)
 		}
-		return value.Float(float64(count)), nil
+		return value.Float(float64(count))
 	case "empty":
-		return value.Float(float64(0)), nil
+		return value.Float(float64(0))
 	case "readonly":
-		return value.Boolean(c.ro), nil
+		return value.Boolean(c.ro)
 	case "protected":
 		var locked bool
 		if k, ok := c.view.(interface{ IsLock() bool }); ok {
 			locked = k.IsLock()
 		}
-		return value.Boolean(locked), nil
+		return value.Boolean(locked)
 	case "active":
-		return value.Boolean(false), nil
+		return value.Boolean(false)
 	case "index":
-		return value.Float(float64(0)), nil
+		return value.Float(float64(0))
 	default:
-		return nil, fmt.Errorf("%s: %w", ident, value.ErrProp)
+		return value.ErrName
 	}
 }
 
