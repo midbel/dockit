@@ -165,6 +165,18 @@ func testCompare(t *testing.T) {
 			Formula: "=2>=1",
 			Want:    "true",
 		},
+		{
+			Formula: "=\"foobar\" = \"foobar\"",
+			Want:    "true",
+		},
+		{
+			Formula: "=\"foo\" = \"bar\"",
+			Want:    "false",
+		},
+		{
+			Formula: "=\"foo\" <> \"bar\"",
+			Want:    "true",
+		},
 	}
 	runTests(t, tests)
 }

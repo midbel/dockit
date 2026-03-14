@@ -302,16 +302,17 @@ func (s *Scanner) scanOperator(tok *Token) {
 		}
 	case langle:
 		tok.Type = op.Lt
-		s.read()
-		if s.char == equal {
+		if s.peek() == equal {
+			s.read()
 			tok.Type = op.Le
-		} else if s.char == rangle {
+		} else if s.peek() == rangle {
+			s.read()
 			tok.Type = op.Ne
 		}
 	case rangle:
 		tok.Type = op.Gt
-		s.read()
-		if s.char == equal {
+		if s.peek() == equal {
+			s.read()
 			tok.Type = op.Ge
 		}
 	case equal:
