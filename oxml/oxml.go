@@ -237,7 +237,13 @@ func (s *Sheet) Infos() grid.EvalInfo {
 		Tops:     make(map[string]int),
 	}
 	for _, c := range s.cells {
-		if c.formula == nil {
+		if c.formula != nil {
+			i.Formulas++
+		}
+		if value.IsError(c.parsed) {
+			i.Errors++
+		}
+		if !value.IsError(c.parsed) && c.formula == nil {
 			i.Constants++
 		}
 	}

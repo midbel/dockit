@@ -49,18 +49,30 @@ func IsText(v Value) bool {
 }
 
 func IsScalar(v Value) bool {
+	if v == nil {
+		return false
+	}
 	return v.Kind() == KindScalar
 }
 
 func IsObject(v Value) bool {
+	if v == nil {
+		return false
+	}
 	return v.Kind() == KindObject
 }
 
 func IsArray(v Value) bool {
+	if v == nil {
+		return false
+	}
 	return v.Kind() == KindArray
 }
 
 func IsError(v Value) bool {
+	if v == nil {
+		return false
+	}
 	return v.Kind() == KindError && v.Type() == TypeError
 }
 

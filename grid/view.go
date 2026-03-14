@@ -118,7 +118,8 @@ type MutableView interface {
 type EvalInfo struct {
 	Name      string
 	Cells     int
-	Formula   int
+	Formulas   int
+	Errors   int
 	Constants int
 	Builtins  map[string]int
 	Tops      map[string]int

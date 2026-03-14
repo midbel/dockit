@@ -102,7 +102,8 @@ func (c DepCommand) Run(args []string) error {
 	)
 	tbl1.Rows = [][]string{
 		{"Cells", strconv.Itoa(info.Cells)},
-		{"Formula", strconv.Itoa(info.Formula)},
+		{"Formula", strconv.Itoa(info.Formulas)},
+		{"Errors", strconv.Itoa(info.Errors)},
 		{"Constants", strconv.Itoa(info.Constants)},
 		{"Edges", ""},
 		{"Max Depth", ""},
