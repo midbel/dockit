@@ -115,6 +115,15 @@ type MutableView interface {
 	ClearRange(*layout.Range) error
 }
 
+type EvalInfo struct {
+	Name      string
+	Cells     int
+	Formula   int
+	Constants int
+	Builtins  map[string]int
+	Tops      map[string]int
+}
+
 type ViewInfo struct {
 	Name      string
 	Active    bool
