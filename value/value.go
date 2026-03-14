@@ -253,7 +253,7 @@ func Lt(left, right Value) Value {
 	if err != nil {
 		return ErrValue
 	}
-	return Boolean(!ok)
+	return Boolean(ok)
 }
 
 func Le(left, right Value) Value {

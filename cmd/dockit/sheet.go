@@ -49,6 +49,13 @@ var printCmd = cli.Command{
 	Handler: &PrintCommand{},
 }
 
+var depsCmd = cli.Command{
+	Name:    "deps",
+	Summary: "Print dependencies information",
+	Usage:   "deps <file>",
+	Handler: &DepCommand{},
+}
+
 var lockCmd = cli.Command{
 	Name:    "lock",
 	Summary: "Lock a sheet or all in a spreadsheet",
@@ -61,6 +68,16 @@ var unlockCmd = cli.Command{
 	Summary: "Unlock a sheet or all from a spreadsheet",
 	Usage:   "unlock <file> [<sheet>]",
 	Handler: &UnlockCommand{},
+}
+
+type DepCommand struct{}
+
+func (c DepCommand) Run(args []string) error {
+	set := cli.NewFlagSet("deps")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	return nil
 }
 
 type LockCommand struct{}

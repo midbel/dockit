@@ -25,8 +25,23 @@ func TestEvalErrors(t *testing.T) {
 			Want:    "#DIV/0!",
 		},
 		{
+			Comment: "division by zero",
+			Formula: "=1/(1-1)",
+			Want:    "#DIV/0!",
+		},
+		{
 			Comment: "incompatible types",
 			Formula: "=\"foo\"+1",
+			Want:    "#VALUE!",
+		},
+		{
+			Comment: "incompatible types",
+			Formula: "=-\"foo\"+1",
+			Want:    "#VALUE!",
+		},
+		{
+			Comment: "incompatible types",
+			Formula: "min(-\"test\", 1, 2)",
 			Want:    "#VALUE!",
 		},
 		{
@@ -57,7 +72,12 @@ func TestEvalErrors(t *testing.T) {
 	}
 }
 
-func TestBasicFormula(t *testing.T) {
+func TestFormula(t *testing.T) {
+	t.Run("basic", testBasic)
+	t.Run("compare", testCompare)
+}
+
+func testBasic(t *testing.T) {
 	tests := []FormulaTestCase{
 		{
 			Formula: "=B1+B2",
@@ -94,6 +114,56 @@ func TestBasicFormula(t *testing.T) {
 		{
 			Formula: "=2^2",
 			Want:    "4",
+		},
+	}
+	runTests(t, tests)
+}
+
+func testCompare(t *testing.T) {
+	tests := []FormulaTestCase{
+		{
+			Formula: "=1=1",
+			Want:    "true",
+		},
+		{
+			Formula: "=1<>1",
+			Want:    "false",
+		},
+		{
+			Formula: "=1<>2",
+			Want:    "true",
+		},
+		{
+			Formula: "=1=2",
+			Want:    "false",
+		},
+		{
+			Formula: "=1<2",
+			Want:    "true",
+		},
+		{
+			Formula: "=1<=2",
+			Want:    "true",
+		},
+		{
+			Formula: "=2<=1",
+			Want:    "false",
+		},
+		{
+			Formula: "=1<=1",
+			Want:    "true",
+		},
+		{
+			Formula: "=1>=1",
+			Want:    "true",
+		},
+		{
+			Formula: "=1>=2",
+			Want:    "false",
+		},
+		{
+			Formula: "=2>=1",
+			Want:    "true",
 		},
 	}
 	runTests(t, tests)
