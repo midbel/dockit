@@ -471,7 +471,7 @@ func List() []Builtin {
 	return slices.Collect(vs)
 }
 
-type BuiltinFunc func([]value.Value) (value.Value, error)
+type BuiltinFunc func([]value.Value) value.Value
 
 type Builtin struct {
 	Name     string
@@ -507,16 +507,7 @@ func (b Builtin) OdsOnly() bool {
 }
 
 func (b Builtin) Make() BuiltinFunc {
-	fn := Make(b.Params, b.Func)
-
-	ret := func(args []value.Value) (value.Value, error) {
-		val, err := fn(args)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", b.Name, err)
-		}
-		return val, err
-	}
-	return ret
+	return Make(b.Params, b.Func)
 }
 
 type Param struct {
@@ -533,63 +524,65 @@ func (p Param) Valid(val value.Value) bool {
 	return kd&p.Mode != 0
 }
 
-func (p Param) Convert(val value.Value) (value.Value, error) {
+func (p Param) Convert(val value.Value) value.Value {
 	if !p.Valid(val) {
-		return nil, value.ErrCompatible
+		return value.ErrValue
 	}
 	if value.IsArray(val) {
 		arr, ok := val.(value.Array)
 		if !ok {
-			return val, nil
+			return value.ErrValue
 		}
-		apply := func(v value.ScalarValue) (value.ScalarValue, error) {
-			ret, err := p.Value(v)
-			if err == nil {
-				s, ok := ret.(value.ScalarValue)
-				if !ok {
-					return nil, value.ErrCompatible
-				}
-				return s, nil
+		apply := func(v value.ScalarValue) value.ScalarValue {
+			ret := p.Value(v)
+			if ret.Kind() != value.KindScalar {
+				return value.ErrValue
 			}
-			return nil, err
+			return ret.(value.ScalarValue)
 		}
 
 		other := arr.Clone()
-		if err := other.Apply(apply); err != nil {
-			return nil, err
-		}
-		return other, nil
+		other.Apply(apply)
+		return other
 	}
 	return p.Value(val)
 }
 
-func (p Param) Value(val value.Value) (value.Value, error) {
+func (p Param) Value(val value.Value) value.Value {
+	var (
+		ret value.Value
+		err error
+	)
 	switch p.Type {
 	case value.TypeNumber:
-		return value.CastToFloat(val)
+		ret, err = value.CastToFloat(val)
 	case value.TypeText:
-		return value.CastToText(val)
+		ret, err = value.CastToText(val)
 	case value.TypeBool:
 		ok := value.True(val)
-		return value.Boolean(ok), nil
+		ret = value.Boolean(ok)
 	case value.TypeDate:
-		return value.CastToDate(val)
+		ret, err = value.CastToDate(val)
 	case value.TypeAny:
-		return val, nil
+		return val
 	default:
-		return nil, value.ErrCompatible
+		return value.ErrValue
 	}
+	if err != nil {
+		ret = value.ErrValue
+	}
+	return ret
 }
 
 func Make(params []Param, do BuiltinFunc) BuiltinFunc {
-	fn := func(args []value.Value) (value.Value, error) {
+	fn := func(args []value.Value) value.Value {
 		var (
 			newArgs []value.Value
 			pix     int
 		)
 		for aix := 0; aix < len(args); aix++ {
 			if pix >= len(params) {
-				return value.ErrName, ErrArity
+				return value.ErrValue
 			}
 			var (
 				p  = params[pix]
@@ -602,9 +595,9 @@ func Make(params []Param, do BuiltinFunc) BuiltinFunc {
 				as = args[aix : aix+1]
 			}
 			for i := range as {
-				ret, err := p.Convert(as[i])
-				if err != nil {
-					return value.ErrValue, err
+				ret := p.Convert(as[i])
+				if value.IsError(ret) {
+					return ret
 				}
 				newArgs = append(newArgs, ret)
 			}
@@ -612,7 +605,7 @@ func Make(params []Param, do BuiltinFunc) BuiltinFunc {
 		}
 		for _, p := range params[pix:] {
 			if !p.Optional && !p.Variadic && len(newArgs) < len(params) {
-				return value.ErrName, ErrArity
+				return value.ErrValue
 			}
 		}
 		return do(newArgs)

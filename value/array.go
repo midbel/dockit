@@ -50,11 +50,11 @@ func (a Array) Dimension() layout.Dimension {
 
 func (a Array) At(row, col int) ScalarValue {
 	if len(a.Data) == 0 || row >= len(a.Data) {
-		return nil
+		return Empty()
 	}
 	v := a.Data[row]
 	if len(v) == 0 || col >= len(v) {
-		return nil
+		return Empty()
 	}
 	return a.Data[row][col]
 }
@@ -93,24 +93,21 @@ func (a Array) Clone() Array {
 	return NewArray(other).(Array)
 }
 
-func (a Array) Apply(do func(ScalarValue) (ScalarValue, error)) error {
+func (a Array) Apply(do func(ScalarValue) ScalarValue) {
 	if len(a.Data) == 0 {
-		return nil
+		return
 	}
 	dim := a.Dimension()
 	for i := range dim.Lines {
 		for j := range dim.Columns {
-			v, err := do(a.At(int(i), int(j)))
-			if err != nil {
-				return err
-			}
+			v := do(a.At(int(i), int(j)))
 			a.SetAt(int(i), int(j), v)
 		}
 	}
-	return nil
+	return
 }
 
-func (a Array) ApplyArray(other Array, do func(ScalarValue, ScalarValue) (ScalarValue, error)) (Value, error) {
+func (a Array) ApplyArray(other Array, do func(ScalarValue, ScalarValue) ScalarValue) Value {
 	var (
 		dleft  = a.Dimension()
 		dright = other.Dimension()
@@ -126,14 +123,8 @@ func (a Array) ApplyArray(other Array, do func(ScalarValue, ScalarValue) (Scalar
 				left  = a.At(int(i%dleft.Lines), int(j%dleft.Columns))
 				right = other.At(int(i%dright.Lines), int(j%dright.Columns))
 			)
-
-			v, err := do(left, right)
-			if err != nil {
-				return ErrValue, err
-			}
-
-			data[i][j] = v
+			data[i][j] = do(left, right)
 		}
 	}
-	return NewArray(data), nil
+	return NewArray(data)
 }

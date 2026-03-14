@@ -2,7 +2,6 @@ package grid
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -41,34 +40,34 @@ func (ec *ScopedContext) ReadOnly() value.Context {
 	return value.ReadOnly(ec)
 }
 
-func (ec *ScopedContext) Resolve(name string) (value.Value, error) {
+func (ec *ScopedContext) Resolve(name string) value.Value {
 	for i := len(*ec) - 1; i >= 0; i-- {
-		v, err := (*ec)[i].Resolve(name)
-		if err == nil {
-			return v, err
+		v := (*ec)[i].Resolve(name)
+		if !value.IsError(v) {
+			return v
 		}
 	}
-	return value.ErrValue, nil
+	return value.ErrName
 }
 
-func (ec *ScopedContext) At(pos layout.Position) (value.Value, error) {
+func (ec *ScopedContext) At(pos layout.Position) value.Value {
 	for i := len(*ec) - 1; i >= 0; i-- {
-		v, err := (*ec)[i].At(pos)
-		if err == nil {
-			return v, err
+		v := (*ec)[i].At(pos)
+		if !value.IsError(v) {
+			return v
 		}
 	}
-	return value.ErrValue, nil
+	return value.ErrRef
 }
 
-func (ec *ScopedContext) Range(start, end layout.Position) (value.Value, error) {
+func (ec *ScopedContext) Range(start, end layout.Position) value.Value {
 	for i := len(*ec) - 1; i >= 0; i-- {
-		v, err := (*ec)[i].Range(start, end)
-		if err == nil {
-			return v, err
+		v := (*ec)[i].Range(start, end)
+		if !value.IsError(v) {
+			return v
 		}
 	}
-	return value.ErrValue, nil
+	return value.ErrRef
 }
 
 func (ec *ScopedContext) Define(ident string, val value.Value) {
@@ -129,22 +128,22 @@ func RowContext(rs []value.ScalarValue) value.Context {
 	}
 }
 
-func (c rowContext) Resolve(string) (value.Value, error) {
-	return nil, ErrSupported
+func (c rowContext) Resolve(string) value.Value {
+	return value.ErrName
 }
 
-func (c rowContext) At(pos layout.Position) (value.Value, error) {
+func (c rowContext) At(pos layout.Position) value.Value {
 	if pos.Column < 0 || pos.Column >= int64(len(c.rows)) {
-		return nil, ErrPosition
+		return value.ErrNA
 	}
 	if pos.Line != 1 {
-		return nil, ErrPosition
+		return value.ErrNA
 	}
-	return c.rows[pos.Column-1], nil
+	return c.rows[pos.Column-1]
 }
 
-func (c rowContext) Range(start, end layout.Position) (value.Value, error) {
-	return nil, ErrSupported
+func (c rowContext) Range(start, end layout.Position) value.Value {
+	return value.ErrName
 }
 
 type sheetContext struct {
@@ -161,28 +160,28 @@ func (c sheetContext) ReadOnly() value.Context {
 	return value.ReadOnly(c)
 }
 
-func (c sheetContext) Resolve(string) (value.Value, error) {
-	return nil, ErrSupported
+func (c sheetContext) Resolve(string) value.Value {
+	return value.ErrName
 }
 
-func (c sheetContext) Range(start, end layout.Position) (value.Value, error) {
+func (c sheetContext) Range(start, end layout.Position) value.Value {
 	rg := layout.NewRange(start, end)
-	return ArrayView(NewBoundedView(c.view, rg)), nil
+	return ArrayView(NewBoundedView(c.view, rg))
 }
 
-func (c sheetContext) At(pos layout.Position) (value.Value, error) {
+func (c sheetContext) At(pos layout.Position) value.Value {
 	if pos.Sheet == "" || pos.Sheet == c.view.Name() {
 		pos.Sheet = ""
 		cell, err := c.view.Cell(pos)
 		if err != nil || cell == nil {
-			return value.ErrRef, nil
+			return value.ErrRef
 		}
 		if err := cell.Reload(c); err != nil && !errors.Is(err, ErrSupported) {
-			return nil, err
+			return nil
 		}
-		return cell.Value(), nil
+		return cell.Value()
 	}
-	return value.ErrRef, nil
+	return value.ErrRef
 }
 
 func (c sheetContext) SetValue(pos layout.Position, val value.Value) error {
@@ -231,25 +230,25 @@ func (c fileContext) ReadOnly() value.Context {
 	return value.ReadOnly(c)
 }
 
-func (c fileContext) Resolve(name string) (value.Value, error) {
-	return nil, ErrSupported
+func (c fileContext) Resolve(name string) value.Value {
+	return value.ErrName
 }
 
-func (c fileContext) At(pos layout.Position) (value.Value, error) {
+func (c fileContext) At(pos layout.Position) value.Value {
 	sh, err := c.sheet(pos.Sheet)
 	if err != nil {
-		return nil, err
+		return value.ErrRef
 	}
 	return SheetContext(sh).At(pos)
 }
 
-func (c fileContext) Range(start, end layout.Position) (value.Value, error) {
+func (c fileContext) Range(start, end layout.Position) value.Value {
 	if start.Sheet != end.Sheet {
-		return nil, fmt.Errorf("cross sheet range not allowed")
+		return value.ErrNA
 	}
 	sh, err := c.sheet(start.Sheet)
 	if err != nil {
-		return value.ErrRef, nil
+		return value.ErrRef
 	}
 	return SheetContext(sh).Range(start, end)
 }

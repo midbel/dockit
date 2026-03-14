@@ -16,7 +16,7 @@ func Eval(expr value.Formula, ctx value.Context) (value.Value, error) {
 	if !ok {
 		return nil, fmt.Errorf("formula can not eval")
 	}
-	return eval(e.expr, ctx)
+	return eval(e.expr, ctx), nil
 }
 
 func EvalString(expr string, ctx value.Context) (value.Value, error) {
@@ -27,16 +27,16 @@ func EvalString(expr string, ctx value.Context) (value.Value, error) {
 	return Eval(e, ctx)
 }
 
-func eval(expr parse.Expr, ctx value.Context) (value.Value, error) {
+func eval(expr parse.Expr, ctx value.Context) value.Value {
 	switch e := expr.(type) {
 	case parse.Binary:
 		return evalBinary(e, ctx)
 	case parse.Unary:
 		return evalUnary(e, ctx)
 	case parse.Literal:
-		return value.Text(e.Text()), nil
+		return value.Text(e.Text())
 	case parse.Number:
-		return value.Float(e.Float()), nil
+		return value.Float(e.Float())
 	case parse.Call:
 		return evalCall(e, ctx)
 	case parse.CellAddr:
@@ -44,19 +44,19 @@ func eval(expr parse.Expr, ctx value.Context) (value.Value, error) {
 	case parse.RangeAddr:
 		return evalRangeAddr(e, ctx)
 	default:
-		return value.ErrValue, nil
+		return value.ErrNA
 	}
 }
 
-func evalBinary(e parse.Binary, ctx value.Context) (value.Value, error) {
-	left, err := eval(e.Left(), ctx)
-	if err != nil {
-		return nil, err
+func evalBinary(e parse.Binary, ctx value.Context) value.Value {
+	var (
+		left  = eval(e.Left(), ctx)
+		right = eval(e.Right(), ctx)
+	)
+	if err := value.HasErrors(left, right); err != nil {
+		return err
 	}
-	right, err := eval(e.Right(), ctx)
-	if err != nil {
-		return nil, err
-	}
+
 	switch e.Op() {
 	case op.Add:
 		return value.Add(left, right)
@@ -84,62 +84,62 @@ func evalBinary(e parse.Binary, ctx value.Context) (value.Value, error) {
 		return value.Ge(left, right)
 	case op.And:
 		ok := value.True(left) && value.True(right)
-		return value.Boolean(ok), nil
+		return value.Boolean(ok)
 	case op.Or:
 		ok := value.True(left) || value.True(right)
-		return value.Boolean(ok), nil
+		return value.Boolean(ok)
 	default:
-		return value.ErrValue, nil
+		return value.ErrValue
 	}
 }
 
-func evalUnary(e parse.Unary, ctx value.Context) (value.Value, error) {
-	val, err := eval(e.Expr(), ctx)
-	if err != nil {
-		return nil, err
+func evalUnary(e parse.Unary, ctx value.Context) value.Value {
+	val := eval(e.Expr(), ctx)
+	if value.IsError(val) {
+		return val
 	}
-	n, ok := val.(value.Float)
-	if !ok {
-		return value.ErrValue, nil
+	n, err := value.CastToFloat(val)
+	if err != nil {
+		return value.ErrValue
 	}
 	switch e.Op() {
 	case op.Not:
 		ok := value.True(val)
-		return value.Boolean(!ok), nil
+		return value.Boolean(!ok)
 	case op.Add:
-		return n, nil
+		return n
 	case op.Sub:
-		return value.Float(float64(-n)), nil
+		return value.Float(float64(-n))
 	default:
-		return value.ErrValue, nil
+		return value.ErrValue
 	}
 }
 
-func evalCall(e parse.Call, ctx value.Context) (value.Value, error) {
+func evalCall(e parse.Call, ctx value.Context) value.Value {
 	id, ok := e.Name().(parse.Identifier)
 	if !ok {
-		return value.ErrName, nil
+		return value.ErrName
 	}
 	var args []value.Value
 	for _, e := range e.Args() {
-		a, err := eval(e, ctx)
-		if err != nil {
-			return value.ErrValue, err
+		a := eval(e, ctx)
+		if value.IsError(a) {
+			return a
 		}
 		args = append(args, a)
 	}
 	fn, err := builtins.Lookup(id.Ident())
 	if err != nil {
-		return value.ErrRef, err
+		return value.ErrRef
 	}
 	return fn(args)
 }
 
-func evalCellAddr(e parse.CellAddr, ctx value.Context) (value.Value, error) {
+func evalCellAddr(e parse.CellAddr, ctx value.Context) value.Value {
 	return ctx.At(e.Position)
 }
 
-func evalRangeAddr(e parse.RangeAddr, ctx value.Context) (value.Value, error) {
+func evalRangeAddr(e parse.RangeAddr, ctx value.Context) value.Value {
 	return ctx.Range(e.StartAt().Position, e.EndAt().Position)
 }
 
@@ -173,7 +173,7 @@ func (f formula) String() string {
 	return f.expr.String()
 }
 
-func (f formula) Eval(ctx value.Context) (value.Value, error) {
+func (f formula) Eval(ctx value.Context) value.Value {
 	return eval(f.expr, ctx)
 }
 

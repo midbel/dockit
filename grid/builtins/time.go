@@ -6,102 +6,102 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-func Now(args []value.Value) (value.Value, error) {
+func Now(args []value.Value) value.Value {
 	n := time.Now()
-	return value.Date(n), nil
+	return value.Date(n)
 }
 
-func Today(args []value.Value) (value.Value, error) {
+func Today(args []value.Value) value.Value {
 	n := time.Now().Truncate(time.Hour * 24)
-	return value.Date(n), nil
+	return value.Date(n)
 }
 
-func Date(args []value.Value) (value.Value, error) {
+func Date(args []value.Value) value.Value {
 	year, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	month, err := value.CastToFloat(args[1])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	day, err := value.CastToFloat(args[2])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 
 	n := time.Date(int(year), time.Month(month), int(day), 0, 0, 0, 0, time.UTC)
-	return value.Date(n), nil
+	return value.Date(n)
 }
 
-func Year(args []value.Value) (value.Value, error) {
+func Year(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.Year()), nil
+	return value.Float(t.Year())
 }
 
-func Month(args []value.Value) (value.Value, error) {
+func Month(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.Month()), nil
+	return value.Float(t.Month())
 }
 
-func Day(args []value.Value) (value.Value, error) {
+func Day(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.Day()), nil
+	return value.Float(t.Day())
 }
 
-func YearDay(args []value.Value) (value.Value, error) {
+func YearDay(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.YearDay()), nil
+	return value.Float(t.YearDay())
 }
 
-func Hour(args []value.Value) (value.Value, error) {
+func Hour(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.Hour()), nil
+	return value.Float(t.Hour())
 }
 
-func Minute(args []value.Value) (value.Value, error) {
+func Minute(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.Minute()), nil
+	return value.Float(t.Minute())
 }
 
-func Second(args []value.Value) (value.Value, error) {
+func Second(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.Second()), nil
+	return value.Float(t.Second())
 }
 
-func Weekday(args []value.Value) (value.Value, error) {
+func Weekday(args []value.Value) value.Value {
 	d, err := value.CastToDate(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	t := time.Time(d)
-	return value.Float(t.Weekday()), nil
+	return value.Float(t.Weekday())
 }

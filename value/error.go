@@ -12,6 +12,15 @@ var (
 	ErrNA    = createError("#N/A")
 )
 
+func HasErrors(vals ...Value) Value {
+	for _, v := range vals {
+		if IsError(v) {
+			return v
+		}
+	}
+	return nil
+}
+
 type Error struct {
 	code string
 }

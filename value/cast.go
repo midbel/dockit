@@ -54,7 +54,7 @@ func CastToFloat(val Value) (Float, error) {
 		}
 		f, ok := x.(Float)
 		if !ok {
-			return f, fmt.Errorf("cast error to float")
+			return f, ErrCast
 		}
 		return f, nil
 	default:
@@ -73,7 +73,7 @@ func CastToText(val Value) (Text, error) {
 		}
 		f, ok := x.(Text)
 		if !ok {
-			return f, fmt.Errorf("cast error to text")
+			return f, ErrCast
 		}
 		return f, nil
 	default:
@@ -93,7 +93,7 @@ func CastToDate(val Value) (Date, error) {
 		}
 		f, ok := x.(Date)
 		if !ok {
-			return f, fmt.Errorf("cast error to date")
+			return f, ErrCast
 		}
 		return f, nil
 	default:

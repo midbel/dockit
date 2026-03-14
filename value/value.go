@@ -60,14 +60,18 @@ func IsArray(v Value) bool {
 	return v.Kind() == KindArray
 }
 
+func IsError(v Value) bool {
+	return v.Kind() == KindScalar && v.Type() == TypeError
+}
+
 func Rows(rs ...[]ScalarValue) [][]ScalarValue {
 	return rs
 }
 
 type Context interface {
-	At(layout.Position) (Value, error)
-	Range(layout.Position, layout.Position) (Value, error)
-	Resolve(string) (Value, error)
+	At(layout.Position) Value
+	Range(layout.Position, layout.Position) Value
+	Resolve(string) Value
 }
 
 type readonlyContext struct {
@@ -80,15 +84,15 @@ func ReadOnly(ctx Context) Context {
 	}
 }
 
-func (c readonlyContext) At(pos layout.Position) (Value, error) {
+func (c readonlyContext) At(pos layout.Position) Value {
 	return c.inner.At(pos)
 }
 
-func (c readonlyContext) Range(start, end layout.Position) (Value, error) {
+func (c readonlyContext) Range(start, end layout.Position) Value {
 	return c.inner.Range(start, end)
 }
 
-func (c readonlyContext) Resolve(ident string) (Value, error) {
+func (c readonlyContext) Resolve(ident string) Value {
 	return c.inner.Resolve(ident)
 }
 
@@ -100,7 +104,7 @@ type MutableContext interface {
 }
 
 type Formula interface {
-	Eval(Context) (Value, error)
+	Eval(Context) Value
 }
 
 type Predicate interface {
@@ -133,7 +137,7 @@ var ErrProp = errors.New("undefined property")
 
 type ObjectValue interface {
 	Value
-	Get(string) (Value, error)
+	Get(string) Value
 }
 
 type Arg interface {
@@ -142,7 +146,7 @@ type Arg interface {
 
 type FunctionValue interface {
 	Value
-	Call([]Arg, Context) (Value, error)
+	Call([]Arg, Context) Value
 }
 
 type CastableValue interface {
@@ -154,130 +158,148 @@ type CastableValue interface {
 
 var ErrOperation = errors.New("operation not supported")
 
-func Add(left, right Value) (Value, error) {
+func Add(left, right Value) Value {
 	a, ok := left.(interface {
-		Add(Value) (ScalarValue, error)
+		Add(Value) ScalarValue
 	})
 	if !ok {
-		return ErrValue, fmt.Errorf("%w: %s + %s", ErrOperation, left.Type(), right.Type())
+		return ErrValue
 	}
 	return a.Add(right)
 }
 
-func Sub(left, right Value) (Value, error) {
+func Sub(left, right Value) Value {
 	a, ok := left.(interface {
-		Sub(Value) (ScalarValue, error)
+		Sub(Value) ScalarValue
 	})
 	if !ok {
-		return ErrValue, fmt.Errorf("%w: %s - %s", ErrOperation, left.Type(), right.Type())
+		return ErrValue
 	}
 	return a.Sub(right)
 }
 
-func Mul(left, right Value) (Value, error) {
+func Mul(left, right Value) Value {
 	a, ok := left.(interface {
-		Mul(Value) (ScalarValue, error)
+		Mul(Value) ScalarValue
 	})
 	if !ok {
-		return ErrValue, fmt.Errorf("%w: %s * %s", ErrOperation, left.Type(), right.Type())
+		return ErrValue
 	}
 	return a.Mul(right)
 }
 
-func Div(left, right Value) (Value, error) {
+func Div(left, right Value) Value {
 	a, ok := left.(interface {
-		Div(Value) (ScalarValue, error)
+		Div(Value) ScalarValue
 	})
 	if !ok {
-		return ErrValue, fmt.Errorf("%w: %s / %s", ErrOperation, left.Type(), right.Type())
+		return ErrValue
 	}
 	return a.Div(right)
 }
 
-func Pow(left, right Value) (Value, error) {
+func Pow(left, right Value) Value {
 	a, ok := left.(interface {
-		Pow(Value) (ScalarValue, error)
+		Pow(Value) ScalarValue
 	})
 	if !ok {
-		return ErrValue, fmt.Errorf("%w: %s ^ %s", ErrOperation, left.Type(), right.Type())
+		return ErrValue
 	}
 	return a.Pow(right)
 }
 
-func Concat(left, right Value) (Value, error) {
+func Concat(left, right Value) Value {
 	ls, err := CastToText(left)
 	if err != nil {
-		return nil, err
+		return ErrValue
 	}
 	rs, err := CastToText(right)
 	if err != nil {
-		return nil, err
+		return ErrValue
 	}
-	return Text(ls + rs), nil
+	return Text(ls + rs)
 }
 
-func Eq(left, right Value) (Value, error) {
+func Eq(left, right Value) Value {
 	cmp, ok := left.(Comparable)
 	if !ok {
-		return ErrValue, nil
-	}
-	ok, err := cmp.Equal(right)
-	return Boolean(ok), err
-}
-
-func Ne(left, right Value) (Value, error) {
-	cmp, ok := left.(Comparable)
-	if !ok {
-		return ErrValue, nil
+		return ErrValue
 	}
 	ok, err := cmp.Equal(right)
-	return Boolean(!ok), err
+	if err != nil {
+		return ErrValue
+	}
+	return Boolean(ok)
 }
 
-func Lt(left, right Value) (Value, error) {
+func Ne(left, right Value) Value {
 	cmp, ok := left.(Comparable)
 	if !ok {
-		return ErrValue, nil
+		return ErrValue
+	}
+	ok, err := cmp.Equal(right)
+	if err != nil {
+		return ErrValue
+	}
+	return Boolean(!ok)
+}
+
+func Lt(left, right Value) Value {
+	cmp, ok := left.(Comparable)
+	if !ok {
+		return ErrValue
 	}
 	ok, err := cmp.Less(right)
-	return Boolean(!ok), err
+	if err != nil {
+		return ErrValue
+	}
+	return Boolean(!ok)
 }
 
-func Le(left, right Value) (Value, error) {
+func Le(left, right Value) Value {
 	cmp, ok := left.(Comparable)
 	if !ok {
-		return ErrValue, nil
+		return ErrValue
 	}
 	ok, err := cmp.Equal(right)
 	if ok && err == nil {
-		return Boolean(ok), nil
+		return Boolean(ok)
 	}
 	ok, err = cmp.Less(right)
-	return Boolean(ok), err
+	if err != nil {
+		return ErrValue
+	}
+	return Boolean(ok)
 }
 
-func Gt(left, right Value) (Value, error) {
+func Gt(left, right Value) Value {
 	cmp, ok := left.(Comparable)
 	if !ok {
-		return ErrValue, nil
+		return ErrValue
 	}
 	ok, err := cmp.Equal(right)
 	if ok && err == nil {
-		return Boolean(!ok), nil
+		return Boolean(!ok)
 	}
 	ok, err = cmp.Less(right)
-	return Boolean(!ok), err
+	if err != nil {
+		return ErrValue
+	}
+	return Boolean(!ok)
 }
 
-func Ge(left, right Value) (Value, error) {
+func Ge(left, right Value) Value {
 	cmp, ok := left.(Comparable)
 	if !ok {
-		return ErrValue, nil
+		return ErrValue
 	}
 	ok, err := cmp.Equal(right)
 	if ok && err == nil {
-		return Boolean(ok), nil
+		return Boolean(ok)
 	}
 	ok, err = cmp.Less(right)
-	return Boolean(!ok), err
+	if err != nil {
+		return ErrValue
+	}
+	return Boolean(!ok)
 }

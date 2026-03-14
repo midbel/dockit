@@ -61,17 +61,15 @@ func (c *Cell) Reload(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
 	}
-	res, err := c.formula.Eval(ctx)
-	if err == nil {
-		if !value.IsScalar(res) {
-			c.parsed = value.ErrValue
-		} else {
-			c.parsed = res.(value.ScalarValue)
-		}
-		c.raw = res.String()
-		c.dirty = false
+	res := c.formula.Eval(ctx)
+	if !value.IsScalar(res) {
+		c.parsed = value.ErrValue
+	} else {
+		c.parsed = res.(value.ScalarValue)
 	}
-	return err
+	c.raw = res.String()
+	c.dirty = false
+	return nil
 }
 
 func typeFromValue(val value.ScalarValue) string {
@@ -259,9 +257,7 @@ func (s *Sheet) Reload(ctx value.Context) error {
 	ctx = grid.EvalContext(ctx, grid.SheetContext(s))
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
-			if err := c.Reload(ctx); err != nil {
-				return err
-			}
+			c.Reload(ctx)
 		}
 	}
 	return nil

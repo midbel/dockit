@@ -6,12 +6,12 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-func IsNumber(args []value.Value) (value.Value, error) {
+func IsNumber(args []value.Value) value.Value {
 	ok := value.IsNumber(args[0])
-	return value.Boolean(ok), nil
+	return value.Boolean(ok)
 }
 
-func Min(args []value.Value) (value.Value, error) {
+func Min(args []value.Value) value.Value {
 	var (
 		res float64
 		ix  int
@@ -28,10 +28,13 @@ func Min(args []value.Value) (value.Value, error) {
 		}
 		return err
 	})
-	return value.Float(res), err
+	if err != nil {
+		return value.ErrValue
+	}
+	return value.Float(res)
 }
 
-func Max(args []value.Value) (value.Value, error) {
+func Max(args []value.Value) value.Value {
 	var res float64
 	err := Each(args, func(v value.Value) error {
 		f, err := value.CastToFloat(v)
@@ -40,10 +43,13 @@ func Max(args []value.Value) (value.Value, error) {
 		}
 		return err
 	})
-	return value.Float(res), err
+	if err != nil {
+		return value.ErrValue
+	}
+	return value.Float(res)
 }
 
-func Sum(args []value.Value) (value.Value, error) {
+func Sum(args []value.Value) value.Value {
 	var total float64
 	err := Each(args, func(v value.Value) error {
 		f, err := value.CastToFloat(v)
@@ -52,10 +58,13 @@ func Sum(args []value.Value) (value.Value, error) {
 		}
 		return err
 	})
-	return value.Float(total), err
+	if err != nil {
+		return value.ErrValue
+	}
+	return value.Float(total)
 }
 
-func Avg(args []value.Value) (value.Value, error) {
+func Avg(args []value.Value) value.Value {
 	var (
 		total float64
 		count int
@@ -68,94 +77,97 @@ func Avg(args []value.Value) (value.Value, error) {
 		}
 		return err
 	})
-	if count == 0 {
-		return value.ErrValue, nil
+	if err != nil {
+		return value.ErrValue
 	}
-	return value.Float(total / float64(count)), err
+	if count == 0 {
+		return value.ErrValue
+	}
+	return value.Float(total / float64(count))
 }
 
-func Count(args []value.Value) (value.Value, error) {
-	return value.Float(0), nil
+func Count(args []value.Value) value.Value {
+	return value.Float(0)
 }
 
-func Round(args []value.Value) (value.Value, error) {
+func Round(args []value.Value) value.Value {
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	ret := math.Round(float64(f))
-	return value.Float(ret), nil
+	return value.Float(ret)
 }
 
-func Floor(args []value.Value) (value.Value, error) {
+func Floor(args []value.Value) value.Value {
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	ret := math.Floor(float64(f))
-	return value.Float(ret), nil
+	return value.Float(ret)
 }
 
-func Ceil(args []value.Value) (value.Value, error) {
+func Ceil(args []value.Value) value.Value {
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	ret := math.Ceil(float64(f))
-	return value.Float(ret), nil
+	return value.Float(ret)
 }
 
-func Sqrt(args []value.Value) (value.Value, error) {
+func Sqrt(args []value.Value) value.Value {
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	ret := math.Sqrt(float64(f))
-	return value.Float(ret), nil
+	return value.Float(ret)
 }
 
-func Abs(args []value.Value) (value.Value, error) {
+func Abs(args []value.Value) value.Value {
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	ret := math.Abs(float64(f))
-	return value.Float(ret), nil
+	return value.Float(ret)
 }
 
-func Mod(args []value.Value) (value.Value, error) {
+func Mod(args []value.Value) value.Value {
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	d, err := value.CastToFloat(args[1])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	if d == 0 {
-		return value.ErrDiv0, nil
+		return value.ErrDiv0
 	}
 	ret := math.Mod(float64(f), float64(d))
-	return value.Float(ret), nil
+	return value.Float(ret)
 }
 
-func Pow(args []value.Value) (value.Value, error) {
+func Pow(args []value.Value) value.Value {
 	f, err := value.CastToFloat(args[0])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	e, err := value.CastToFloat(args[1])
 	if err != nil {
-		return value.ErrValue, err
+		return value.ErrValue
 	}
 	ret := math.Pow(float64(f), float64(e))
-	return value.Float(ret), nil
+	return value.Float(ret)
 }
 
-func Int(args []value.Value) (value.Value, error) {
-	return value.Float(0), nil
+func Int(args []value.Value) value.Value {
+	return value.Float(0)
 }
 
-func Rand(args []value.Value) (value.Value, error) {
-	return nil, nil
+func Rand(args []value.Value) value.Value {
+	return nil
 }
