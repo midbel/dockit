@@ -22,26 +22,23 @@ type ValueIterator interface {
 	Values() iter.Seq[value.ScalarValue]
 }
 
-func Each(args []value.Value, fn func(value.Value) error) error {
+func Each(args []value.Value, fn func(value.Value)) value.Value {
 	for _, a := range args {
+		if value.IsError(a) {
+			return a
+		}
 		if value.IsScalar(a) {
-			if err := fn(a); err != nil {
-				return err
-			}
+			fn(a)
 		} else if value.IsArray(a) {
 			it, ok := a.(ValueIterator)
 			if !ok {
-				return fmt.Errorf("array does not implement value iterator")
+				continue
 			}
 			var dat []value.Value
 			for v := range it.Values() {
 				dat = append(dat, v)
 			}
-			if err := Each(dat, fn); err != nil {
-				return err
-			}
-		} else {
-			return fmt.Errorf("unsupported value type")
+			Each(dat, fn)
 		}
 	}
 	return nil
@@ -531,7 +528,7 @@ func (p Param) Convert(val value.Value) value.Value {
 	if value.IsArray(val) {
 		arr, ok := val.(value.Array)
 		if !ok {
-			return value.ErrValue
+			return val
 		}
 		apply := func(v value.ScalarValue) value.ScalarValue {
 			ret := p.Value(v)

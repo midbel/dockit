@@ -322,8 +322,8 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	if !ok {
 		cell = &Cell{
 			Position: pos,
-			raw:      "",
-			parsed:   value.Empty(),
+			raw:      value.ErrRef.String(),
+			parsed:   value.ErrRef,
 		}
 	}
 	return cell, nil

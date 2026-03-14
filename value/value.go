@@ -61,7 +61,7 @@ func IsArray(v Value) bool {
 }
 
 func IsError(v Value) bool {
-	return v.Kind() == KindScalar && v.Type() == TypeError
+	return v.Kind() == KindError && v.Type() == TypeError
 }
 
 func Rows(rs ...[]ScalarValue) [][]ScalarValue {

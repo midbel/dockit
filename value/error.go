@@ -14,6 +14,9 @@ var (
 
 func HasErrors(vals ...Value) Value {
 	for _, v := range vals {
+		if v == nil {
+			continue
+		}
 		if IsError(v) {
 			return v
 		}

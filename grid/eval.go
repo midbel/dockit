@@ -130,7 +130,7 @@ func evalCall(e parse.Call, ctx value.Context) value.Value {
 	}
 	fn, err := builtins.Lookup(id.Ident())
 	if err != nil {
-		return value.ErrRef
+		return value.ErrName
 	}
 	return fn(args)
 }

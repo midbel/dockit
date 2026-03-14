@@ -244,10 +244,10 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	cell, ok := s.cells[pos]
 	if !ok {
 		cell = &Cell{
-			Type:     TypeInlineStr,
+			Type:     TypeError,
 			Position: pos,
-			raw:      "",
-			parsed:   value.Empty(),
+			raw:      value.ErrRef.String(),
+			parsed:   value.ErrRef,
 		}
 	}
 	return cell, nil

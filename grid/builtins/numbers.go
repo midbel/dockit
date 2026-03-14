@@ -16,50 +16,50 @@ func Min(args []value.Value) value.Value {
 		res float64
 		ix  int
 	)
-	err := Each(args, func(v value.Value) error {
+	err := Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
-		if err == nil {
-			ix++
-			if ix == 1 {
-				res = float64(f)
-			} else {
-				res = min(res, float64(f))
-			}
+		if err != nil {
+			return
 		}
-		return err
+		ix++
+		if ix == 1 {
+			res = float64(f)
+		} else {
+			res = min(res, float64(f))
+		}
 	})
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(err); err != nil {
+		return err
 	}
 	return value.Float(res)
 }
 
 func Max(args []value.Value) value.Value {
 	var res float64
-	err := Each(args, func(v value.Value) error {
+	err := Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
-		if err == nil {
-			res = max(res, float64(f))
+		if err != nil {
+			return
 		}
-		return err
+		res = max(res, float64(f))
 	})
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(err); err != nil {
+		return err
 	}
 	return value.Float(res)
 }
 
 func Sum(args []value.Value) value.Value {
 	var total float64
-	err := Each(args, func(v value.Value) error {
+	err := Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
-		if err == nil {
-			total += float64(f)
+		if err != nil {
+			return
 		}
-		return err
+		total += float64(f)
 	})
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(err); err != nil {
+		return err
 	}
 	return value.Float(total)
 }
@@ -69,19 +69,19 @@ func Avg(args []value.Value) value.Value {
 		total float64
 		count int
 	)
-	err := Each(args, func(v value.Value) error {
+	err := Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
-		if err == nil {
-			total += float64(f)
-			count++
+		if err != nil {
+			return
 		}
-		return err
+		total += float64(f)
+		count++
 	})
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(err); err != nil {
+		return err
 	}
 	if count == 0 {
-		return value.ErrValue
+		return value.ErrDiv0
 	}
 	return value.Float(total / float64(count))
 }
