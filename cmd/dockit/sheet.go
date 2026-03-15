@@ -57,6 +57,13 @@ var depsCmd = cli.Command{
 	Handler: &DepCommand{},
 }
 
+var auditCmd = cli.Command{
+	Name:    "audit",
+	Summary: "",
+	Usage:   "audit <file> <sheet>",
+	Handler: &AuditCommand{},
+}
+
 var lockCmd = cli.Command{
 	Name:    "lock",
 	Summary: "Lock a sheet or all in a spreadsheet",
@@ -117,6 +124,16 @@ func (c DepCommand) Run(args []string) error {
 	rd.Render(tbl1)
 	rd.Render(tbl2)
 	rd.Render(tbl3)
+	return nil
+}
+
+type AuditCommand struct{}
+
+func (c AuditCommand) Run(args []string) error {
+	set := cli.NewFlagSet("audit")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
 	return nil
 }
 

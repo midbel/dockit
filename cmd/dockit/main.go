@@ -74,6 +74,7 @@ func prepare() *cli.CommandTrie {
 	root.Register(slx.One("copy"), &copyCmd)
 	root.Register(slx.One("print"), &printCmd)
 	root.Register(slx.One("deps"), &depsCmd)
+	root.Register(slx.One("audit"), &auditCmd)
 	root.Register(slx.One("builtins"), &builtinsCmd)
 
 	root.Register(slx.Make("studio", "browse-ast"), &terminalBrowseAstCmd)
