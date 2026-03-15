@@ -23,6 +23,9 @@ type Top[T any] struct {
 }
 
 type FormulaStats struct {
+	layout.Position
+	Formula string
+
 	Builtins   map[string]int
 	Literals   int
 	References int
@@ -33,7 +36,7 @@ type FormulaStats struct {
 }
 
 type ViewStats struct {
-	Name      string
+	Name string
 
 	Cells     int
 	Formulas  int
@@ -43,9 +46,8 @@ type ViewStats struct {
 	Complexity int
 	MaxDepth   int
 
-	Builtins  map[string]int
-	Formulas  []FormulaStats
-	Refs      map[layout.Position]int
+	Builtins map[string]int
+	Refs     map[layout.Position]int
 }
 
 func (s ViewStats) TopBuiltins(n int) []Top[string] {
@@ -114,7 +116,7 @@ func AnalyzeView(view View) ViewStats {
 				for _, d := range fs.Deps {
 					stat.Refs[d]++
 				}
-				stat.Formulas = append(stat.Formulas, fs)
+				// stat.Formulas = append(stat.Formulas, fs)
 				stat.MaxDepth = max(stat.MaxDepth, fs.MaxDepth)
 				stat.Complexity = max(stat.Complexity, fs.Complexity)
 			}
@@ -127,6 +129,34 @@ func AnalyzeView(view View) ViewStats {
 
 func AnalyzeFormula(form value.Formula) FormulaStats {
 	return Walk(form)
+}
+
+func TopComplexFormulas(view View, n int) []FormulaStats {
+	var (
+		list []FormulaStats
+		rg   = view.Bounds()
+	)
+	for p := range rg.Positions() {
+		c, _ := view.Cell(p)
+		f, ok := c.(interface{ Formula() value.Formula })
+		if !ok {
+			continue
+		}
+		sub := f.Formula()
+		if sub == nil {
+			continue
+		}
+		fs := AnalyzeFormula(sub)
+		fs.Position = p
+		list = append(list, fs)
+	}
+	if n > 0 && n < len(list) {
+		list = list[:n]
+	}
+	slices.SortFunc(list, func(s1, s2 FormulaStats) int {
+		return s2.Complexity - s1.Complexity
+	})
+	return list
 }
 
 func Walk(f value.Formula) FormulaStats {
@@ -142,6 +172,12 @@ func Walk(f value.Formula) FormulaStats {
 	}
 	walkFormula(fx.expr, 1, &stat)
 	stat.Complexity += stat.MaxDepth
+	stat.Formula = fx.expr.String()
+	// if c, ok := fx.expr.(parse.Call); ok {
+	// 	stat.Formula = c.Name().String()
+	// } else {
+	// 	stat.Formula = fx.expr.String()
+	// }
 	return stat
 }
 

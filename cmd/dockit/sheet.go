@@ -95,10 +95,13 @@ func (c DepCommand) Run(args []string) error {
 	})
 }
 
-type AuditCommand struct{}
+type AuditCommand struct {
+	Function bool
+}
 
 func (c AuditCommand) Run(args []string) error {
 	set := cli.NewFlagSet("audit")
+	set.BoolVar(&c.Function, "f", false, "function")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -106,20 +109,56 @@ func (c AuditCommand) Run(args []string) error {
 		return cli.ErrUsage
 	}
 	return withSheet(set.Arg(0), set.Arg(1), func(sh grid.View) error {
-		var (
-			stats = grid.AnalyzeView(sh)
-			tbl1  cli.Table
-			tbl2  cli.Table
-			tbl3  cli.Table
-			tbl4  cli.Table
-		)
-		tbl1.Title = fmt.Sprintf("sheet: %s", stats.Name)
-		tbl1.Rows = [][]string{
-			{"Cells", strconv.Itoa(stats.Cells)},
-			{"Formulas", strconv.Itoa(stats.Formulas)},
-			{"Errors", strconv.Itoa(stats.Errors)},
-			{"Constants", strconv.Itoa(stats.Constants)},
+		if c.Function {
+			return c.auditFunction(sh)
 		}
+		return c.audit(sh)
+	})
+}
+
+func (c AuditCommand) auditFunction(view grid.View) error {
+	var (
+		stats = grid.TopComplexFormulas(view, 10)
+		tbl   cli.Table
+	)
+	tbl.Headers = []string{
+		"location",
+		"formula",
+		"references",
+		"complexity",
+		"max depth",
+	}
+	for _, s := range stats {
+		row := []string{
+			s.Position.String(),
+			s.Formula,
+			strconv.Itoa(len(s.Deps)),
+			strconv.Itoa(s.Complexity),
+			strconv.Itoa(s.MaxDepth),
+		}
+		tbl.Rows = append(tbl.Rows, row)
+	}
+	rd := cli.NewTableRenderer(os.Stdout)
+	rd.Render(tbl)
+	return nil
+}
+
+func (c AuditCommand) audit(view grid.View) error {
+	var (
+		stats = grid.AnalyzeView(view)
+		tbl1  cli.Table
+		tbl2  cli.Table
+		tbl3  cli.Table
+		tbl4  cli.Table
+	)
+	tbl1.Title = fmt.Sprintf("sheet: %s", stats.Name)
+	tbl1.Rows = [][]string{
+		{"Cells", strconv.Itoa(stats.Cells)},
+		{"Formulas", strconv.Itoa(stats.Formulas)},
+		{"Errors", strconv.Itoa(stats.Errors)},
+		{"Constants", strconv.Itoa(stats.Constants)},
+	}
+	if len(stats.Builtins) > 0 {
 		tbl2.Title = "Top builtins"
 		for _, t := range stats.TopBuiltins(5) {
 			tbl2.Rows = append(tbl2.Rows, []string{
@@ -127,6 +166,8 @@ func (c AuditCommand) Run(args []string) error {
 				strconv.Itoa(t.Count),
 			})
 		}
+	}
+	if len(stats.Refs) > 0 {
 		tbl3.Title = "Top Cells"
 		for _, t := range stats.TopRefs(5) {
 			tbl3.Rows = append(tbl3.Rows, []string{
@@ -134,23 +175,27 @@ func (c AuditCommand) Run(args []string) error {
 				strconv.Itoa(t.Count),
 			})
 		}
+	}
 
-		tbl4.Title = "Complexity"
-		tbl4.Rows = [][]string{
-			{"max depth", strconv.Itoa(stats.MaxDepth)},
-			{"complexity", strconv.Itoa(stats.Complexity)},
-		}
+	tbl4.Title = "Complexity"
+	tbl4.Rows = [][]string{
+		{"max depth", strconv.Itoa(stats.MaxDepth)},
+		{"complexity", strconv.Itoa(stats.Complexity)},
+	}
 
-		rd := cli.NewTableRenderer(os.Stdout)
-		rd.Render(tbl1)
-		rd.Empty()
+	rd := cli.NewTableRenderer(os.Stdout)
+	rd.Render(tbl1)
+	rd.Empty()
+	if len(tbl2.Rows) > 0 {
 		rd.Render(tbl2)
 		rd.Empty()
+	}
+	if len(tbl3.Rows) > 0 {
 		rd.Render(tbl3)
 		rd.Empty()
-		rd.Render(tbl4)
-		return nil
-	})
+	}
+	rd.Render(tbl4)
+	return nil
 }
 
 type LockCommand struct{}
