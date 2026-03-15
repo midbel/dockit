@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/flat"
@@ -104,6 +106,49 @@ func (c AuditCommand) Run(args []string) error {
 		return cli.ErrUsage
 	}
 	return withSheet(set.Arg(0), set.Arg(1), func(sh grid.View) error {
+		var (
+			stats = grid.AnalyzeView(sh)
+			tbl1  cli.Table
+			tbl2  cli.Table
+			tbl3  cli.Table
+			tbl4  cli.Table
+		)
+		tbl1.Title = fmt.Sprintf("sheet: %s", stats.Name)
+		tbl1.Rows = [][]string{
+			{"Cells", strconv.Itoa(stats.Cells)},
+			{"Formulas", strconv.Itoa(stats.Formulas)},
+			{"Errors", strconv.Itoa(stats.Errors)},
+			{"Constants", strconv.Itoa(stats.Constants)},
+		}
+		tbl2.Title = "Top builtins"
+		for _, t := range stats.TopBuiltins(5) {
+			tbl2.Rows = append(tbl2.Rows, []string{
+				strings.ToLower(t.Item),
+				strconv.Itoa(t.Count),
+			})
+		}
+		tbl3.Title = "Top Cells"
+		for _, t := range stats.TopRefs(5) {
+			tbl3.Rows = append(tbl3.Rows, []string{
+				t.Item.String(),
+				strconv.Itoa(t.Count),
+			})
+		}
+
+		tbl4.Title = "Complexity"
+		tbl4.Rows = [][]string{
+			{"max depth", strconv.Itoa(stats.MaxDepth)},
+			{"complexity", strconv.Itoa(stats.Complexity)},
+		}
+
+		rd := cli.NewTableRenderer(os.Stdout)
+		rd.Render(tbl1)
+		rd.Empty()
+		rd.Render(tbl2)
+		rd.Empty()
+		rd.Render(tbl3)
+		rd.Empty()
+		rd.Render(tbl4)
 		return nil
 	})
 }

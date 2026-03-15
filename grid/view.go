@@ -57,22 +57,10 @@ type Row interface {
 	Sparse() bool
 }
 
-type CellType int8
-
-const (
-	TypeSharedString CellType = 1 << iota
-	TypeString
-	TypeNumber
-	TypeDate
-	TypeBool
-	TypeFormula
-)
-
 type Cell interface {
 	At() layout.Position
 	Value() value.ScalarValue
 	Reload(value.Context) error
-	// Type() CellType
 }
 
 type Callable interface {
@@ -113,16 +101,6 @@ type MutableView interface {
 	ClearValue(layout.Position) error
 	ClearFormula(layout.Position) error
 	ClearRange(*layout.Range) error
-}
-
-type EvalInfo struct {
-	Name      string
-	Cells     int
-	Formulas   int
-	Errors   int
-	Constants int
-	Builtins  map[string]int
-	Tops      map[string]int
 }
 
 type ViewInfo struct {

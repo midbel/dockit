@@ -57,6 +57,10 @@ func (c *Cell) Value() value.ScalarValue {
 	return c.parsed
 }
 
+func (c *Cell) Formula() value.Formula {
+	return c.formula
+}
+
 func (c *Cell) Reload(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
@@ -227,27 +231,6 @@ func NewSheet(name string) *Sheet {
 
 func (s *Sheet) Name() string {
 	return s.Label
-}
-
-func (s *Sheet) Infos() grid.EvalInfo {
-	i := grid.EvalInfo{
-		Name:     s.Label,
-		Cells:    len(s.cells),
-		Builtins: make(map[string]int),
-		Tops:     make(map[string]int),
-	}
-	for _, c := range s.cells {
-		if c.formula != nil {
-			i.Formulas++
-		}
-		if value.IsError(c.parsed) {
-			i.Errors++
-		}
-		if !value.IsError(c.parsed) && c.formula == nil {
-			i.Constants++
-		}
-	}
-	return i
 }
 
 func (s *Sheet) View(rg *layout.Range) grid.View {
