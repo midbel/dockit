@@ -88,43 +88,9 @@ func (c DepCommand) Run(args []string) error {
 	if set.NArg() != 2 {
 		return cli.ErrUsage
 	}
-	wb, err := workbook.Open(set.Arg(0))
-	if err != nil {
-		return err
-	}
-	sh, err := wb.Sheet(set.Arg(1))
-	if err != nil {
-		return err
-	}
-	ei, ok := sh.(interface{ Infos() grid.EvalInfo })
-	if !ok {
+	return withSheet(set.Arg(0), set.Arg(1), func(sh grid.View) error {
 		return nil
-	}
-	info := ei.Infos()
-
-	var (
-		tbl1 cli.Table
-		tbl2 cli.Table
-		tbl3 cli.Table
-	)
-	tbl1.Rows = [][]string{
-		{"Cells", strconv.Itoa(info.Cells)},
-		{"Formula", strconv.Itoa(info.Formulas)},
-		{"Errors", strconv.Itoa(info.Errors)},
-		{"Constants", strconv.Itoa(info.Constants)},
-		{"Edges", ""},
-		{"Max Depth", ""},
-		{"Cycles", ""},
-	}
-
-	tbl2.Title = "Builtins Usage"
-	tbl3.Title = "Top Reference Cells"
-
-	rd := cli.NewTableRenderer(os.Stdout)
-	rd.Render(tbl1)
-	rd.Render(tbl2)
-	rd.Render(tbl3)
-	return nil
+	})
 }
 
 type AuditCommand struct{}
@@ -134,7 +100,12 @@ func (c AuditCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	return nil
+	if set.NArg() != 2 {
+		return cli.ErrUsage
+	}
+	return withSheet(set.Arg(0), set.Arg(1), func(sh grid.View) error {
+		return nil
+	})
 }
 
 type LockCommand struct{}

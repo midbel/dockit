@@ -82,6 +82,18 @@ func prepare() *cli.CommandTrie {
 	return root
 }
 
+func withSheet(path, name string, fn func(grid.View) error) error {
+	wb, err := workbook.Open(path)
+	if err != nil {
+		return err
+	}
+	sh, err := wb.Sheet(name)
+	if err == nil {
+		err = fn(sh)
+	}
+	return err
+}
+
 func updateFile(path string, fn func(grid.File) error) error {
 	wb, err := workbook.Open(path)
 	if err != nil {
