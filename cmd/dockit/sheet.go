@@ -129,9 +129,13 @@ func (c AuditCommand) auditFunction(view grid.View) error {
 		"max depth",
 	}
 	for _, s := range stats {
+		formula := s.Formula
+		if len(formula) >= 60 {
+			formula = formula[60:]
+		}
 		row := []string{
 			s.Position.String(),
-			s.Formula,
+			formula,
 			strconv.Itoa(len(s.Deps)),
 			strconv.Itoa(s.Complexity),
 			strconv.Itoa(s.MaxDepth),
@@ -177,7 +181,7 @@ func (c AuditCommand) audit(view grid.View) error {
 		}
 	}
 
-	tbl4.Title = "Complexity"
+	tbl4.Title = "Most complexity formula"
 	tbl4.Rows = [][]string{
 		{"max depth", strconv.Itoa(stats.MaxDepth)},
 		{"complexity", strconv.Itoa(stats.Complexity)},

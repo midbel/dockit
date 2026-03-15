@@ -173,11 +173,6 @@ func Walk(f value.Formula) FormulaStats {
 	walkFormula(fx.expr, 1, &stat)
 	stat.Complexity += stat.MaxDepth
 	stat.Formula = fx.expr.String()
-	// if c, ok := fx.expr.(parse.Call); ok {
-	// 	stat.Formula = c.Name().String()
-	// } else {
-	// 	stat.Formula = fx.expr.String()
-	// }
 	return stat
 }
 
