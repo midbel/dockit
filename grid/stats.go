@@ -44,6 +44,7 @@ type ViewStats struct {
 	MaxDepth   int
 
 	Builtins  map[string]int
+	Formulas  []FormulaStats
 	Refs      map[layout.Position]int
 }
 
@@ -113,6 +114,7 @@ func AnalyzeView(view View) ViewStats {
 				for _, d := range fs.Deps {
 					stat.Refs[d]++
 				}
+				stat.Formulas = append(stat.Formulas, fs)
 				stat.MaxDepth = max(stat.MaxDepth, fs.MaxDepth)
 				stat.Complexity = max(stat.Complexity, fs.Complexity)
 			}
