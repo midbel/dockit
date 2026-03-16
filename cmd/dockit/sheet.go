@@ -97,11 +97,13 @@ func (c DepCommand) Run(args []string) error {
 
 type AuditCommand struct {
 	Function bool
+	Limit int
 }
 
 func (c AuditCommand) Run(args []string) error {
 	set := cli.NewFlagSet("audit")
 	set.BoolVar(&c.Function, "f", false, "function")
+	set.IntVar(&c.Limit, "n", 10, "number of results")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -118,7 +120,7 @@ func (c AuditCommand) Run(args []string) error {
 
 func (c AuditCommand) auditFunction(view grid.View) error {
 	var (
-		stats = grid.TopComplexFormulas(view, 10)
+		stats = grid.TopComplexFormulas(view, c.Limit)
 		tbl   cli.Table
 	)
 	tbl.Headers = []string{
@@ -164,7 +166,7 @@ func (c AuditCommand) audit(view grid.View) error {
 	}
 	if len(stats.Builtins) > 0 {
 		tbl2.Title = "Top builtins"
-		for _, t := range stats.TopBuiltins(5) {
+		for _, t := range stats.TopBuiltins(c.Limit) {
 			tbl2.Rows = append(tbl2.Rows, []string{
 				strings.ToLower(t.Item),
 				strconv.Itoa(t.Count),
@@ -173,7 +175,7 @@ func (c AuditCommand) audit(view grid.View) error {
 	}
 	if len(stats.Refs) > 0 {
 		tbl3.Title = "Top Cells"
-		for _, t := range stats.TopRefs(5) {
+		for _, t := range stats.TopRefs(c.Limit) {
 			tbl3.Rows = append(tbl3.Rows, []string{
 				t.Item.String(),
 				strconv.Itoa(t.Count),
