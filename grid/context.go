@@ -1,8 +1,7 @@
 package grid
 
 import (
-	"slices"
-
+	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -15,145 +14,16 @@ func NewContext(ctx value.Context) value.Context {
 }
 
 func EnclosedContext(parent, child value.Context) value.Context {
-	var (
-		base   value.Context
-		scoped value.Context
-	)
 	if e, ok := parent.(*evalContext); ok {
-		base = e.inner
-	} else {
-		base = parent
-	}
-	if ps, ok := base.(*ScopedContext); ok {
-		ps := ps.Clone()
-		ps.Push(child)
-		scoped = ps
-	} else {
-		scoped = NewScopedContext(base, child)
-	}
-	return NewContext(scoped)
-}
-
-type ScopedContext struct {
-	parent *ScopedContext
-	ctx value.Context
-}
-
-func NewScopedContext(others ...value.Context) value.Context {
-	es := ScopedContext(slices.Clone(others))
-	return &es
-}
-
-func (ec *ScopedContext) Clone() *ScopedContext {
-	var (
-		vs  = slices.Clone(*ec)
-		ctx = ScopedContext(vs)
-	)
-	return &ctx
-}
-
-func (ec *ScopedContext) Push(ctx value.Context) {
-	*ec = append(*ec, ctx)
-}
-
-func (ec *ScopedContext) Pop() {
-	if n := len(*ec); n >= 1 {
-		*ec = (*ec)[:n-1]
-	}
-}
-
-func (ec *ScopedContext) Len() int {
-	return len(*ec)
-}
-
-func (ec *ScopedContext) Truncate(n int) {
-	z := len(*ec)
-	if n >= z {
-		n = z
-	}
-	*ec = (*ec)[:n]
-}
-
-func (ec *ScopedContext) ReadOnly() value.Context {
-	return value.ReadOnly(ec)
-}
-
-func (ec *ScopedContext) Resolve(name string) value.Value {
-	for i := len(*ec) - 1; i >= 0; i-- {
-		v := (*ec)[i].Resolve(name)
-		if !value.IsError(v) {
-			return v
+		x := &evalContext{
+			stack: e.stack.Push(child),
 		}
+		return x
 	}
-	return value.ErrName
-}
-
-func (ec *ScopedContext) At(pos layout.Position) value.Value {
-	for i := len(*ec) - 1; i >= 0; i-- {
-		v := (*ec)[i].At(pos)
-		if !value.IsError(v) {
-			return v
-		}
-	}
-	return value.ErrRef
-}
-
-func (ec *ScopedContext) Range(start, end layout.Position) value.Value {
-	for i := len(*ec) - 1; i >= 0; i-- {
-		v := (*ec)[i].Range(start, end)
-		if !value.IsError(v) {
-			return v
-		}
-	}
-	return value.ErrRef
-}
-
-func (ec *ScopedContext) Define(ident string, val value.Value) {
-	ctx := ec.top()
-	if ctx == nil {
-		return
-	}
-	if e, ok := ctx.(interface{ Define(string, value.Value) }); ok {
-		e.Define(ident, val)
-	}
-}
-
-func (ec *ScopedContext) SetValue(pos layout.Position, val value.Value) error {
-	ctx := ec.top()
-	if ctx == nil {
-		return ErrEmpty
-	}
-	if mc, ok := ctx.(value.MutableContext); ok {
-		return mc.SetValue(pos, val)
-	}
-	return nil
-}
-
-func (ec *ScopedContext) SetFormula(pos layout.Position, val value.Formula) error {
-	ctx := ec.top()
-	if ctx == nil {
-		return ErrEmpty
-	}
-	if mc, ok := ctx.(value.MutableContext); ok {
-		return mc.SetFormula(pos, val)
-	}
-	return nil
-}
-
-func (ec *ScopedContext) SetRange(start, end layout.Position, val value.Value) error {
-	return nil
-}
-
-func (ec *ScopedContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
-	return nil
-}
-
-func (ec *ScopedContext) top() value.Context {
-	n := len(*ec)
-	if n > 0 {
-		return (*ec)[n-1]
-	}
-	return nil
+	x := emptyEvalContext()
+	x.push(parent)
+	x.push(child)
+	return x
 }
 
 type rowContext struct {
@@ -339,32 +209,77 @@ func (c fileContext) sheet(name string) (View, error) {
 }
 
 type evalContext struct {
-	inner value.Context
+	stack *ds.Linked[value.Context]
 }
 
-func createEvalContext(ctx value.Context) value.Context {
+func emptyEvalContext() *evalContext {
 	return &evalContext{
-		inner: ctx,
+		stack: ds.EmptyList[value.Context](),
 	}
+}
+
+func createEvalContext(ctx value.Context) *evalContext {
+	stack := ds.EmptyList[value.Context]().Push(ctx)
+	return &evalContext{
+		stack: stack,
+	}
+}
+
+func (c *evalContext) ReadOnly() value.Context {
+	return value.ReadOnly(c)
 }
 
 func (c *evalContext) Resolve(ident string) value.Value {
-	return c.inner.Resolve(ident)
+	var ret value.Value
+	c.stack.Each(func(ctx value.Context) bool {
+		ret = ctx.Resolve(ident)
+		if ret == value.ErrName {
+			return true
+		}
+		return value.IsError(ret)
+	})
+	return c.normalizeValue(ret)
 }
 
 func (c *evalContext) At(pos layout.Position) value.Value {
-	v := c.inner.At(pos)
-	if f, ok := v.(value.Formula); ok {
-		val, err := Eval(f, c)
-		if err != nil {
-			v = value.ErrValue
-		} else {
-			v = val
+	var ret value.Value
+	c.stack.Each(func(ctx value.Context) bool {
+		ret = ctx.At(pos)
+		if f, ok := ret.(value.Formula); ok {
+			val, err := Eval(f, c)
+			if err != nil {
+				ret = value.ErrValue
+			} else {
+				ret = val
+			}
 		}
-	}
-	return v
+		if ret == value.ErrRef {
+			return true
+		}
+		return value.IsError(ret)
+	})
+	return c.normalizeValue(ret)
 }
 
 func (c *evalContext) Range(start, end layout.Position) value.Value {
-	return c.inner.Range(start, end)
+	var ret value.Value
+	c.stack.Each(func(ctx value.Context) bool {
+		ret = ctx.Range(start, end)
+		if ret == value.ErrRef {
+			return true
+		}
+		return value.IsError(ret)
+	})
+	return c.normalizeValue(ret)
+}
+
+func (c *evalContext) normalizeValue(val value.Value) value.Value {
+	if val == nil {
+		return value.ErrValue
+	}
+	return val
+}
+
+func (c *evalContext) push(ctx value.Context) {
+	c.stack.Push(ctx)
 }

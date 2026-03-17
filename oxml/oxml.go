@@ -66,9 +66,9 @@ func (c *Cell) Reload(ctx value.Context) error {
 	}
 	res := c.formula.Eval(ctx)
 	if !value.IsScalar(res) {
-       	c.parsed = value.ErrValue
+		c.parsed = value.ErrValue
 	} else {
-       	c.parsed = res.(value.ScalarValue)
+		c.parsed = res.(value.ScalarValue)
 	}
 	c.raw = res.String()
 	return nil
