@@ -60,7 +60,7 @@ type Row interface {
 type Cell interface {
 	At() layout.Position
 	Value() value.ScalarValue
-	Reload(value.Context) error
+	Formula() value.Formula
 }
 
 type Callable interface {

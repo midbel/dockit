@@ -346,7 +346,6 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 		cell  = &Cell{
 			Position: layout.ParsePosition(index),
 			Type:     kind,
-			dirty:    true,
 		}
 	)
 	if kind == TypeInlineStr {

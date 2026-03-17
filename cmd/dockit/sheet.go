@@ -97,7 +97,7 @@ func (c DepCommand) Run(args []string) error {
 
 type AuditCommand struct {
 	Function bool
-	Limit int
+	Limit    int
 }
 
 func (c AuditCommand) Run(args []string) error {

@@ -409,8 +409,9 @@ type row struct {
 
 type Cell struct {
 	layout.Position
-	raw    string
-	parsed value.ScalarValue
+	raw     string
+	parsed  value.ScalarValue
+	formula value.Formula
 }
 
 func (c *Cell) At() layout.Position {
@@ -425,6 +426,10 @@ func (c *Cell) Value() value.ScalarValue {
 	return c.parsed
 }
 
+func (c *Cell) Formula() value.Formula {
+	return c.formula
+}
+
 func (c *Cell) Reload(ctx value.Context) error {
-	return grid.ErrSupported
+	return nil
 }

@@ -1,17 +1,55 @@
 package grid
 
 import (
-	"errors"
+	"slices"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
-type ScopedContext []value.Context
+func NewContext(ctx value.Context) value.Context {
+	if _, ok := ctx.(*evalContext); ok {
+		return ctx
+	}
+	return createEvalContext(ctx)
+}
 
-func EvalContext(others ...value.Context) value.Context {
-	es := ScopedContext(others)
+func EnclosedContext(parent, child value.Context) value.Context {
+	var (
+		base   value.Context
+		scoped value.Context
+	)
+	if e, ok := parent.(*evalContext); ok {
+		base = e.inner
+	} else {
+		base = parent
+	}
+	if ps, ok := base.(*ScopedContext); ok {
+		ps := ps.Clone()
+		ps.Push(child)
+		scoped = ps
+	} else {
+		scoped = NewScopedContext(base, child)
+	}
+	return NewContext(scoped)
+}
+
+type ScopedContext struct {
+	parent *ScopedContext
+	ctx value.Context
+}
+
+func NewScopedContext(others ...value.Context) value.Context {
+	es := ScopedContext(slices.Clone(others))
 	return &es
+}
+
+func (ec *ScopedContext) Clone() *ScopedContext {
+	var (
+		vs  = slices.Clone(*ec)
+		ctx = ScopedContext(vs)
+	)
+	return &ctx
 }
 
 func (ec *ScopedContext) Push(ctx value.Context) {
@@ -176,8 +214,8 @@ func (c sheetContext) At(pos layout.Position) value.Value {
 		if err != nil || cell == nil {
 			return value.ErrRef
 		}
-		if err := cell.Reload(c); err != nil && !errors.Is(err, ErrSupported) {
-			return nil
+		if f := cell.Formula(); f != nil {
+			return f
 		}
 		return cell.Value()
 	}
@@ -298,4 +336,35 @@ func (c fileContext) sheet(name string) (View, error) {
 		return c.file.ActiveSheet()
 	}
 	return c.file.Sheet(name)
+}
+
+type evalContext struct {
+	inner value.Context
+}
+
+func createEvalContext(ctx value.Context) value.Context {
+	return &evalContext{
+		inner: ctx,
+	}
+}
+
+func (c *evalContext) Resolve(ident string) value.Value {
+	return c.inner.Resolve(ident)
+}
+
+func (c *evalContext) At(pos layout.Position) value.Value {
+	v := c.inner.At(pos)
+	if f, ok := v.(value.Formula); ok {
+		val, err := Eval(f, c)
+		if err != nil {
+			v = value.ErrValue
+		} else {
+			v = val
+		}
+	}
+	return v
+}
+
+func (c *evalContext) Range(start, end layout.Position) value.Value {
+	return c.inner.Range(start, end)
 }

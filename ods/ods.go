@@ -37,6 +37,10 @@ func (c *Cell) Value() value.ScalarValue {
 	return c.parsed
 }
 
+func (c *Cell) Formula() value.Formula {
+	return c.formula
+}
+
 func (c *Cell) Reload(ctx value.Context) error {
 	return nil
 }
@@ -132,12 +136,10 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 }
 
 func (s *Sheet) Reload(ctx value.Context) error {
-	ctx = grid.EvalContext(ctx, grid.SheetContext(s))
+	ctx = grid.EnclosedContext(ctx, grid.SheetContext(s))
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
-			if err := c.Reload(ctx); err != nil {
-				return err
-			}
+			c.Reload(ctx)
 		}
 	}
 	return nil
@@ -339,12 +341,8 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Reload() error {
-	ctx := grid.EvalContext(grid.FileContext(f))
+	ctx := grid.NewContext(grid.FileContext(f))
 	for _, s := range f.sheets {
-		p, ok := ctx.(interface{ Push(value.Context) })
-		if ok {
-			p.Push(grid.SheetContext(s))
-		}
 		if err := s.Reload(ctx); err != nil {
 			return err
 		}

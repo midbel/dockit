@@ -14,9 +14,9 @@ import (
 func Eval(expr value.Formula, ctx value.Context) (value.Value, error) {
 	e, ok := expr.(formula)
 	if !ok {
-		return nil, fmt.Errorf("formula can not eval")
+		return value.ErrValue, fmt.Errorf("formula can not eval")
 	}
-	return eval(e.expr, ctx), nil
+	return eval(e.expr, NewContext(ctx)), nil
 }
 
 func EvalString(expr string, ctx value.Context) (value.Value, error) {
