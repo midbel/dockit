@@ -116,6 +116,7 @@ type MutableContext interface {
 }
 
 type Formula interface {
+	Value
 	Eval(Context) Value
 }
 
