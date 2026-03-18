@@ -79,6 +79,37 @@ func TestFormula(t *testing.T) {
 	t.Run("basic-generated", testBasicGenerated)
 	t.Run("compare", testCompare)
 	t.Run("compare-generated", testCompareGenerated)
+	t.Run("included-formula", testIncludedFormula)
+}
+
+func testIncludedFormula(t *testing.T) {
+	tests := []FormulaTestCase{
+		{
+			Formula: "=C1",
+			Want:    "24",
+		},
+		{
+			Formula: "=C2",
+			Want:    "20",
+		},
+		{
+			Formula: "=sheet2!C1",
+			Want:    "QUZ",
+		},
+		{
+			Formula: "=sheet2!C2",
+			Want:    "BEE",
+		},
+		{
+			Formula: "=sheet2!D1",
+			Want:    "FOO",
+		},
+		{
+			Formula: "=sheet2!D2",
+			Want:    "BAR",
+		},
+	}
+	runTests(t, tests)
 }
 
 func testBasic(t *testing.T) {
@@ -366,21 +397,37 @@ func runTests(t *testing.T, tests []FormulaTestCase) {
 }
 
 func getContext() value.Context {
-	f1, _ := grid.ParseFormula("=B1*2")
-	f2, _ := grid.ParseFormula("=B2*2")
+
 	sheet1 := flat.NewSheet("sheet1", value.Rows(
 		[]value.ScalarValue{value.Text("foo"), value.Float(2)},
 		[]value.ScalarValue{value.Text("bar"), value.Float(5)},
 	))
+	f1, _ := grid.ParseFormula("=(B1 + sheet2!B1)*2")
+	f2, _ := grid.ParseFormula("=(B2 + sheet2!B2)*2")
 	sheet1.SetFormula(layout.NewPosition(1, 3), f1)
 	sheet1.SetFormula(layout.NewPosition(2, 3), f2)
 
-	sheet2 := flat.NewSheet("sheet1", value.Rows(
+	sheet2 := flat.NewSheet("sheet2", value.Rows(
 		[]value.ScalarValue{value.Text("quz"), value.Float(10)},
 		[]value.ScalarValue{value.Text("bee"), value.Float(5)},
 	))
+	f3, _ := grid.ParseFormula("=UPPER(A1)")
+	f4, _ := grid.ParseFormula("=UPPER(A2)")
+	f5, _ := grid.ParseFormula("=UPPER(sheet1!A1)")
+	f6, _ := grid.ParseFormula("=UPPER(sheet1!A2)")
+	sheet2.SetFormula(layout.NewPosition(1, 3), f3)
+	sheet2.SetFormula(layout.NewPosition(1, 4), f5)
+	sheet2.SetFormula(layout.NewPosition(2, 3), f4)
+	sheet2.SetFormula(layout.NewPosition(2, 4), f6)
 
-	file := flat.NewFileFromSheets(sheet1, sheet2)
+	sheet3 := flat.NewSheet("sheet3", value.Rows(
+		[]value.ScalarValue{value.Text("sum")},
+		[]value.ScalarValue{value.Text("avg")},
+		[]value.ScalarValue{value.Text("min")},
+		[]value.ScalarValue{value.Text("max")},
+	))
+
+	file := flat.NewFileFromSheets(sheet1, sheet2, sheet3)
 
 	return grid.NewContext(grid.FileContext(file))
 }
