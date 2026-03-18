@@ -411,8 +411,8 @@ func getContext() value.Context {
 		[]value.ScalarValue{value.Text("quz"), value.Float(10)},
 		[]value.ScalarValue{value.Text("bee"), value.Float(5)},
 	))
-	f3, _ := grid.ParseFormula("=UPPER(A1)")
-	f4, _ := grid.ParseFormula("=UPPER(A2)")
+	f3, _ := grid.ParseFormula("=UPPER(sheet2!A1)")
+	f4, _ := grid.ParseFormula("=UPPER(sheet2!A2)")
 	f5, _ := grid.ParseFormula("=UPPER(sheet1!A1)")
 	f6, _ := grid.ParseFormula("=UPPER(sheet1!A2)")
 	sheet2.SetFormula(layout.NewPosition(1, 3), f3)
