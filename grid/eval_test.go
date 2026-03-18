@@ -13,6 +13,7 @@ import (
 type FormulaTestCase struct {
 	Formula string
 	Want    string
+	Sheet   string
 }
 
 func TestEvalErrors(t *testing.T) {
@@ -93,20 +94,24 @@ func testIncludedFormula(t *testing.T) {
 			Want:    "20",
 		},
 		{
-			Formula: "=sheet2!C1",
+			Formula: "=C1",
 			Want:    "QUZ",
+			Sheet:   "sheet2",
 		},
 		{
-			Formula: "=sheet2!C2",
+			Formula: "=C2",
 			Want:    "BEE",
+			Sheet:   "sheet2",
 		},
 		{
-			Formula: "=sheet2!D1",
+			Formula: "=D1",
 			Want:    "FOO",
+			Sheet:   "sheet2",
 		},
 		{
-			Formula: "=sheet2!D2",
+			Formula: "=D2",
 			Want:    "BAR",
+			Sheet:   "sheet2",
 		},
 	}
 	runTests(t, tests)
@@ -383,9 +388,23 @@ func testMathBuiltins(t *testing.T) {
 
 func runTests(t *testing.T, tests []FormulaTestCase) {
 	t.Helper()
-	ctx := getContext()
+
+	var (
+		file = createFile()
+		ctx  = grid.NewContext(grid.FileContext(file))
+	)
+
 	for _, c := range tests {
-		val, err := grid.EvalString(c.Formula, ctx)
+		sub := ctx
+		if c.Sheet != "" {
+			sh, err := file.Sheet(c.Sheet)
+			if err != nil {
+				t.Errorf("%s: sheet not found", c.Sheet)
+				continue
+			}
+			sub = grid.EnclosedContext(sub, grid.SheetContext(sh))
+		}
+		val, err := grid.EvalString(c.Formula, sub)
 		if err != nil {
 			t.Errorf("%s: error executing formula: %s", c.Formula, err)
 			continue
@@ -397,7 +416,11 @@ func runTests(t *testing.T, tests []FormulaTestCase) {
 }
 
 func getContext() value.Context {
+	file := createFile()
+	return grid.NewContext(grid.FileContext(file))
+}
 
+func createFile() grid.File {
 	sheet1 := flat.NewSheet("sheet1", value.Rows(
 		[]value.ScalarValue{value.Text("foo"), value.Float(2)},
 		[]value.ScalarValue{value.Text("bar"), value.Float(5)},
@@ -427,7 +450,5 @@ func getContext() value.Context {
 		[]value.ScalarValue{value.Text("max")},
 	))
 
-	file := flat.NewFileFromSheets(sheet1, sheet2, sheet3)
-
-	return grid.NewContext(grid.FileContext(file))
+	return flat.NewFileFromSheets(sheet1, sheet2, sheet3)
 }
