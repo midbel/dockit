@@ -6,6 +6,7 @@ import (
 
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -365,17 +366,21 @@ func runTests(t *testing.T, tests []FormulaTestCase) {
 }
 
 func getContext() value.Context {
+	f1, _ := grid.ParseFormula("=B1*2")
+	f2, _ := grid.ParseFormula("=B2*2")
 	sheet1 := flat.NewSheet("sheet1", value.Rows(
 		[]value.ScalarValue{value.Text("foo"), value.Float(2)},
 		[]value.ScalarValue{value.Text("bar"), value.Float(5)},
 	))
+	sheet1.SetFormula(layout.NewPosition(1, 3), f1)
+	sheet1.SetFormula(layout.NewPosition(2, 3), f2)
 
-	sheet2 := flat.NewSheet("sheet2", value.Rows(
+	sheet2 := flat.NewSheet("sheet1", value.Rows(
 		[]value.ScalarValue{value.Text("quz"), value.Float(10)},
 		[]value.ScalarValue{value.Text("bee"), value.Float(5)},
 	))
 
 	file := flat.NewFileFromSheets(sheet1, sheet2)
 
-	return grid.FileContext(file)
+	return grid.NewContext(grid.FileContext(file))
 }

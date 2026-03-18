@@ -339,10 +339,35 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	return nil
 }
 
-func (s *Sheet) SetFormula(_ layout.Position, _ value.Formula) error {
+func (s *Sheet) SetFormula(pos layout.Position, f value.Formula) error {
 	if err := s.supported(); err != nil {
 		return err
 	}
+	cell, ok := s.cells[pos]
+	if !ok {
+		cell = &Cell{
+			Position: pos,
+			raw:      f.String(),
+		}
+		s.cells[pos] = cell
+		ix := slices.IndexFunc(s.rows, func(r *row) bool {
+			return r.Line == pos.Line
+		})
+		if ix < 0 {
+			r := &row{
+				Line: pos.Line,
+			}
+			r.Cells = append(r.Cells, cell)
+			s.rows = append(s.rows, r)
+			slices.SortFunc(s.rows, func(r1, r2 *row) int {
+				return int(r1.Line - r2.Line)
+			})
+		} else {
+			s.rows[ix].Cells = append(s.rows[ix].Cells, cell)
+		}
+	}
+	cell.formula = f
+	cell.parsed = nil
 	return nil
 }
 
