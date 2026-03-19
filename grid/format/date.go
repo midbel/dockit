@@ -102,6 +102,11 @@ type dateFormatter struct {
 	writers []dateWriter
 }
 
+func DefaultDateFormatter() Formatter {
+	ft, _ := ParseDateFormatter(DefaultDatePattern)
+	return ft
+}
+
 func ParseDateFormatter(pattern string) (Formatter, error) {
 	var df dateFormatter
 	for i := 0; i < len(pattern); {

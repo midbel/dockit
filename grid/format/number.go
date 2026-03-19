@@ -24,6 +24,11 @@ type numberFormatter struct {
 	thousandSep byte
 }
 
+func DefaultNumberFormatter() Formatter {
+	ft, _ := ParseNumberFormatter(DefaultNumberPattern)
+	return ft
+}
+
 func ParseNumberFormatter(pattern string) (Formatter, error) {
 	if pattern == "" || pattern == "." || pattern == "-" || pattern == "+" {
 		return nil, fmt.Errorf("invalid pattern given")
