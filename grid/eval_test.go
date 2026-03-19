@@ -113,6 +113,26 @@ func testIncludedFormula(t *testing.T) {
 			Want:    "BAR",
 			Sheet:   "sheet2",
 		},
+		{
+			Formula: "=B1",
+			Want:    "7",
+			Sheet:   "sheet3",
+		},
+		{
+			Formula: "=B2",
+			Want:    "3.5",
+			Sheet:   "sheet3",
+		},
+		{
+			Formula: "=B3",
+			Want:    "5",
+			Sheet:   "sheet3",
+		},
+		{
+			Formula: "=B4",
+			Want:    "10",
+			Sheet:   "sheet3",
+		},
 	}
 	runTests(t, tests)
 }

@@ -30,8 +30,8 @@ func TestStat(t *testing.T) {
 		},
 		{
 			Name:      "sheet3",
-			Cells:     4,
-			Formulas:  0,
+			Cells:     8,
+			Formulas:  4,
 			Constants: 4,
 		},
 	}
