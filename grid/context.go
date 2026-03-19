@@ -73,11 +73,11 @@ func (c sheetContext) Resolve(string) value.Value {
 }
 
 func (c sheetContext) Range(start, end layout.Position) value.Value {
-	if start.Sheet != c.view.Name() {
-		return value.ErrRef
+	if start.Sheet == "" || start.Sheet == c.view.Name() {
+		rg := layout.NewRange(start, end)
+		return ArrayView(NewBoundedView(c.view, rg))
 	}
-	rg := layout.NewRange(start, end)
-	return ArrayView(NewBoundedView(c.view, rg))
+	return value.ErrRef
 }
 
 func (c sheetContext) At(pos layout.Position) value.Value {
