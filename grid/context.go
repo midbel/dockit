@@ -73,6 +73,9 @@ func (c sheetContext) Resolve(string) value.Value {
 }
 
 func (c sheetContext) Range(start, end layout.Position) value.Value {
+	if start.Sheet != c.view.Name() {
+		return value.ErrRef
+	}
 	rg := layout.NewRange(start, end)
 	return ArrayView(NewBoundedView(c.view, rg))
 }
