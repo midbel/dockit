@@ -14,7 +14,7 @@ var PatternNames = map[string]string{
 }
 
 const (
-	DefaultNumberPattern = "#######.##"
+	DefaultNumberPattern = "#######.00"
 	DefaultDatePattern   = "YYYY-MM-DD"
 	DefaultBoolPattern   = "bool"
 )

@@ -6,6 +6,7 @@ import (
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/testutil"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -383,6 +384,33 @@ func testMathBuiltins(t *testing.T) {
 		},
 	}
 	runTests(t, tests)
+}
+
+func TestSync(t *testing.T) {
+	var (
+		file  = testutil.CreateFile()
+		blank = value.Empty()
+		pos   = layout.NewPosition(1, 3)
+		want  = value.Float(24)
+	)
+
+	sh, err := file.Sheet("sheet1")
+	if err != nil {
+		t.Fatalf("fail to get sheet1: %s", err)
+	}
+	cell, err := sh.Cell(pos)
+	if err != nil {
+		t.Fatalf("fail to get cell at %s: %s", pos, err)
+	}
+	if got := cell.Value(); value.True(value.Ne(blank, got)) {
+		t.Errorf("expected empty value in sheet1!C1! got %s", got)
+	}
+	if err := file.Sync(); err != nil {
+		t.Errorf("fail to sync file: %s", err)
+	}
+	if got := cell.Value(); value.True(value.Ne(want, got)) {
+		t.Errorf("expected value in sheet1!C1 to be %s! got %s", want, got)
+	}
 }
 
 func runTests(t *testing.T, tests []FormulaTestCase) {
