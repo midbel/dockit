@@ -104,22 +104,18 @@ func AnalyzeView(view View) ViewStats {
 		if value.IsError(v) {
 			stat.Errors++
 		}
-		f, ok := c.(interface{ Formula() value.Formula })
-		if ok {
-			sub := f.Formula()
-			if sub != nil {
-				stat.Formulas++
-				fs := AnalyzeFormula(sub)
-				for n, c := range fs.Builtins {
-					stat.Builtins[n] += c
-				}
-				for _, d := range fs.Deps {
-					stat.Refs[d]++
-				}
-				// stat.Formulas = append(stat.Formulas, fs)
-				stat.MaxDepth = max(stat.MaxDepth, fs.MaxDepth)
-				stat.Complexity = max(stat.Complexity, fs.Complexity)
+		if sub := c.Formula(); sub != nil {
+			stat.Formulas++
+			fs := AnalyzeFormula(sub)
+			for n, c := range fs.Builtins {
+				stat.Builtins[n] += c
 			}
+			for _, d := range fs.Deps {
+				stat.Refs[d]++
+			}
+			// stat.Formulas = append(stat.Formulas, fs)
+			stat.MaxDepth = max(stat.MaxDepth, fs.MaxDepth)
+			stat.Complexity = max(stat.Complexity, fs.Complexity)
 		} else {
 			stat.Constants++
 		}
