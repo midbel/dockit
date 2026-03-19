@@ -407,6 +407,46 @@ func testMathBuiltins(t *testing.T) {
 }
 
 func TestSync(t *testing.T) {
+	t.Run("force-sync", testForceSync)
+	t.Run("empty-no-sync", testEmptyWithoutSync)
+}
+
+func testEmptyWithoutSync(t *testing.T) {
+	var (
+		file  = testutil.CreateFile()
+		blank = value.Empty()
+		pos   = layout.NewPosition(1, 3)
+		want  = value.Float(24)
+	)
+
+	sh, err := file.Sheet("sheet1")
+	if err != nil {
+		t.Fatalf("fail to get sheet1: %s", err)
+	}
+	cell, err := sh.Cell(pos)
+	if err != nil {
+		t.Fatalf("fail to get cell at %s: %s", pos, err)
+	}
+	if got := cell.Value(); value.True(value.Ne(blank, got)) {
+		t.Errorf("expected empty value in sheet1!C1! got %s", got)
+	}
+	if f := cell.Formula(); f == nil {
+		t.Fatalf("expected formula to not be nil")
+	} else {
+		val, err := grid.Eval(f, grid.NewContext(grid.FileContext(file)))
+		if err != nil {
+			t.Fatalf("error evaluating formula: %s", err)
+		}
+		if value.True(value.Ne(val, want)) {
+			t.Errorf("evaluation failed! want %s, got %s", want, val)
+		}
+	}
+	if got := cell.Value(); value.True(value.Ne(blank, got)) {
+		t.Errorf("expected empty value in sheet1!C1! got %s", got)
+	}
+}
+
+func testForceSync(t *testing.T) {
 	var (
 		file  = testutil.CreateFile()
 		blank = value.Empty()
