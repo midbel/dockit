@@ -174,9 +174,15 @@ func (f *File) RemoveSheet(name string) error {
 	return nil
 }
 
-func (f *File) Reload() error {
+func (f *File) Sync() error {
 	if err := f.supported(); err != nil {
 		return err
+	}
+	ctx := grid.NewContext(grid.FileContext(f))
+	for _, s := range f.sheets {
+		if err := s.Sync(ctx); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -280,6 +286,27 @@ func (s *Sheet) View(rg *layout.Range) grid.View {
 
 func (s *Sheet) Sub(start, end layout.Position) grid.View {
 	return s.View(layout.NewRange(start, end))
+}
+
+func (s *Sheet) Sync(ctx value.Context) error {
+	if err := s.supported(); err != nil {
+		return err
+	}
+	ctx = grid.EnclosedContext(ctx, grid.SheetContext(s))
+	for _, r := range s.rows {
+		for _, c := range r.Cells {
+			f := c.Formula()
+			if f == nil {
+				continue
+			}
+			val, err := grid.Eval(f, ctx)
+			if err != nil {
+				return err
+			}
+			c.update(val)
+		}
+	}
+	return nil
 }
 
 func (s *Sheet) Bounds() *layout.Range {
@@ -434,6 +461,8 @@ type row struct {
 
 type Cell struct {
 	layout.Position
+	mode Mode
+
 	raw     string
 	parsed  value.ScalarValue
 	formula value.Formula
@@ -455,6 +484,33 @@ func (c *Cell) Formula() value.Formula {
 	return c.formula
 }
 
-func (c *Cell) Reload(ctx value.Context) error {
+func (c *Cell) Sync(ctx value.Context) error {
+	if err := c.supported(); err != nil {
+		return err
+	}
+	if c.formula == nil {
+		return nil
+	}
+	val, err := grid.Eval(c.formula, ctx)
+	if err == nil {
+		c.update(val)
+	}
+	return err
+}
+
+func (c *Cell) supported() error {
+	if c.mode == flatMode {
+		return grid.ErrSupported
+	}
+	return nil
+}
+
+func (c *Cell) update(val value.Value) error {
+	if !value.IsScalar(val) {
+		c.parsed = value.ErrValue
+	} else {
+		c.parsed = val.(value.ScalarValue)
+	}
+	c.raw = val.String()
 	return nil
 }

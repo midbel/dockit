@@ -60,18 +60,24 @@ func (c *Cell) Formula() value.Formula {
 	return c.formula
 }
 
-func (c *Cell) Reload(ctx value.Context) error {
+func (c *Cell) Sync(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
 	}
-	res := c.formula.Eval(ctx)
-	if !value.IsScalar(res) {
+	val, err := grid.Eval(c.formula, ctx)
+	if err == nil {
+		c.update(val)
+	}
+	return err
+}
+
+func (c *Cell) update(val value.Value) {
+	if !value.IsScalar(val) {
 		c.parsed = value.ErrValue
 	} else {
-		c.parsed = res.(value.ScalarValue)
+		c.parsed = val.(value.ScalarValue)
 	}
-	c.raw = res.String()
-	return nil
+	c.raw = val.String()
 }
 
 func typeFromValue(val value.ScalarValue) string {
@@ -255,11 +261,19 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	return cell, nil
 }
 
-func (s *Sheet) Reload(ctx value.Context) error {
+func (s *Sheet) Sync(ctx value.Context) error {
 	ctx = grid.EnclosedContext(ctx, grid.SheetContext(s))
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
-			c.Reload(ctx)
+			f := c.Formula()
+			if f == nil {
+				continue
+			}
+			val, err := grid.Eval(f, ctx)
+			if err != nil {
+				return err
+			}
+			c.update(val)
 		}
 	}
 	return nil
@@ -509,10 +523,10 @@ func (f *File) Infos() []grid.ViewInfo {
 	return infos
 }
 
-func (f *File) Reload() error {
+func (f *File) Sync() error {
 	ctx := grid.NewContext(grid.FileContext(f))
 	for _, s := range f.sheets {
-		if err := s.Reload(ctx); err != nil {
+		if err := s.Sync(ctx); err != nil {
 			return err
 		}
 	}

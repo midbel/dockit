@@ -60,7 +60,7 @@ func (c MergeCommand) Run(args []string) error {
 	}
 
 	if *reload {
-		if err := wb.Reload(); err != nil && !errors.Is(err, grid.ErrSupported) {
+		if err := wb.Sync(); err != nil && !errors.Is(err, grid.ErrSupported) {
 			return err
 		}
 	}

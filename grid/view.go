@@ -88,7 +88,7 @@ type View interface {
 	Rows() iter.Seq[[]value.ScalarValue]
 	Cell(layout.Position) (Cell, error)
 
-	Reload(value.Context) error
+	Sync(value.Context) error
 }
 
 type MutableView interface {
@@ -117,7 +117,7 @@ type File interface {
 	Sheet(string) (View, error)
 	Sheets() []View
 
-	Reload() error
+	Sync() error
 
 	Rename(string, string) error
 	Copy(string, string) error
@@ -185,8 +185,8 @@ func (v *filteredView) Cell(layout.Position) (Cell, error) {
 	return nil, nil
 }
 
-func (v *filteredView) Reload(ctx value.Context) error {
-	return v.view.Reload(ctx)
+func (v *filteredView) Sync(ctx value.Context) error {
+	return v.view.Sync(ctx)
 }
 
 type readonlyView struct {
@@ -226,7 +226,7 @@ func (v *readonlyView) Cell(pos layout.Position) (Cell, error) {
 	return v.view.Cell(pos)
 }
 
-func (v *readonlyView) Reload(ctx value.Context) error {
+func (v *readonlyView) Sync(ctx value.Context) error {
 	return ErrWritable
 }
 
@@ -294,7 +294,7 @@ func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
 	return v.view.Cell(p)
 }
 
-func (v *transposedView) Reload(ctx value.Context) error {
+func (v *transposedView) Sync(ctx value.Context) error {
 	return ErrWritable
 }
 
@@ -381,9 +381,9 @@ func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
 	return nil, nil
 }
 
-func (v *horizontalStackedView) Reload(ctx value.Context) error {
+func (v *horizontalStackedView) Sync(ctx value.Context) error {
 	for i := range v.views {
-		if err := v.views[i].Reload(ctx); err != nil {
+		if err := v.views[i].Sync(ctx); err != nil {
 			return err
 		}
 	}
@@ -452,9 +452,9 @@ func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
 	return nil, nil
 }
 
-func (v *verticalStackedView) Reload(ctx value.Context) error {
+func (v *verticalStackedView) Sync(ctx value.Context) error {
 	for i := range v.views {
-		if err := v.views[i].Reload(ctx); err != nil {
+		if err := v.views[i].Sync(ctx); err != nil {
 			return err
 		}
 	}
@@ -487,8 +487,8 @@ func (v *projectedView) Type() string {
 	return "projected"
 }
 
-func (v *projectedView) Reload(ctx value.Context) error {
-	return v.view.Reload(ctx)
+func (v *projectedView) Sync(ctx value.Context) error {
+	return v.view.Sync(ctx)
 }
 
 func (v *projectedView) Bounds() *layout.Range {
@@ -626,8 +626,8 @@ func (v *boundedView) Type() string {
 	return "bounded"
 }
 
-func (v *boundedView) Reload(ctx value.Context) error {
-	return v.view.Reload(ctx)
+func (v *boundedView) Sync(ctx value.Context) error {
+	return v.view.Sync(ctx)
 }
 
 func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
