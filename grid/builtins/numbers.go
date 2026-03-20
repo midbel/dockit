@@ -122,6 +122,9 @@ func Sqrt(args []value.Value) value.Value {
 	if err != nil {
 		return value.ErrValue
 	}
+	if float64(f) < 0 {
+		return value.ErrValue
+	}
 	ret := math.Sqrt(float64(f))
 	return value.Float(ret)
 }

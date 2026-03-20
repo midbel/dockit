@@ -302,9 +302,33 @@ var Registry = map[string]Builtin{
 		},
 		Func: IsText,
 	},
-	// "isblank":     nil,
-	// "iserror":     nil,
-	// "isna":        nil,
+	"isblank": {
+		Name:     "isblank",
+		Desc:     "",
+		Category: "type",
+		Params: []Param{
+			Scalar("value", "", value.TypeAny),
+		},
+		Func: IsBlank,
+	},
+	"iserror": {
+		Name:     "iserror",
+		Desc:     "",
+		Category: "type",
+		Params: []Param{
+			Scalar("value", "", value.TypeAny),
+		},
+		Func: IsError,
+	},
+	"isna": {
+		Name:     "isna",
+		Desc:     "",
+		Category: "type",
+		Params: []Param{
+			Scalar("value", "", value.TypeAny),
+		},
+		Func: IsNA,
+	},
 	"concatenate": {
 		Name:     "concatenate",
 		Desc:     "",
@@ -387,29 +411,57 @@ var Registry = map[string]Builtin{
 	// "text":        nil,
 	// "value":       nil,
 	// "textjoin":    nil,
+	// "ifs":         nil,
 	"if": {
 		Name:     "if",
 		Desc:     "",
 		Category: "conditional",
-		Params:   []Param{},
-		Func:     If,
+		Params: []Param{
+			Scalar("value", "", value.TypeAny),
+			Deferrable(Scalar("csq", "", value.TypeAny)),
+			Deferrable(Scalar("alt", "", value.TypeAny)),
+		},
+		Func: If,
 	},
-	// "iferror":     nil,
-	// "ifs":         nil,
-	// "ifna":        nil,
+	"iferror": {
+		Name:     "iferror",
+		Desc:     "",
+		Category: "conditional",
+		Params: []Param{
+			Scalar("value", "", value.TypeAny),
+			Deferrable(ScalarArray("replace", "", value.TypeAny)),
+		},
+		Func: IfError,
+	},
+	"ifna": {
+		Name:     "ifna",
+		Desc:     "",
+		Category: "conditional",
+		Params: []Param{
+			Scalar("value", "", value.TypeAny),
+			Deferrable(ScalarArray("replace", "", value.TypeAny)),
+		},
+		Func: IfNA,
+	},
 	"and": {
 		Name:     "and",
 		Desc:     "",
 		Category: "conditional",
-		Params:   []Param{},
-		Func:     And,
+		Params: []Param{
+			ScalarArray("value1", "", value.TypeAny),
+			ScalarArray("value2", "", value.TypeAny),
+		},
+		Func: And,
 	},
 	"or": {
 		Name:     "or",
 		Desc:     "",
 		Category: "conditional",
-		Params:   []Param{},
-		Func:     Or,
+		Params: []Param{
+			ScalarArray("value1", "", value.TypeAny),
+			ScalarArray("value2", "", value.TypeAny),
+		},
+		Func: Or,
 	},
 	"xor": {
 		Name:     "xor",
@@ -422,8 +474,10 @@ var Registry = map[string]Builtin{
 		Name:     "not",
 		Desc:     "",
 		Category: "conditional",
-		Params:   []Param{},
-		Func:     Not,
+		Params: []Param{
+			ScalarArray("value", "", value.TypeAny),
+		},
+		Func: Not,
 	},
 	// "index":       nil,
 	// "match":       nil,
@@ -468,6 +522,10 @@ func List() []Builtin {
 	return slices.Collect(vs)
 }
 
+type Evaluable interface {
+	Eval() value.Value
+}
+
 type BuiltinFunc func([]value.Value) value.Value
 
 type Builtin struct {
@@ -507,13 +565,31 @@ func (b Builtin) Make() BuiltinFunc {
 	return Make(b.Params, b.Func)
 }
 
+type deferrableValue struct {
+	value.Value
+}
+
+func deferValue(val value.Value) value.Value {
+	return deferrableValue{
+		Value: val,
+	}
+}
+
+func (d deferrableValue) Eval() value.Value {
+	if e, ok := d.Value.(Evaluable); ok {
+		return e.Eval()
+	}
+	return value.ErrValue
+}
+
 type Param struct {
-	Name     string
-	Desc     string
-	Type     string
-	Mode     value.ValueKind
-	Optional bool
-	Variadic bool
+	Name       string
+	Desc       string
+	Type       string
+	Mode       value.ValueKind
+	Optional   bool
+	Variadic   bool
+	Deferrable bool
 }
 
 func (p Param) Valid(val value.Value) bool {
@@ -522,7 +598,18 @@ func (p Param) Valid(val value.Value) bool {
 }
 
 func (p Param) Convert(val value.Value) value.Value {
+	if p.Deferrable {
+		return deferValue(val)
+	}
+	e, ok := val.(Evaluable)
+	if !ok {
+		return value.ErrValue
+	}
+	val = e.Eval()
 	if !p.Valid(val) {
+		if value.IsError(val) {
+			return val
+		}
 		return value.ErrValue
 	}
 	if value.IsArray(val) {
@@ -605,7 +692,11 @@ func Make(params []Param, do BuiltinFunc) BuiltinFunc {
 				return value.ErrValue
 			}
 		}
-		return do(newArgs)
+		val := do(newArgs)
+		if e, ok := val.(Evaluable); ok {
+			return e.Eval()
+		}
+		return val
 	}
 	return fn
 }
@@ -644,5 +735,10 @@ func Opt(p Param) Param {
 
 func Var(p Param) Param {
 	p.Variadic = true
+	return p
+}
+
+func Deferrable(p Param) Param {
+	p.Deferrable = true
 	return p
 }

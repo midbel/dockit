@@ -5,15 +5,40 @@ import (
 )
 
 func If(args []value.Value) value.Value {
-	return nil
+	if value.True(args[0]) {
+		return args[1]
+	}
+	return args[2]
+}
+
+func IfError(args []value.Value) value.Value {
+	if value.IsError(args[0]) {
+		return args[1]
+	}
+	return args[0]
+}
+
+func IfNA(args []value.Value) value.Value {
+	if value.IsError(args[0]) && args[0] == value.ErrNA {
+		return args[1]
+	}
+	return args[0]
 }
 
 func And(args []value.Value) value.Value {
-	return nil
+	var (
+		ok1 = value.True(args[0])
+		ok2 = value.True(args[1])
+	)
+	return value.Boolean(ok1 && ok2)
 }
 
 func Or(args []value.Value) value.Value {
-	return nil
+	var (
+		ok1 = value.True(args[0])
+		ok2 = value.True(args[1])
+	)
+	return value.Boolean(ok1 || ok2)
 }
 
 func Xor(args []value.Value) value.Value {
@@ -21,5 +46,6 @@ func Xor(args []value.Value) value.Value {
 }
 
 func Not(args []value.Value) value.Value {
-	return nil
+	ok := value.True(args[0])
+	return value.Boolean(!ok)
 }
