@@ -122,11 +122,7 @@ func evalCall(e parse.Call, ctx value.Context) value.Value {
 	}
 	var args []value.Value
 	for _, e := range e.Args() {
-		a := eval(e, ctx)
-		if value.IsError(a) {
-			return a
-		}
-		args = append(args, a)
+		args = append(args, newArg(e, ctx))
 	}
 	fn, err := builtins.Lookup(id.Ident())
 	if err != nil {
@@ -149,6 +145,34 @@ func ParseFormula(str string) (value.Formula, error) {
 		return nil, err
 	}
 	return NewFormula(expr), nil
+}
+
+type arg struct {
+	expr parse.Expr
+	ctx  value.Context
+}
+
+func newArg(expr parse.Expr, ctx value.Context) value.Value {
+	return arg{
+		expr: expr,
+		ctx:  ctx,
+	}
+}
+
+func (arg) Type() string {
+	return "argument"
+}
+
+func (arg) Kind() value.ValueKind {
+	return value.KindScalar
+}
+
+func (a arg) String() string {
+	return a.expr.String()
+}
+
+func (a arg) Eval() value.Value {
+	return eval(a.expr, a.ctx)
 }
 
 type formula struct {

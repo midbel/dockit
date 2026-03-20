@@ -29,6 +29,11 @@ func TestEvalErrors(t *testing.T) {
 		},
 		{
 			Comment: "division by zero",
+			Formula: "=sum(1, 1/0)",
+			Want:    "#DIV/0!",
+		},
+		{
+			Comment: "division by zero",
 			Formula: "=1/(1-1)",
 			Want:    "#DIV/0!",
 		},
@@ -336,6 +341,37 @@ func testCompare(t *testing.T) {
 func TestBuiltins(t *testing.T) {
 	t.Run("arithmetic", testMathBuiltins)
 	t.Run("text", testStringBuiltins)
+	t.Run("conditions", testConditionals)
+}
+
+func testConditionals(t *testing.T) {
+	tests := []FormulaTestCase{
+		{
+			Formula: "=if(true, 'foo', 'bar')",
+			Want:    "foo",
+		},
+		{
+			Formula: "=if(10 > 100, 'foo', 'bar')",
+			Want:    "bar",
+		},
+		{
+			Formula: "=if('foo' != 'bar', if(length('foo') > 0, 'foobar', 'quz'), 'n/a')",
+			Want:    "foobar",
+		},
+		{
+			Formula: "=iferror(10, 'foo')",
+			Want:    "10",
+		},
+		{
+			Formula: "=iferror(1/0, 'foo')",
+			Want:    "foo",
+		},
+		{
+			Formula: "=ifna(42, 'foo')",
+			Want:    "42",
+		},
+	}
+	runTests(t, tests)
 }
 
 func testStringBuiltins(t *testing.T) {

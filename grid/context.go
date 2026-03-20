@@ -95,38 +95,6 @@ func (c sheetContext) At(pos layout.Position) value.Value {
 	return value.ErrRef
 }
 
-func (c sheetContext) SetValue(pos layout.Position, val value.Value) error {
-	mv, ok := c.view.(MutableView)
-	if !ok {
-		return ErrMutate
-	}
-	res, ok := val.(value.ScalarValue)
-	if !ok {
-		return ErrType
-	}
-	return mv.SetValue(pos, res)
-}
-
-func (c sheetContext) SetFormula(pos layout.Position, val value.Formula) error {
-	mv, ok := c.view.(MutableView)
-	if !ok {
-		return ErrMutate
-	}
-	res, ok := val.(value.Formula)
-	if !ok {
-		return ErrType
-	}
-	return mv.SetFormula(pos, res)
-}
-
-func (c sheetContext) SetRange(start, end layout.Position, val value.Value) error {
-	return nil
-}
-
-func (c sheetContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
-	return nil
-}
-
 type fileContext struct {
 	file File
 }
@@ -162,46 +130,6 @@ func (c fileContext) Range(start, end layout.Position) value.Value {
 		return value.ErrRef
 	}
 	return SheetContext(sh).Range(start, end)
-}
-
-func (c fileContext) SetValue(pos layout.Position, val value.Value) error {
-	sh, err := c.sheet(pos.Sheet)
-	if err != nil {
-		return err
-	}
-	mv, ok := sh.(MutableView)
-	if !ok {
-		return ErrMutate
-	}
-	res, ok := val.(value.ScalarValue)
-	if !ok {
-		return ErrType
-	}
-	return mv.SetValue(pos, res)
-}
-
-func (c fileContext) SetFormula(pos layout.Position, val value.Formula) error {
-	sh, err := c.sheet(pos.Sheet)
-	if err != nil {
-		return err
-	}
-	mv, ok := sh.(MutableView)
-	if !ok {
-		return ErrMutate
-	}
-	res, ok := val.(value.Formula)
-	if !ok {
-		return ErrType
-	}
-	return mv.SetFormula(pos, res)
-}
-
-func (c fileContext) SetRange(start, end layout.Position, val value.Value) error {
-	return nil
-}
-
-func (c fileContext) SetRangeFormula(start, end layout.Position, val value.Value) error {
-	return nil
 }
 
 func (c fileContext) sheet(name string) (View, error) {

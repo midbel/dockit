@@ -76,6 +76,11 @@ func IsError(v Value) bool {
 	return v.Kind() == KindError && v.Type() == TypeError
 }
 
+func IsBlank(v Value) bool {
+	_, ok := v.(Blank)
+	return ok
+}
+
 func Rows(rs ...[]ScalarValue) [][]ScalarValue {
 	return rs
 }
