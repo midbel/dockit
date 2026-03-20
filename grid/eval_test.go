@@ -374,6 +374,10 @@ func testConditionals(t *testing.T) {
 			Formula: "=ifna(na(), 'foo')",
 			Want:    "foo",
 		},
+		{
+			Formula: "=ifna(#N/A, 'foo')",
+			Want:    "foo",
+		},
 	}
 	runTests(t, tests)
 }

@@ -127,6 +127,8 @@ func (s *Scanner) Scan() Token {
 		s.scanNL(&tok)
 	case s.inScript() && isComment(s.char):
 		s.scanComment(&tok)
+	case !s.inScript() && isComment(s.char):
+		s.scanIdentError(&tok)
 	case isOperator(s.char):
 		s.scanOperator(&tok)
 	case isDelimiter(s.char):
@@ -189,6 +191,21 @@ func (s *Scanner) scanDirective(tok *Token) {
 	}
 	tok.Type = op.Directive
 	tok.Literal = s.literal()
+}
+
+func (s *Scanner) scanIdentError(tok *Token) {
+	s.write()
+	s.read()
+	accept := func(ch rune) bool {
+		return isUpper(ch) || ch == '0' || 
+			ch == question || ch == bang || ch == slash
+	}
+	for !s.done() && accept(s.char) {
+		s.write()
+		s.read()
+	}
+	tok.Type = op.Ident
+	tok.Literal = s.literal()	
 }
 
 func (s *Scanner) scanIdent(tok *Token) {

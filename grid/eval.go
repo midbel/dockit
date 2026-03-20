@@ -56,6 +56,20 @@ func evalIdentifier(e parse.Identifier, ctx value.Context) value.Value {
 		return value.Boolean(true)
 	case "false":
 		return value.Boolean(false)
+	case value.ErrNull.String():
+		return value.ErrNull
+	case value.ErrDiv0.String():
+		return value.ErrDiv0
+	case value.ErrValue.String():
+		return value.ErrValue
+	case value.ErrRef.String():
+		return value.ErrRef
+	case value.ErrName.String():
+		return value.ErrName
+	case value.ErrNum.String():
+		return value.ErrNum
+	case value.ErrNA.String():
+		return value.ErrNA
 	default:
 		return value.ErrName
 	}
