@@ -33,6 +33,8 @@ func eval(expr parse.Expr, ctx value.Context) value.Value {
 		return evalBinary(e, ctx)
 	case parse.Unary:
 		return evalUnary(e, ctx)
+	case parse.Identifier:
+		return evalIdentifier(e, ctx)
 	case parse.Literal:
 		return value.Text(e.Text())
 	case parse.Number:
@@ -45,6 +47,17 @@ func eval(expr parse.Expr, ctx value.Context) value.Value {
 		return evalRangeAddr(e, ctx)
 	default:
 		return value.ErrNA
+	}
+}
+
+func evalIdentifier(e parse.Identifier, ctx value.Context) value.Value {
+	switch e.Ident() {
+	case "true":
+		return value.Boolean(true)
+	case "false":
+		return value.Boolean(false)
+	default:
+		return value.ErrName
 	}
 }
 

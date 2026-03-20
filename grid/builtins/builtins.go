@@ -177,6 +177,12 @@ var Registry = map[string]Builtin{
 		},
 		Func: Count,
 	},
+	"na": {
+		Name:     "na",
+		Desc:     "",
+		Category: "errors",
+		Func:     Na,
+	},
 	"type": {
 		Name:     "type",
 		Alias:    slx.Make("typeof"),
@@ -364,6 +370,7 @@ var Registry = map[string]Builtin{
 		Name:     "len",
 		Desc:     "",
 		Category: "text",
+		Alias:    []string{"length"},
 		Params: []Param{
 			Scalar("str", "", value.TypeText),
 		},
@@ -680,9 +687,6 @@ func Make(params []Param, do BuiltinFunc) BuiltinFunc {
 			}
 			for i := range as {
 				ret := p.Convert(as[i])
-				if value.IsError(ret) {
-					return ret
-				}
 				newArgs = append(newArgs, ret)
 			}
 			pix++

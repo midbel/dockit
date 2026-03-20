@@ -355,7 +355,7 @@ func testConditionals(t *testing.T) {
 			Want:    "bar",
 		},
 		{
-			Formula: "=if('foo' != 'bar', if(length('foo') > 0, 'foobar', 'quz'), 'n/a')",
+			Formula: "=if('foo' <> 'bar', if(length('foo') > 0, 'foobar', 'quz'), 'n/a')",
 			Want:    "foobar",
 		},
 		{
@@ -369,6 +369,10 @@ func testConditionals(t *testing.T) {
 		{
 			Formula: "=ifna(42, 'foo')",
 			Want:    "42",
+		},
+		{
+			Formula: "=ifna(na(), 'foo')",
+			Want:    "foo",
 		},
 	}
 	runTests(t, tests)
