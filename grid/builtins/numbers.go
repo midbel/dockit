@@ -168,7 +168,8 @@ func Pow(args []value.Value) value.Value {
 }
 
 func Int(args []value.Value) value.Value {
-	return value.Float(0)
+	f, _ := value.CastToFloat(args[0])
+	return value.Float(int(f))
 }
 
 func Rand(args []value.Value) value.Value {

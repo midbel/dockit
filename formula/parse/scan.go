@@ -197,7 +197,7 @@ func (s *Scanner) scanIdentError(tok *Token) {
 	s.write()
 	s.read()
 	accept := func(ch rune) bool {
-		return isUpper(ch) || ch == '0' || 
+		return isUpper(ch) || ch == '0' ||
 			ch == question || ch == bang || ch == slash
 	}
 	for !s.done() && accept(s.char) {
@@ -205,7 +205,7 @@ func (s *Scanner) scanIdentError(tok *Token) {
 		s.read()
 	}
 	tok.Type = op.Ident
-	tok.Literal = s.literal()	
+	tok.Literal = s.literal()
 }
 
 func (s *Scanner) scanIdent(tok *Token) {

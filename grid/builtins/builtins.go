@@ -183,6 +183,15 @@ var Registry = map[string]Builtin{
 		Category: "errors",
 		Func:     Na,
 	},
+	"err": {
+		Name:     "err",
+		Desc:     "",
+		Category: "errors",
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+		},
+		Func: Err,
+	},
 	"type": {
 		Name:     "type",
 		Alias:    slx.Make("typeof"),
@@ -349,22 +358,32 @@ var Registry = map[string]Builtin{
 		Name:     "left",
 		Desc:     "",
 		Category: "text",
-		Params:   []Param{},
-		Func:     Left,
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+			Opt(Scalar("chars", "", value.TypeNumber)),
+		},
+		Func: Left,
 	},
 	"right": {
 		Name:     "right",
 		Desc:     "",
 		Category: "text",
-		Params:   []Param{},
-		Func:     Right,
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+			Opt(Scalar("chars", "", value.TypeNumber)),
+		},
+		Func: Right,
 	},
 	"mid": {
 		Name:     "mid",
 		Desc:     "",
 		Category: "text",
-		Params:   []Param{},
-		Func:     Mid,
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+			Scalar("index", "", value.TypeNumber),
+			Scalar("chars", "", value.TypeNumber),
+		},
+		Func: Mid,
 	},
 	"len": {
 		Name:     "len",

@@ -25,15 +25,60 @@ func Concat(args []value.Value) value.Value {
 }
 
 func Left(args []value.Value) value.Value {
-	return nil
+	var chars int
+	if len(args) == 2 {
+		c, _ := value.CastToFloat(args[1])
+		if c <= 0 {
+			return value.ErrValue
+		}
+		chars = int(c)
+	} else {
+		chars++
+	}
+	str, _ := value.CastToText(args[0])
+	if chars > len(str) {
+		return args[0]
+	}
+	return value.Text(str[:chars])
 }
 
 func Right(args []value.Value) value.Value {
-	return nil
+	var chars int
+	if len(args) == 2 {
+		c, _ := value.CastToFloat(args[1])
+		if c <= 0 {
+			return value.ErrValue
+		}
+		chars = int(c)
+	} else {
+		chars++
+	}
+	str, _ := value.CastToText(args[0])
+	if chars > len(str) {
+		return args[0]
+	}
+	return value.Text(str[len(str)-chars:])
 }
 
 func Mid(args []value.Value) value.Value {
-	return nil
+	ix, _ := value.CastToFloat(args[1])
+	if ix <= 0 {
+		return value.ErrValue
+	}
+	ix -= 1
+	ch, _ := value.CastToFloat(args[2])
+	if ch <= 0 {
+		return value.ErrValue
+	}
+	str, _ := value.CastToText(args[0])
+	if int(ix) >= len(str) {
+		return args[0]
+	}
+	str = str[int(ix):]
+	if int(ch) >= len(str) {
+		return value.Text(str)
+	}
+	return value.Text(str[:int(ch)])
 }
 
 func Len(args []value.Value) value.Value {
@@ -68,5 +113,45 @@ func Substr(args []value.Value) value.Value {
 }
 
 func Replace(args []value.Value) value.Value {
+	return nil
+}
+
+func Trim(args []value.Value) value.Value {
+	return nil
+}
+
+func Split(args []value.Value) value.Value {
+	return nil
+}
+
+func Join(args []value.Value) value.Value {
+	return nil
+}
+
+func Proper(args []value.Value) value.Value {
+	return nil
+}
+
+func Search(args []value.Value) value.Value {
+	return nil
+}
+
+func Find(args []value.Value) value.Value {
+	return nil
+}
+
+func Substitute(args []value.Value) value.Value {
+	return nil
+}
+
+func Text(args []value.Value) value.Value {
+	return nil
+}
+
+func Value(args []value.Value) value.Value {
+	return nil
+}
+
+func Textjoin(args []value.Value) value.Value {
 	return nil
 }
