@@ -102,7 +102,7 @@ var Registry = map[string]Builtin{
 		Func: Floor,
 	},
 	"roundup": {
-		Name:     "rounddown",
+		Name:     "roundup",
 		Alias:    slx.Make("ceil"),
 		Desc:     "",
 		Category: "math",
@@ -377,6 +377,7 @@ var Registry = map[string]Builtin{
 	"mid": {
 		Name:     "mid",
 		Desc:     "",
+		Alias:    []string{"substr"},
 		Category: "text",
 		Params: []Param{
 			Scalar("str", "", value.TypeText),
@@ -412,13 +413,6 @@ var Registry = map[string]Builtin{
 			Scalar("str", "", value.TypeText),
 		},
 		Func: Lower,
-	},
-	"substr": {
-		Name:     "substr",
-		Desc:     "",
-		Category: "text",
-		Params:   []Param{},
-		Func:     Substr,
 	},
 	"replace": {
 		Name:     "replace",
@@ -512,20 +506,20 @@ var Registry = map[string]Builtin{
 	// "xlookup":     nil,
 	// "offset":      nil,
 	// "choose":      nil,
-	"lock": {
-		Name:     "lock",
-		Desc:     "",
-		Category: "miscel",
-		Params:   []Param{},
-		Func:     Lock,
-	},
-	"unlock": {
-		Name:     "unlock",
-		Desc:     "",
-		Category: "miscel",
-		Params:   []Param{},
-		Func:     Unlock,
-	},
+	// "lock": {
+	// 	Name:     "lock",
+	// 	Desc:     "",
+	// 	Category: "miscel",
+	// 	Params:   []Param{},
+	// 	Func:     Lock,
+	// },
+	// "unlock": {
+	// 	Name:     "unlock",
+	// 	Desc:     "",
+	// 	Category: "miscel",
+	// 	Params:   []Param{},
+	// 	Func:     Unlock,
+	// },
 }
 
 func Lookup(ident string) (BuiltinFunc, error) {

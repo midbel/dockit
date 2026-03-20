@@ -108,19 +108,11 @@ func Lower(args []value.Value) value.Value {
 	return value.Text(ret)
 }
 
-func Substr(args []value.Value) value.Value {
-	return nil
-}
-
 func Replace(args []value.Value) value.Value {
 	return nil
 }
 
 func Trim(args []value.Value) value.Value {
-	return nil
-}
-
-func Split(args []value.Value) value.Value {
 	return nil
 }
 
@@ -153,5 +145,17 @@ func Value(args []value.Value) value.Value {
 }
 
 func Textjoin(args []value.Value) value.Value {
+	return nil
+}
+
+func Exact(args []value.Value) value.Value {
+	return nil
+}
+
+func Rept(args []value.Value) value.Value {
+	return nil
+}
+
+func Clean(args []value.Value) value.Value {
 	return nil
 }

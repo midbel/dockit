@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/flat"
@@ -157,6 +159,13 @@ func (c GetBuiltinCommand) Run(args []string) error {
 		list = builtins.List()
 		tbl  cli.Table
 	)
+	slices.SortFunc(list, func(b1, b2 builtins.Builtin) int {
+		z := strings.Compare(b1.Category, b2.Category)
+		if z == 0 {
+			return strings.Compare(b1.Name, b2.Name)
+		}
+		return z
+	})
 	tbl.Headers = []string{"name", "desc", "category", "parameter", "openxml", "opendoc"}
 	for _, b := range list {
 		r := []string{
