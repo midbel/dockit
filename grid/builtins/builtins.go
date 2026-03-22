@@ -124,6 +124,24 @@ var Registry = map[string]Builtin{
 		Category: "math",
 		Func:     Sum,
 	},
+	"degrees": {
+		Name:     "degress",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Scalar("number", "", value.TypeNumber),
+		},
+		Func: Deg,
+	},
+	"radians": {
+		Name:     "radians",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Scalar("number", "", value.TypeNumber),
+		},
+		Func: Rad,
+	},
 	"sum": {
 		Name:     "sum",
 		Desc:     "",

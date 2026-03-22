@@ -259,6 +259,22 @@ func Atan2(args []value.Value) value.Value {
 	return value.Float(ret)
 }
 
+func Deg(args []value.Value) value.Value {
+	var (
+		g, _ = value.CastToFloat(args[0])
+		res  = float64(g) * (180 / math.Pi)
+	)
+	return value.Float(res)
+}
+
+func Rad(args []value.Value) value.Value {
+	var (
+		g, _ = value.CastToFloat(args[0])
+		res  = float64(g) * (math.Pi / 180)
+	)
+	return value.Float(res)
+}
+
 func Pi(args []value.Value) value.Value {
 	return value.Float(math.Pi)
 }

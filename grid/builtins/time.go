@@ -116,14 +116,22 @@ func DateDiff(args []value.Value) value.Value {
 		return value.ErrNum
 	}
 	var (
-		diff  = time.Time(td).Sub(time.Time(fd))
+		dtstart = time.Time(fd)
+		dtend = time.Time(td)
 		delta float64
 	)
-	_ = diff
 	switch string(unit) {
 	case "Y":
+		diff := dtend.Year() - dtstart.Year()
+		delta = float64(diff)
 	case "M":
+		diff := (dtend.Year() - dtstart.Year()) * 12
+		delta = float64(diff) + float64(dtend.Month())
+		delta = delta - (12 - float64(dtstart.Month()))
 	case "D":
+		diff := (dtend.Year() - dtstart.Year()) * 365
+		delta = float64(diff) + float64(dtend.YearDay())
+		delta = delta - (365 - float64(dtstart.YearDay()))
 	default:
 	}
 	return value.Float(delta)
