@@ -742,6 +742,8 @@ type Param struct {
 	Optional   bool
 	Variadic   bool
 	Deferrable bool
+
+	Value value.Value
 }
 
 func (p Param) Valid(val value.Value) bool {
@@ -878,6 +880,11 @@ func ScalarArray(name, desc string, k string) Param {
 }
 
 func Opt(p Param) Param {
+	p.Optional = true
+	return p
+}
+
+func OptDefault(p Param, val value.Value) Param {
 	p.Optional = true
 	return p
 }
