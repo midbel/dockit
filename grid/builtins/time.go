@@ -105,3 +105,26 @@ func Weekday(args []value.Value) value.Value {
 	t := time.Time(d)
 	return value.Float(t.Weekday())
 }
+
+func DateDiff(args []value.Value) value.Value {
+	var (
+		fd, _   = value.CastToDate(args[0])
+		td, _   = value.CastToDate(args[1])
+		unit, _ = value.CastToText(args[2])
+	)
+	if time.Time(fd).After(time.Time(td)) {
+		return value.ErrNum
+	}
+	var (
+		diff  = time.Time(td).Sub(time.Time(fd))
+		delta float64
+	)
+	_ = diff
+	switch string(unit) {
+	case "Y":
+	case "M":
+	case "D":
+	default:
+	}
+	return value.Float(delta)
+}

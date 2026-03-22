@@ -34,7 +34,7 @@ func Min(args []value.Value) value.Value {
 		res float64
 		ix  int
 	)
-	err := Each(args, func(v value.Value) {
+	err := value.Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
 		if err != nil {
 			return
@@ -54,7 +54,7 @@ func Min(args []value.Value) value.Value {
 
 func Max(args []value.Value) value.Value {
 	var res float64
-	err := Each(args, func(v value.Value) {
+	err := value.Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
 		if err != nil {
 			return
@@ -69,7 +69,7 @@ func Max(args []value.Value) value.Value {
 
 func Sum(args []value.Value) value.Value {
 	var total float64
-	err := Each(args, func(v value.Value) {
+	err := value.Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
 		if err != nil {
 			return
@@ -87,7 +87,7 @@ func Avg(args []value.Value) value.Value {
 		total float64
 		count int
 	)
-	err := Each(args, func(v value.Value) {
+	err := value.Each(args, func(v value.Value) {
 		f, err := value.CastToFloat(v)
 		if err != nil {
 			return
@@ -102,6 +102,22 @@ func Avg(args []value.Value) value.Value {
 		return value.ErrDiv0
 	}
 	return value.Float(total / float64(count))
+}
+
+func Stdev(args []value.Value) value.Value {
+	return nil
+}
+
+func Variance(args []value.Value) value.Value {
+	return nil
+}
+
+func Mode(args []value.Value) value.Value {
+	return nil
+}
+
+func Median(args []value.Value) value.Value {
+	return nil
 }
 
 func Count(args []value.Value) value.Value {
@@ -192,4 +208,57 @@ func Int(args []value.Value) value.Value {
 
 func Rand(args []value.Value) value.Value {
 	return nil
+}
+
+func Sin(args []value.Value) value.Value {
+	var (
+		val, _ = value.CastToFloat(args[0])
+		ret    = math.Sin(float64(val))
+	)
+	return value.Float(ret)
+}
+
+func Cos(args []value.Value) value.Value {
+	var (
+		val, _ = value.CastToFloat(args[0])
+		ret    = math.Cos(float64(val))
+	)
+	return value.Float(ret)
+}
+
+func Tan(args []value.Value) value.Value {
+	var (
+		val, _ = value.CastToFloat(args[0])
+		ret    = math.Tan(float64(val))
+	)
+	return value.Float(ret)
+}
+
+func Asin(args []value.Value) value.Value {
+	var (
+		val, _ = value.CastToFloat(args[0])
+		ret    = math.Asin(float64(val))
+	)
+	return value.Float(ret)
+}
+
+func Acos(args []value.Value) value.Value {
+	var (
+		val, _ = value.CastToFloat(args[0])
+		ret    = math.Acos(float64(val))
+	)
+	return value.Float(ret)
+}
+
+func Atan2(args []value.Value) value.Value {
+	var (
+		vx, _ = value.CastToFloat(args[0])
+		vy, _ = value.CastToFloat(args[1])
+		ret   = math.Atan2(float64(vx), float64(vy))
+	)
+	return value.Float(ret)
+}
+
+func Pi(args []value.Value) value.Value {
+	return value.Float(math.Pi)
 }

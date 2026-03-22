@@ -3,7 +3,6 @@ package builtins
 import (
 	"errors"
 	"fmt"
-	"iter"
 	"maps"
 	"slices"
 	"strings"
@@ -17,32 +16,6 @@ var (
 	ErrArity = errors.New("invalid number of arguments")
 	ErrType  = errors.New("invalid type")
 )
-
-type ValueIterator interface {
-	Values() iter.Seq[value.ScalarValue]
-}
-
-func Each(args []value.Value, fn func(value.Value)) value.Value {
-	for _, a := range args {
-		if value.IsError(a) {
-			return a
-		}
-		if value.IsScalar(a) {
-			fn(a)
-		} else if value.IsArray(a) {
-			it, ok := a.(ValueIterator)
-			if !ok {
-				continue
-			}
-			var dat []value.Value
-			for v := range it.Values() {
-				dat = append(dat, v)
-			}
-			Each(dat, fn)
-		}
-	}
-	return nil
-}
 
 var Registry = map[string]Builtin{
 	"min": {
@@ -89,6 +62,67 @@ var Registry = map[string]Builtin{
 			Var(ScalarArray("number", "", value.TypeNumber)),
 		},
 		Func: Sign,
+	},
+	"sin": {
+		Name:     "sin",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Sin,
+	},
+	"cos": {
+		Name:     "cos",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Cos,
+	},
+	"tan": {
+		Name:     "tan",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Tan,
+	},
+	"asin": {
+		Name:     "asin",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Asin,
+	},
+	"acos": {
+		Name:     "acos",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Acos,
+	},
+	"atan2": {
+		Name:     "atan2",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("xnum", "", value.TypeNumber)),
+			Var(ScalarArray("ynum", "", value.TypeNumber)),
+		},
+		Func: Sum,
+	},
+	"pi": {
+		Name:     "pi",
+		Desc:     "",
+		Category: "math",
+		Func:     Sum,
 	},
 	"sum": {
 		Name:     "sum",
@@ -194,6 +228,7 @@ var Registry = map[string]Builtin{
 		Func:     Rand,
 	},
 	// "sumif":       nil,
+	// "counta":      nil,
 	// "countif":     nil,
 	"count": {
 		Name:     "count",
@@ -253,6 +288,17 @@ var Registry = map[string]Builtin{
 			Scalar("day", "", value.TypeNumber),
 		},
 		Func: Date,
+	},
+	"datedif": {
+		Name:     "datedif",
+		Desc:     "",
+		Category: "time",
+		Params: []Param{
+			Scalar("fromDate", "", value.TypeDate),
+			Scalar("toDate", "", value.TypeDate),
+			Scalar("diffUnit", "", value.TypeText),
+		},
+		Func: DateDiff,
 	},
 	"year": {
 		Name:     "year",
@@ -587,20 +633,6 @@ var Registry = map[string]Builtin{
 	// "xlookup":     nil,
 	// "offset":      nil,
 	// "choose":      nil,
-	// "lock": {
-	// 	Name:     "lock",
-	// 	Desc:     "",
-	// 	Category: "miscel",
-	// 	Params:   []Param{},
-	// 	Func:     Lock,
-	// },
-	// "unlock": {
-	// 	Name:     "unlock",
-	// 	Desc:     "",
-	// 	Category: "miscel",
-	// 	Params:   []Param{},
-	// 	Func:     Unlock,
-	// },
 }
 
 func Lookup(ident string) (BuiltinFunc, error) {
