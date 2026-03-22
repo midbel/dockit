@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/internal/slx"
@@ -889,4 +890,23 @@ func Var(p Param) Param {
 func Deferrable(p Param) Param {
 	p.Deferrable = true
 	return p
+}
+
+func asFloat(arg value.Value) float64 {
+	v, _ := value.CastToFloat(arg)
+	return float64(v)
+}
+
+func asString(arg value.Value) string {
+	v, _ := value.CastToText(arg)
+	return string(v)
+}
+
+func asBool(arg value.Value) bool {
+	return value.True(arg)
+}
+
+func asTime(arg value.Value) time.Time {
+	v, _ := value.CastToDate(arg)
+	return time.Time(v)
 }
