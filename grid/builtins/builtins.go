@@ -63,6 +63,33 @@ var Registry = map[string]Builtin{
 		},
 		Func: Max,
 	},
+	"isodd": {
+		Name:     "isodd",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: IsOdd,
+	},
+	"iseven": {
+		Name:     "iseven",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: IsEven,
+	},
+	"sign": {
+		Name:     "sign",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Sign,
+	},
 	"sum": {
 		Name:     "sum",
 		Desc:     "",
@@ -421,13 +448,67 @@ var Registry = map[string]Builtin{
 		Params:   []Param{},
 		Func:     Replace,
 	},
-	// "trim":        nil,
-	// "split":       nil,
-	// "join":        nil,
-	// "proper":      nil,
-	// "search":      nil,
-	// "find":        nil,
+	"trim": {
+		Name:     "trim",
+		Desc:     "",
+		Category: "text",
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+		},
+		Func: Trim,
+	},
+	"clean": {
+		Name:     "clean",
+		Desc:     "",
+		Category: "text",
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+		},
+		Func: Clean,
+	},
+	"search": {
+		Name:     "search",
+		Desc:     "",
+		Category: "text",
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+			Scalar("find", "", value.TypeText),
+			Opt(Scalar("offset", "", value.TypeNumber)),
+		},
+		Func: Search,
+	},
+	"find": {
+		Name:     "find",
+		Desc:     "",
+		Category: "text",
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+			Scalar("find", "", value.TypeText),
+			Opt(Scalar("offset", "", value.TypeNumber)),
+		},
+		Func: Find,
+	},
+	"proper": {
+		Name:     "proper",
+		Desc:     "",
+		Category: "text",
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+		},
+		Func: Proper,
+	},
+	"rept": {
+		Name:     "rept",
+		Desc:     "",
+		Category: "text",
+		Params: []Param{
+			Scalar("str", "", value.TypeText),
+			Scalar("num", "", value.TypeNumber),
+		},
+		Func: Rept,
+	},
 	// "substitute":  nil,
+	// "replace":     nil,
 	// "text":        nil,
 	// "value":       nil,
 	// "textjoin":    nil,

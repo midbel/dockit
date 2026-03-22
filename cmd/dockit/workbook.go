@@ -179,6 +179,7 @@ func (c GetBuiltinCommand) Run(args []string) error {
 		tbl.Rows = append(tbl.Rows, r)
 	}
 	rd := cli.NewTableRenderer(os.Stdout)
+	rd.WithLineNumbers = true
 	rd.Render(tbl)
 	return nil
 }

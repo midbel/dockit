@@ -6,6 +6,24 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+func Sign(args []value.Value) value.Value {
+	v, _ := value.CastToFloat(args[0])
+	if v < 0 {
+		return value.Float(-1)
+	}
+	return value.Float(1)
+}
+
+func IsOdd(args []value.Value) value.Value {
+	v, _ := value.CastToFloat(args[0])
+	return value.Boolean(math.Mod(float64(v), 2) == 1)
+}
+
+func IsEven(args []value.Value) value.Value {
+	v, _ := value.CastToFloat(args[0])
+	return value.Boolean(math.Mod(float64(v), 2) == 0)
+}
+
 func IsNumber(args []value.Value) value.Value {
 	ok := value.IsNumber(args[0])
 	return value.Boolean(ok)

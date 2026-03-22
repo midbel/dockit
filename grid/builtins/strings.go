@@ -2,6 +2,7 @@ package builtins
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/midbel/dockit/value"
 )
@@ -108,27 +109,86 @@ func Lower(args []value.Value) value.Value {
 	return value.Text(ret)
 }
 
-func Replace(args []value.Value) value.Value {
-	return nil
+func Proper(args []value.Value) value.Value {
+	str, _ := value.CastToText(args[0])
+
+	var last rune
+
+	ret := strings.Map(func(c rune) rune {
+		prev := last
+		last = c
+		if (prev == 0 || unicode.IsPunct(prev) || unicode.IsSpace(prev)) && unicode.IsLetter(c) {
+			return unicode.ToUpper(c)
+		}
+		if unicode.IsLetter(c) {
+			return unicode.ToLower(c)
+		}
+		return c
+	}, string(str))
+
+	return value.Text(ret)
 }
 
 func Trim(args []value.Value) value.Value {
-	return nil
-}
-
-func Join(args []value.Value) value.Value {
-	return nil
-}
-
-func Proper(args []value.Value) value.Value {
-	return nil
+	str, _ := value.CastToText(args[0])
+	return value.Text(strings.TrimSpace(string(str)))
 }
 
 func Search(args []value.Value) value.Value {
-	return nil
+	var (
+		str, _  = value.CastToText(args[0])
+		find, _ = value.CastToText(args[1])
+		offset  = 1
+	)
+	if len(args) >= 2 {
+		ix, _ := value.CastToFloat(args[2])
+		offset = int(ix)
+		offset++
+	}
+	if offset >= len(str) {
+		return value.ErrValue
+	}
+
+	var (
+		in     = strings.ToLower(string(str))
+		needle = strings.ToLower(string(find))
+	)
+
+	ix := strings.Index(in[offset:], needle)
+	if ix < 0 {
+		return value.ErrValue
+	}
+	return value.Float(float64(ix + 1))
 }
 
 func Find(args []value.Value) value.Value {
+	var (
+		str, _  = value.CastToText(args[0])
+		find, _ = value.CastToText(args[1])
+		offset  = 1
+	)
+	if len(args) >= 2 {
+		ix, _ := value.CastToFloat(args[2])
+		offset = int(ix)
+		offset++
+	}
+	if offset >= len(str) {
+		return value.ErrValue
+	}
+
+	var (
+		in     = strings.ToLower(string(str))
+		needle = strings.ToLower(string(find))
+	)
+
+	ix := strings.Index(in[offset:], needle)
+	if ix < 0 {
+		return value.ErrValue
+	}
+	return value.Float(float64(ix + 1))
+}
+
+func Replace(args []value.Value) value.Value {
 	return nil
 }
 
@@ -149,13 +209,36 @@ func Textjoin(args []value.Value) value.Value {
 }
 
 func Exact(args []value.Value) value.Value {
-	return nil
+	var (
+		s1, _ = value.CastToText(args[0])
+		s2, _ = value.CastToText(args[0])
+		x     = strings.Compare(string(s1), string(s2))
+	)
+	return value.Boolean(x == 0)
 }
 
 func Rept(args []value.Value) value.Value {
-	return nil
+	var (
+		str, _ = value.CastToText(args[0])
+		num, _ = value.CastToFloat(args[1])
+	)
+	if float64(num) <= 0 {
+		return value.Text("")
+	}
+	ret := strings.Repeat(string(str), int(num))
+	return value.Text(ret)
 }
 
 func Clean(args []value.Value) value.Value {
-	return nil
+	var (
+		str, _ = value.CastToText(args[0])
+		all    = make([]byte, 0, len(str))
+	)
+	for i := 0; i < len(str); i++ {
+		if str[i] <= 31 {
+			continue
+		}
+		all = append(all, str[i])
+	}
+	return value.Text(string(all))
 }
