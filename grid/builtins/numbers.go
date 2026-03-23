@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 
+	"github.com/midbel/dockit/grid/criteria"
 	"github.com/midbel/dockit/value"
 )
 
@@ -90,7 +91,21 @@ func Sum(args []value.Value) value.Value {
 }
 
 func SumIf(args []value.Value) value.Value {
-	return value.Float(0)
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	f, err := criteria.Compile(asString(args[1]))
+	if err != nil {
+		return value.ErrValue
+	}
+	var total float64
+	value.Each(args[:1], func(v value.Value) {
+		ok := f.Keep(v)
+		if ok {
+			total += asFloat(v)
+		}
+	})
+	return value.Float(total)
 }
 
 func Avg(args []value.Value) value.Value {
@@ -115,7 +130,28 @@ func Avg(args []value.Value) value.Value {
 }
 
 func AvgIf(args []value.Value) value.Value {
-	return value.Float(0)
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	f, err := criteria.Compile(asString(args[1]))
+	if err != nil {
+		return value.ErrValue
+	}
+	var (
+		total float64
+		count int
+	)
+	value.Each(args[:1], func(v value.Value) {
+		ok := f.Keep(v)
+		if ok {
+			total += asFloat(v)
+			count++
+		}
+	})
+	if count == 0 {
+		return value.ErrNA
+	}
+	return value.Float(total / float64(count))
 }
 
 func Stdev(args []value.Value) value.Value {
@@ -190,7 +226,21 @@ func Count(args []value.Value) value.Value {
 }
 
 func CountIf(args []value.Value) value.Value {
-	return value.Float(0)
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	f, err := criteria.Compile(asString(args[1]))
+	if err != nil {
+		return value.ErrValue
+	}
+	var count int
+	value.Each(args[:1], func(v value.Value) {
+		ok := f.Keep(v)
+		if ok {
+			count++
+		}
+	})
+	return value.Float(count)
 }
 
 func Counta(args []value.Value) value.Value {
