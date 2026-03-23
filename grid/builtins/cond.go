@@ -51,7 +51,15 @@ func Or(args []value.Value) value.Value {
 }
 
 func Xor(args []value.Value) value.Value {
-	return nil
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	for i := range args {
+		if !value.True(args[i]) {
+			return value.Boolean(true)
+		}
+	}
+	return value.Boolean(false)
 }
 
 func Not(args []value.Value) value.Value {

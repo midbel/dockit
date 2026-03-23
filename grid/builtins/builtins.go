@@ -162,6 +162,31 @@ var Registry = map[string]Builtin{
 		},
 		Func: Avg,
 	},
+	"stddev": {
+		Name:     "stddev",
+		Desc:     "",
+		Category: "math",
+		Func:     Stdev,
+	},
+	"mode": {
+		Name:     "mode",
+		Desc:     "",
+		Category: "math",
+		Func:     Mode,
+	},
+	"median": {
+		Name:     "median",
+		Desc:     "",
+		Category: "math",
+		Func:     Median,
+	},
+	"var": {
+		Name:     "var",
+		Alias:    slx.Make("variance"),
+		Desc:     "",
+		Category: "math",
+		Func:     Variance,
+	},
 	"round": {
 		Name:     "round",
 		Desc:     "",
@@ -246,15 +271,51 @@ var Registry = map[string]Builtin{
 		Params:   []Param{},
 		Func:     Rand,
 	},
-	// "sumif":       nil,
-	// "counta":      nil,
-	// "countif":     nil,
+	"counta": {
+		Name:     "counta",
+		Desc:     "",
+		Category: "miscel",
+		Params: []Param{
+			Var(ScalarArray("value", "", value.TypeAny)),
+		},
+		Func: Count,
+	},
+	"sumif": {
+		Name:     "sumif",
+		Desc:     "",
+		Category: "miscel",
+		Params: []Param{
+			Array("value", "", value.TypeAny),
+			Scalar("predicate", "", value.TypeText),
+		},
+		Func: SumIf,
+	},
+	"countif": {
+		Name:     "countif",
+		Desc:     "",
+		Category: "miscel",
+		Params: []Param{
+			Array("value", "", value.TypeAny),
+			Scalar("predicate", "", value.TypeText),
+		},
+		Func: CountIf,
+	},
+	"averageif": {
+		Name:     "averageif",
+		Desc:     "",
+		Category: "miscel",
+		Params: []Param{
+			Array("value", "", value.TypeAny),
+			Scalar("predicate", "", value.TypeText),
+		},
+		Func: AvgIf,
+	},
 	"count": {
 		Name:     "count",
 		Desc:     "",
 		Category: "miscel",
 		Params: []Param{
-			Array("value", "", value.TypeAny),
+			Var(ScalarArray("value", "", value.TypeAny)),
 		},
 		Func: Count,
 	},
@@ -675,8 +736,10 @@ var Registry = map[string]Builtin{
 		Name:     "xor",
 		Desc:     "",
 		Category: "conditional",
-		Params:   []Param{},
-		Func:     Xor,
+		Params: []Param{
+			Var(ScalarArray("value", "", value.TypeAny)),
+		},
+		Func: Xor,
 	},
 	"not": {
 		Name:     "not",
@@ -694,6 +757,7 @@ var Registry = map[string]Builtin{
 	// "xlookup":     nil,
 	// "offset":      nil,
 	// "choose":      nil,
+	// "switch":      nil,
 }
 
 func Lookup(ident string) (BuiltinFunc, error) {

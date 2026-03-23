@@ -88,6 +88,10 @@ func Sum(args []value.Value) value.Value {
 	return value.Float(total)
 }
 
+func SumIf(args []value.Value) value.Value {
+	return value.Float(0)
+}
+
 func Avg(args []value.Value) value.Value {
 	var (
 		total float64
@@ -109,6 +113,10 @@ func Avg(args []value.Value) value.Value {
 	return value.Float(total / float64(count))
 }
 
+func AvgIf(args []value.Value) value.Value {
+	return value.Float(0)
+}
+
 func Stdev(args []value.Value) value.Value {
 	return nil
 }
@@ -126,7 +134,32 @@ func Median(args []value.Value) value.Value {
 }
 
 func Count(args []value.Value) value.Value {
+	var count int
+	value.Each(args, func(v value.Value) {
+		if v.Type() != value.TypeNumber {
+			return
+		}
+		count++
+	})
+	return value.Float(count)
+}
+
+func CountIf(args []value.Value) value.Value {
 	return value.Float(0)
+}
+
+func Counta(args []value.Value) value.Value {
+	var count int
+	value.Each(args, func(v value.Value) {
+		if value.IsBlank(v) {
+			return
+		}
+		if f := asString(v); f == "" {
+			return
+		}
+		count++
+	})
+	return value.Float(count)
 }
 
 func Round(args []value.Value) value.Value {
