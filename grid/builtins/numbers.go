@@ -2,6 +2,7 @@ package builtins
 
 import (
 	"math"
+	"sort"
 
 	"github.com/midbel/dockit/value"
 )
@@ -126,11 +127,55 @@ func Variance(args []value.Value) value.Value {
 }
 
 func Mode(args []value.Value) value.Value {
-	return nil
+	vs := make(map[float64]int)
+	value.Each(args, func(v value.Value) {
+		if v.Type() != value.TypeNumber {
+			return
+		}
+		vs[asFloat(v)]++
+	})
+	if len(vs) == 0 {
+		return value.ErrNA
+	}
+	var (
+		ms = make(map[int][]float64)
+		mx int
+	)
+	for v, c := range vs {
+		mx = max(c, mx)
+		ms[c] = append(ms[c], v)
+	}
+	rs := ms[mx]
+	return value.Float(rs[0])
 }
 
 func Median(args []value.Value) value.Value {
-	return nil
+	var (
+		vs   []float64
+		size int
+	)
+	value.Each(args, func(v value.Value) {
+		if v.Type() != value.TypeNumber {
+			return
+		}
+		vs = append(vs, asFloat(v))
+		size++
+	})
+	sort.Float64s(vs)
+	switch size {
+	case 0:
+		return value.ErrNA
+	case 1:
+		return value.Float(vs[0])
+	default:
+	}
+	ix := size / 2
+	if ix%2 == 0 {
+		return value.Float(vs[ix])
+	}
+	fd := vs[(size/2)-1]
+	td := vs[size/2]
+	return value.Float((td - fd) / 2)
 }
 
 func Count(args []value.Value) value.Value {
