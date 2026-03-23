@@ -13,22 +13,25 @@ func IsText(args []value.Value) value.Value {
 }
 
 func Concat(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	parts := make([]string, 0, len(args))
 	for i := range args {
-		t, err := value.CastToText(args[i])
-		if err != nil {
-			return value.ErrValue
-		}
-		parts = append(parts, string(t))
+		t := asString(args[i])
+		parts = append(parts, t)
 	}
 	ret := strings.Join(parts, "")
 	return value.Text(ret)
 }
 
 func Left(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var chars int
 	if len(args) == 2 {
-		c, _ := value.CastToFloat(args[1])
+		c := asFloat(args[1])
 		if c <= 0 {
 			return value.ErrValue
 		}
@@ -36,7 +39,7 @@ func Left(args []value.Value) value.Value {
 	} else {
 		chars++
 	}
-	str, _ := value.CastToText(args[0])
+	str := asString(args[0])
 	if chars > len(str) {
 		return args[0]
 	}
@@ -44,9 +47,12 @@ func Left(args []value.Value) value.Value {
 }
 
 func Right(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var chars int
 	if len(args) == 2 {
-		c, _ := value.CastToFloat(args[1])
+		c := asFloat(args[1])
 		if c <= 0 {
 			return value.ErrValue
 		}
@@ -54,7 +60,7 @@ func Right(args []value.Value) value.Value {
 	} else {
 		chars++
 	}
-	str, _ := value.CastToText(args[0])
+	str := asString(args[0])
 	if chars > len(str) {
 		return args[0]
 	}
@@ -62,16 +68,19 @@ func Right(args []value.Value) value.Value {
 }
 
 func Mid(args []value.Value) value.Value {
-	ix, _ := value.CastToFloat(args[1])
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	ix := asFloat(args[1])
 	if ix <= 0 {
 		return value.ErrValue
 	}
 	ix -= 1
-	ch, _ := value.CastToFloat(args[2])
+	ch := asFloat(args[2])
 	if ch <= 0 {
 		return value.ErrValue
 	}
-	str, _ := value.CastToText(args[0])
+	str := asString(args[0])
 	if int(ix) >= len(str) {
 		return args[0]
 	}
@@ -83,36 +92,37 @@ func Mid(args []value.Value) value.Value {
 }
 
 func Len(args []value.Value) value.Value {
-	t, err := value.CastToText(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args...); err != nil {
+		return err
 	}
-	ret := len(t)
+	ret := len(asString(args[0]))
 	return value.Float(ret)
 }
 
 func Upper(args []value.Value) value.Value {
-	t, err := value.CastToText(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args...); err != nil {
+		return err
 	}
-	ret := strings.ToUpper(string(t))
+	ret := strings.ToUpper(asString(args[0]))
 	return value.Text(ret)
 }
 
 func Lower(args []value.Value) value.Value {
-	t, err := value.CastToText(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args...); err != nil {
+		return err
 	}
-	ret := strings.ToLower(string(t))
+	ret := strings.ToLower(asString(args[0]))
 	return value.Text(ret)
 }
 
 func Proper(args []value.Value) value.Value {
-	str, _ := value.CastToText(args[0])
-
-	var last rune
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	var (
+		str  = asString(args[0])
+		last rune
+	)
 
 	ret := strings.Map(func(c rune) rune {
 		prev := last
@@ -124,21 +134,27 @@ func Proper(args []value.Value) value.Value {
 			return unicode.ToLower(c)
 		}
 		return c
-	}, string(str))
+	}, str)
 
 	return value.Text(ret)
 }
 
 func Trim(args []value.Value) value.Value {
-	str, _ := value.CastToText(args[0])
-	return value.Text(strings.TrimSpace(string(str)))
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	ret := strings.TrimSpace(asString(args[0]))
+	return value.Text(ret)
 }
 
 func Search(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var (
-		str, _  = value.CastToText(args[0])
-		find, _ = value.CastToText(args[1])
-		offset  = 1
+		str    = asString(args[0])
+		find   = asString(args[1])
+		offset = 1
 	)
 	if len(args) >= 2 {
 		ix, _ := value.CastToFloat(args[2])
@@ -150,8 +166,8 @@ func Search(args []value.Value) value.Value {
 	}
 
 	var (
-		in     = strings.ToLower(string(str))
-		needle = strings.ToLower(string(find))
+		in     = strings.ToLower(str)
+		needle = strings.ToLower(find)
 	)
 
 	ix := strings.Index(in[offset:], needle)
@@ -162,10 +178,13 @@ func Search(args []value.Value) value.Value {
 }
 
 func Find(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var (
-		str, _  = value.CastToText(args[0])
-		find, _ = value.CastToText(args[1])
-		offset  = 1
+		str    = asString(args[0])
+		find   = asString(args[1])
+		offset = 1
 	)
 	if len(args) >= 2 {
 		ix, _ := value.CastToFloat(args[2])
@@ -176,12 +195,7 @@ func Find(args []value.Value) value.Value {
 		return value.ErrValue
 	}
 
-	var (
-		in     = strings.ToLower(string(str))
-		needle = strings.ToLower(string(find))
-	)
-
-	ix := strings.Index(in[offset:], needle)
+	ix := strings.Index(str[offset:], find)
 	if ix < 0 {
 		return value.ErrValue
 	}
@@ -209,30 +223,39 @@ func Textjoin(args []value.Value) value.Value {
 }
 
 func Exact(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var (
-		s1, _ = value.CastToText(args[0])
-		s2, _ = value.CastToText(args[0])
-		x     = strings.Compare(string(s1), string(s2))
+		s1 = asString(args[0])
+		s2 = asString(args[1])
+		x  = strings.Compare(s1, s2)
 	)
 	return value.Boolean(x == 0)
 }
 
 func Rept(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var (
-		str, _ = value.CastToText(args[0])
-		num, _ = value.CastToFloat(args[1])
+		str = asString(args[0])
+		num = asFloat(args[1])
 	)
 	if float64(num) <= 0 {
 		return value.Text("")
 	}
-	ret := strings.Repeat(string(str), int(num))
-	return value.Text(ret)
+	str = strings.Repeat(str, int(num))
+	return value.Text(str)
 }
 
 func Clean(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var (
-		str, _ = value.CastToText(args[0])
-		all    = make([]byte, 0, len(str))
+		str = asString(args[0])
+		all = make([]byte, 0, len(str))
 	)
 	for i := 0; i < len(str); i++ {
 		if str[i] <= 31 {

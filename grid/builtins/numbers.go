@@ -7,7 +7,10 @@ import (
 )
 
 func Sign(args []value.Value) value.Value {
-	v, _ := value.CastToFloat(args[0])
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
+	v := asFloat(args[0])
 	if v < 0 {
 		return value.Float(-1)
 	}
@@ -15,12 +18,18 @@ func Sign(args []value.Value) value.Value {
 }
 
 func IsOdd(args []value.Value) value.Value {
-	v, _ := value.CastToFloat(args[0])
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
+	v := asFloat(args[0])
 	return value.Boolean(math.Mod(float64(v), 2) == 1)
 }
 
 func IsEven(args []value.Value) value.Value {
-	v, _ := value.CastToFloat(args[0])
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
+	v := asFloat(args[0])
 	return value.Boolean(math.Mod(float64(v), 2) == 0)
 }
 
@@ -35,15 +44,14 @@ func Min(args []value.Value) value.Value {
 		ix  int
 	)
 	err := value.Each(args, func(v value.Value) {
-		f, err := value.CastToFloat(v)
-		if err != nil {
+		if value.IsError(v) {
 			return
 		}
 		ix++
-		if ix == 1 {
-			res = float64(f)
+		if f := asFloat(v); ix == 1 {
+			res = f
 		} else {
-			res = min(res, float64(f))
+			res = min(res, f)
 		}
 	})
 	if err := value.HasErrors(err); err != nil {
@@ -55,11 +63,10 @@ func Min(args []value.Value) value.Value {
 func Max(args []value.Value) value.Value {
 	var res float64
 	err := value.Each(args, func(v value.Value) {
-		f, err := value.CastToFloat(v)
-		if err != nil {
+		if value.IsError(v) {
 			return
 		}
-		res = max(res, float64(f))
+		res = max(res, asFloat(v))
 	})
 	if err := value.HasErrors(err); err != nil {
 		return err
@@ -70,11 +77,10 @@ func Max(args []value.Value) value.Value {
 func Sum(args []value.Value) value.Value {
 	var total float64
 	err := value.Each(args, func(v value.Value) {
-		f, err := value.CastToFloat(v)
-		if err != nil {
+		if value.IsError(v) {
 			return
 		}
-		total += float64(f)
+		total += asFloat(v)
 	})
 	if err := value.HasErrors(err); err != nil {
 		return err
@@ -88,11 +94,10 @@ func Avg(args []value.Value) value.Value {
 		count int
 	)
 	err := value.Each(args, func(v value.Value) {
-		f, err := value.CastToFloat(v)
-		if err != nil {
+		if value.IsError(v) {
 			return
 		}
-		total += float64(f)
+		total += asFloat(v)
 		count++
 	})
 	if err := value.HasErrors(err); err != nil {
@@ -125,84 +130,85 @@ func Count(args []value.Value) value.Value {
 }
 
 func Round(args []value.Value) value.Value {
-	f, err := value.CastToFloat(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	ret := math.Round(float64(f))
+	f := asFloat(args[0])
+	ret := math.Round(f)
 	return value.Float(ret)
 }
 
 func Floor(args []value.Value) value.Value {
-	f, err := value.CastToFloat(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	ret := math.Floor(float64(f))
+	f := asFloat(args[0])
+	ret := math.Floor(f)
 	return value.Float(ret)
 }
 
 func Ceil(args []value.Value) value.Value {
-	f, err := value.CastToFloat(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	ret := math.Ceil(float64(f))
+	f := asFloat(args[0])
+	ret := math.Ceil(f)
 	return value.Float(ret)
 }
 
 func Sqrt(args []value.Value) value.Value {
-	f, err := value.CastToFloat(args[0])
-	if err != nil {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
+	f := asFloat(args[0])
+	if f < 0 {
 		return value.ErrValue
 	}
-	if float64(f) < 0 {
-		return value.ErrValue
-	}
-	ret := math.Sqrt(float64(f))
+	ret := math.Sqrt(f)
 	return value.Float(ret)
 }
 
 func Abs(args []value.Value) value.Value {
-	f, err := value.CastToFloat(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	ret := math.Abs(float64(f))
+	f := asFloat(args[0])
+	ret := math.Abs(f)
 	return value.Float(ret)
 }
 
 func Mod(args []value.Value) value.Value {
-	f, err := value.CastToFloat(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[:2]...); err != nil {
+		return err
 	}
-	d, err := value.CastToFloat(args[1])
-	if err != nil {
-		return value.ErrValue
-	}
+	var (
+		f = asFloat(args[0])
+		d = asFloat(args[1])
+	)
 	if d == 0 {
 		return value.ErrDiv0
 	}
-	ret := math.Mod(float64(f), float64(d))
+	ret := math.Mod(f, d)
 	return value.Float(ret)
 }
 
 func Pow(args []value.Value) value.Value {
-	f, err := value.CastToFloat(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[:2]...); err != nil {
+		return err
 	}
-	e, err := value.CastToFloat(args[1])
-	if err != nil {
-		return value.ErrValue
-	}
-	ret := math.Pow(float64(f), float64(e))
+	var (
+		f = asFloat(args[0])
+		e = asFloat(args[1])
+	)
+	ret := math.Pow(f, e)
 	return value.Float(ret)
 }
 
 func Int(args []value.Value) value.Value {
-	f, _ := value.CastToFloat(args[0])
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
+	f := asFloat(args[0])
 	return value.Float(int(f))
 }
 
@@ -211,43 +217,58 @@ func Rand(args []value.Value) value.Value {
 }
 
 func Sin(args []value.Value) value.Value {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
 	var (
-		val, _ = value.CastToFloat(args[0])
-		ret    = math.Sin(float64(val))
+		f = asFloat(args[0])
+		r = math.Sin(f)
 	)
-	return value.Float(ret)
+	return value.Float(r)
 }
 
 func Cos(args []value.Value) value.Value {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
 	var (
-		val, _ = value.CastToFloat(args[0])
-		ret    = math.Cos(float64(val))
+		f = asFloat(args[0])
+		r = math.Cos(f)
 	)
-	return value.Float(ret)
+	return value.Float(r)
 }
 
 func Tan(args []value.Value) value.Value {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
 	var (
-		val, _ = value.CastToFloat(args[0])
-		ret    = math.Tan(float64(val))
+		f = asFloat(args[0])
+		r = math.Tan(f)
 	)
-	return value.Float(ret)
+	return value.Float(r)
 }
 
 func Asin(args []value.Value) value.Value {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
 	var (
-		val, _ = value.CastToFloat(args[0])
-		ret    = math.Asin(float64(val))
+		f = asFloat(args[0])
+		r = math.Asin(f)
 	)
-	return value.Float(ret)
+	return value.Float(r)
 }
 
 func Acos(args []value.Value) value.Value {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
 	var (
-		val, _ = value.CastToFloat(args[0])
-		ret    = math.Acos(float64(val))
+		f = asFloat(args[0])
+		r = math.Acos(f)
 	)
-	return value.Float(ret)
+	return value.Float(r)
 }
 
 func Atan2(args []value.Value) value.Value {
@@ -260,19 +281,25 @@ func Atan2(args []value.Value) value.Value {
 }
 
 func Deg(args []value.Value) value.Value {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
 	var (
-		g, _ = value.CastToFloat(args[0])
-		res  = float64(g) * (180 / math.Pi)
+		f = asFloat(args[0])
+		r = f * (180 / math.Pi)
 	)
-	return value.Float(res)
+	return value.Float(r)
 }
 
 func Rad(args []value.Value) value.Value {
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
+	}
 	var (
-		g, _ = value.CastToFloat(args[0])
-		res  = float64(g) * (math.Pi / 180)
+		f = asFloat(args[0])
+		r = f * (math.Pi / 180)
 	)
-	return value.Float(res)
+	return value.Float(r)
 }
 
 func Pi(args []value.Value) value.Value {

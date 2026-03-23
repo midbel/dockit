@@ -323,16 +323,16 @@ func (c RenameCommand) Run(args []string) error {
 }
 
 type PrintCommand struct {
-	Format    string
-	Pattern   string
-	Delimiter string
+	Format  string
+	Pattern string
+	Quoted  bool
 }
 
 func (c PrintCommand) Run(args []string) error {
 	set := cli.NewFlagSet("print")
 	set.StringVar(&c.Format, "f", "", "format")
 	set.StringVar(&c.Pattern, "p", "", "pattern")
-	set.StringVar(&c.Delimiter, "d", "", "format")
+	set.BoolVar(&c.Quoted, "q", false, "quoted")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -352,7 +352,15 @@ func (c PrintCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	rd := cli.NewTableRenderer(os.Stdout)
+	var rd cli.Renderer
+	if c.Quoted {
+		r := NewCsvRenderer(os.Stdout)
+		r.Quoted = c.Quoted
+		rd = r
+	} else {
+		rd = cli.NewTableRenderer(os.Stdout)
+
+	}
 	rd.Render(sheet2Table(sheet))
 	return nil
 }

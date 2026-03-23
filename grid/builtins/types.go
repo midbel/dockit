@@ -28,8 +28,7 @@ func Na(args []value.Value) value.Value {
 }
 
 func Err(args []value.Value) value.Value {
-	str, _ := value.CastToText(args[0])
-	switch str {
+	switch asString(args[0]) {
 	case "Null":
 		return value.ErrNull
 	case "Div0":

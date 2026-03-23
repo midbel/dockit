@@ -17,110 +17,93 @@ func Today(args []value.Value) value.Value {
 }
 
 func Date(args []value.Value) value.Value {
-	year, err := value.CastToFloat(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[:3]...); err != nil {
+		return err
 	}
-	month, err := value.CastToFloat(args[1])
-	if err != nil {
-		return value.ErrValue
-	}
-	day, err := value.CastToFloat(args[2])
-	if err != nil {
-		return value.ErrValue
-	}
-
+	var (
+		year  = asFloat(args[0])
+		month = asFloat(args[1])
+		day   = asFloat(args[2])
+	)
 	n := time.Date(int(year), time.Month(month), int(day), 0, 0, 0, 0, time.UTC)
 	return value.Date(n)
 }
 
 func Year(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.Year())
 }
 
 func Month(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.Month())
 }
 
 func Day(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.Day())
 }
 
 func YearDay(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.YearDay())
 }
 
 func Hour(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.Hour())
 }
 
 func Minute(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.Minute())
 }
 
 func Second(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.Second())
 }
 
 func Weekday(args []value.Value) value.Value {
-	d, err := value.CastToDate(args[0])
-	if err != nil {
-		return value.ErrValue
+	if err := value.HasErrors(args[0]); err != nil {
+		return err
 	}
-	t := time.Time(d)
+	t := asTime(args[0])
 	return value.Float(t.Weekday())
 }
 
 func DateDiff(args []value.Value) value.Value {
 	var (
-		fd, _   = value.CastToDate(args[0])
-		td, _   = value.CastToDate(args[1])
-		unit, _ = value.CastToText(args[2])
+		dtstart = asTime(args[0])
+		dtend   = asTime(args[1])
+		unit    = asString(args[2])
+		delta   float64
 	)
-	if time.Time(fd).After(time.Time(td)) {
+	if dtstart.After(dtend) {
 		return value.ErrNum
 	}
-	var (
-		dtstart = time.Time(fd)
-		dtend = time.Time(td)
-		delta float64
-	)
-	switch string(unit) {
+	switch unit {
 	case "Y":
 		diff := dtend.Year() - dtstart.Year()
 		delta = float64(diff)

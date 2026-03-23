@@ -743,7 +743,7 @@ type Param struct {
 	Variadic   bool
 	Deferrable bool
 
-	Value value.Value
+	DefaultValue value.Value
 }
 
 func (p Param) Valid(val value.Value) bool {
