@@ -2,8 +2,8 @@ package builtins
 
 import (
 	"math"
-	"sort"
 
+	"github.com/midbel/dockit/grid/calc"
 	"github.com/midbel/dockit/grid/criteria"
 	"github.com/midbel/dockit/value"
 )
@@ -12,11 +12,8 @@ func Sign(args []value.Value) value.Value {
 	if err := value.HasErrors(args[0]); err != nil {
 		return err
 	}
-	v := asFloat(args[0])
-	if v < 0 {
-		return value.Float(-1)
-	}
-	return value.Float(1)
+	s := calc.Sign(asFloat(args[0]))
+	return value.Float(s)
 }
 
 func IsOdd(args []value.Value) value.Value {
@@ -24,7 +21,7 @@ func IsOdd(args []value.Value) value.Value {
 		return err
 	}
 	v := asFloat(args[0])
-	return value.Boolean(math.Mod(float64(v), 2) == 1)
+	return value.Boolean(calc.Odd(v))
 }
 
 func IsEven(args []value.Value) value.Value {
@@ -32,7 +29,7 @@ func IsEven(args []value.Value) value.Value {
 		return err
 	}
 	v := asFloat(args[0])
-	return value.Boolean(math.Mod(float64(v), 2) == 0)
+	return value.Boolean(calc.Even(v))
 }
 
 func IsNumber(args []value.Value) value.Value {
@@ -41,186 +38,128 @@ func IsNumber(args []value.Value) value.Value {
 }
 
 func Min(args []value.Value) value.Value {
-	var (
-		res float64
-		ix  int
-	)
-	err := value.Each(args, func(v value.Value) {
-		if value.IsError(v) {
-			return
-		}
-		ix++
-		if f := asFloat(v); ix == 1 {
-			res = f
-		} else {
-			res = min(res, f)
-		}
-	})
-	if err := value.HasErrors(err); err != nil {
+	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	return value.Float(res)
+	var (
+		arr = asFloatArray(args)
+		ret = calc.Min(arr)
+	)
+	return value.Float(ret)
 }
 
 func Max(args []value.Value) value.Value {
-	var res float64
-	err := value.Each(args, func(v value.Value) {
-		if value.IsError(v) {
-			return
-		}
-		res = max(res, asFloat(v))
-	})
-	if err := value.HasErrors(err); err != nil {
+	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	return value.Float(res)
+	var (
+		arr = asFloatArray(args)
+		ret = calc.Max(arr)
+	)
+	return value.Float(ret)
 }
 
 func Sum(args []value.Value) value.Value {
-	var total float64
-	err := value.Each(args, func(v value.Value) {
-		if value.IsError(v) {
-			return
-		}
-		total += asFloat(v)
-	})
-	if err := value.HasErrors(err); err != nil {
+	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	return value.Float(total)
+	var (
+		arr = asFloatArray(args)
+		ret = calc.Sum(arr)
+	)
+	return value.Float(ret)
 }
 
 func SumIf(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	f, err := criteria.Compile(asString(args[1]))
+	f, err := criteria.New(asString(args[1]))
 	if err != nil {
 		return value.ErrValue
 	}
-	var total float64
-	value.Each(args[:1], func(v value.Value) {
-		ok := f.Keep(v)
-		if ok {
-			total += asFloat(v)
+	total := value.Reduce[float64](args, 0, func(acc float64, v value.Value) float64 {
+		if ok := f.Keep(v); ok {
+			acc += asFloat(v)
 		}
+		return acc
 	})
 	return value.Float(total)
 }
 
 func Avg(args []value.Value) value.Value {
-	var (
-		total float64
-		count int
-	)
-	err := value.Each(args, func(v value.Value) {
-		if value.IsError(v) {
-			return
-		}
-		total += asFloat(v)
-		count++
-	})
-	if err := value.HasErrors(err); err != nil {
+	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	if count == 0 {
-		return value.ErrDiv0
-	}
-	return value.Float(total / float64(count))
+	var (
+		arr = asFloatArray(args)
+		ret = calc.Avg(arr)
+	)
+	return value.Float(ret)
 }
 
 func AvgIf(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	f, err := criteria.Compile(asString(args[1]))
+	f, err := criteria.New(asString(args[1]))
 	if err != nil {
 		return value.ErrValue
 	}
-	var (
-		total float64
-		count int
-	)
-	value.Each(args[:1], func(v value.Value) {
-		ok := f.Keep(v)
-		if ok {
-			total += asFloat(v)
-			count++
-		}
+	vs := value.Collect[float64](args, func(v value.Value) (float64, bool) {
+		return asFloat(v), f.Keep(v)
 	})
-	if count == 0 {
-		return value.ErrNA
-	}
-	return value.Float(total / float64(count))
+	ret := calc.Avg(vs)
+	return value.Float(ret)
 }
 
 func Stdev(args []value.Value) value.Value {
-	return nil
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	var (
+		arr = asFloatArray(args)
+		ret = calc.Stdev(arr)
+	)
+	return value.Float(ret)
 }
 
 func Variance(args []value.Value) value.Value {
-	return nil
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	var (
+		arr = asFloatArray(args)
+		ret = calc.Var(arr)
+	)
+	return value.Float(ret)
 }
 
 func Mode(args []value.Value) value.Value {
-	vs := make(map[float64]int)
-	value.Each(args, func(v value.Value) {
-		if v.Type() != value.TypeNumber {
-			return
-		}
-		vs[asFloat(v)]++
-	})
-	if len(vs) == 0 {
-		return value.ErrNA
+	if err := value.HasErrors(args...); err != nil {
+		return err
 	}
 	var (
-		ms = make(map[int][]float64)
-		mx int
+		arr = asFloatArray(args)
+		ret = calc.Mode(arr)
 	)
-	for v, c := range vs {
-		mx = max(c, mx)
-		ms[c] = append(ms[c], v)
-	}
-	rs := ms[mx]
-	return value.Float(rs[0])
+	return value.Float(ret)
 }
 
 func Median(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
 	var (
-		vs   []float64
-		size int
+		arr = asFloatArray(args)
+		ret = calc.Median(arr)
 	)
-	value.Each(args, func(v value.Value) {
-		if v.Type() != value.TypeNumber {
-			return
-		}
-		vs = append(vs, asFloat(v))
-		size++
-	})
-	sort.Float64s(vs)
-	switch size {
-	case 0:
-		return value.ErrNA
-	case 1:
-		return value.Float(vs[0])
-	default:
-	}
-	ix := size / 2
-	if ix%2 == 0 {
-		return value.Float(vs[ix])
-	}
-	fd := vs[(size/2)-1]
-	td := vs[size/2]
-	return value.Float((td - fd) / 2)
+	return value.Float(ret)
 }
 
 func Count(args []value.Value) value.Value {
-	var count int
-	value.Each(args, func(v value.Value) {
-		if v.Type() != value.TypeNumber {
-			return
-		}
-		count++
+	count := value.Reduce[float64](args, 0, func(acc float64, v value.Value) float64 {
+		return acc + 1
 	})
 	return value.Float(count)
 }
@@ -229,30 +168,25 @@ func CountIf(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	f, err := criteria.Compile(asString(args[1]))
+	f, err := criteria.New(asString(args[1]))
 	if err != nil {
 		return value.ErrValue
 	}
-	var count int
-	value.Each(args[:1], func(v value.Value) {
-		ok := f.Keep(v)
-		if ok {
-			count++
+	count := value.Reduce[float64](args, 0, func(acc float64, v value.Value) float64 {
+		if ok := f.Keep(v); ok {
+			acc += 1
 		}
+		return acc
 	})
 	return value.Float(count)
 }
 
 func Counta(args []value.Value) value.Value {
-	var count int
-	value.Each(args, func(v value.Value) {
-		if value.IsBlank(v) {
-			return
+	count := value.Reduce[float64](args, 0, func(acc float64, v value.Value) float64 {
+		if value.IsBlank(v) || asString(v) == "" {
+			return acc
 		}
-		if f := asString(v); f == "" {
-			return
-		}
-		count++
+		return acc + 1
 	})
 	return value.Float(count)
 }
@@ -341,7 +275,8 @@ func Int(args []value.Value) value.Value {
 }
 
 func Rand(args []value.Value) value.Value {
-	return nil
+	r := calc.Rand()
+	return value.Float(r)
 }
 
 func Sin(args []value.Value) value.Value {
@@ -401,9 +336,9 @@ func Acos(args []value.Value) value.Value {
 
 func Atan2(args []value.Value) value.Value {
 	var (
-		vx, _ = value.CastToFloat(args[0])
-		vy, _ = value.CastToFloat(args[1])
-		ret   = math.Atan2(float64(vx), float64(vy))
+		vx  = asFloat(args[0])
+		vy  = asFloat(args[1])
+		ret = math.Atan2(vx, vy)
 	)
 	return value.Float(ret)
 }
@@ -412,10 +347,7 @@ func Deg(args []value.Value) value.Value {
 	if err := value.HasErrors(args[0]); err != nil {
 		return err
 	}
-	var (
-		f = asFloat(args[0])
-		r = f * (180 / math.Pi)
-	)
+	r := calc.Deg(asFloat(args[0]))
 	return value.Float(r)
 }
 
@@ -423,13 +355,11 @@ func Rad(args []value.Value) value.Value {
 	if err := value.HasErrors(args[0]); err != nil {
 		return err
 	}
-	var (
-		f = asFloat(args[0])
-		r = f * (math.Pi / 180)
-	)
+	r := calc.Rad(asFloat(args[0]))
 	return value.Float(r)
 }
 
 func Pi(args []value.Value) value.Value {
-	return value.Float(math.Pi)
+	pi := calc.Pi()
+	return value.Float(pi)
 }

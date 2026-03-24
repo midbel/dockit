@@ -3,7 +3,6 @@ package value
 import (
 	"errors"
 	"fmt"
-	"iter"
 
 	"github.com/midbel/dockit/layout"
 )
@@ -312,30 +311,4 @@ func Ge(left, right Value) Value {
 		return ErrValue
 	}
 	return Boolean(!ok)
-}
-
-type ValueIterator interface {
-	Values() iter.Seq[ScalarValue]
-}
-
-func Each(args []Value, fn func(Value)) Value {
-	for _, a := range args {
-		if IsError(a) {
-			return a
-		}
-		if IsScalar(a) {
-			fn(a)
-		} else if IsArray(a) {
-			it, ok := a.(ValueIterator)
-			if !ok {
-				continue
-			}
-			var dat []Value
-			for v := range it.Values() {
-				dat = append(dat, v)
-			}
-			Each(dat, fn)
-		}
-	}
-	return nil
 }

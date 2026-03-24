@@ -1010,6 +1010,16 @@ func asFloat(arg value.Value) float64 {
 	return float64(v)
 }
 
+func asFloatArray(args []value.Value) []float64 {
+	arr := value.Collect[float64](args, func(v value.Value) (float64, bool) {
+		if value.IsError(v) {
+			return 0, false
+		}
+		return asFloat(v), true
+	})
+	return arr
+}
+
 func asString(arg value.Value) string {
 	v, _ := value.CastToText(arg)
 	return string(v)

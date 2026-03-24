@@ -45,6 +45,9 @@ func Open(file string) (grid.File, error) {
 }
 
 func WriteFile(wb grid.File, file string) error {
+	if len(wb.Sheets()) == 0 {
+		return fmt.Errorf("no sheet in workbook")
+	}
 	wt, ok := wb.(interface{ WriteTo(io.Writer) error })
 	if ok {
 		dir := filepath.Dir(file)

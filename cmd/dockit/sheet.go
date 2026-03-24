@@ -82,6 +82,26 @@ var unlockCmd = cli.Command{
 	Handler: &UnlockCommand{},
 }
 
+var joinCmd = cli.Command{
+	Name:    "join",
+	Summary: "Perform a join on two sheets",
+	Usage:   "join sheet sheet",
+	Handler: &JoinCommand{},
+}
+
+type JoinCommand struct{}
+
+func (c JoinCommand) Run(args []string) error {
+	set := cli.NewFlagSet("join")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	if set.NArg() != 2 {
+		return cli.ErrUsage
+	}
+	return nil
+}
+
 type DepCommand struct{}
 
 func (c DepCommand) Run(args []string) error {
@@ -326,6 +346,7 @@ type PrintCommand struct {
 	Format  string
 	Pattern string
 	Quoted  bool
+	SkipErr bool
 }
 
 func (c PrintCommand) Run(args []string) error {
@@ -333,6 +354,7 @@ func (c PrintCommand) Run(args []string) error {
 	set.StringVar(&c.Format, "f", "", "format")
 	set.StringVar(&c.Pattern, "p", "", "pattern")
 	set.BoolVar(&c.Quoted, "q", false, "quoted")
+	set.BoolVar(&c.SkipErr, "ignore-errors", false, "skip rows having error values")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -361,7 +383,7 @@ func (c PrintCommand) Run(args []string) error {
 		rd = cli.NewTableRenderer(os.Stdout)
 
 	}
-	rd.Render(sheet2Table(sheet))
+	rd.Render(sheet2Table(sheet, c.SkipErr))
 	return nil
 }
 
@@ -372,17 +394,27 @@ func (c PrintCommand) openFile(file string) (grid.File, error) {
 	return workbook.OpenFormat(file, c.Format)
 }
 
-func sheet2Table(sheet grid.View) cli.Table {
+func sheet2Table(sheet grid.View, skipErr bool) cli.Table {
 	var (
 		t cli.Table
 		i int
 	)
 	ft := createFormatter()
 	for r := range sheet.Rows() {
-		row := make([]string, 0, len(r))
+		var (
+			row     = make([]string, 0, len(r))
+			discard bool
+		)
 		for _, v := range r {
+			if value.IsError(v) && skipErr {
+				discard = true
+				break
+			}
 			str, _ := ft.Format(v)
 			row = append(row, str)
+		}
+		if discard {
+			continue
 		}
 		if i == 0 {
 			t.Headers = row
