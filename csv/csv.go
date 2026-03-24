@@ -61,9 +61,12 @@ func (r *Reader) Read() ([]string, error) {
 		return nil, io.EOF
 	}
 	line, err := r.inner.ReadBytes(nl)
-	if len(line) == 0 && errors.Is(err, io.EOF) {
-		r.atEOF = true
-		return nil, err
+	if len(line) == 0 {
+		if errors.Is(err, io.EOF) {
+			r.atEOF = true
+			return nil, err
+		}
+		return r.Read()
 	}
 	if err != nil && !errors.Is(err, io.EOF) {
 		return nil, err

@@ -374,11 +374,11 @@ func (c PrintCommand) Run(args []string) error {
 
 	var rd cli.Renderer
 	if c.Quoted {
-		r := NewCsvRenderer(os.Stdout)
+		r := NewCsvRenderer(cli.Stdout)
 		r.Quoted = c.Quoted
 		rd = r
 	} else {
-		rd = cli.NewTableRenderer(os.Stdout)
+		rd = cli.NewTableRenderer(cli.Stdout)
 
 	}
 	rd.Render(sheet2Table(sheet, c.SkipErr))
