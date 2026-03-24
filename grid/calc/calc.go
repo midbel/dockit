@@ -115,7 +115,7 @@ func Var(values []float64) float64 {
 		x := (f - avg) * (f - avg)
 		sum += x
 	}
-	return sum/float64(z)
+	return sum / float64(z)
 }
 
 func Deg(value float64) float64 {
