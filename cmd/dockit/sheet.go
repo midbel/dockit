@@ -12,6 +12,7 @@ import (
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/format"
 	"github.com/midbel/dockit/internal/slx"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 	"github.com/midbel/dockit/workbook"
 )
@@ -345,6 +346,7 @@ func (c RenameCommand) Run(args []string) error {
 type PrintCommand struct {
 	Format  string
 	Pattern string
+	Columns layout.Selection
 	Quoted  bool
 	SkipErr bool
 }
@@ -355,25 +357,21 @@ func (c PrintCommand) Run(args []string) error {
 	set.StringVar(&c.Pattern, "p", "", "pattern")
 	set.BoolVar(&c.Quoted, "q", false, "quoted")
 	set.BoolVar(&c.SkipErr, "ignore-errors", false, "skip rows having error values")
+	set.Func("c", "selected columns", func(str string) error {
+		sel, err := layout.SelectionFromString(str)
+		if err == nil {
+			c.Columns = sel
+		}
+		return err
+	})
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	wb, err := c.openFile(set.Arg(0))
+	sheet, err := c.openSheet(set.Arg(0), set.Arg(1))
 	if err != nil {
 		return err
 	}
-	if err := wb.Sync(); err != nil && !errors.Is(err, grid.ErrSupported) {
-		return err
-	}
-	var sheet grid.View
-	if set.NArg() == 1 {
-		sheet, err = wb.ActiveSheet()
-	} else {
-		sheet, err = wb.Sheet(set.Arg(1))
-	}
-	if err != nil {
-		return err
-	}
+
 	var rd cli.Renderer
 	if c.Quoted {
 		r := NewCsvRenderer(os.Stdout)
@@ -385,6 +383,29 @@ func (c PrintCommand) Run(args []string) error {
 	}
 	rd.Render(sheet2Table(sheet, c.SkipErr))
 	return nil
+}
+
+func (c PrintCommand) openSheet(file, name string) (grid.View, error) {
+	wb, err := c.openFile(file)
+	if err != nil {
+		return nil, err
+	}
+	if err := wb.Sync(); err != nil && !errors.Is(err, grid.ErrSupported) {
+		return nil, err
+	}
+	var sheet grid.View
+	if name == "" {
+		sheet, err = wb.ActiveSheet()
+	} else {
+		sheet, err = wb.Sheet(name)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if c.Columns != nil {
+		sheet = grid.NewProjectView(sheet, c.Columns)
+	}
+	return sheet, nil
 }
 
 func (c PrintCommand) openFile(file string) (grid.File, error) {
