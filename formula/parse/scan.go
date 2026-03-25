@@ -123,8 +123,13 @@ func (s *Scanner) Scan() Token {
 	}
 	defer s.reset()
 	switch {
-	case s.inScript() && isNL(s.char):
-		s.scanNL(&tok)
+	case isNL(s.char):
+		if s.inScript() {
+			s.scanNL(&tok)
+		} else {
+			s.SkipNL()
+			return s.Scan()
+		}
 	case s.inScript() && isComment(s.char):
 		s.scanComment(&tok)
 	case !s.inScript() && isComment(s.char):
