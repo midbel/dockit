@@ -282,6 +282,8 @@ func (r *sheetReader) parseCellValue(cell *Cell, str string) error {
 			return err
 		}
 		cell.parsed = value.Boolean(b)
+	case TypeError:
+		cell.parsed = value.NewErrorFromCode(str)
 	default:
 		n, err := strconv.ParseFloat(strings.TrimSpace(str), 64)
 		if err != nil {

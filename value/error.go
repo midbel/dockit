@@ -28,6 +28,10 @@ type Error struct {
 	code string
 }
 
+func NewErrorFromCode(code string) Error {
+	return createError(code)
+}
+
 func createError(code string) Error {
 	return Error{
 		code: code,
