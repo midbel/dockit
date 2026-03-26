@@ -130,6 +130,10 @@ func Pi() float64 {
 	return math.Pi
 }
 
+func E() float64 {
+	return math.E
+}
+
 func Rand() float64 {
 	return rand.Float64()
 }

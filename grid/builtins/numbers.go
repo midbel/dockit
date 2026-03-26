@@ -363,3 +363,41 @@ func Pi(args []value.Value) value.Value {
 	pi := calc.Pi()
 	return value.Float(pi)
 }
+
+func Log10(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	var (
+		f = asFloat(args[0])
+		r = math.Log10(f)
+	)
+	return value.Float(r)
+}
+
+func Ln(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	var (
+		f = asFloat(args[0])
+		r = math.Log(f)
+	)
+	return value.Float(r)
+}
+
+func Exp(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	var (
+		f = asFloat(args[0])
+		r = math.Exp(f)
+	)
+	return value.Float(r)
+}
+
+func E(args []value.Value) value.Value {
+	e := calc.E()
+	return value.Float(e)
+}

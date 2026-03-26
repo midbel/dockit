@@ -19,6 +19,39 @@ var (
 )
 
 var Registry = map[string]Builtin{
+	"e": {
+		Name:     "e",
+		Desc:     "",
+		Category: "math",
+		Func:     E,
+	},
+	"exp": {
+		Name:     "exp",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Exp,
+	},
+	"ln": {
+		Name:     "ln",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Ln,
+	},
+	"log10": {
+		Name:     "log10",
+		Desc:     "",
+		Category: "math",
+		Params: []Param{
+			Var(ScalarArray("number", "", value.TypeNumber)),
+		},
+		Func: Log10,
+	},
 	"min": {
 		Name:     "min",
 		Desc:     "",
