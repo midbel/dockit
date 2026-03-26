@@ -1,6 +1,7 @@
 package builtins
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -9,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/midbel/cli"
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
+	"github.com/midbel/textwrap"
 )
 
 var (
@@ -151,13 +154,13 @@ var Registry = map[string]Builtin{
 			Var(ScalarArray("xnum", "", value.TypeNumber)),
 			Var(ScalarArray("ynum", "", value.TypeNumber)),
 		},
-		Func: Sum,
+		Func: Atan2,
 	},
 	"pi": {
 		Name:     "pi",
 		Desc:     "",
 		Category: "math",
-		Func:     Sum,
+		Func:     Pi,
 	},
 	"degrees": {
 		Name:     "degress",
@@ -179,7 +182,7 @@ var Registry = map[string]Builtin{
 	},
 	"sum": {
 		Name:     "sum",
-		Desc:     "",
+		Desc:     "Returns the sum of all values",
 		Category: "math",
 		Params: []Param{
 			Var(ScalarArray("number", "", value.TypeNumber)),
@@ -688,7 +691,7 @@ var Registry = map[string]Builtin{
 	},
 	"replace": {
 		Name:     "replace",
-		Desc:     "",
+		Desc:     "Replace part of text at given position with new text",
 		Category: "text",
 		Params: []Param{
 			Scalar("str", "", value.TypeText),
@@ -730,7 +733,7 @@ var Registry = map[string]Builtin{
 	},
 	"choose": {
 		Name:     "choose",
-		Desc:     "",
+		Desc:     "Returns the value at the given 1-based index. If the index is out of range, returns ErrNA",
 		Category: "conditional",
 		Params: []Param{
 			Scalar("index", "", value.TypeNumber),
@@ -853,7 +856,58 @@ func Help(w io.Writer, ident string) error {
 	if err != nil {
 		return err
 	}
-	_ = b
+	ws := bufio.NewWriter(w)
+	defer ws.Flush()
+	io.WriteString(ws, strings.ToUpper(b.Name))
+	io.WriteString(ws, "(")
+	for i, p := range b.Params {
+		if i > 0 {
+			io.WriteString(ws, ", ")
+		}
+		if p.Optional {
+			io.WriteString(ws, "[")
+		}
+		io.WriteString(ws, strings.ToUpper(p.Name))
+		io.WriteString(ws, ": ")
+		io.WriteString(ws, p.Type)
+		if p.Variadic {
+			io.WriteString(ws, "...")
+		}
+		if p.Optional {
+			io.WriteString(ws, "]")
+		}
+	}
+	io.WriteString(ws, ")")
+
+	io.WriteString(ws, "\t[")
+	io.WriteString(ws, b.Category)
+	io.WriteString(ws, "]")
+	io.WriteString(ws, "\n")
+	io.WriteString(ws, "\n")
+
+	io.WriteString(ws, textwrap.WrapN(b.Desc, 70))
+	io.WriteString(ws, ".\n")
+	io.WriteString(ws, "\n")
+
+	io.WriteString(ws, "PARAMETERS:")
+	io.WriteString(ws, "\n")
+	for _, p := range b.Params {
+		io.WriteString(ws, " "+strings.ToUpper(p.Name))
+		io.WriteString(ws, ": ")
+		io.WriteString(ws, p.Desc)
+		io.WriteString(ws, "\n")
+	}
+	io.WriteString(ws, "\n")
+	io.WriteString(ws, "\n")
+	io.WriteString(ws, "SUPPORT:")
+	io.WriteString(ws, "\n")
+	io.WriteString(ws, " OXML: ")
+	io.WriteString(ws, cli.MarkBool(b.OxmlSupported()))
+	io.WriteString(ws, "\n")
+	io.WriteString(ws, " ODS : ")
+	io.WriteString(ws, cli.MarkBool(b.OdsSupported()))
+	io.WriteString(ws, "\n")
+	io.WriteString(ws, "\n")
 	return nil
 }
 
