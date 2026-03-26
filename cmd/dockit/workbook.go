@@ -148,13 +148,28 @@ func (c GetInfoCommand) openFile(file string) (grid.File, error) {
 	return workbook.OpenFormat(file, c.Format)
 }
 
-type GetBuiltinCommand struct{}
+type GetBuiltinCommand struct {
+	Category string
+}
 
 func (c GetBuiltinCommand) Run(args []string) error {
 	set := cli.NewFlagSet("builtins")
+	set.StringVar(&c.Category, "c", "", "List functions of given category")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
+	if set.NArg() >= 1 {
+		return c.printHelp(set.Arg(0))
+	} else {
+		return c.printList()
+	}
+}
+
+func (c GetBuiltinCommand) printHelp(name string) error {
+	return builtins.Help(cli.Stdout, name)
+}
+
+func (c GetBuiltinCommand) printList() error {
 	var (
 		list = builtins.List()
 		tbl  cli.Table
@@ -168,6 +183,9 @@ func (c GetBuiltinCommand) Run(args []string) error {
 	})
 	tbl.Headers = []string{"name", "desc", "category", "parameter", "openxml", "opendoc"}
 	for _, b := range list {
+		if c.Category != "" && b.Category != c.Category {
+			continue
+		}
 		r := []string{
 			b.Name,
 			b.Desc,
@@ -178,7 +196,7 @@ func (c GetBuiltinCommand) Run(args []string) error {
 		}
 		tbl.Rows = append(tbl.Rows, r)
 	}
-	rd := cli.NewTableRenderer(os.Stdout)
+	rd := cli.NewTableRenderer(cli.Stdout)
 	rd.WithLineNumbers = true
 	rd.Render(tbl)
 	return nil

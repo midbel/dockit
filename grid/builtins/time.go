@@ -94,6 +94,14 @@ func Weekday(args []value.Value) value.Value {
 	return value.Float(t.Weekday())
 }
 
+func Edate(args []value.Value) value.Value {
+	return nil
+}
+
+func EoMonth(args []value.Value) value.Value {
+	return nil
+}
+
 func DateDiff(args []value.Value) value.Value {
 	var (
 		dtstart = asTime(args[0])

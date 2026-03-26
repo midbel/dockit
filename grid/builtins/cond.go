@@ -4,6 +4,10 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+func Ifs(args []value.Value) value.Value {
+	return nil
+}
+
 func If(args []value.Value) value.Value {
 	if err := value.HasErrors(args[:3]...); err != nil {
 		return err

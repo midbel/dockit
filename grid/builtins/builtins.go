@@ -3,6 +3,7 @@ package builtins
 import (
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"strings"
@@ -413,6 +414,20 @@ var Registry = map[string]Builtin{
 		},
 		Func: DateDiff,
 	},
+	"edate": {
+		Name:     "edate",
+		Desc:     "",
+		Category: "time",
+		Params:   []Param{},
+		Func:     Edate,
+	},
+	"eomonth": {
+		Name:     "eomonth",
+		Desc:     "",
+		Category: "time",
+		Params:   []Param{},
+		Func:     EoMonth,
+	},
 	"year": {
 		Name:     "year",
 		Desc:     "",
@@ -713,7 +728,55 @@ var Registry = map[string]Builtin{
 		},
 		Func: Text,
 	},
-	// "ifs":         nil,
+	"choose": {
+		Name:     "choose",
+		Desc:     "",
+		Category: "conditional",
+		Params: []Param{
+			Scalar("index", "", value.TypeNumber),
+			Deferrable(Var(Scalar("value", "", value.TypeAny))),
+		},
+		Func: Choose,
+	},
+	"switch": {
+		Name:     "switch",
+		Desc:     "",
+		Category: "conditional",
+		Params: []Param{
+			Scalar("var", "", value.TypeNumber),
+			Var(Scalar("value", "", value.TypeAny)),
+			Opt(Scalar("default", "", value.TypeAny)),
+		},
+		Func: Switch,
+	},
+	"match": {
+		Name:     "match",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     Match,
+	},
+	"index": {
+		Name:     "index",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     Index,
+	},
+	"vlookup": {
+		Name:     "vlookup",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     VLookup,
+	},
+	"ifs": {
+		Name:     "ifs",
+		Desc:     "",
+		Category: "conditional",
+		Params:   []Param{},
+		Func:     Ifs,
+	},
 	"if": {
 		Name:     "if",
 		Desc:     "",
@@ -783,29 +846,38 @@ var Registry = map[string]Builtin{
 		},
 		Func: Not,
 	},
-	// "index":       nil,
-	// "match":       nil,
-	// "vlookup":     nil,
-	// "hlookup":     nil,
-	// "xlookup":     nil,
-	// "offset":      nil,
-	// "choose":      nil,
-	// "switch":      nil,
 }
 
-func Lookup(ident string) (BuiltinFunc, error) {
+func Help(w io.Writer, ident string) error {
+	b, err := Get(ident)
+	if err != nil {
+		return err
+	}
+	_ = b
+	return nil
+}
+
+func Get(ident string) (Builtin, error) {
 	fn, ok := Registry[strings.ToLower(ident)]
 	if ok {
-		return fn.Make(), nil
+		return fn, nil
 	}
-	vs := slices.Collect(maps.Values(Registry))
+	vs := List()
 	ix := slices.IndexFunc(vs, func(b Builtin) bool {
 		return slices.Contains(b.Alias, ident)
 	})
 	if ix < 0 {
-		return nil, fmt.Errorf("%s undefined builtin", ident)
+		return Builtin{}, fmt.Errorf("%s undefined builtin", ident)
 	}
-	return vs[ix].Make(), nil
+	return vs[ix], nil
+}
+
+func Lookup(ident string) (BuiltinFunc, error) {
+	fn, err := Get(ident)
+	if err != nil {
+		return nil, err
+	}
+	return fn.Make(), nil
 }
 
 func List() []Builtin {
