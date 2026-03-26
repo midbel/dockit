@@ -777,7 +777,9 @@ var Registry = map[string]Builtin{
 		Name:     "ifs",
 		Desc:     "",
 		Category: "conditional",
-		Params:   []Param{},
+		Params:   []Param{
+			Var(Scalar("value", "", value.TypeAny)),
+		},
 		Func:     Ifs,
 	},
 	"if": {

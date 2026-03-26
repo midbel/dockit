@@ -5,7 +5,19 @@ import (
 )
 
 func Ifs(args []value.Value) value.Value {
-	return nil
+	if err := value.HasErrors(args[:3]...); err != nil {
+		return err
+	}
+	if len(args) % 2 == 1 {
+		return value.ErrValue
+	}
+	for i := 0; i < len(args); i += 2 {
+		ok := value.True(args[i])
+		if ok {
+			return args[i+1]
+		}
+	}
+	return value.ErrNA
 }
 
 func If(args []value.Value) value.Value {
