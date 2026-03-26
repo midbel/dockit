@@ -3,6 +3,7 @@ package builtins
 import (
 	"time"
 
+	"github.com/midbel/dockit/grid/temporal"
 	"github.com/midbel/dockit/value"
 )
 
@@ -105,16 +106,21 @@ func DateDiff(args []value.Value) value.Value {
 	}
 	switch unit {
 	case "Y":
-		diff := dtend.Year() - dtstart.Year()
+		diff := temporal.YearsBetween(dtend, dtstart)
 		delta = float64(diff)
 	case "M":
-		diff := (dtend.Year() - dtstart.Year()) * 12
-		delta = float64(diff) + float64(dtend.Month())
-		delta = delta - (12 - float64(dtstart.Month()))
+		diff := temporal.MonthsBetween(dtend, dtstart)
+		delta = float64(diff)
 	case "D":
-		diff := (dtend.Year() - dtstart.Year()) * 365
-		delta = float64(diff) + float64(dtend.YearDay())
-		delta = delta - (365 - float64(dtstart.YearDay()))
+		diff := temporal.DaysBetween(dtend, dtstart)
+		delta = float64(diff)
+	case "YD":
+		diff := temporal.CountDays(dtend, dtstart)
+		delta = float64(diff)
+	case "YM":
+		diff := temporal.CountMonths(dtend, dtstart)
+		delta = float64(diff)
+	case "MD":
 	default:
 	}
 	return value.Float(delta)
