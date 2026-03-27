@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/midbel/cli"
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
@@ -887,7 +886,7 @@ func Help(w io.Writer, ident string) error {
 	io.WriteString(ws, "\n")
 	io.WriteString(ws, "\n")
 
-	io.WriteString(ws, textwrap.WrapN(b.Desc, 70))
+	io.WriteString(ws, textwrap.Wrap(b.Desc, 72))
 	io.WriteString(ws, ".\n")
 	io.WriteString(ws, "\n")
 
@@ -901,13 +900,21 @@ func Help(w io.Writer, ident string) error {
 	}
 	io.WriteString(ws, "\n")
 	io.WriteString(ws, "\n")
-	io.WriteString(ws, "SUPPORT:")
-	io.WriteString(ws, "\n")
-	io.WriteString(ws, " OXML: ")
-	io.WriteString(ws, cli.MarkBool(b.OxmlSupported()))
-	io.WriteString(ws, "\n")
-	io.WriteString(ws, " ODS : ")
-	io.WriteString(ws, cli.MarkBool(b.OdsSupported()))
+	io.WriteString(ws, "SUPPORTED BY: ")
+	supports := map[string]bool {
+		"ODS": b.OdsSupported(),
+		"OXML": b.OxmlSupported(),
+	}
+	var lino int
+	for g, ok := range supports {
+		if lino > 0 {
+			io.WriteString(ws, ", ")
+		}
+		if ok {
+			io.WriteString(ws, g)
+			lino++
+		}
+	}
 	io.WriteString(ws, "\n")
 	io.WriteString(ws, "\n")
 	return nil
