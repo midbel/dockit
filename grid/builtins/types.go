@@ -1,11 +1,33 @@
 package builtins
 
 import (
+	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
 )
 
+var typeofBuiltin = Builtin{
+	Name:     "type",
+	Alias:    slx.Make("typeof"),
+	Desc:     "",
+	Category: "miscel",
+	Params: []Param{
+		Scalar("value", "", value.TypeAny),
+	},
+	Func: TypeOf,
+}
+
 func TypeOf(args []value.Value) value.Value {
 	return value.Text(args[0].Type())
+}
+
+var isBlankBuiltin = Builtin{
+	Name:     "isblank",
+	Desc:     "",
+	Category: "type",
+	Params: []Param{
+		Scalar("value", "", value.TypeAny),
+	},
+	Func: IsBlank,
 }
 
 func IsBlank(args []value.Value) value.Value {
@@ -13,9 +35,29 @@ func IsBlank(args []value.Value) value.Value {
 	return value.Boolean(ok)
 }
 
+var isErrorBuiltin = Builtin{
+	Name:     "iserror",
+	Desc:     "",
+	Category: "type",
+	Params: []Param{
+		Scalar("value", "", value.TypeAny),
+	},
+	Func: IsError,
+}
+
 func IsError(args []value.Value) value.Value {
 	ok := value.IsError(args[0])
 	return value.Boolean(ok)
+}
+
+var isNaBuiltin = Builtin{
+	Name:     "isna",
+	Desc:     "",
+	Category: "type",
+	Params: []Param{
+		Scalar("value", "", value.TypeAny),
+	},
+	Func: IsNA,
 }
 
 func IsNA(args []value.Value) value.Value {
@@ -23,8 +65,25 @@ func IsNA(args []value.Value) value.Value {
 	return value.Boolean(ok)
 }
 
+var naBuiltin = Builtin{
+	Name:     "na",
+	Desc:     "",
+	Category: "errors",
+	Func:     Na,
+}
+
 func Na(args []value.Value) value.Value {
 	return value.ErrNA
+}
+
+var errBuiltin = Builtin{
+	Name:     "err",
+	Desc:     "",
+	Category: "errors",
+	Params: []Param{
+		Scalar("str", "", value.TypeText),
+	},
+	Func: Err,
 }
 
 func Err(args []value.Value) value.Value {
@@ -44,4 +103,13 @@ func Err(args []value.Value) value.Value {
 	default:
 		return value.ErrNA
 	}
+}
+
+var typeBuiltins = []Builtin{
+	typeofBuiltin,
+	isBlankBuiltin,
+	isErrorBuiltin,
+	isNaBuiltin,
+	naBuiltin,
+	errBuiltin,
 }

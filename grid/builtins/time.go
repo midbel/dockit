@@ -7,14 +7,42 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+var nowBuiltin = Builtin{
+	Name:     "now",
+	Desc:     "",
+	Category: "time",
+	Params:   []Param{},
+	Func:     Now,
+}
+
 func Now(args []value.Value) value.Value {
 	n := time.Now()
 	return value.Date(n)
 }
 
+var todayBuiltin = Builtin{
+	Name:     "today",
+	Desc:     "",
+	Category: "time",
+	Params:   []Param{},
+	Func:     Today,
+}
+
 func Today(args []value.Value) value.Value {
 	n := time.Now().Truncate(time.Hour * 24)
 	return value.Date(n)
+}
+
+var dateBuiltin = Builtin{
+	Name:     "date",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("year", "", value.TypeNumber),
+		Scalar("month", "", value.TypeNumber),
+		Scalar("day", "", value.TypeNumber),
+	},
+	Func: Date,
 }
 
 func Date(args []value.Value) value.Value {
@@ -30,12 +58,32 @@ func Date(args []value.Value) value.Value {
 	return value.Date(n)
 }
 
+var yearBuiltin = Builtin{
+	Name:     "year",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: Year,
+}
+
 func Year(args []value.Value) value.Value {
 	if err := value.HasErrors(args[0]); err != nil {
 		return err
 	}
 	t := asTime(args[0])
 	return value.Float(t.Year())
+}
+
+var monthBuiltin = Builtin{
+	Name:     "month",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: Month,
 }
 
 func Month(args []value.Value) value.Value {
@@ -46,12 +94,32 @@ func Month(args []value.Value) value.Value {
 	return value.Float(t.Month())
 }
 
+var dayBuiltin = Builtin{
+	Name:     "day",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: Day,
+}
+
 func Day(args []value.Value) value.Value {
 	if err := value.HasErrors(args[0]); err != nil {
 		return err
 	}
 	t := asTime(args[0])
 	return value.Float(t.Day())
+}
+
+var yeardayBuiltin = Builtin{
+	Name:     "yearday",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: YearDay,
 }
 
 func YearDay(args []value.Value) value.Value {
@@ -62,12 +130,32 @@ func YearDay(args []value.Value) value.Value {
 	return value.Float(t.YearDay())
 }
 
+var hourBuiltin = Builtin{
+	Name:     "hour",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: Hour,
+}
+
 func Hour(args []value.Value) value.Value {
 	if err := value.HasErrors(args[0]); err != nil {
 		return err
 	}
 	t := asTime(args[0])
 	return value.Float(t.Hour())
+}
+
+var minuteBuiltin = Builtin{
+	Name:     "minute",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: Minute,
 }
 
 func Minute(args []value.Value) value.Value {
@@ -78,12 +166,32 @@ func Minute(args []value.Value) value.Value {
 	return value.Float(t.Minute())
 }
 
+var secondBuiltin = Builtin{
+	Name:     "second",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: Second,
+}
+
 func Second(args []value.Value) value.Value {
 	if err := value.HasErrors(args[0]); err != nil {
 		return err
 	}
 	t := asTime(args[0])
 	return value.Float(t.Second())
+}
+
+var weekdayBuiltin = Builtin{
+	Name:     "weekday",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("date", "", value.TypeDate),
+	},
+	Func: Weekday,
 }
 
 func Weekday(args []value.Value) value.Value {
@@ -100,6 +208,18 @@ func Edate(args []value.Value) value.Value {
 
 func EoMonth(args []value.Value) value.Value {
 	return nil
+}
+
+var datediffBuiltin = Builtin{
+	Name:     "datedif",
+	Desc:     "",
+	Category: "time",
+	Params: []Param{
+		Scalar("fromDate", "", value.TypeDate),
+		Scalar("toDate", "", value.TypeDate),
+		Scalar("diffUnit", "", value.TypeText),
+	},
+	Func: DateDiff,
 }
 
 func DateDiff(args []value.Value) value.Value {
@@ -132,4 +252,19 @@ func DateDiff(args []value.Value) value.Value {
 	default:
 	}
 	return value.Float(delta)
+}
+
+var timeBuiltins = []Builtin{
+	nowBuiltin,
+	todayBuiltin,
+	dateBuiltin,
+	yearBuiltin,
+	monthBuiltin,
+	dayBuiltin,
+	yeardayBuiltin,
+	hourBuiltin,
+	minuteBuiltin,
+	secondBuiltin,
+	weekdayBuiltin,
+	datediffBuiltin,
 }

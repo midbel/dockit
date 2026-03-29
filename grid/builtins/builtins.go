@@ -21,7 +21,7 @@ var (
 	ErrType  = errors.New("invalid type")
 )
 
-var Registry = map[string]Builtin{
+var registry = map[string]Builtin{
 	"e": {
 		Name:     "e",
 		Desc:     "",
@@ -355,153 +355,6 @@ var Registry = map[string]Builtin{
 		},
 		Func: Count,
 	},
-	"na": {
-		Name:     "na",
-		Desc:     "",
-		Category: "errors",
-		Func:     Na,
-	},
-	"err": {
-		Name:     "err",
-		Desc:     "",
-		Category: "errors",
-		Params: []Param{
-			Scalar("str", "", value.TypeText),
-		},
-		Func: Err,
-	},
-	"type": {
-		Name:     "type",
-		Alias:    slx.Make("typeof"),
-		Desc:     "",
-		Category: "miscel",
-		Params: []Param{
-			Scalar("value", "", value.TypeAny),
-		},
-		Func: TypeOf,
-	},
-	"now": {
-		Name:     "now",
-		Desc:     "",
-		Category: "time",
-		Params:   []Param{},
-		Func:     Now,
-	},
-	"today": {
-		Name:     "today",
-		Desc:     "",
-		Category: "time",
-		Params:   []Param{},
-		Func:     Today,
-	},
-	"date": {
-		Name:     "date",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("year", "", value.TypeNumber),
-			Scalar("month", "", value.TypeNumber),
-			Scalar("day", "", value.TypeNumber),
-		},
-		Func: Date,
-	},
-	"datedif": {
-		Name:     "datedif",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("fromDate", "", value.TypeDate),
-			Scalar("toDate", "", value.TypeDate),
-			Scalar("diffUnit", "", value.TypeText),
-		},
-		Func: DateDiff,
-	},
-	"edate": {
-		Name:     "edate",
-		Desc:     "",
-		Category: "time",
-		Params:   []Param{},
-		Func:     Edate,
-	},
-	"eomonth": {
-		Name:     "eomonth",
-		Desc:     "",
-		Category: "time",
-		Params:   []Param{},
-		Func:     EoMonth,
-	},
-	"year": {
-		Name:     "year",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: Year,
-	},
-	"month": {
-		Name:     "month",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: Month,
-	},
-	"day": {
-		Name:     "day",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: Day,
-	},
-	"yearday": {
-		Name:     "yearday",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: YearDay,
-	},
-	"hour": {
-		Name:     "hour",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: Hour,
-	},
-	"minute": {
-		Name:     "minute",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: Minute,
-	},
-	"second": {
-		Name:     "second",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: Second,
-	},
-	"weekday": {
-		Name:     "weekday",
-		Desc:     "",
-		Category: "time",
-		Params: []Param{
-			Scalar("date", "", value.TypeDate),
-		},
-		Func: Weekday,
-	},
 	"isnumber": {
 		Name:     "isnumber",
 		Desc:     "",
@@ -520,33 +373,7 @@ var Registry = map[string]Builtin{
 		},
 		Func: IsText,
 	},
-	"isblank": {
-		Name:     "isblank",
-		Desc:     "",
-		Category: "type",
-		Params: []Param{
-			Scalar("value", "", value.TypeAny),
-		},
-		Func: IsBlank,
-	},
-	"iserror": {
-		Name:     "iserror",
-		Desc:     "",
-		Category: "type",
-		Params: []Param{
-			Scalar("value", "", value.TypeAny),
-		},
-		Func: IsError,
-	},
-	"isna": {
-		Name:     "isna",
-		Desc:     "",
-		Category: "type",
-		Params: []Param{
-			Scalar("value", "", value.TypeAny),
-		},
-		Func: IsNA,
-	},
+
 	"concatenate": {
 		Name:     "concatenate",
 		Desc:     "",
@@ -730,126 +557,6 @@ var Registry = map[string]Builtin{
 		},
 		Func: Text,
 	},
-	"choose": {
-		Name:     "choose",
-		Desc:     "Returns the value at the given 1-based index. If the index is out of range, returns ErrNA",
-		Category: "conditional",
-		Params: []Param{
-			Scalar("index", "", value.TypeNumber),
-			Deferrable(Var(Scalar("value", "", value.TypeAny))),
-		},
-		Func: Choose,
-	},
-	"switch": {
-		Name:     "switch",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			Scalar("var", "", value.TypeNumber),
-			Var(Scalar("value", "", value.TypeAny)),
-			Opt(Scalar("default", "", value.TypeAny)),
-		},
-		Func: Switch,
-	},
-	"match": {
-		Name:     "match",
-		Desc:     "",
-		Category: "conditional",
-		Params:   []Param{},
-		Func:     Match,
-	},
-	"index": {
-		Name:     "index",
-		Desc:     "",
-		Category: "conditional",
-		Params:   []Param{},
-		Func:     Index,
-	},
-	"vlookup": {
-		Name:     "vlookup",
-		Desc:     "",
-		Category: "conditional",
-		Params:   []Param{},
-		Func:     VLookup,
-	},
-	"ifs": {
-		Name:     "ifs",
-		Desc:     "",
-		Category: "conditional",
-		Params:   []Param{
-			Var(Scalar("value", "", value.TypeAny)),
-		},
-		Func:     Ifs,
-	},
-	"if": {
-		Name:     "if",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			Scalar("value", "", value.TypeAny),
-			Deferrable(Scalar("csq", "", value.TypeAny)),
-			Deferrable(Scalar("alt", "", value.TypeAny)),
-		},
-		Func: If,
-	},
-	"iferror": {
-		Name:     "iferror",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			Scalar("value", "", value.TypeAny),
-			Deferrable(ScalarArray("replace", "", value.TypeAny)),
-		},
-		Func: IfError,
-	},
-	"ifna": {
-		Name:     "ifna",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			Scalar("value", "", value.TypeAny),
-			Deferrable(ScalarArray("replace", "", value.TypeAny)),
-		},
-		Func: IfNA,
-	},
-	"and": {
-		Name:     "and",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			ScalarArray("value1", "", value.TypeAny),
-			ScalarArray("value2", "", value.TypeAny),
-		},
-		Func: And,
-	},
-	"or": {
-		Name:     "or",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			ScalarArray("value1", "", value.TypeAny),
-			ScalarArray("value2", "", value.TypeAny),
-		},
-		Func: Or,
-	},
-	"xor": {
-		Name:     "xor",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			Var(ScalarArray("value", "", value.TypeAny)),
-		},
-		Func: Xor,
-	},
-	"not": {
-		Name:     "not",
-		Desc:     "",
-		Category: "conditional",
-		Params: []Param{
-			ScalarArray("value", "", value.TypeAny),
-		},
-		Func: Not,
-	},
 }
 
 func Help(w io.Writer, ident string) error {
@@ -901,8 +608,8 @@ func Help(w io.Writer, ident string) error {
 	io.WriteString(ws, "\n")
 	io.WriteString(ws, "\n")
 	io.WriteString(ws, "SUPPORTED BY: ")
-	supports := map[string]bool {
-		"ODS": b.OdsSupported(),
+	supports := map[string]bool{
+		"ODS":  b.OdsSupported(),
 		"OXML": b.OxmlSupported(),
 	}
 	var lino int
@@ -921,7 +628,7 @@ func Help(w io.Writer, ident string) error {
 }
 
 func Get(ident string) (Builtin, error) {
-	fn, ok := Registry[strings.ToLower(ident)]
+	fn, ok := registry[strings.ToLower(ident)]
 	if ok {
 		return fn, nil
 	}
@@ -944,7 +651,7 @@ func Lookup(ident string) (BuiltinFunc, error) {
 }
 
 func List() []Builtin {
-	vs := maps.Values(Registry)
+	vs := maps.Values(registry)
 	return slices.Collect(vs)
 }
 
@@ -1200,4 +907,17 @@ func asBool(arg value.Value) bool {
 func asTime(arg value.Value) time.Time {
 	v, _ := value.CastToDate(arg)
 	return time.Time(v)
+}
+
+func init() {
+	registerBuiltins(condBuiltins)
+	registerBuiltins(timeBuiltins)
+	registerBuiltins(typeBuiltins)
+	registerBuiltins(indexBuiltins)
+}
+
+func registerBuiltins(list []Builtin) {
+	for _, b := range list {
+		registry[b.Name] = b
+	}
 }
