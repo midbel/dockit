@@ -20,6 +20,36 @@ func TypeOf(args []value.Value) value.Value {
 	return value.Text(args[0].Type())
 }
 
+var isNumberBuiltin = Builtin{
+	Name:     "isnumber",
+	Desc:     "",
+	Category: "util",
+	Params: []Param{
+		ScalarArray("value", "", value.TypeAny),
+	},
+	Func: IsNumber,
+}
+
+func IsNumber(args []value.Value) value.Value {
+	ok := value.IsNumber(args[0])
+	return value.Boolean(ok)
+}
+
+var isTextBuiltin = Builtin{
+	Name:     "istext",
+	Desc:     "",
+	Category: "util",
+	Params: []Param{
+		ScalarArray("value", "", value.TypeAny),
+	},
+	Func: IsText,
+}
+
+func IsText(args []value.Value) value.Value {
+	ok := value.IsText(args[0])
+	return value.Boolean(ok)
+}
+
 var isBlankBuiltin = Builtin{
 	Name:     "isblank",
 	Desc:     "",
@@ -109,6 +139,8 @@ var typeBuiltins = []Builtin{
 	typeofBuiltin,
 	isBlankBuiltin,
 	isErrorBuiltin,
+	isTextBuiltin,
+	isNumberBuiltin,
 	isNaBuiltin,
 	naBuiltin,
 	errBuiltin,

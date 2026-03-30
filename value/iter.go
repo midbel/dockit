@@ -71,10 +71,10 @@ func FindIndex(args []Value, v Value) Value {
 	for i := range args {
 		ok := Eq(args[i], v)
 		if True(ok) {
-			return Float(i+1)
+			return Float(i + 1)
 		}
 	}
-	return ErrNA	
+	return ErrNA
 }
 
 func Find(args []Value, v Value) Value {

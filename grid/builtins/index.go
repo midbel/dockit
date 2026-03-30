@@ -2,7 +2,7 @@ package builtins
 
 import (
 	"math"
-	
+
 	"github.com/midbel/dockit/value"
 )
 
