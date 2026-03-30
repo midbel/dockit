@@ -3,6 +3,8 @@ package gridx
 import (
 	"fmt"
 	"iter"
+	"slices"
+	"strings"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -51,15 +53,25 @@ func (v *joinView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *joinView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue)) {
-
+func (v *joinView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
+		var (
+			lb = v.left.Bounds()
+			rb = v.right.Bounds()
+		)
+		for lino, jr := range v.rows {
+			left := collectValues(v.left, jr.Left, lb.Width())
+			right := collectValues(v.right, jr.Right, rb.Width())
+			if !yield(int64(lino), slices.Concat(left, right)) {
+				return
+			}
+		}
 	}
 	return it
 }
 
-func (v *joinView) Cell(layout.Position) (Cell, error) {
-	return nil
+func (v *joinView) Cell(layout.Position) (grid.Cell, error) {
+	return nil, nil
 }
 
 func (v *joinView) Sync(value.Context) error {
@@ -67,7 +79,6 @@ func (v *joinView) Sync(value.Context) error {
 }
 
 func keyFromRow(row []value.ScalarValue, cols []int64) string {
-	var ks []string
 	var b strings.Builder
 	for i, c := range cols {
 		if i > 0 {
@@ -81,13 +92,11 @@ func keyFromRow(row []value.ScalarValue, cols []int64) string {
 
 func createLinks(view grid.View, keys layout.Selection, index map[string][]int64) []joinRow {
 	var (
-		lino int64
 		rows []joinRow
 		cols = keys.Indices(view.Bounds())
 	)
 
-	for rs := range view.Rows() {
-		lino++
+	for lino, rs := range view.Rows() {
 		k := keyFromRow(rs, cols)
 
 		matches := index[k]
@@ -104,12 +113,10 @@ func createLinks(view grid.View, keys layout.Selection, index map[string][]int64
 
 func createIndex(view grid.View, keys layout.Selection) map[string][]int64 {
 	var (
-		lino  int
 		cols  = keys.Indices(view.Bounds())
 		index = make(map[string][]int64)
 	)
-	for rs := range view.Rows() {
-		lino++
+	for lino, rs := range view.Rows() {
 		k := keyFromRow(rs, cols)
 		index[k] = append(index[k], lino)
 	}
@@ -135,4 +142,18 @@ func createKey(v value.Value) string {
 		prefix = "?"
 	}
 	return fmt.Sprintf("%s:%s", prefix, v.String())
+}
+
+func collectValues(view grid.View, row, limit int64) []value.ScalarValue {
+	var values []value.ScalarValue
+	for col := int64(1); col <= limit; col++ {
+		pos := layout.NewPosition(row, col)
+		c, err := view.Cell(pos)
+		if err != nil {
+			values = append(values, value.Empty())
+		} else {
+			values = append(values, c.Value())
+		}
+	}
+	return values
 }

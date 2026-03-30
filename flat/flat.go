@@ -326,8 +326,8 @@ func (s *Sheet) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
+func (s *Sheet) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
 		for _, r := range s.rows {
 			if len(r.Cells) == 0 {
 				continue
@@ -336,7 +336,7 @@ func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
 			for i, c := range r.Cells {
 				res[i] = c.Value()
 			}
-			if !yield(res) {
+			if !yield(r.Line, res) {
 				return
 			}
 		}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"iter"
-	"slices"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -85,7 +84,7 @@ func Unwrap(view View) View {
 type View interface {
 	Name() string
 	Bounds() *layout.Range
-	Rows() iter.Seq[[]value.ScalarValue]
+	Rows() iter.Seq2[int64, []value.ScalarValue]
 	Cell(layout.Position) (Cell, error)
 
 	Sync(value.Context) error
@@ -125,69 +124,69 @@ type File interface {
 	RemoveSheet(string) error
 }
 
-type filteredView struct {
-	data      [][]value.ScalarValue
-	view      View
-	predicate value.Predicate
-}
+// type filteredView struct {
+// 	data      [][]value.ScalarValue
+// 	view      View
+// 	predicate value.Predicate
+// }
 
-func FilterView(view View, predicate value.Predicate) View {
-	var data [][]value.ScalarValue
+// func FilterView(view View, predicate value.Predicate) View {
+// 	var data [][]value.ScalarValue
 
-	for r := range view.Rows() {
-		ok, err := predicate.Test(RowContext(r))
-		if err != nil || !ok {
-			continue
-		}
-		data = append(data, r)
-	}
+// 	for r := range view.Rows() {
+// 		ok, err := predicate.Test(RowContext(r))
+// 		if err != nil || !ok {
+// 			continue
+// 		}
+// 		data = append(data, r)
+// 	}
 
-	return &filteredView{
-		data:      data,
-		view:      view,
-		predicate: predicate,
-	}
-}
+// 	return &filteredView{
+// 		data:      data,
+// 		view:      view,
+// 		predicate: predicate,
+// 	}
+// }
 
-func (v *filteredView) Name() string {
-	return v.view.Name()
-}
+// func (v *filteredView) Name() string {
+// 	return v.view.Name()
+// }
 
-func (v *filteredView) Type() string {
-	return "filtered"
-}
+// func (v *filteredView) Type() string {
+// 	return "filtered"
+// }
 
-func (v *filteredView) Bounds() *layout.Range {
-	starts := layout.Position{
-		Line:   1,
-		Column: 1,
-	}
-	if len(v.data) == 0 {
-		return layout.NewRange(starts, starts)
-	}
-	last := v.data[len(v.data)-1]
-	ends := layout.Position{
-		Line:   int64(len(v.data)),
-		Column: int64(len(last)),
-	}
-	return layout.NewRange(starts, ends)
-}
+// func (v *filteredView) Bounds() *layout.Range {
+// 	starts := layout.Position{
+// 		Line:   1,
+// 		Column: 1,
+// 	}
+// 	if len(v.data) == 0 {
+// 		return layout.NewRange(starts, starts)
+// 	}
+// 	last := v.data[len(v.data)-1]
+// 	ends := layout.Position{
+// 		Line:   int64(len(v.data)),
+// 		Column: int64(len(last)),
+// 	}
+// 	return layout.NewRange(starts, ends)
+// }
 
-func (v *filteredView) Rows() iter.Seq[[]value.ScalarValue] {
-	return slices.Values(v.data)
-}
+// func (v *filteredView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+// 	return nil
+// }
 
-func (v *filteredView) Unwrap() View {
-	return v.view
-}
+// func (v *filteredView) Unwrap() View {
+// 	return v.view
+// }
 
-func (v *filteredView) Cell(layout.Position) (Cell, error) {
-	return nil, nil
-}
+// func (v *filteredView) Cell(layout.Position) (Cell, error) {
+// 	return nil, nil
+// }
 
-func (v *filteredView) Sync(ctx value.Context) error {
-	return v.view.Sync(ctx)
-}
+// func (v *filteredView) Sync(ctx value.Context) error {
+// 	return v.view.Sync(ctx)
+// }
 
 type readonlyView struct {
 	view View
@@ -214,7 +213,7 @@ func (v *readonlyView) Bounds() *layout.Range {
 	return v.view.Bounds()
 }
 
-func (v *readonlyView) Rows() iter.Seq[[]value.ScalarValue] {
+func (v *readonlyView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	return v.view.Rows()
 }
 
@@ -257,8 +256,8 @@ func (v *transposedView) Bounds() *layout.Range {
 	return bs.Transpose()
 }
 
-func (v *transposedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
+func (v *transposedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
 		bs := v.Bounds()
 		for row := int64(0); row < bs.Height(); row++ {
 			rs := make([]value.ScalarValue, bs.Width())
@@ -274,7 +273,7 @@ func (v *transposedView) Rows() iter.Seq[[]value.ScalarValue] {
 					rs[col] = c.Value()
 				}
 			}
-			if !yield(rs) {
+			if !yield(row, rs) {
 				return
 			}
 		}
@@ -343,15 +342,15 @@ func (v *horizontalStackedView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *horizontalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
+func (v *horizontalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
 		var (
-			list []func() ([]value.ScalarValue, bool)
+			list []func() (int64, []value.ScalarValue, bool)
 			stop []func()
 			dim  = v.Bounds()
 		)
 		for _, vs := range v.views {
-			next, s := iter.Pull[[]value.ScalarValue](vs.Rows())
+			next, s := iter.Pull2[int64, []value.ScalarValue](vs.Rows())
 			stop = append(stop, s)
 			list = append(list, next)
 		}
@@ -363,13 +362,13 @@ func (v *horizontalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
 		for i := int64(0); i < dim.Height(); i++ {
 			row := make([]value.ScalarValue, 0, dim.Width())
 			for _, n := range list {
-				rs, ok := n()
+				_, rs, ok := n()
 				if !ok {
 					return
 				}
 				row = append(row, rs...)
 			}
-			if !yield(row) {
+			if !yield(i, row) {
 				return
 			}
 		}
@@ -435,11 +434,13 @@ func (v *verticalStackedView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *verticalStackedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
+func (v *verticalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
+		var lino int64
 		for i := range v.views {
-			for r := range v.views[i].Rows() {
-				if !yield(r) {
+			for _, r := range v.views[i].Rows() {
+				lino++
+				if !yield(lino, r) {
 					return
 				}
 			}
@@ -517,16 +518,20 @@ func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
 	return v.view.Cell(pos)
 }
 
-func (v *projectedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
-		out := make([]value.ScalarValue, len(v.columns))
-		for row := range v.view.Rows() {
+func (v *projectedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
+		var (
+			out  = make([]value.ScalarValue, len(v.columns))
+			lino int64
+		)
+		for _, row := range v.view.Rows() {
+			lino++
 			for i, col := range v.columns {
 				if int(col) < len(row) {
 					out[i] = row[col]
 				}
 			}
-			if !yield(out) {
+			if !yield(lino, out) {
 				return
 			}
 		}
@@ -645,13 +650,15 @@ func (v *boundedView) Unwrap() View {
 	return v.view
 }
 
-func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
+func (v *boundedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
 		var (
 			width = v.part.Ends.Column - v.part.Starts.Column + 1
 			data  = make([]value.ScalarValue, width)
+			lino  int64
 		)
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
+			lino++
 			for col, ix := v.part.Starts.Column, 0; col <= v.part.Ends.Column; col++ {
 				p := layout.Position{
 					Line:   row,
@@ -663,7 +670,7 @@ func (v *boundedView) Rows() iter.Seq[[]value.ScalarValue] {
 				}
 				ix++
 			}
-			if !yield(data) {
+			if !yield(lino, data) {
 				break
 			}
 		}

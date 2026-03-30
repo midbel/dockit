@@ -278,7 +278,7 @@ func (v *arrayView) At(row, col int) value.ScalarValue {
 
 func (a arrayView) Values() iter.Seq[value.ScalarValue] {
 	it := func(yield func(value.ScalarValue) bool) {
-		for rs := range a.inner.Rows() {
+		for _, rs := range a.inner.Rows() {
 			for _, v := range rs {
 				ok := yield(v)
 				if !ok {

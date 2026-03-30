@@ -203,14 +203,14 @@ func (s *Sheet) Bounds() *layout.Range {
 	return &rg
 }
 
-func (s *Sheet) Rows() iter.Seq[[]value.ScalarValue] {
-	it := func(yield func([]value.ScalarValue) bool) {
+func (s *Sheet) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	it := func(yield func(int64, []value.ScalarValue) bool) {
 		for _, r := range s.rows {
 			row := r.Values()
 			if len(r.Cells) == 0 {
 				continue
 			}
-			if !yield(row) {
+			if !yield(r.Line, row) {
 				break
 			}
 		}
