@@ -40,7 +40,15 @@ func (v *joinView) Name() string {
 }
 
 func (v *joinView) Bounds() *layout.Range {
-	return nil
+	var (
+		bl     = v.left.Bounds()
+		br     = v.right.Bounds()
+		start  = layout.NewPosition(1, 1)
+		height = int64(len(v.rows))
+		width  = bl.Width() + br.Width()
+		end    = layout.NewPosition(height, width)
+	)
+	return layout.NewRange(start, end)
 }
 
 func (v *joinView) Rows() iter.Seq[[]value.ScalarValue] {
@@ -100,7 +108,7 @@ func createIndex(view grid.View, keys layout.Selection) map[string][]int64 {
 		cols  = keys.Indices(view.Bounds())
 		index = make(map[string][]int64)
 	)
-	for rs := range right.Rows() {
+	for rs := range view.Rows() {
 		lino++
 		k := keyFromRow(rs, cols)
 		index[k] = append(index[k], lino)
