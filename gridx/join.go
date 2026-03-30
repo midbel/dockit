@@ -55,13 +55,9 @@ func (v *joinView) Bounds() *layout.Range {
 
 func (v *joinView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	it := func(yield func(int64, []value.ScalarValue) bool) {
-		var (
-			lb = v.left.Bounds()
-			rb = v.right.Bounds()
-		)
 		for lino, jr := range v.rows {
-			left := collectValues(v.left, jr.Left, lb.Width())
-			right := collectValues(v.right, jr.Right, rb.Width())
+			left := collectValues(v.left, jr.Left)
+			right := collectValues(v.right, jr.Right)
 			if !yield(int64(lino), slices.Concat(left, right)) {
 				return
 			}
@@ -144,16 +140,19 @@ func createKey(v value.Value) string {
 	return fmt.Sprintf("%s:%s", prefix, v.String())
 }
 
-func collectValues(view grid.View, row, limit int64) []value.ScalarValue {
-	var values []value.ScalarValue
-	for col := int64(1); col <= limit; col++ {
+func collectValues(view grid.View, row int64) []value.ScalarValue {
+	var (
+		vs []value.ScalarValue
+		rg = view.Bounds()
+	)
+	for col := int64(1); col <= rg.Width(); col++ {
 		pos := layout.NewPosition(row, col)
 		c, err := view.Cell(pos)
 		if err != nil {
-			values = append(values, value.Empty())
+			vs = append(vs, value.Empty())
 		} else {
-			values = append(values, c.Value())
+			vs = append(vs, c.Value())
 		}
 	}
-	return values
+	return vs
 }
