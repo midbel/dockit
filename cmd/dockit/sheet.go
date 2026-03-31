@@ -49,7 +49,7 @@ var copyCmd = cli.Command{
 var printCmd = cli.Command{
 	Name:    "print",
 	Summary: "Print content of a sheet on stdout",
-	Usage:   "print <file> [<sheet>]",
+	Usage:   "print [-select <selection>] <file> [<sheet>]",
 	Handler: &PrintCommand{},
 }
 
@@ -335,7 +335,7 @@ func (c PrintCommand) Run(args []string) error {
 	set.StringVar(&c.Pattern, "p", "", "pattern")
 	set.BoolVar(&c.Quoted, "q", false, "quoted")
 	set.BoolVar(&c.SkipErr, "ignore-errors", false, "skip rows having error values")
-	set.Func("c", "selected columns", func(str string) error {
+	set.Func("select", "selected columns", func(str string) error {
 		sel, err := layout.SelectionFromString(str)
 		if err == nil {
 			c.Columns = sel
@@ -348,6 +348,9 @@ func (c PrintCommand) Run(args []string) error {
 	sheet, err := c.openSheet(set.Arg(0), set.Arg(1))
 	if err != nil {
 		return err
+	}
+	if c.Columns != nil {
+		sheet = grid.NewProjectView(sheet, c.Columns)
 	}
 
 	var rd cli.Renderer

@@ -11,18 +11,27 @@ import (
 var transposeCmd = cli.Command{
 	Name:    "transpose",
 	Summary: "Transpose rows and columns in a sheet",
-	Usage:   "transpose <file> [<sheet>]",
+	Usage:   "transpose [-select <selection>] <file> [<sheet>]",
 	Handler: &TransposeCommand{},
 }
 
-type TransposeCommand struct{}
+type TransposeCommand struct {
+	Columns layout.Selection
+}
 
 func (c TransposeCommand) Run(args []string) error {
 	set := cli.NewFlagSet("transpose")
+	set.Func("select", "selection", func(str string) error {
+		sel, err := layout.SelectionFromString(str)
+		if err == nil {
+			c.Columns = sel
+		}
+		return err
+	})
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	if set.NArg() != 2 {
+	if set.NArg() < 1 {
 		return cli.ErrUsage
 	}
 	return withSheet(set.Arg(0), set.Arg(1), func(sh grid.View) error {
@@ -30,6 +39,9 @@ func (c TransposeCommand) Run(args []string) error {
 			view = grid.NewTransposedView(sh)
 			rd   = cli.NewTableRenderer(cli.Stdout)
 		)
+		if c.Columns != nil {
+			view = grid.NewProjectView(view, c.Columns)
+		}
 		rd.Render(sheet2Table(view, false))
 		return nil
 	})
@@ -39,14 +51,23 @@ func (c TransposeCommand) Run(args []string) error {
 var joinCmd = cli.Command{
 	Name:    "join",
 	Summary: "Perform a join on two sheets",
-	Usage:   "join <wb1> <sheet1> <key1> <wb2> <sheet2> <key2>",
+	Usage:   "join [-select <selection>] <wb1> <sheet1> <key1> <wb2> <sheet2> <key2>",
 	Handler: &JoinCommand{},
 }
 
-type JoinCommand struct{}
+type JoinCommand struct {
+	Columns layout.Selection
+}
 
 func (c JoinCommand) Run(args []string) error {
 	set := cli.NewFlagSet("join")
+	set.Func("select", "selection", func(str string) error {
+		sel, err := layout.SelectionFromString(str)
+		if err == nil {
+			c.Columns = sel
+		}
+		return err
+	})
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -71,6 +92,9 @@ func (c JoinCommand) Run(args []string) error {
 	}
 
 	view := gridx.Join(sh1, sh2, sel1, sel2)
+	if c.Columns != nil {
+		view = grid.NewProjectView(view, c.Columns)
+	}
 
 	rd := cli.NewTableRenderer(cli.Stdout)
 	rd.Render(sheet2Table(view, false))
