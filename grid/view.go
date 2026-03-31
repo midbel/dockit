@@ -62,7 +62,7 @@ type Cell interface {
 	Formula() value.Formula
 }
 
-type naCell struct{
+type naCell struct {
 	pos layout.Position
 }
 

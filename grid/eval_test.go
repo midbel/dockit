@@ -417,17 +417,18 @@ func testBoundedView(t *testing.T) {
 	if vbd.Width() == sbd.Width() && vbd.Height() == sbd.Height() {
 		t.Fatalf("view bounds should not match sheet bounds")
 	}
-	var (
-		cell1, _ = view.Cell(layout.NewPosition(1, 1))
-		cell2, _ = sheet.Cell(layout.NewPosition(1, 1))
-		val      = cell1.Value()
-		ok       = value.Eq(val, cell2.Value())
-	)
-	if value.True(ok) {
-		t.Fatalf("cells view/sheet should not match! %s == %s", val, cell2.Value())
-	}
-	if val.String() != "foo" {
-		t.Fatalf("value mismatched! want foo, got %s", val)
+
+	for pos := range vbd.Positions() {
+		other := pos.Offset(1, 0)
+
+		var (
+			cell1, _ = view.Cell(pos)
+			cell2, _ = sheet.Cell(other)
+			ok       = value.Eq(cell1.Value(), cell2.Value())
+		)
+		if !value.True(ok) {
+			t.Errorf("value mismatched at %s vs %s! want %s, got %s", pos, other, cell1.Value(), cell2.Value())
+		}
 	}
 }
 
@@ -465,10 +466,10 @@ func testProjectView(t *testing.T) {
 
 func testTransposeView(t *testing.T) {
 	var (
-		sheet   = getSheetFromSample(t)
-		sbd     = sheet.Bounds()
-		view    = grid.NewTransposedView(sheet)
-		vbd     = view.Bounds()
+		sheet = getSheetFromSample(t)
+		sbd   = sheet.Bounds()
+		view  = grid.NewTransposedView(sheet)
+		vbd   = view.Bounds()
 	)
 	if vbd.Width() != sbd.Height() {
 		t.Fatalf("view width should be equal to sheet height")

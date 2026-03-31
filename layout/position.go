@@ -37,6 +37,12 @@ func (p Position) Equal(other Position) bool {
 	return p.Line == other.Line && p.Column == other.Column
 }
 
+func (p Position) Offset(offRow, offCol int64) Position {
+	p.Line += offRow
+	p.Column += offCol
+	return p
+}
+
 func (p Position) Addr() string {
 	var parts []string
 	if p.Sheet != "" {
