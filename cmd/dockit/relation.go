@@ -39,7 +39,7 @@ func (c TransposeCommand) Run(args []string) error {
 var joinCmd = cli.Command{
 	Name:    "join",
 	Summary: "Perform a join on two sheets",
-	Usage:   "join sheet sheet",
+	Usage:   "join <wb1> <sheet1> <key1> <wb2> <sheet2> <key2>",
 	Handler: &JoinCommand{},
 }
 
@@ -50,31 +50,40 @@ func (c JoinCommand) Run(args []string) error {
 	if err := set.Parse(args); err != nil {
 		return err
 	}
-	if set.NArg() != 2 {
+	if set.NArg() != 6 {
 		return cli.ErrUsage
 	}
-	sh1, err := c.openSheet(set.Arg(0))
+	sh1, err := c.openSheet(set.Arg(0), set.Arg(1))
 	if err != nil {
 		return err
 	}
-	sh2, err := c.openSheet(set.Arg(1))
+	sh2, err := c.openSheet(set.Arg(3), set.Arg(4))
 	if err != nil {
 		return err
 	}
-	var (
-		cols = layout.SelectSingle(1)
-		view = gridx.Join(sh1, sh2, cols, cols)
-	)
+	sel1, err := layout.SelectionFromString(set.Arg(2))
+	if err != nil {
+		return err
+	}
+	sel2, err := layout.SelectionFromString(set.Arg(5))
+	if err != nil {
+		return err
+	}
+
+	view := gridx.Join(sh1, sh2, sel1, sel2)
 
 	rd := cli.NewTableRenderer(cli.Stdout)
 	rd.Render(sheet2Table(view, false))
 	return nil
 }
 
-func (c JoinCommand) openSheet(file string) (grid.View, error) {
+func (c JoinCommand) openSheet(file, sheet string) (grid.View, error) {
 	wb, err := workbook.Open(file)
 	if err != nil {
 		return nil, err
+	}
+	if sheet != "" {
+		return wb.Sheet(sheet)
 	}
 	return wb.ActiveSheet()
 }
