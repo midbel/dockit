@@ -471,6 +471,20 @@ func testTransposeView(t *testing.T) {
 	if vbd.Height() != sbd.Width() {
 		t.Fatalf("view height should be equal to sheet width")
 	}
+	var other layout.Position
+	for pos := range vbd.Positions() {
+		other.Line = pos.Column
+		other.Column = pos.Line
+
+		var (
+			cell1, _ = view.Cell(pos)
+			cell2, _ = sheet.Cell(other)
+			ok       = value.Eq(cell1.Value(), cell2.Value())
+		)
+		if !value.True(ok) {
+			t.Errorf("value mismatched at %s vs %s! want %s, got %s", pos, other, cell1.Value(), cell2.Value())
+		}
+	}
 }
 
 func testHorizontalStackView(t *testing.T) {
