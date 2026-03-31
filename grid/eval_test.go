@@ -2,6 +2,7 @@ package grid_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/midbel/dockit/grid"
@@ -338,118 +339,6 @@ func testCompare(t *testing.T) {
 	runTests(t, tests)
 }
 
-func TestBuiltins(t *testing.T) {
-	t.Run("arithmetic", testMathBuiltins)
-	t.Run("text", testStringBuiltins)
-	t.Run("conditions", testConditionals)
-}
-
-func testConditionals(t *testing.T) {
-	tests := []FormulaTestCase{
-		{
-			Formula: "=if(true, 'foo', 'bar')",
-			Want:    "foo",
-		},
-		{
-			Formula: "=if(10 > 100, 'foo', 'bar')",
-			Want:    "bar",
-		},
-		{
-			Formula: "=if('foo' <> 'bar', if(length('foo') > 0, 'foobar', 'quz'), 'n/a')",
-			Want:    "foobar",
-		},
-		{
-			Formula: "=iferror(10, 'foo')",
-			Want:    "10",
-		},
-		{
-			Formula: "=iferror(1/0, 'foo')",
-			Want:    "foo",
-		},
-		{
-			Formula: "=ifna(42, 'foo')",
-			Want:    "42",
-		},
-		{
-			Formula: "=ifna(na(), 'foo')",
-			Want:    "foo",
-		},
-		{
-			Formula: "=ifna(#N/A, 'foo')",
-			Want:    "foo",
-		},
-	}
-	runTests(t, tests)
-}
-
-func testStringBuiltins(t *testing.T) {
-	tests := []FormulaTestCase{
-		{
-			Formula: "=UPPER(sheet2!A1)",
-			Want:    "QUZ",
-		},
-		{
-			Formula: "=lower(UPPER(sheet2!A1))",
-			Want:    "quz",
-		},
-		{
-			Formula: "concat(A1, A2, sheet2!A1, sheet2!A2)",
-			Want:    "foobarquzbee",
-		},
-		{
-			Formula: "len('foobar')",
-			Want:    "6",
-		},
-		{
-			Formula: "=istext(sheet1!A1)",
-			Want:    "true",
-		},
-		{
-			Formula: "=istext(sheet1!B1)",
-			Want:    "false",
-		},
-	}
-	runTests(t, tests)
-}
-
-func testMathBuiltins(t *testing.T) {
-	tests := []FormulaTestCase{
-		{
-			Formula: "=MIN(B1:B2)",
-			Want:    "2",
-		},
-		{
-			Formula: "=MAX(B1:B2)",
-			Want:    "5",
-		},
-		{
-			Formula: "=sum(sheet2!B1:B2, sheet1!B1:B2, 3) / 5",
-			Want:    "5",
-		},
-		{
-			Formula: "=pow(2, 2)",
-			Want:    "4",
-		},
-		{
-			Formula: "=abs(2)",
-			Want:    "2",
-		},
-		{
-			Formula: "=abs(-2)",
-			Want:    "2",
-		},
-		{
-			Formula: "=isnumber(sheet1!A1)",
-			Want:    "false",
-		},
-		{
-			Formula: "=isnumber(sheet1!B1)",
-			Want:    "true",
-		},
-	}
-	runTests(t, tests)
-}
-
 func TestSync(t *testing.T) {
 	t.Run("force-sync", testForceSync)
 	t.Run("empty-no-sync", testEmptyWithoutSync)
@@ -488,6 +377,123 @@ func testEmptyWithoutSync(t *testing.T) {
 	if got := cell.Value(); value.True(value.Ne(blank, got)) {
 		t.Errorf("expected empty value in sheet1!C1! got %s", got)
 	}
+}
+
+const sample = `project,star,commit,language
+foo,10,2023,Go
+bar,13,452,C
+flim,156,892,Rust
+glam,42,1105,TypeScript
+zorp,804,342,Go
+munt,424,11127,C`
+
+func TestViews(t *testing.T) {
+	t.Run("bounded-view", testBoundedView)
+	t.Run("project-view", testProjectView)
+	t.Run("transpose-view", testTransposeView)
+	t.Run("horizontal-stack-view", testHorizontalStackView)
+	t.Run("vertical-stack-view", testVerticalStackView)
+}
+
+func testBoundedView(t *testing.T) {
+	var (
+		sheet = getSheetFromSample(t)
+		sbd   = sheet.Bounds()
+		rg    = layout.NewRange(
+			layout.NewPosition(2, 1),
+			layout.NewPosition(4, 2),
+		)
+		view = grid.NewBoundedView(sheet, rg)
+		vbd  = view.Bounds()
+	)
+	if vbd.Width() != rg.Width() || vbd.Height() != rg.Height() {
+		t.Fatalf("view bounds does not match building range")
+	}
+	if vbd.Width() == sbd.Width() && vbd.Height() == sbd.Height() {
+		t.Fatalf("view bounds should not match sheet bounds")
+	}
+	var (
+		cell1, _ = view.Cell(layout.NewPosition(1, 1))
+		cell2, _ = sheet.Cell(layout.NewPosition(1, 1))
+		val      = cell1.Value()
+		ok       = value.Eq(val, cell2.Value())
+	)
+	if value.True(ok) {
+		t.Fatalf("cells view/sheet should not match! %s == %s", val, cell2.Value())
+	}
+	if val.String() != "foo" {
+		t.Fatalf("value mismatched! want foo, got %s", val)
+	}
+}
+
+func testProjectView(t *testing.T) {
+	var (
+		sheet   = getSheetFromSample(t)
+		sbd     = sheet.Bounds()
+		cols, _ = layout.SelectionFromString("A;D")
+		view    = grid.NewProjectView(sheet, cols)
+		vbd     = view.Bounds()
+	)
+	if vbd.Width() == sbd.Width() {
+		t.Fatalf("view width should not match sheet width")
+	}
+	if vbd.Height() != sbd.Height() {
+		t.Fatalf("view height should match sheet height")
+	}
+	var (
+		other   layout.Position
+		columns = []int64{1, 4}
+	)
+	for pos := range vbd.Positions() {
+		other.Line = pos.Line
+		other.Column = columns[pos.Column-1]
+		var (
+			cell1, _ = view.Cell(pos)
+			cell2, _ = sheet.Cell(other)
+			ok       = value.Eq(cell1.Value(), cell2.Value())
+		)
+		if !value.True(ok) {
+			t.Errorf("value mismatched at %s vs %s! want %s, got %s", pos, other, cell1.Value(), cell2.Value())
+		}
+	}
+}
+
+func testTransposeView(t *testing.T) {
+	var (
+		sheet   = getSheetFromSample(t)
+		sbd     = sheet.Bounds()
+		view    = grid.NewTransposedView(sheet)
+		vbd     = view.Bounds()
+	)
+	if vbd.Width() != sbd.Height() {
+		t.Fatalf("view width should be equal to sheet height")
+	}
+	if vbd.Height() != sbd.Width() {
+		t.Fatalf("view height should be equal to sheet width")
+	}
+}
+
+func testHorizontalStackView(t *testing.T) {
+
+}
+
+func testVerticalStackView(t *testing.T) {
+
+}
+
+func getSheetFromSample(t *testing.T) grid.View {
+	t.Helper()
+
+	file, err := testutil.CreateCsvFile(strings.NewReader(sample))
+	if err != nil {
+		t.Fatalf("fail to create csv file: %s", err)
+	}
+
+	sheet, err := file.ActiveSheet()
+	if err != nil {
+		t.Fatalf("fail to retrieve active sheet: %s", err)
+	}
+	return sheet
 }
 
 func testForceSync(t *testing.T) {

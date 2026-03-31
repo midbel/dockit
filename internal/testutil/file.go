@@ -1,6 +1,9 @@
 package testutil
 
 import (
+	"io"
+
+	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
@@ -10,6 +13,10 @@ import (
 func FileContext() value.Context {
 	file := CreateFile()
 	return grid.NewContext(grid.FileContext(file))
+}
+
+func CreateCsvFile(r io.Reader) (grid.File, error) {
+	return flat.OpenReader(csv.NewReader(r))
 }
 
 func CreateFile() grid.File {

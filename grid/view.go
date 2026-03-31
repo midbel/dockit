@@ -475,7 +475,7 @@ func NewProjectView(view View, sel layout.Selection) View {
 		mapping: make(map[int64]int64),
 	}
 	for i, c := range v.columns {
-		v.mapping[c] = int64(i)
+		v.mapping[int64(i)+1] = c + 1
 	}
 	return &v
 }
@@ -604,7 +604,7 @@ func (v *projectedView) getOriginalPosition(pos layout.Position) layout.Position
 		return pos
 	}
 	mod := layout.Position{
-		Column: v.columns[pos.Column],
+		Column: v.mapping[pos.Column],
 		Line:   pos.Line,
 	}
 	return mod
@@ -636,10 +636,11 @@ func (v *boundedView) Sync(ctx value.Context) error {
 }
 
 func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
-	if !v.part.Contains(pos) {
+	rg := v.Bounds()
+	if !rg.Contains(pos) {
 		return nil, fmt.Errorf("position outside view range")
 	}
-	return v.view.Cell(pos)
+	return v.view.Cell(v.recomputePosition(pos))
 }
 
 func (v *boundedView) Bounds() *layout.Range {
@@ -654,7 +655,7 @@ func (v *boundedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	it := func(yield func(int64, []value.ScalarValue) bool) {
 		var (
 			width = v.part.Ends.Column - v.part.Starts.Column + 1
-			data  = make([]value.ScalarValue, width)
+			out   = make([]value.ScalarValue, width)
 			lino  int64
 		)
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
@@ -666,16 +667,22 @@ func (v *boundedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 				}
 				c, err := v.view.Cell(p)
 				if err == nil {
-					data[ix] = c.Value()
+					out[ix] = c.Value()
 				}
 				ix++
 			}
-			if !yield(lino, data) {
+			if !yield(lino, out) {
 				break
 			}
 		}
 	}
 	return it
+}
+
+func (v *boundedView) recomputePosition(pos layout.Position) layout.Position {
+	pos.Line = v.part.Starts.Line + pos.Line - 1
+	pos.Column = v.part.Starts.Column + pos.Column - 1
+	return pos
 }
 
 func (v *boundedView) SetValue(pos layout.Position, val value.ScalarValue) error {
