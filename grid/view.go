@@ -259,18 +259,18 @@ func (v *transposedView) Bounds() *layout.Range {
 func (v *transposedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	it := func(yield func(int64, []value.ScalarValue) bool) {
 		bs := v.Bounds()
-		for row := int64(0); row < bs.Height(); row++ {
+		for row := int64(1); row <= bs.Height(); row++ {
 			rs := make([]value.ScalarValue, bs.Width())
-			for col := int64(0); col < bs.Width(); col++ {
+			for col := int64(1); col <= bs.Width(); col++ {
 				p := layout.Position{
 					Line:   col,
 					Column: row,
 				}
 				c, err := v.view.Cell(p)
 				if err != nil {
-					rs[col] = value.ErrNA
+					rs[col-1] = value.ErrNA
 				} else {
-					rs[col] = c.Value()
+					rs[col-1] = c.Value()
 				}
 			}
 			if !yield(row, rs) {

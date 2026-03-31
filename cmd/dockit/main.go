@@ -70,11 +70,12 @@ func prepare() *cli.CommandTrie {
 	root.Register(slx.One("unlock"), &unlockCmd)
 	root.Register(slx.One("add"), &addCmd)
 	root.Register(slx.One("join"), &joinCmd)
+	root.Register(slx.One("transpose"), &transposeCmd)
 	root.Register(slx.One("drop"), &dropCmd)
 	root.Register(slx.One("rename"), &renameCmd)
 	root.Register(slx.One("copy"), &copyCmd)
 	root.Register(slx.One("print"), &printCmd)
-	root.Register(slx.One("deps"), &depsCmd)
+	// root.Register(slx.One("deps"), &depsCmd)
 	root.Register(slx.One("audit"), &auditCmd)
 	root.Register(slx.One("builtins"), &builtinsCmd)
 
@@ -88,7 +89,12 @@ func withSheet(path, name string, fn func(grid.View) error) error {
 	if err != nil {
 		return err
 	}
-	sh, err := wb.Sheet(name)
+	var sh grid.View
+	if name == "" {
+		sh, err = wb.ActiveSheet()
+	} else {
+		sh, err = wb.Sheet(name)
+	}
 	if err == nil {
 		err = fn(sh)
 	}
