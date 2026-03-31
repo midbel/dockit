@@ -393,6 +393,11 @@ func TestViews(t *testing.T) {
 	t.Run("transpose-view", testTransposeView)
 	t.Run("horizontal-stack-view", testHorizontalStackView)
 	t.Run("vertical-stack-view", testVerticalStackView)
+	t.Run("combined-view", testCombinedViews)
+}
+
+func testCombinedViews(t *testing.T) {
+
 }
 
 func testBoundedView(t *testing.T) {
