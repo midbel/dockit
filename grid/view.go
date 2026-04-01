@@ -146,111 +146,6 @@ type File interface {
 	RemoveSheet(string) error
 }
 
-// type filteredView struct {
-// 	data      [][]value.ScalarValue
-// 	view      View
-// 	predicate value.Predicate
-// }
-
-// func FilterView(view View, predicate value.Predicate) View {
-// 	var data [][]value.ScalarValue
-
-// 	for r := range view.Rows() {
-// 		ok, err := predicate.Test(RowContext(r))
-// 		if err != nil || !ok {
-// 			continue
-// 		}
-// 		data = append(data, r)
-// 	}
-
-// 	return &filteredView{
-// 		data:      data,
-// 		view:      view,
-// 		predicate: predicate,
-// 	}
-// }
-
-// func (v *filteredView) Name() string {
-// 	return v.view.Name()
-// }
-
-// func (v *filteredView) Type() string {
-// 	return "filtered"
-// }
-
-// func (v *filteredView) Bounds() *layout.Range {
-// 	starts := layout.Position{
-// 		Line:   1,
-// 		Column: 1,
-// 	}
-// 	if len(v.data) == 0 {
-// 		return layout.NewRange(starts, starts)
-// 	}
-// 	last := v.data[len(v.data)-1]
-// 	ends := layout.Position{
-// 		Line:   int64(len(v.data)),
-// 		Column: int64(len(last)),
-// 	}
-// 	return layout.NewRange(starts, ends)
-// }
-
-// func (v *filteredView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-// 	return nil
-// }
-
-// func (v *filteredView) Unwrap() View {
-// 	return v.view
-// }
-
-// func (v *filteredView) Cell(layout.Position) (Cell, error) {
-// 	return nil, nil
-// }
-
-// func (v *filteredView) Sync(ctx value.Context) error {
-// 	return v.view.Sync(ctx)
-// }
-
-type readonlyView struct {
-	view View
-}
-
-func ReadOnly(view View) View {
-	if _, ok := view.(*readonlyView); ok {
-		return view
-	}
-	return &readonlyView{
-		view: view,
-	}
-}
-
-func (v *readonlyView) Name() string {
-	return v.view.Name()
-}
-
-func (v *readonlyView) Type() string {
-	return "readonly"
-}
-
-func (v *readonlyView) Bounds() *layout.Range {
-	return v.view.Bounds()
-}
-
-func (v *readonlyView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	return v.view.Rows()
-}
-
-func (v *readonlyView) Unwrap() View {
-	return v.view
-}
-
-func (v *readonlyView) Cell(pos layout.Position) (Cell, error) {
-	return v.view.Cell(pos)
-}
-
-func (v *readonlyView) Sync(ctx value.Context) error {
-	return ErrWritable
-}
-
 type transposedView struct {
 	view View
 }
@@ -486,6 +381,16 @@ func (v *verticalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 }
 
 func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
+	var col int64
+	col++
+	for _, sh := range v.views {
+		b := sh.Bounds()
+		if pos.Column >= col && pos.Column < col+b.Width() {
+			pos.Column = pos.Column - (col - 1)
+			return sh.Cell(pos)
+		}
+		col += b.Width()
+	}
 	return emptyCell(pos), nil
 }
 
@@ -579,66 +484,6 @@ func (v *projectedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	return it
 }
 
-func (v *projectedView) SetValue(pos layout.Position, val value.ScalarValue) error {
-	bd := v.Bounds()
-	if !bd.Contains(pos) {
-		return ErrPosition
-	}
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	pos = v.getOriginalPosition(pos)
-	return mv.SetValue(pos, val)
-}
-
-func (v *projectedView) SetFormula(pos layout.Position, val value.Formula) error {
-	bd := v.Bounds()
-	if !bd.Contains(pos) {
-		return ErrPosition
-	}
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	pos = v.getOriginalPosition(pos)
-	return mv.SetFormula(pos, val)
-}
-
-func (v *projectedView) ClearCell(pos layout.Position) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	return mv.ClearCell(pos)
-}
-
-func (v *projectedView) ClearValue(pos layout.Position) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	pos = v.getOriginalPosition(pos)
-	return mv.ClearValue(pos)
-}
-
-func (v *projectedView) ClearFormula(pos layout.Position) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	pos = v.getOriginalPosition(pos)
-	return mv.ClearFormula(pos)
-}
-
-func (v *projectedView) ClearRange(rg *layout.Range) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	return mv.ClearRange(rg)
-}
-
 func (v *projectedView) getOriginalPosition(pos layout.Position) layout.Position {
 	if pos.Column < 0 || pos.Column > int64(len(v.columns)) {
 		return pos
@@ -727,88 +572,4 @@ func (v *boundedView) recomputePosition(pos layout.Position) layout.Position {
 	pos.Line = v.part.Starts.Line + pos.Line - 1
 	pos.Column = v.part.Starts.Column + pos.Column - 1
 	return pos
-}
-
-func (v *boundedView) SetValue(pos layout.Position, val value.ScalarValue) error {
-	if !v.part.Contains(pos) {
-		return ErrPosition
-	}
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-
-	b := v.view.Bounds()
-
-	pos.Line += b.Width()
-	pos.Column += b.Height()
-	return mv.SetValue(pos, val)
-}
-
-func (v *boundedView) SetFormula(pos layout.Position, val value.Formula) error {
-	if !v.part.Contains(pos) {
-		return ErrPosition
-	}
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-
-	b := v.view.Bounds()
-
-	pos.Line += b.Width()
-	pos.Column += b.Height()
-	return mv.SetFormula(pos, val)
-}
-
-func (v *boundedView) ClearCell(pos layout.Position) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	b := v.view.Bounds()
-	pos.Line += b.Width()
-	pos.Column += b.Height()
-	return mv.ClearCell(pos)
-}
-
-func (v *boundedView) ClearValue(pos layout.Position) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	b := v.view.Bounds()
-	pos.Line += b.Width()
-	pos.Column += b.Height()
-	return mv.ClearValue(pos)
-}
-
-func (v *boundedView) ClearFormula(pos layout.Position) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	b := v.view.Bounds()
-	pos.Line += b.Width()
-	pos.Column += b.Height()
-	return mv.ClearFormula(pos)
-}
-
-func (v *boundedView) ClearRange(rg *layout.Range) error {
-	mv, err := mutableView(v.view)
-	if err != nil {
-		return err
-	}
-	// b := v.view.Bounds()
-	// pos.Line += b.Width()
-	// pos.Column += b.Height()
-	return mv.ClearRange(rg)
-}
-
-func mutableView(v View) (MutableView, error) {
-	mv, ok := v.(MutableView)
-	if !ok {
-		return nil, ErrWritable
-	}
-	return mv, nil
 }

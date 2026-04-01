@@ -125,10 +125,6 @@ type Formula interface {
 	Eval(Context) Value
 }
 
-type Predicate interface {
-	Test(Context) (bool, error)
-}
-
 type Value interface {
 	Kind() ValueKind
 	Type() string

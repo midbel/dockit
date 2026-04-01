@@ -33,13 +33,7 @@ Apache-2.0,https://github.com/midbel/bar
 MIT,https://github.com/midbel/flim
 BSD-3,https://github.com/midbel/glam
 MIT,https://github.com/midbel/zorp
-GPL-3.0,https://github.com/octocat/munt
-MIT,https://github.com/octocat/rift
-BSD-2,https://github.com/midbel/skarn
-GPL-2.0,https://github.com/code-forge/yoke
-BSD-2,https://github.com/code-forge/zenith
-BSD-2,https://github.com/midbel/quark
-GPL-3.0,https://github.com/stack/hewn`
+GPL-3.0,https://github.com/octocat/munt`
 
 func TestViews(t *testing.T) {
 	t.Run("bounded-view", testBoundedView)
@@ -200,7 +194,20 @@ func testHorizontalStackView(t *testing.T) {
 }
 
 func testVerticalStackView(t *testing.T) {
-
+	var (
+		sh1  = getSheetFromSample(t, sample1)
+		sbd1 = sh1.Bounds()
+		sh2  = getSheetFromSample(t, sample3)
+		sbd2 = sh2.Bounds()
+		view = grid.VerticalView(sh1, sh2)
+		vbd  = view.Bounds()
+	)
+	if vbd.Height() != sbd1.Height() || vbd.Height() != sbd2.Height() {
+		t.Fatalf("view height should be equal to sheets height")
+	}
+	if vbd.Width() != sbd1.Width()+sbd2.Width() {
+		t.Fatalf("view width should be equal to sheets width")
+	}
 }
 
 func getSheetFromSample(t *testing.T, content string) grid.View {
