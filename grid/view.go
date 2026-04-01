@@ -62,25 +62,25 @@ type Cell interface {
 	Formula() value.Formula
 }
 
-type naCell struct {
+type empty struct {
 	pos layout.Position
 }
 
-func missingCell(pos layout.Position) Cell {
-	return naCell{
+func emptyCell(pos layout.Position) Cell {
+	return empty{
 		pos: pos,
 	}
 }
 
-func (c naCell) At() layout.Position {
+func (c empty) At() layout.Position {
 	return c.pos
 }
 
-func (c naCell) Value() value.ScalarValue {
-	return value.ErrNA
+func (c empty) Value() value.ScalarValue {
+	return value.Empty()
 }
 
-func (c naCell) Formula() value.Formula {
+func (c empty) Formula() value.Formula {
 	return nil
 }
 
@@ -314,7 +314,7 @@ func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
 	}
 	cell, err := v.view.Cell(p)
 	if err != nil {
-		cell = missingCell(pos)
+		cell = emptyCell(pos)
 	}
 	return cell, nil
 }
@@ -403,7 +403,17 @@ func (v *horizontalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 }
 
 func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
-	return missingCell(pos), nil
+	var lino int64
+	lino++
+	for _, sh := range v.views {
+		b := sh.Bounds()
+		if pos.Line >= lino && pos.Line < lino+b.Height() {
+			pos.Line = pos.Line - (lino - 1)
+			return sh.Cell(pos)
+		}
+		lino += b.Height()
+	}
+	return emptyCell(pos), nil
 }
 
 func (v *horizontalStackedView) Sync(ctx value.Context) error {
@@ -476,7 +486,7 @@ func (v *verticalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 }
 
 func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
-	return missingCell(pos), nil
+	return emptyCell(pos), nil
 }
 
 func (v *verticalStackedView) Sync(ctx value.Context) error {
@@ -543,7 +553,7 @@ func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
 	mapped := v.getOriginalPosition(pos)
 	cell, err := v.view.Cell(mapped)
 	if err != nil {
-		cell = missingCell(pos)
+		cell = emptyCell(pos)
 	}
 	return cell, nil
 }
@@ -668,11 +678,11 @@ func (v *boundedView) Sync(ctx value.Context) error {
 func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
 	rg := v.Bounds()
 	if !rg.Contains(pos) {
-		return missingCell(pos), nil
+		return emptyCell(pos), nil
 	}
 	cell, err := v.view.Cell(v.recomputePosition(pos))
 	if err != nil {
-		cell = missingCell(pos)
+		cell = emptyCell(pos)
 	}
 	return cell, nil
 }
