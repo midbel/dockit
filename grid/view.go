@@ -218,7 +218,7 @@ func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
 	if err != nil {
 		cell = Empty(pos)
 	}
-	return cell, nil
+	return ResetAt(cell, pos), nil
 }
 
 func (v *transposedView) Sync(ctx value.Context) error {
@@ -305,13 +305,17 @@ func (v *horizontalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 }
 
 func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
-	var lino int64
+	var (
+		lino int64
+		ori = pos
+	)
 	lino++
 	for _, sh := range v.views {
 		b := sh.Bounds()
 		if pos.Line >= lino && pos.Line < lino+b.Height() {
 			pos.Line = pos.Line - (lino - 1)
-			return sh.Cell(pos)
+			cell, _ := sh.Cell(pos)
+			return ResetAt(cell, ori), nil
 		}
 		lino += b.Height()
 	}
@@ -388,13 +392,17 @@ func (v *verticalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 }
 
 func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
-	var col int64
+	var (
+		col int64
+		ori = pos
+	)
 	col++
 	for _, sh := range v.views {
 		b := sh.Bounds()
 		if pos.Column >= col && pos.Column < col+b.Width() {
 			pos.Column = pos.Column - (col - 1)
-			return sh.Cell(pos)
+			cell, _ := sh.Cell(pos)
+			return ResetAt(cell, ori), nil
 		}
 		col += b.Width()
 	}
@@ -467,7 +475,7 @@ func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
 	if err != nil {
 		cell = Empty(pos)
 	}
-	return cell, nil
+	return ResetAt(cell, pos), nil
 }
 
 func (v *projectedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
@@ -536,7 +544,7 @@ func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
 	if err != nil {
 		cell = Empty(pos)
 	}
-	return cell, nil
+	return ResetAt(cell, pos), nil
 }
 
 func (v *boundedView) Bounds() *layout.Range {
