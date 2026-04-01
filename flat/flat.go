@@ -472,6 +472,10 @@ func (c *Cell) At() layout.Position {
 	return c.Position
 }
 
+func (c *Cell) SetAt(pos layout.Position) {
+	c.Position = pos
+}
+
 func (c *Cell) Display() string {
 	return c.raw
 }

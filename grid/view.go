@@ -62,11 +62,18 @@ type Cell interface {
 	Formula() value.Formula
 }
 
+func ResetAt(cell Cell, pos layout.Position) Cell {
+	if a, ok := cell.(interface{ SetAt(layout.Position) }); ok {
+		a.SetAt(pos)
+	}
+	return cell
+}
+
 type empty struct {
 	pos layout.Position
 }
 
-func emptyCell(pos layout.Position) Cell {
+func Empty(pos layout.Position) Cell {
 	return empty{
 		pos: pos,
 	}
@@ -209,7 +216,7 @@ func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
 	}
 	cell, err := v.view.Cell(p)
 	if err != nil {
-		cell = emptyCell(pos)
+		cell = Empty(pos)
 	}
 	return cell, nil
 }
@@ -308,7 +315,7 @@ func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
 		}
 		lino += b.Height()
 	}
-	return emptyCell(pos), nil
+	return Empty(pos), nil
 }
 
 func (v *horizontalStackedView) Sync(ctx value.Context) error {
@@ -391,7 +398,7 @@ func (v *verticalStackedView) Cell(pos layout.Position) (Cell, error) {
 		}
 		col += b.Width()
 	}
-	return emptyCell(pos), nil
+	return Empty(pos), nil
 }
 
 func (v *verticalStackedView) Sync(ctx value.Context) error {
@@ -458,7 +465,7 @@ func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
 	mapped := v.getOriginalPosition(pos)
 	cell, err := v.view.Cell(mapped)
 	if err != nil {
-		cell = emptyCell(pos)
+		cell = Empty(pos)
 	}
 	return cell, nil
 }
@@ -523,11 +530,11 @@ func (v *boundedView) Sync(ctx value.Context) error {
 func (v *boundedView) Cell(pos layout.Position) (Cell, error) {
 	rg := v.Bounds()
 	if !rg.Contains(pos) {
-		return emptyCell(pos), nil
+		return Empty(pos), nil
 	}
 	cell, err := v.view.Cell(v.recomputePosition(pos))
 	if err != nil {
-		cell = emptyCell(pos)
+		cell = Empty(pos)
 	}
 	return cell, nil
 }

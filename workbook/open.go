@@ -44,6 +44,17 @@ func Open(file string) (grid.File, error) {
 	return registry[ix].Open(file)
 }
 
+func WriteView(view grid.View, file string) error {
+	wb, err := createEmpty(filepath.Ext(file))
+	if err != nil {
+		return err
+	}
+	if err := wb.AppendSheet(view); err != nil {
+		return err
+	}
+	return WriteFile(wb, file)
+}
+
 func WriteFile(wb grid.File, file string) error {
 	if len(wb.Sheets()) == 0 {
 		return fmt.Errorf("no sheet in workbook")
@@ -83,19 +94,13 @@ func Formats() []string {
 }
 
 func Merge(format string, sources []string) (grid.File, error) {
-	ix := slices.IndexFunc(registry, func(x driver.Loader) bool {
-		return x.IsSupportedExt(format)
-	})
-	if ix < 0 {
-		return nil, fmt.Errorf("new file can not be created for %s", format)
-	}
-	wb, err := registry[ix].New()
+	wb, err := createEmpty(format)
 	if err != nil {
 		return nil, err
 	}
 	mg, ok := wb.(driver.Merger)
 	if !ok {
-		return nil, fmt.Errorf("%s does not support merging files", registry[ix].Name())
+		return nil, fmt.Errorf("%s does not support merging files", format)
 	}
 	for _, s := range sources {
 		wb, err := Open(s)
@@ -107,4 +112,14 @@ func Merge(format string, sources []string) (grid.File, error) {
 		}
 	}
 	return wb, nil
+}
+
+func createEmpty(format string) (grid.File, error) {
+	ix := slices.IndexFunc(registry, func(x driver.Loader) bool {
+		return x.IsSupportedExt(format)
+	})
+	if ix < 0 {
+		return nil, fmt.Errorf("new file can not be created for %s", format)
+	}
+	return registry[ix].New()
 }

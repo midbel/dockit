@@ -38,7 +38,14 @@ func Join(left, right grid.View, leftcols, rightcols layout.Selection) grid.View
 }
 
 func (v *joinView) Name() string {
-	return fmt.Sprintf("%s:%s", v.left.Name(), v.right.Name())
+	var (
+		left = v.left.Name()
+		right = v.right.Name()
+	)
+	if left == right {
+		return left
+	}
+	return fmt.Sprintf("%s_%s", v.left.Name(), v.right.Name())
 }
 
 func (v *joinView) Bounds() *layout.Range {
@@ -66,8 +73,25 @@ func (v *joinView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	return it
 }
 
-func (v *joinView) Cell(layout.Position) (grid.Cell, error) {
-	return nil, nil
+func (v *joinView) Cell(pos layout.Position) (grid.Cell, error) {
+	if pos.Line < 1 || pos.Line > int64(len(v.rows)) {
+		return grid.Empty(pos), nil
+	}
+	var (
+		ori = pos
+		jr = v.rows[pos.Line-1]
+		bd = v.left.Bounds()
+		cell grid.Cell
+	)
+
+	if pos.Column > bd.Width() {
+		pos.Line = jr.Right
+		cell, _ = v.right.Cell(pos.Offset(0, -bd.Width()))
+	} else {
+		pos.Line = jr.Left
+		cell, _ = v.left.Cell(pos)
+	}
+	return grid.ResetAt(cell, ori), nil
 }
 
 func (v *joinView) Sync(value.Context) error {

@@ -11,17 +11,19 @@ import (
 var transposeCmd = cli.Command{
 	Name:    "transpose",
 	Summary: "Transpose rows and columns in a sheet",
-	Usage:   "transpose [-select <selection>] <file> [<sheet>]",
+	Usage:   "transpose [-f <output>] [-c <columns>] <file> [<sheet>]",
 	Handler: &TransposeCommand{},
 }
 
 type TransposeCommand struct {
+	OutFile string
 	Columns layout.Selection
 }
 
 func (c TransposeCommand) Run(args []string) error {
 	set := cli.NewFlagSet("transpose")
-	set.Func("select", "selection", func(str string) error {
+	set.StringVar(&c.OutFile, "f", "", "Write result to file")
+	set.Func("c", "Selected columns", func(str string) error {
 		sel, err := layout.SelectionFromString(str)
 		if err == nil {
 			c.Columns = sel
@@ -35,33 +37,43 @@ func (c TransposeCommand) Run(args []string) error {
 		return cli.ErrUsage
 	}
 	return withSheet(set.Arg(0), set.Arg(1), func(sh grid.View) error {
-		var (
-			view = grid.NewTransposedView(sh)
-			rd   = cli.NewTableRenderer(cli.Stdout)
-		)
-		if c.Columns != nil {
-			view = grid.NewProjectView(view, c.Columns)
-		}
-		rd.Render(sheet2Table(view, false))
-		return nil
+		view := c.createView(sh)
+		return c.writeView(view)
 	})
+}
 
+func (c TransposeCommand) writeView(view grid.View) error {
+	if c.OutFile != "" {
+		return workbook.WriteView(view, c.OutFile)
+	}
+	rd := cli.NewTableRenderer(cli.Stdout)
+	rd.Render(sheet2Table(view, false))
+	return nil
+}
+
+func (c TransposeCommand) createView(view grid.View) grid.View {
+	if c.Columns != nil {
+		view = grid.NewTransposedView(view)
+	}
+	return view
 }
 
 var joinCmd = cli.Command{
 	Name:    "join",
 	Summary: "Perform a join on two sheets",
-	Usage:   "join [-select <selection>] <wb1> <sheet1> <key1> <wb2> <sheet2> <key2>",
+	Usage:   "join [-f <output>] [-c <columns>] <wb1> <sheet1> <key1> <wb2> <sheet2> <key2>",
 	Handler: &JoinCommand{},
 }
 
 type JoinCommand struct {
+	OutFile string
 	Columns layout.Selection
 }
 
 func (c JoinCommand) Run(args []string) error {
 	set := cli.NewFlagSet("join")
-	set.Func("select", "selection", func(str string) error {
+	set.StringVar(&c.OutFile, "f", "", "Write result to file")
+	set.Func("c", "Selected columns", func(str string) error {
 		sel, err := layout.SelectionFromString(str)
 		if err == nil {
 			c.Columns = sel
@@ -91,11 +103,21 @@ func (c JoinCommand) Run(args []string) error {
 		return err
 	}
 
-	view := gridx.Join(sh1, sh2, sel1, sel2)
+	view := c.createView(gridx.Join(sh1, sh2, sel1, sel2))
+	return c.writeView(view)
+}
+
+func (c JoinCommand) createView(view grid.View) grid.View {
 	if c.Columns != nil {
 		view = grid.NewProjectView(view, c.Columns)
 	}
+	return view
+}
 
+func (c JoinCommand) writeView(view grid.View) error {
+	if c.OutFile != "" {
+		return workbook.WriteView(view, c.OutFile)
+	}
 	rd := cli.NewTableRenderer(cli.Stdout)
 	rd.Render(sheet2Table(view, false))
 	return nil
