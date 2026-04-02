@@ -106,7 +106,7 @@ func (c sheetContext) fromRow(pos layout.Position) value.Value {
 		start = layout.NewPosition(pos.Line, 1)
 		end   = layout.NewPosition(pos.Line, bd.Width())
 	)
-	return c.Range(start, end)	
+	return c.Range(start, end)
 }
 
 func (c sheetContext) fromColumn(pos layout.Position) value.Value {
