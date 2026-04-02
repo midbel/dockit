@@ -32,6 +32,17 @@ func TestParseFormula(t *testing.T) {
 			),
 		},
 		{
+			Expr: "=10:25 + 1",
+			Want: NewBinary(
+				NewRangeAddr(
+					NewCellAddr(layout.NewPosition(10, 0), false, false),
+					NewCellAddr(layout.NewPosition(25, 0), false, false),
+				),
+				NewNumber(1),
+				op.Add,
+			),
+		},
+		{
 			Expr: "=1+1",
 			Want: NewBinary(
 				NewNumber(1),

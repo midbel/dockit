@@ -566,13 +566,28 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 		return nil, err
 	}
 
-	start, ok := left.(CellAddr)
-	if !ok {
-		return nil, p.makeError("range: address expected")
+	var start CellAddr
+	switch a := left.(type) {
+	case CellAddr:
+		start = a
+	case Identifier:
+		addr, err := parseCellAddr(a.Ident())
+		if err != nil {
+			return nil, err
+		}
+		start = addr
+	case Number:
+		addr, err := parseCellAddr(a.String())
+		if err != nil {
+			return nil, err
+		}
+		start = addr
+	default:
+		return nil, fmt.Errorf("range: address/identfier/number expected")
 	}
 	end, ok := addr.(CellAddr)
 	if !ok {
-		return nil, p.makeError("range: address expected")
+		return nil, p.makeError("range (right): address expected")
 	}
 
 	return NewRangeAddr(start, end), nil
