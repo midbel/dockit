@@ -71,7 +71,8 @@ func evalIdentifier(e parse.Identifier, ctx value.Context) value.Value {
 	case value.ErrNA.String():
 		return value.ErrNA
 	default:
-		return value.ErrName
+		col, _ := layout.ParseIndex(e.Ident())
+		return ctx.At(layout.NewPosition(0, col))
 	}
 }
 
