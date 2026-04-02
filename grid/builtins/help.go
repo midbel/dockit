@@ -42,11 +42,25 @@ func Help(w io.Writer, ident string) error {
 	io.WriteString(ws, "\n")
 	io.WriteString(ws, "\n")
 
-	io.WriteString(ws, textwrap.Wrap(b.Desc, 72))
-	io.WriteString(ws, ".\n")
-	io.WriteString(ws, "\n")
+	if b.Desc != "" {
+		io.WriteString(ws, textwrap.Wrap(b.Desc, 72))
+		io.WriteString(ws, ".\n")
+		io.WriteString(ws, "\n")
+	}
 
-	io.WriteString(ws, "PARAMETERS:")
+	if len(b.Alias) > 0 {
+		io.WriteString(ws, "Alias: ")
+		for i, a := range b.Alias {
+			if i > 0 {
+				io.WriteString(ws, ", ")
+			}
+			io.WriteString(ws, a)
+		}
+		io.WriteString(ws, "\n")
+		io.WriteString(ws, "\n")
+	}
+
+	io.WriteString(ws, "Parameters:")
 	io.WriteString(ws, "\n")
 	for _, p := range b.Params {
 		io.WriteString(ws, " "+strings.ToUpper(p.Name))
@@ -56,7 +70,7 @@ func Help(w io.Writer, ident string) error {
 	}
 	io.WriteString(ws, "\n")
 	io.WriteString(ws, "\n")
-	io.WriteString(ws, "SUPPORTED BY: ")
+	io.WriteString(ws, "Supported by: ")
 	supports := map[string]bool{
 		"ODS":  b.OdsSupported(),
 		"OXML": b.OxmlSupported(),
