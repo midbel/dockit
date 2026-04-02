@@ -161,10 +161,6 @@ func (v astVisitor) VisitUseRef(expr parse.UseRef) error {
 	return nil
 }
 
-func (v astVisitor) VisitClear(expr parse.Clear) error {
-	return nil
-}
-
 func (v astVisitor) VisitIdentifier(expr parse.Identifier) error {
 	node := v.newValue("identifier", expr)
 	node.Params = []Param{

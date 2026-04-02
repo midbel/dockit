@@ -434,6 +434,9 @@ func (p *Parser) expectedIdent() error {
 }
 
 func parseCall(p *Parser, expr Expr) (Expr, error) {
+	if _, ok := expr.(Identifier); !ok {
+		return nil, fmt.Errorf("identifier expected")
+	}
 	p.next()
 	var args []Expr
 	for !p.done() && !p.is(op.EndGrp) {

@@ -39,7 +39,7 @@ func Join(left, right grid.View, leftcols, rightcols layout.Selection) grid.View
 
 func (v *joinView) Name() string {
 	var (
-		left = v.left.Name()
+		left  = v.left.Name()
 		right = v.right.Name()
 	)
 	if left == right {
@@ -78,9 +78,9 @@ func (v *joinView) Cell(pos layout.Position) (grid.Cell, error) {
 		return grid.Empty(pos), nil
 	}
 	var (
-		ori = pos
-		jr = v.rows[pos.Line-1]
-		bd = v.left.Bounds()
+		ori  = pos
+		jr   = v.rows[pos.Line-1]
+		bd   = v.left.Bounds()
 		cell grid.Cell
 	)
 

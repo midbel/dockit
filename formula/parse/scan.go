@@ -142,12 +142,9 @@ func (s *Scanner) Scan() Token {
 		s.scanLiteral(&tok)
 	case isDigit(s.char):
 		s.scanNumber(&tok)
+	case isAbsolute(s.char):
+		s.scanIdent(&tok)
 	default:
-		if !s.inScript() && (!isAbsolute(s.char) && !isAlpha(s.char)) {
-			s.read()
-			tok.Type = op.Invalid
-			break
-		}
 		s.scanIdent(&tok)
 	}
 	return tok
@@ -222,6 +219,10 @@ func (s *Scanner) scanIdent(tok *Token) {
 	}
 	tok.Type = op.Ident
 	tok.Literal = s.literal()
+	if reco.IsCell() {
+		tok.Type = op.Cell
+	}
+
 	if s.inScript() && isKeyword(tok.Literal) {
 		tok.Type = op.Keyword
 		if tok.Literal == kwAnd {

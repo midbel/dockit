@@ -115,12 +115,6 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.endAddr)
 		io.WriteString(w, ")")
-	case QualifiedCellAddr:
-		io.WriteString(w, "qualified(")
-		dumpExpr(w, e.path)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.addr)
-		io.WriteString(w, ")")
 	case Slice:
 		io.WriteString(w, "slice(")
 		dumpExpr(w, e.view)
@@ -177,14 +171,6 @@ func dumpExpr(w io.Writer, expr Expr) {
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
 	case ExportRef:
-	case Push:
-		io.WriteString(w, "push()")
-	case Pop:
-		io.WriteString(w, "pop()")
-	case Clear:
-		io.WriteString(w, "clear(")
-		io.WriteString(w, e.name)
-		io.WriteString(w, ")")
 	default:
 		io.WriteString(w, fmt.Sprintf("unknown(%T)", e))
 	}

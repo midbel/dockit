@@ -307,7 +307,7 @@ func (v *horizontalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 func (v *horizontalStackedView) Cell(pos layout.Position) (Cell, error) {
 	var (
 		lino int64
-		ori = pos
+		ori  = pos
 	)
 	lino++
 	for _, sh := range v.views {

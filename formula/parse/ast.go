@@ -53,41 +53,6 @@ func (s Script) Accept(v Visitor) error {
 	return v.VisitScript(s)
 }
 
-type Push struct {
-	readOnly bool
-	Position
-}
-
-func (Push) String() string {
-	return "<push>"
-}
-
-type Pop struct {
-	Position
-}
-
-func (Pop) String() string {
-	return "<pop>"
-}
-
-type LockRef struct {
-	ident string
-	Position
-}
-
-func (k LockRef) String() string {
-	return fmt.Sprintf("lock(%s)", k.ident)
-}
-
-type UnlockRef struct {
-	ident string
-	Position
-}
-
-func (k UnlockRef) String() string {
-	return fmt.Sprintf("unlock(%s)", k.ident)
-}
-
 type UseRef struct {
 	ident    string
 	readOnly bool
@@ -652,19 +617,6 @@ func (c Call) CloneWithOffset(pos layout.Position) Expr {
 
 func (c Call) Accept(v Visitor) error {
 	return v.VisitCall(c)
-}
-
-type Clear struct {
-	name string
-	Position
-}
-
-func (c Clear) String() string {
-	return fmt.Sprintf("clear(%s)", c.name)
-}
-
-func (c Clear) Accept(v Visitor) error {
-	return v.VisitClear(c)
 }
 
 type Slice struct {

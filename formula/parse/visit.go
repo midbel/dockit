@@ -7,7 +7,6 @@ type Visitor interface {
 	VisitExportRef(ExportRef) error
 	VisitPrintRef(PrintRef) error
 	VisitUseRef(UseRef) error
-	VisitClear(Clear) error
 
 	VisitIdentifier(Identifier) error
 	VisitLiteral(Literal) error
