@@ -21,6 +21,14 @@ func TestParseFormula(t *testing.T) {
 			),
 		},
 		{
+			Expr: "=sheet!A+1",
+			Want: NewBinary(
+				NewCellAddr(layout.NewSheetPosition("sheet", 0, 1), false, false),
+				NewNumber(1),
+				op.Add,
+			),
+		},
+		{
 			Expr: "=A:C + 1",
 			Want: NewBinary(
 				NewRangeAddr(

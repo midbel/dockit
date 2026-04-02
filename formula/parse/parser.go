@@ -612,6 +612,13 @@ func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 		r.startAddr.Sheet = id.Ident()
 		r.endAddr.Sheet = id.Ident()
 		right = r
+	case Identifier:
+		addr, err := parseCellAddr(r.Ident())
+		if err != nil {
+			return nil, err
+		}
+		addr.Sheet = id.Ident()
+		right = addr
 	default:
 		return nil, p.makeError("address/range expected")
 	}

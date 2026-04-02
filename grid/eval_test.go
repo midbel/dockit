@@ -85,6 +85,25 @@ func TestFormula(t *testing.T) {
 	t.Run("compare", testCompare)
 	t.Run("compare-generated", testCompareGenerated)
 	t.Run("included-formula", testIncludedFormula)
+	t.Run("extended-formula", testExtendedFormula)
+}
+
+func testExtendedFormula(t *testing.T) {
+	tests := []FormulaTestCase{
+		{
+			Formula: "=sum(B1, B2)",
+			Want:    "7",
+		},
+		{
+			Formula: "=sum(B1:B2)",
+			Want:    "7",
+		},
+		{
+			Formula: "=sum(B)",
+			Want:    "7",
+		},
+	}
+	runTests(t, tests)
 }
 
 func testIncludedFormula(t *testing.T) {

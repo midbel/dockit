@@ -50,13 +50,7 @@ func parseCellAddr(addr string) (CellAddr, error) {
 		offset++
 	}
 	pos.Column, size = parseIndex(addr[offset:])
-	// if size == 0 {
-	// 	return pos, fmt.Errorf("invalid cell address - missing column")
-	// }
 	offset += size
-	// if offset >= len(addr) {
-	// 	return pos, fmt.Errorf("invalid cell address - missing row")
-	// }
 
 	if offset < len(addr) && addr[offset] == dollar {
 		pos.AbsRow = true

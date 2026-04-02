@@ -1,6 +1,8 @@
 package grid
 
 import (
+	"fmt"
+
 	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -93,6 +95,11 @@ func (c sheetContext) At(pos layout.Position) value.Value {
 		return cell.Value()
 	}
 	return value.ErrRef
+}
+
+func (c sheetContext) Column(index string) value.Value {
+	fmt.Println("sheetContext.Column", index)
+	return nil
 }
 
 type fileContext struct {
@@ -196,6 +203,22 @@ func (c *evalContext) Range(start, end layout.Position) value.Value {
 	var ret value.Value
 	c.stack.Each(func(ctx value.Context) bool {
 		ret = ctx.Range(start, end)
+		if ret == value.ErrRef {
+			return true
+		}
+		return value.IsError(ret)
+	})
+	return c.normalizeValue(ret)
+}
+
+func (c *evalContext) Column(index string) value.Value {
+	var ret value.Value
+	c.stack.Each(func(ctx value.Context) bool {
+		c, ok := ctx.(interface{ Column(string) value.Value })
+		if !ok {
+			return true
+		}
+		ret = c.Column(index)
 		if ret == value.ErrRef {
 			return true
 		}
