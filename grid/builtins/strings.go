@@ -35,7 +35,7 @@ func Concat(args []value.Value) value.Value {
 
 var leftBuiltin = Builtin{
 	Name:     "left",
-	Desc:     "",
+	Desc:     "Returns the first characters from text",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -67,7 +67,7 @@ func Left(args []value.Value) value.Value {
 
 var rightBuiltin = Builtin{
 	Name:     "right",
-	Desc:     "",
+	Desc:     "Returns the first characters from text",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -99,7 +99,7 @@ func Right(args []value.Value) value.Value {
 
 var midBuiltin = Builtin{
 	Name:     "mid",
-	Desc:     "",
+	Desc:     "Returns part of text starting at a given position",
 	Alias:    []string{"substr"},
 	Category: "text",
 	Params: []Param{
@@ -136,7 +136,7 @@ func Mid(args []value.Value) value.Value {
 
 var lenBuiltin = Builtin{
 	Name:     "len",
-	Desc:     "",
+	Desc:     "Returns the number of characters in text",
 	Category: "text",
 	Alias:    []string{"length"},
 	Params: []Param{
@@ -243,7 +243,7 @@ func Trim(args []value.Value) value.Value {
 
 var searchBuiltin = Builtin{
 	Name:     "search",
-	Desc:     "",
+	Desc:     "Finds the position of text (case-insensitive). Supports * and ?",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -285,7 +285,7 @@ func Search(args []value.Value) value.Value {
 
 var findBuiltin = Builtin{
 	Name:     "find",
-	Desc:     "",
+	Desc:     "Finds the position of text (case-sensitive)",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -355,7 +355,7 @@ func Replace(args []value.Value) value.Value {
 
 var substituteBuiltin = Builtin{
 	Name:     "substitue",
-	Desc:     "",
+	Desc:     "Replaces occurrences of text with new text",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -444,7 +444,7 @@ func Value(args []value.Value) value.Value {
 
 var textjoinBuiltin = Builtin{
 	Name:     "textjoin",
-	Desc:     "",
+	Desc:     "Joins multiple text values using a delimiter",
 	Category: "text",
 	Params: []Param{
 		Scalar("delimiter", "", value.TypeText),

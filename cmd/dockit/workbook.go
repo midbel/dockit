@@ -182,7 +182,7 @@ func (c GetBuiltinCommand) printList() error {
 		}
 		return z
 	})
-	tbl.Headers = []string{"name", "description", "category", "parameter", "openxml", "opendoc"}
+	tbl.Headers = []string{"Name", "Description", "Category", "Parameter", "Openxml", "Opendoc"}
 	for _, b := range list {
 		if c.Category != "" && b.Category != c.Category {
 			continue
