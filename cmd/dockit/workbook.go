@@ -14,6 +14,7 @@ import (
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/workbook"
+	"github.com/midbel/textwrap"
 )
 
 var infoCmd = cli.Command{
@@ -181,14 +182,14 @@ func (c GetBuiltinCommand) printList() error {
 		}
 		return z
 	})
-	tbl.Headers = []string{"name", "desc", "category", "parameter", "openxml", "opendoc"}
+	tbl.Headers = []string{"name", "description", "category", "parameter", "openxml", "opendoc"}
 	for _, b := range list {
 		if c.Category != "" && b.Category != c.Category {
 			continue
 		}
 		r := []string{
 			b.Name,
-			b.Desc,
+			textwrap.Shorten(b.Desc, 48),
 			b.Category,
 			strconv.Itoa(len(b.Params)),
 			cli.MarkBool(b.OxmlSupported()),
