@@ -128,7 +128,7 @@ func Sum(args []value.Value) value.Value {
 
 var sumifBuiltin = Builtin{
 	Name:     "sumif",
-	Desc:     "",
+	Desc:     "Sums values that match a condition",
 	Category: "miscel",
 	Params: []Param{
 		Array("value", "", value.TypeAny),
@@ -157,7 +157,7 @@ func SumIf(args []value.Value) value.Value {
 var avgBuiltin = Builtin{
 	Name:     "average",
 	Alias:    slx.Make("avg"),
-	Desc:     "",
+	Desc:     "Returns the average of the given values",
 	Category: "math",
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
@@ -277,7 +277,7 @@ func Median(args []value.Value) value.Value {
 
 var countBuiltin = Builtin{
 	Name:     "count",
-	Desc:     "",
+	Desc:     "Counts numeric values",
 	Category: "miscel",
 	Params: []Param{
 		Var(ScalarArray("value", "", value.TypeAny)),
@@ -294,7 +294,7 @@ func Count(args []value.Value) value.Value {
 
 var countifBuiltin = Builtin{
 	Name:     "countif",
-	Desc:     "",
+	Desc:     "Counts values that match a condition",
 	Category: "miscel",
 	Params: []Param{
 		Array("value", "", value.TypeAny),
@@ -322,7 +322,7 @@ func CountIf(args []value.Value) value.Value {
 
 var countaBuiltin = Builtin{
 	Name:     "counta",
-	Desc:     "",
+	Desc:     "Counts non-empty values",
 	Category: "miscel",
 	Params: []Param{
 		Var(ScalarArray("value", "", value.TypeAny)),
@@ -342,7 +342,7 @@ func Counta(args []value.Value) value.Value {
 
 var roundBuiltin = Builtin{
 	Name:     "round",
-	Desc:     "",
+	Desc:     "Rounds a number to the nearest integer",
 	Category: "math",
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
@@ -442,7 +442,7 @@ func Abs(args []value.Value) value.Value {
 
 var modBuiltin = Builtin{
 	Name:     "mod",
-	Desc:     "",
+	Desc:     "Returns the remainder after division",
 	Category: "math",
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
@@ -469,7 +469,7 @@ func Mod(args []value.Value) value.Value {
 var powBuiltin = Builtin{
 	Name:     "power",
 	Alias:    slx.Make("pow"),
-	Desc:     "",
+	Desc:     "Raises a number to a given power",
 	Category: "math",
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
@@ -696,7 +696,7 @@ func Pi(args []value.Value) value.Value {
 
 var log10Builtin = Builtin{
 	Name:     "log10",
-	Desc:     "",
+	Desc:     "Returns the base-10 logarithm of a number",
 	Category: "math",
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
@@ -717,7 +717,7 @@ func Log10(args []value.Value) value.Value {
 
 var lnBuiltin = Builtin{
 	Name:     "ln",
-	Desc:     "",
+	Desc:     "Returns the natural logarithm of a number",
 	Category: "math",
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),

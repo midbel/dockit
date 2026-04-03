@@ -22,7 +22,7 @@ func TypeOf(args []value.Value) value.Value {
 
 var isNumberBuiltin = Builtin{
 	Name:     "isnumber",
-	Desc:     "",
+	Desc:     "Returns true if the value is a number",
 	Category: "util",
 	Params: []Param{
 		ScalarArray("value", "", value.TypeAny),
@@ -37,7 +37,7 @@ func IsNumber(args []value.Value) value.Value {
 
 var isTextBuiltin = Builtin{
 	Name:     "istext",
-	Desc:     "",
+	Desc:     "Returns true if the value is text",
 	Category: "util",
 	Params: []Param{
 		ScalarArray("value", "", value.TypeAny),
@@ -52,7 +52,7 @@ func IsText(args []value.Value) value.Value {
 
 var isBlankBuiltin = Builtin{
 	Name:     "isblank",
-	Desc:     "",
+	Desc:     "Returns true if the value is empty",
 	Category: "type",
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),

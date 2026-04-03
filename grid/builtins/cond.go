@@ -34,7 +34,7 @@ func Ifs(args []value.Value) value.Value {
 
 var ifBuiltin = Builtin{
 	Name:     "if",
-	Desc:     "",
+	Desc:     "Returns one value if the condition is true, another otherwise",
 	Category: "conditional",
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
@@ -56,7 +56,7 @@ func If(args []value.Value) value.Value {
 
 var ifErrorBuiltin = Builtin{
 	Name:     "iferror",
-	Desc:     "",
+	Desc:     "Returns a fallback value if the expression results in an error",
 	Category: "conditional",
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
@@ -74,7 +74,7 @@ func IfError(args []value.Value) value.Value {
 
 var ifNaBuiltin = Builtin{
 	Name:     "ifna",
-	Desc:     "",
+	Desc:     "Returns a fallback value if the expression results in #NA error",
 	Category: "conditional",
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
@@ -92,7 +92,7 @@ func IfNA(args []value.Value) value.Value {
 
 var andBuiltin = Builtin{
 	Name:     "and",
-	Desc:     "",
+	Desc:     "Returns true if all conditions are true",
 	Category: "conditional",
 	Params: []Param{
 		ScalarArray("value1", "", value.TypeAny),
@@ -114,7 +114,7 @@ func And(args []value.Value) value.Value {
 
 var orBuiltin = Builtin{
 	Name:     "or",
-	Desc:     "",
+	Desc:     "Returns true if at least one condition is true",
 	Category: "conditional",
 	Params: []Param{
 		ScalarArray("value1", "", value.TypeAny),
@@ -158,7 +158,7 @@ func Xor(args []value.Value) value.Value {
 
 var notBuiltin = Builtin{
 	Name:     "not",
-	Desc:     "",
+	Desc:     "Reverses a boolean value",
 	Category: "conditional",
 	Params: []Param{
 		ScalarArray("value", "", value.TypeAny),
@@ -198,7 +198,7 @@ func Choose(args []value.Value) value.Value {
 
 var switchBuiltin = Builtin{
 	Name:     "switch",
-	Desc:     "",
+	Desc:     "Matches an expression against each case and returns the corresponding value. If no match is found, returns the default if provided, otherwise #NA",
 	Category: "conditional",
 	Params: []Param{
 		Scalar("var", "", value.TypeNumber),

@@ -9,9 +9,8 @@ import (
 
 var nowBuiltin = Builtin{
 	Name:     "now",
-	Desc:     "",
+	Desc:     "Returns the current date and time.",
 	Category: "time",
-	Params:   []Param{},
 	Func:     Now,
 }
 
@@ -22,9 +21,8 @@ func Now(args []value.Value) value.Value {
 
 var todayBuiltin = Builtin{
 	Name:     "today",
-	Desc:     "",
+	Desc:     "Returns the current date and time.",
 	Category: "time",
-	Params:   []Param{},
 	Func:     Today,
 }
 
@@ -35,7 +33,7 @@ func Today(args []value.Value) value.Value {
 
 var dateBuiltin = Builtin{
 	Name:     "date",
-	Desc:     "",
+	Desc:     "Creates a date from year, month, and day",
 	Category: "time",
 	Params: []Param{
 		Scalar("year", "", value.TypeNumber),
@@ -212,7 +210,7 @@ func EoMonth(args []value.Value) value.Value {
 
 var datediffBuiltin = Builtin{
 	Name:     "datedif",
-	Desc:     "",
+	Desc:     "Returns the difference between two dates",
 	Category: "time",
 	Params: []Param{
 		Scalar("fromDate", "", value.TypeDate),
