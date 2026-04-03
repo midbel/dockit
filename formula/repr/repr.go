@@ -190,20 +190,6 @@ func (v astVisitor) VisitNumber(expr parse.Number) error {
 	return nil
 }
 
-func (v astVisitor) VisitQualifiedCellAddr(expr parse.QualifiedCellAddr) error {
-	node := v.newValue("address", expr)
-	v.stack.Push(node)
-	if err := v.visitExpr(expr.Path()); err != nil {
-		return err
-	}
-	if err := v.visitExpr(expr.Addr()); err != nil {
-		return err
-	}
-	v.stack.Pop()
-	v.pushNode(node)
-	return nil
-}
-
 func (v astVisitor) VisitCellAddr(expr parse.CellAddr) error {
 	node := v.newValue("address", expr)
 	node.Value = expr.String()

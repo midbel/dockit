@@ -115,7 +115,7 @@ func (c *EngineConfig) Merge(other *EngineConfig) error {
 
 type EngineContext struct {
 	loaders      map[string]Loader
-	ctx          *grid.ScopedContext
+	ctx          value.Context
 	currentValue value.Value
 
 	printer    Printer
@@ -125,7 +125,7 @@ type EngineContext struct {
 
 func NewEngineContext() *EngineContext {
 	eg := EngineContext{
-		ctx: new(grid.ScopedContext),
+		ctx: grid.NewContext(nil),
 	}
 	return &eg
 }
@@ -204,7 +204,7 @@ func (c *EngineContext) Context() value.Context {
 }
 
 func (c *EngineContext) PushContext(ctx value.Context) {
-	c.ctx.Push(ctx)
+	c.ctx = grid.EnclosedContext(c.ctx, ctx)
 }
 
 func (c *EngineContext) PushValue(val value.Value, ident string) (io.Closer, error) {

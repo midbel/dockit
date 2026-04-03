@@ -29,8 +29,6 @@ func (i inspectForm) Run(eg Runnable, args []parse.Expr, ctx *EngineContext) (va
 		return i.inspectCell(eg, a, ctx)
 	case parse.RangeAddr:
 		return i.inspectRange(eg, a, ctx)
-	case parse.QualifiedCellAddr:
-		return i.inspectQualified(eg, a, ctx)
 	case parse.Slice:
 		return i.inspectSlice(eg, a, ctx)
 	case parse.Identifier:
@@ -58,10 +56,6 @@ func (i inspectForm) inspectCell(eg Runnable, expr parse.CellAddr, ctx *EngineCo
 		iv = types.ReinspectValue(iv, val)
 	}
 	return iv, nil
-}
-
-func (i inspectForm) inspectQualified(eg Runnable, expr parse.QualifiedCellAddr, ctx *EngineContext) (value.Value, error) {
-	return nil, nil
 }
 
 func (i inspectForm) inspectRange(eg Runnable, expr parse.RangeAddr, ctx *EngineContext) (value.Value, error) {

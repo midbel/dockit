@@ -176,39 +176,12 @@ func (v *evalVisitor) assignmentTarget(expr parse.Expr) (LValue, io.Closer, erro
 			break
 		}
 		lv, err = resolveRange(v.ctx, expr)
-	case parse.QualifiedCellAddr:
-		return v.qualifiedAssignment(expr)
 	case parse.Access:
 	case parse.Identifier:
 		lv, err = resolveIdent(v.ctx, expr)
 	default:
 		err = fmt.Errorf("value can not be assigned to %s", expr)
 	}
-	return lv, cl, err
-}
-
-func (v *evalVisitor) qualifiedAssignment(expr parse.QualifiedCellAddr) (LValue, io.Closer, error) {
-	var (
-		lv  LValue
-		cl  io.Closer
-		err error
-	)
-	switch expr := expr.Path().(type) {
-	case parse.Identifier:
-		cl, err = v.ctx.PushMutable(expr.Ident())
-	case parse.Access:
-		if err1 := expr.Accept(v); err1 != nil {
-			err = err1
-			break
-		}
-		cl, err = v.ctx.PushValue(v.popValue(), expr.Property())
-	default:
-		err = fmt.Errorf("expression can not be assigned to %s", expr)
-	}
-	if err != nil {
-		return nil, nil, err
-	}
-	lv, err = resolveQualified(v.ctx, expr.Addr())
 	return lv, cl, err
 }
 
@@ -359,10 +332,6 @@ func (v *evalVisitor) evalViewBinary(left, right value.Value, oper op.Op) (value
 	return types.NewViewValue(view), nil
 }
 
-func (v *evalVisitor) VisitPostfix(expr parse.Postfix) error {
-	return nil
-}
-
 func (v *evalVisitor) VisitNot(expr parse.Not) error {
 	val, err := v.visitNormalize(expr.Expr())
 	if err != nil {
@@ -403,6 +372,24 @@ func (v *evalVisitor) VisitOr(expr parse.Or) error {
 	}
 	ok := value.True(left) || value.True(right)
 	v.pushValue(value.Boolean(ok))
+	return nil
+}
+
+func (v *evalVisitor) VisitPostfix(expr parse.Postfix) error {
+	val, err := v.visitNormalize(expr.Expr())
+	if err != nil {
+		return err
+	}
+	switch expr.Op() {
+	case op.Percent:
+		val = value.Div(val, value.Float(100))
+	default:
+		val = value.ErrValue
+	}
+	if err != nil {
+		val = value.ErrValue
+	}
+	v.pushValue(val)
 	return nil
 }
 
@@ -470,10 +457,6 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 	return fmt.Errorf("%s: builtin undefined", id.Ident())
 }
 
-func (v *evalVisitor) VisitClear(expr parse.Clear) error {
-	return nil
-}
-
 func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 	var (
 		val value.Value
@@ -501,20 +484,9 @@ func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 		}
 		view = view.ProjectView(sel)
 	case parse.Binary:
-		p := types.NewExprPredicate(grid.NewFormula(e))
-		view = view.FilterView(p)
 	case parse.And:
-		f := grid.NewFormula(parse.NewBinary(e.Left(), e.Right(), op.And))
-		p := types.NewExprPredicate(f)
-		view = view.FilterView(p)
 	case parse.Or:
-		f := grid.NewFormula(parse.NewBinary(e.Left(), e.Right(), op.Or))
-		p := types.NewExprPredicate(f)
-		view = view.FilterView(p)
 	case parse.Not:
-		f := grid.NewFormula(parse.NewUnary(e.Expr(), op.Not))
-		p := types.NewExprPredicate(f)
-		view = view.FilterView(p)
 	case parse.Identifier:
 	default:
 		return fmt.Errorf("invalid slice expression")
@@ -530,41 +502,6 @@ func (v *evalVisitor) VisitIdentifier(expr parse.Identifier) error {
 	}
 	v.pushValue(val)
 	return nil
-}
-
-func (v *evalVisitor) VisitQualifiedCellAddr(expr parse.QualifiedCellAddr) error {
-	var (
-		cl  io.Closer
-		err error
-		val value.Value
-	)
-	switch expr := expr.Path().(type) {
-	case parse.Access:
-		val, err = v.visitNormalize(expr)
-		if err != nil {
-			return err
-		}
-		cl, err = v.ctx.PushValue(val, expr.Property())
-	case parse.Identifier:
-		cl, err = v.ctx.PushReadable(expr.Ident())
-	default:
-		return fmt.Errorf("no view can be found from expr")
-	}
-	if err != nil {
-		return err
-	}
-	defer cl.Close()
-
-	switch a := expr.Addr().(type) {
-	case parse.CellAddr:
-		val = v.ctx.Context().At(a.Position)
-	case parse.RangeAddr:
-		val = v.ctx.Context().Range(a.StartAt().Position, a.EndAt().Position)
-	default:
-		val = value.ErrValue
-	}
-	v.pushValue(val)
-	return err
 }
 
 func (v *evalVisitor) VisitCellAddr(expr parse.CellAddr) error {

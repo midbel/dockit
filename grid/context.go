@@ -7,6 +7,9 @@ import (
 )
 
 func NewContext(ctx value.Context) value.Context {
+	if ctx == nil {
+		return emptyEvalContext()
+	}
 	if _, ok := ctx.(*evalContext); ok {
 		return ctx
 	}

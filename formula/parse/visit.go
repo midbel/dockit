@@ -11,7 +11,6 @@ type Visitor interface {
 	VisitIdentifier(Identifier) error
 	VisitLiteral(Literal) error
 	VisitNumber(Number) error
-	VisitQualifiedCellAddr(QualifiedCellAddr) error
 	VisitCellAddr(CellAddr) error
 	VisitRangeAddr(RangeAddr) error
 	VisitTemplate(Template) error

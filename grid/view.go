@@ -153,6 +153,47 @@ type File interface {
 	RemoveSheet(string) error
 }
 
+type readonlyView struct {
+	view View
+}
+
+func ReadOnly(view View) View {
+	if _, ok := view.(*readonlyView); ok {
+		return view
+	}
+	return &readonlyView{
+		view: view,
+	}
+}
+
+func (v *readonlyView) Name() string {
+	return v.view.Name()
+}
+
+func (v *readonlyView) Type() string {
+	return "readonly"
+}
+
+func (v *readonlyView) Bounds() *layout.Range {
+	return v.view.Bounds()
+}
+
+func (v *readonlyView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	return v.view.Rows()
+}
+
+func (v *readonlyView) Unwrap() View {
+	return v.view
+}
+
+func (v *readonlyView) Cell(pos layout.Position) (Cell, error) {
+	return v.view.Cell(pos)
+}
+
+func (v *readonlyView) Sync(ctx value.Context) error {
+	return ErrWritable
+}
+
 type transposedView struct {
 	view View
 }

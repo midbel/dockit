@@ -105,13 +105,13 @@ func (p valuePrinter) printView(v *types.View, f format.Formatter) {
 		return
 	}
 
-	next, stop := iter.Pull(view.Rows())
+	next, stop := iter.Pull2(view.Rows())
 	defer stop()
 	var (
-		first, _ = next()
-		size     = min(len(first), p.cols)
-		padding  = make([]int, size)
-		row      = make([]string, size)
+		_, first, _ = next()
+		size        = min(len(first), p.cols)
+		padding     = make([]int, size)
+		row         = make([]string, size)
 	)
 	for i := range size {
 		str, _ := f.Format(first[i])
@@ -121,7 +121,7 @@ func (p valuePrinter) printView(v *types.View, f format.Formatter) {
 	data = append(data, row)
 
 	for {
-		r, ok := next()
+		_, r, ok := next()
 		if !ok || len(data) >= p.rows {
 			break
 		}
@@ -241,13 +241,13 @@ func (p debugPrinter) printView(v *types.View) {
 		return
 	}
 
-	next, stop := iter.Pull(view.Rows())
+	next, stop := iter.Pull2(view.Rows())
 	defer stop()
 	var (
-		first, _ = next()
-		size     = min(len(first), p.cols)
-		padding  = make([]int, size)
-		row      = make([]string, size)
+		_, first, _ = next()
+		size        = min(len(first), p.cols)
+		padding     = make([]int, size)
+		row         = make([]string, size)
 	)
 	for i := range size {
 		row[i] = first[i].String()
@@ -256,7 +256,7 @@ func (p debugPrinter) printView(v *types.View) {
 	data = append(data, row)
 
 	for {
-		r, ok := next()
+		_, r, ok := next()
 		if !ok || len(data) >= p.rows {
 			break
 		}

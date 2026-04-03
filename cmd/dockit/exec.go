@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/midbel/cli"
+	"github.com/midbel/dockit/formula/env"
+	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/formula/repr"
 )
 
@@ -20,49 +22,27 @@ var runCmd = cli.Command{
 var dumpCmd = cli.Command{
 	Name:    "dump",
 	Alias:   []string{"inspect"},
-	Summary: "Export the detailed AST representation of a given script",
+	Summary: "Export the AST representation of script",
 	Usage:   "",
 	Handler: &DumpCommand{},
-}
-
-var queryCmd = cli.Command{
-	Name:    "query",
-	Summary: "",
-	Usage:   "",
-	Handler: &QueryCommand{},
-}
-
-var extractCmd = cli.Command{
-	Name:    "extract",
-	Summary: "",
-	Usage:   "",
-	Handler: &ExtractCommand{},
-}
-
-type QueryCommand struct{}
-
-func (c QueryCommand) Run(args []string) error {
-	set := cli.NewFlagSet("query")
-	if err := set.Parse(args); err != nil {
-		return err
-	}
-	return nil
-}
-
-type ExtractCommand struct{}
-
-func (c ExtractCommand) Run(args []string) error {
-	set := cli.NewFlagSet("extract")
-	if err := set.Parse(args); err != nil {
-		return err
-	}
-	return nil
 }
 
 type RunCommand struct{}
 
 func (c RunCommand) Run(args []string) error {
-	return nil
+	set := cli.NewFlagSet("run")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+	r, err := os.Open(set.Arg(0))
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	engine := eval.NewEngine()
+	_, err = engine.Exec(r, env.Empty())
+	return err
 }
 
 type DumpCommand struct{}

@@ -33,6 +33,8 @@ func eval(expr parse.Expr, ctx value.Context) value.Value {
 		return evalBinary(e, ctx)
 	case parse.Unary:
 		return evalUnary(e, ctx)
+	case parse.Postfix:
+		return evalPostfix(e, ctx)
 	case parse.Identifier:
 		return evalIdentifier(e, ctx)
 	case parse.Literal:
@@ -116,6 +118,19 @@ func evalBinary(e parse.Binary, ctx value.Context) value.Value {
 	case op.Or:
 		ok := value.True(left) || value.True(right)
 		return value.Boolean(ok)
+	default:
+		return value.ErrValue
+	}
+}
+
+func evalPostfix(e parse.Postfix, ctx value.Context) value.Value {
+	val := eval(e.Expr(), ctx)
+	if value.IsError(val) {
+		return val
+	}
+	switch e.Op() {
+	case op.Percent:
+		return value.Div(val, value.Float(100))
 	default:
 		return value.ErrValue
 	}

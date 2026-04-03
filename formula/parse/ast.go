@@ -761,39 +761,6 @@ func (i Identifier) Accept(v Visitor) error {
 	return v.VisitIdentifier(i)
 }
 
-type QualifiedCellAddr struct {
-	path Expr
-	addr Expr
-	Position
-}
-
-func NewQualifiedAddr(path, addr Expr) Expr {
-	return QualifiedCellAddr{
-		path: path,
-		addr: addr,
-	}
-}
-
-func (a QualifiedCellAddr) Path() Expr {
-	return a.path
-}
-
-func (a QualifiedCellAddr) Addr() Expr {
-	return a.addr
-}
-
-func (a QualifiedCellAddr) String() string {
-	return fmt.Sprintf("qualified(%s.%s)", a.path.String(), a.addr.String())
-}
-
-func (QualifiedCellAddr) KindOf() string {
-	return "qualified-address"
-}
-
-func (q QualifiedCellAddr) Accept(v Visitor) error {
-	return v.VisitQualifiedCellAddr(q)
-}
-
 type CellAddr struct {
 	layout.Position
 	AbsCol bool
