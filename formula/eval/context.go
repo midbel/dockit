@@ -3,7 +3,6 @@ package eval
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -203,44 +202,16 @@ func (c *EngineContext) Context() value.Context {
 	return c.ctx
 }
 
-func (c *EngineContext) PushContext(ctx value.Context) {
-	c.ctx = grid.EnclosedContext(c.ctx, ctx)
-}
-
-func (c *EngineContext) PushMutable(name string) (io.Closer, error) {
-	sub, err := c.mutableView(name)
-	if err != nil {
-		return nil, err
-	}
-	if f, ok := c.currentValue.(*types.File); ok {
-		fc := grid.FileContext(f.File())
-		sub = grid.EvalContext(fc, sub)
-	}
-	n := c.ctx.Len()
-	c.ctx.Push(sub)
-
-	cf := func() {
-		c.ctx.Truncate(n)
-	}
-	return closable(cf), nil
-}
-
-func (c *EngineContext) PushReadable(name string) (io.Closer, error) {
+func (c *EngineContext) PushReadable(name string) (value.Context, error) {
 	sub, err := c.readableView(name)
 	if err != nil {
 		return nil, err
 	}
 	if f, ok := c.currentValue.(*types.File); ok {
 		fc := grid.FileContext(f.File())
-		sub = grid.EvalContext(fc, sub)
+		c.ctx = grid.EnclosedContext(c.ctx, fc)
 	}
-	n := c.ctx.Len()
-	c.ctx.Push(sub)
-
-	cf := func() {
-		c.ctx.Truncate(n)
-	}
-	return closable(cf), nil
+	return grid.EnclosedContext(c.ctx, sub), nil
 }
 
 func (c *EngineContext) readableView(name string) (value.Context, error) {
@@ -248,19 +219,7 @@ func (c *EngineContext) readableView(name string) (value.Context, error) {
 	if err != nil {
 		return nil, err
 	}
-	return value.ReadOnly(grid.SheetContext(sh.View())), nil
-}
-
-func (c *EngineContext) mutableView(name string) (value.Context, error) {
-	sh, err := c.getActiveView(c.Default(), name)
-	if err != nil {
-		return nil, err
-	}
-	view, err := sh.Mutable()
-	if err != nil {
-		return nil, ErrReadOnly
-	}
-	return grid.SheetContext(view), nil
+	return grid.SheetContext(sh.View()), nil
 }
 
 func (c *EngineContext) getActiveView(val value.Value, name string) (*types.View, error) {
@@ -292,11 +251,4 @@ func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.V
 		return nil, ErrValue
 	}
 	return tv, nil
-}
-
-type closable func()
-
-func (c closable) Close() error {
-	c()
-	return nil
 }

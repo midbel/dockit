@@ -67,10 +67,6 @@ func SheetContext(view View) value.Context {
 	}
 }
 
-func (c sheetContext) ReadOnly() value.Context {
-	return value.ReadOnly(c)
-}
-
 func (c sheetContext) Resolve(string) value.Value {
 	return value.ErrName
 }
@@ -131,10 +127,6 @@ func FileContext(file File) value.Context {
 	}
 }
 
-func (c fileContext) ReadOnly() value.Context {
-	return value.ReadOnly(c)
-}
-
 func (c fileContext) Resolve(name string) value.Value {
 	return value.ErrName
 }
@@ -180,10 +172,6 @@ func createEvalContext(ctx value.Context) *evalContext {
 	return &evalContext{
 		stack: stack,
 	}
-}
-
-func (c *evalContext) ReadOnly() value.Context {
-	return value.ReadOnly(c)
 }
 
 func (c *evalContext) Resolve(ident string) value.Value {

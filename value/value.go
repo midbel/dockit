@@ -91,35 +91,6 @@ type Context interface {
 	Resolve(string) Value
 }
 
-type readonlyContext struct {
-	inner Context
-}
-
-func ReadOnly(ctx Context) Context {
-	return readonlyContext{
-		inner: ctx,
-	}
-}
-
-func (c readonlyContext) At(pos layout.Position) Value {
-	return c.inner.At(pos)
-}
-
-func (c readonlyContext) Range(start, end layout.Position) Value {
-	return c.inner.Range(start, end)
-}
-
-func (c readonlyContext) Resolve(ident string) Value {
-	return c.inner.Resolve(ident)
-}
-
-type MutableContext interface {
-	SetValue(layout.Position, Value) error
-	SetFormula(layout.Position, Formula) error
-	SetRange(layout.Position, layout.Position, Value) error
-	SetRangeFormula(layout.Position, layout.Position, Value) error
-}
-
 type Formula interface {
 	Value
 	Eval(Context) Value
@@ -160,8 +131,6 @@ type CastableValue interface {
 	ToFloat() ScalarValue
 	// ToDate() ScalarValue
 }
-
-var ErrOperation = errors.New("operation not supported")
 
 func Add(left, right Value) Value {
 	a, ok := left.(interface {
