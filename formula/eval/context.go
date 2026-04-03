@@ -207,25 +207,6 @@ func (c *EngineContext) PushContext(ctx value.Context) {
 	c.ctx = grid.EnclosedContext(c.ctx, ctx)
 }
 
-func (c *EngineContext) PushValue(val value.Value, ident string) (io.Closer, error) {
-	sh, err := c.getActiveView(val, ident)
-	if err != nil {
-		return nil, err
-	}
-	ctx := grid.SheetContext(sh.View())
-	if file, ok := val.(*types.File); ok {
-		fc := grid.FileContext(file.File())
-		ctx = grid.EvalContext(fc, ctx)
-	}
-	n := c.ctx.Len()
-	c.ctx.Push(ctx)
-
-	cf := func() {
-		c.ctx.Truncate(n)
-	}
-	return closable(cf), nil
-}
-
 func (c *EngineContext) PushMutable(name string) (io.Closer, error) {
 	sub, err := c.mutableView(name)
 	if err != nil {
