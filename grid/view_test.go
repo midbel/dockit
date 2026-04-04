@@ -252,7 +252,7 @@ func testEmptyWithoutSync(t *testing.T) {
 	if f := cell.Formula(); f == nil {
 		t.Fatalf("expected formula to not be nil")
 	} else {
-		val, err := grid.Eval(f, grid.NewContext(grid.FileContext(file)))
+		val, err := grid.Eval(f, grid.FileContext(file))
 		if err != nil {
 			t.Fatalf("error evaluating formula: %s", err)
 		}

@@ -16,7 +16,7 @@ func Eval(expr value.Formula, ctx value.Context) (value.Value, error) {
 	if !ok {
 		return value.ErrValue, fmt.Errorf("formula can not eval")
 	}
-	return eval(e.expr, NewContext(ctx)), nil
+	return eval(e.expr, ctx), nil
 }
 
 func EvalString(expr string, ctx value.Context) (value.Value, error) {
@@ -175,7 +175,15 @@ func evalCall(e parse.Call, ctx value.Context) value.Value {
 }
 
 func evalCellAddr(e parse.CellAddr, ctx value.Context) value.Value {
-	return ctx.At(e.Position)
+	val := ctx.At(e.Position)
+	if f, ok := val.(value.Formula); ok {
+		v, err := Eval(f, ctx)
+		if err != nil {
+			return value.ErrValue
+		}
+		return v
+	}
+	return val
 }
 
 func evalRangeAddr(e parse.RangeAddr, ctx value.Context) value.Value {

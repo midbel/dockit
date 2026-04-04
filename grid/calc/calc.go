@@ -137,3 +137,15 @@ func E() float64 {
 func Rand() float64 {
 	return rand.Float64()
 }
+
+func Gcd(a, b float64) float64 {
+	r := gcd(int(a), int(b))
+	return float64(r)
+}
+
+func gcd(a, b int) int {
+	if b == 0 {
+		return a
+	}
+	return gcd(b, a%b)
+}

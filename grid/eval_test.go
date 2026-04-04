@@ -360,7 +360,7 @@ func runTests(t *testing.T, tests []FormulaTestCase) {
 	t.Helper()
 	var (
 		file = testutil.CreateFile()
-		ctx  = grid.NewContext(grid.FileContext(file))
+		ctx  = grid.FileContext(file)
 	)
 	for _, c := range tests {
 		sub := ctx

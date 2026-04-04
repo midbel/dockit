@@ -124,7 +124,7 @@ type EngineContext struct {
 
 func NewEngineContext() *EngineContext {
 	eg := EngineContext{
-		ctx: grid.NewContext(nil),
+		ctx: nil,
 	}
 	return &eg
 }
@@ -200,6 +200,10 @@ func (c *EngineContext) SetDefault(val value.Value) {
 
 func (c *EngineContext) Context() value.Context {
 	return c.ctx
+}
+
+func (c *EngineContext) PushContext(ctx value.Context) {
+	c.ctx = ctx
 }
 
 func (c *EngineContext) PushReadable(name string) (value.Context, error) {

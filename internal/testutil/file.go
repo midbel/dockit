@@ -12,7 +12,7 @@ import (
 
 func FileContext() value.Context {
 	file := CreateFile()
-	return grid.NewContext(grid.FileContext(file))
+	return grid.FileContext(file)
 }
 
 func CreateCsvFile(r io.Reader) (grid.File, error) {

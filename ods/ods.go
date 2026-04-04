@@ -369,7 +369,7 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Sync() error {
-	ctx := grid.NewContext(grid.FileContext(f))
+	ctx := grid.FileContext(f)
 	for _, s := range f.sheets {
 		if err := s.Sync(ctx); err != nil {
 			return err

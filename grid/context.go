@@ -1,32 +1,15 @@
 package grid
 
 import (
-	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
-func NewContext(ctx value.Context) value.Context {
-	if ctx == nil {
-		return emptyEvalContext()
+func EnclosedContext(file, sheet value.Context) value.Context {
+	return evalContext{
+		file:  file,
+		sheet: sheet,
 	}
-	if _, ok := ctx.(*evalContext); ok {
-		return ctx
-	}
-	return createEvalContext(ctx)
-}
-
-func EnclosedContext(parent, child value.Context) value.Context {
-	if e, ok := parent.(*evalContext); ok {
-		x := &evalContext{
-			stack: e.stack.Push(child),
-		}
-		return x
-	}
-	x := emptyEvalContext()
-	x.push(parent)
-	x.push(child)
-	return x
 }
 
 type rowContext struct {
@@ -158,73 +141,36 @@ func (c fileContext) sheet(name string) (View, error) {
 }
 
 type evalContext struct {
-	stack *ds.Linked[value.Context]
+	file  value.Context
+	sheet value.Context
 }
 
-func emptyEvalContext() *evalContext {
-	return &evalContext{
-		stack: ds.EmptyList[value.Context](),
+func (c evalContext) Resolve(ident string) value.Value {
+	return value.ErrValue
+}
+
+func (c evalContext) At(pos layout.Position) value.Value {
+	if c.sheet != nil {
+		val := c.sheet.At(pos)
+		if !value.IsError(val) {
+			return val
+		}
 	}
-}
-
-func createEvalContext(ctx value.Context) *evalContext {
-	stack := ds.EmptyList[value.Context]().Push(ctx)
-	return &evalContext{
-		stack: stack,
+	if c.file != nil {
+		return c.file.At(pos)
 	}
+	return value.ErrValue
 }
 
-func (c *evalContext) Resolve(ident string) value.Value {
-	var ret value.Value
-	c.stack.Each(func(ctx value.Context) bool {
-		ret = ctx.Resolve(ident)
-		if ret == value.ErrName {
-			return true
+func (c evalContext) Range(start, end layout.Position) value.Value {
+	if c.sheet != nil {
+		val := c.sheet.Range(start, end)
+		if !value.IsError(val) {
+			return val
 		}
-		return value.IsError(ret)
-	})
-	return c.normalizeValue(ret)
-}
-
-func (c *evalContext) At(pos layout.Position) value.Value {
-	var ret value.Value
-	c.stack.Each(func(ctx value.Context) bool {
-		ret = ctx.At(pos)
-		if f, ok := ret.(value.Formula); ok {
-			val, err := Eval(f, c)
-			if err != nil {
-				ret = value.ErrValue
-			} else {
-				ret = val
-			}
-		}
-		if ret == value.ErrRef {
-			return true
-		}
-		return value.IsError(ret)
-	})
-	return c.normalizeValue(ret)
-}
-
-func (c *evalContext) Range(start, end layout.Position) value.Value {
-	var ret value.Value
-	c.stack.Each(func(ctx value.Context) bool {
-		ret = ctx.Range(start, end)
-		if ret == value.ErrRef {
-			return true
-		}
-		return value.IsError(ret)
-	})
-	return c.normalizeValue(ret)
-}
-
-func (c *evalContext) normalizeValue(val value.Value) value.Value {
-	if val == nil {
-		return value.ErrValue
 	}
-	return val
-}
-
-func (c *evalContext) push(ctx value.Context) {
-	c.stack.Push(ctx)
+	if c.file != nil {
+		return c.file.Range(start, end)
+	}
+	return value.ErrValue
 }
