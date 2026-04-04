@@ -250,7 +250,7 @@ func (v *evalVisitor) evalScalarBinary(left, right value.Value, oper op.Op) (val
 }
 
 func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
-	if v, ok := right.(*types.View); ok {
+	if v, ok := right.(interface{ AsArray() value.ArrayValue }); ok {
 		right = v.AsArray()
 	}
 	arr, err := value.CastToArray(right)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/parse"
+	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
 )
 
@@ -24,6 +25,7 @@ type Runnable interface {
 type Engine struct {
 	Stdout io.Writer
 	Stderr io.Writer
+	config *EngineConfig
 
 	loaders map[string]Loader
 }
@@ -33,6 +35,7 @@ func NewEngine() *Engine {
 		Stdout:  os.Stdout,
 		Stderr:  os.Stderr,
 		loaders: make(map[string]Loader),
+		config:  NewConfig(),
 	}
 	e.RegisterLoader(".csv", CsvLoader())
 	e.RegisterLoader(".xlsx", XlsxLoader())
@@ -43,15 +46,24 @@ func NewEngine() *Engine {
 }
 
 func (e *Engine) SetContextDir(dir string) {
-
+	if dir == "" {
+		return
+	}
+	e.config.Set(slx.Make("context", "dir"), dir)
 }
 
 func (e *Engine) SetNumberFormat(format string) {
-
+	if format == "" {
+		return
+	}
+	e.config.Set(slx.Make("format", "number"), format)
 }
 
 func (e *Engine) SetDateFormat(format string) {
-
+	if format == "" {
+		return
+	}
+	e.config.Set(slx.Make("format", "date"), format)
 }
 
 func (e *Engine) RegisterLoader(kind string, loader Loader) {
@@ -94,6 +106,7 @@ func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*parse.Parser, erro
 		return nil, err
 	}
 	cfg := NewConfig()
+	cfg.Merge(e.config)
 	for _, e := range entries {
 		cfg.Set(e.Path, e.Value)
 	}
