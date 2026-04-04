@@ -67,6 +67,12 @@ func (t *Trie[T]) Walk(path []string, fn func(path []string, v T)) {
 }
 
 func (t *Trie[T]) Merge(other *Trie[T]) error {
+	if other == nil {
+		return nil
+	}
+	other.Walk(nil, func(path []string, v T) {
+		t.Register(path, v)
+	})
 	return nil
 }
 
