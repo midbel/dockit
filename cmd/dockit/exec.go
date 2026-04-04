@@ -27,10 +27,15 @@ var dumpCmd = cli.Command{
 	Handler: &DumpCommand{},
 }
 
-type RunCommand struct{}
+type RunCommand struct {
+	ContextDir   string
+	DateFormat   string
+	NumberFormat string
+}
 
 func (c RunCommand) Run(args []string) error {
 	set := cli.NewFlagSet("run")
+	set.StringVar(&c.ContextDir, "d", ".", "Context directory")
 	if err := set.Parse(args); err != nil {
 		return err
 	}
@@ -41,6 +46,9 @@ func (c RunCommand) Run(args []string) error {
 	defer r.Close()
 
 	engine := eval.NewEngine()
+	engine.SetContextDir(c.ContextDir)
+	engine.SetNumberFormat(c.NumberFormat)
+	engine.SetDateFormat(c.DateFormat)
 	_, err = engine.Exec(r, env.Empty())
 	return err
 }

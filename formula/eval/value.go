@@ -2,7 +2,6 @@ package eval
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/grid"
@@ -22,31 +21,11 @@ type LValue interface {
 	Set(value.Value) error
 }
 
-func resolveQualified(ctx *EngineContext, addr parse.Expr) (LValue, error) {
-	var lv LValue
-	switch a := addr.(type) {
-	case parse.CellAddr:
-		lv = cellValue{
-			ctx: ctx.Context(),
-			pos: a.Position,
-		}
-	case parse.RangeAddr:
-		rg := layout.NewRange(a.StartAt().Position, a.EndAt().Position)
-		lv = rangeValue{
-			ctx: ctx.Context(),
-			rg:  rg.Normalize(),
-		}
-	default:
-		return nil, fmt.Errorf("unknown address type")
-	}
-	return lv, nil
-}
-
 func resolveRange(ctx *EngineContext, rg parse.RangeAddr) (LValue, error) {
 	r := layout.NewRange(rg.StartAt().Position, rg.EndAt().Position)
 	val := rangeValue{
-		rg:  r.Normalize(),
-		ctx: ctx.Context(),
+		rg: r.Normalize(),
+		// ctx: ctx.Context(),
 	}
 	return val, nil
 }
@@ -54,7 +33,7 @@ func resolveRange(ctx *EngineContext, rg parse.RangeAddr) (LValue, error) {
 func resolveCell(ctx *EngineContext, addr parse.CellAddr) (LValue, error) {
 	val := cellValue{
 		pos: addr.Position,
-		ctx: ctx.Context(),
+		// ctx: ctx.Context(),
 	}
 	return val, nil
 }
@@ -62,7 +41,7 @@ func resolveCell(ctx *EngineContext, addr parse.CellAddr) (LValue, error) {
 func resolveIdent(ctx *EngineContext, ident parse.Identifier) (LValue, error) {
 	id := identValue{
 		ident: ident.Ident(),
-		ctx:   ctx.Context(),
+		// ctx:   ctx.Context(),
 	}
 	return id, nil
 }

@@ -293,8 +293,8 @@ func (v *arrayView) Dimension() layout.Dimension {
 
 func (v *arrayView) At(row, col int) value.ScalarValue {
 	pos := layout.Position{
-		Line:   int64(row),
-		Column: int64(col),
+		Line:   int64(row) + 1,
+		Column: int64(col) + 1,
 	}
 	c, _ := v.inner.Cell(pos)
 	return c.Value()

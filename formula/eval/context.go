@@ -3,14 +3,13 @@ package eval
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/format"
-	"github.com/midbel/dockit/internal/ds"
-	"github.com/midbel/dockit/internal/slx"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -20,101 +19,9 @@ var (
 	ErrMutate    = errors.New("context is not mutable")
 )
 
-type EngineConfig struct {
-	registry *ds.Trie[any]
-}
-
-func NewConfig() *EngineConfig {
-	c := EngineConfig{
-		registry: ds.NewTrie[any](),
-	}
-	c.SetDefaults()
-	return &c
-}
-
-func (c *EngineConfig) ContextDir() string {
-	dir, _ := c.registry.Get(slx.Make("context", "dir"))
-	return dir.(string)
-}
-
-func (c *EngineConfig) Printer() (Printer, error) {
-	debug, _ := c.registry.Get(slx.Make("print", "debug"))
-	cols, _ := c.registry.Get(slx.Make("print", "cols"))
-	rows, _ := c.registry.Get(slx.Make("print", "rows"))
-
-	maxCols, ok := cols.(float64)
-	if !ok {
-		return nil, fmt.Errorf("columns should be a number")
-	}
-	maxRows, ok := rows.(float64)
-	if !ok {
-		return nil, fmt.Errorf("rows should be a number")
-	}
-	if d, ok := debug.(bool); ok && d {
-		return DebugValue(os.Stdout, int(maxRows), int(maxCols)), nil
-	}
-	return PrintValue(os.Stdout, int(maxRows), int(maxCols)), nil
-}
-
-func (c *EngineConfig) Formatter() (format.Formatter, error) {
-	vf := format.FormatValue()
-	if num, ok := c.registry.Get(slx.Make("format", "number")); ok {
-		str, ok := num.(string)
-		if !ok {
-			return nil, fmt.Errorf("number pattern should be a literal")
-		}
-		if err := vf.Number(str); err != nil {
-			return nil, err
-		}
-	}
-	if date, ok := c.registry.Get(slx.Make("format", "date")); ok {
-		str, ok := date.(string)
-		if !ok {
-			return nil, fmt.Errorf("date pattern should be a literal")
-		}
-		if err := vf.Date(str); err != nil {
-			return nil, err
-		}
-	}
-	if mode, ok := c.registry.Get(slx.Make("format", "bool")); ok {
-		str, ok := mode.(string)
-		if !ok {
-			return nil, fmt.Errorf("boolean pattern should be a literal")
-		}
-		if err := vf.Bool(str); err != nil {
-			return nil, err
-		}
-	}
-	return vf, nil
-}
-
-func (c *EngineConfig) Set(ident []string, val any) error {
-	if val == nil {
-		return nil
-	}
-	c.registry.Register(ident, val)
-	return nil
-}
-
-func (c *EngineConfig) SetDefaults() {
-	c.Set(slx.Make("context", "dir"), ".")
-	c.Set(slx.Make("print", "debug"), false)
-	c.Set(slx.Make("print", "cols"), maxCols)
-	c.Set(slx.Make("print", "rows"), maxRows)
-	c.Set(slx.Make("format", "number"), format.DefaultNumberPattern)
-	c.Set(slx.Make("format", "date"), format.DefaultDatePattern)
-	c.Set(slx.Make("format", "bool"), "")
-	c.Set(slx.Make("csv", "delimiter"), ",")
-	c.Set(slx.Make("csv", "quoted"), true)
-}
-
-func (c *EngineConfig) Merge(other *EngineConfig) error {
-	return c.registry.Merge(other.registry)
-}
-
 type EngineContext struct {
 	loaders      map[string]Loader
-	ctx          value.Context
+	env          *env.Environment
 	currentValue value.Value
 
 	printer    Printer
@@ -123,10 +30,7 @@ type EngineContext struct {
 }
 
 func NewEngineContext() *EngineContext {
-	eg := EngineContext{
-		ctx: nil,
-	}
-	return &eg
+	return new(EngineContext)
 }
 
 func (c *EngineContext) Configure(cfg *EngineConfig) error {
@@ -168,7 +72,11 @@ func (c *EngineContext) Resolve(ident string) value.Value {
 			return val
 		}
 	}
-	return c.ctx.Resolve(ident)
+	return c.env.Resolve(ident)
+}
+
+func (c *EngineContext) Define(ident string, value value.Value) {
+	c.env.Define(ident, value)
 }
 
 func (c *EngineContext) Default() value.Value {
@@ -198,32 +106,24 @@ func (c *EngineContext) SetDefault(val value.Value) {
 	c.currentValue = val
 }
 
-func (c *EngineContext) Context() value.Context {
-	return c.ctx
-}
-
-func (c *EngineContext) PushContext(ctx value.Context) {
-	c.ctx = ctx
-}
-
-func (c *EngineContext) PushReadable(name string) (value.Context, error) {
-	sub, err := c.readableView(name)
+func (c *EngineContext) At(pos layout.Position) value.Value {
+	sh, err := c.getActiveView(c.Default(), pos.Sheet)
 	if err != nil {
-		return nil, err
+		return value.ErrNA
 	}
-	if f, ok := c.currentValue.(*types.File); ok {
-		fc := grid.FileContext(f.File())
-		c.ctx = grid.EnclosedContext(c.ctx, fc)
-	}
-	return grid.EnclosedContext(c.ctx, sub), nil
+	return sh.At(pos)
 }
 
-func (c *EngineContext) readableView(name string) (value.Context, error) {
-	sh, err := c.getActiveView(c.Default(), name)
+func (c *EngineContext) Range(start, end layout.Position) value.Value {
+	sh, err := c.getActiveView(c.Default(), start.Sheet)
 	if err != nil {
-		return nil, err
+		return value.ErrNA
 	}
-	return grid.SheetContext(sh.View()), nil
+	return sh.Range(start, end)
+}
+
+func (c *EngineContext) setEnv(environ *env.Environment) {
+	c.env = environ
 }
 
 func (c *EngineContext) getActiveView(val value.Value, name string) (*types.View, error) {

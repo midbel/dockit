@@ -72,6 +72,19 @@ func (c *View) Inspect() *InspectValue {
 	return iv
 }
 
+func (c *View) At(pos layout.Position) value.Value {
+	cell, err := c.view.Cell(pos)
+	if err != nil {
+		return value.ErrNA
+	}
+	return cell.Value()
+}
+
+func (c *View) Range(start, end layout.Position) value.Value {
+	rg := layout.NewRange(start, end)
+	return grid.ArrayView(grid.NewBoundedView(c.view, rg))
+}
+
 func (c *View) Get(ident string) value.Value {
 	switch ident {
 	case "name":

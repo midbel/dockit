@@ -82,9 +82,7 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 		}
 	}
 	wb := types.NewFileValue(file, expr.ReadOnly())
-	if ev, ok := v.ctx.Context().(interface{ Define(string, value.Value) }); ok {
-		ev.Define(alias, wb)
-	}
+	v.ctx.Define(alias, wb)
 	if expr.Default() {
 		v.ctx.SetDefault(wb)
 	}
@@ -504,12 +502,7 @@ func (v *evalVisitor) VisitIdentifier(expr parse.Identifier) error {
 }
 
 func (v *evalVisitor) VisitCellAddr(expr parse.CellAddr) error {
-	sub, err := v.ctx.PushReadable(expr.Sheet)
-	if err != nil {
-		return err
-	}
-
-	val := sub.At(expr.Position)
+	val := v.ctx.At(expr.Position)
 	v.pushValue(val)
 	return nil
 }
@@ -538,13 +531,8 @@ func (v *evalVisitor) visitNormalize(expr parse.Expr) (value.Value, error) {
 func (v *evalVisitor) normalize(val value.Value) (value.Value, error) {
 	switch val := val.(type) {
 	case *types.Range:
-		sub, err := v.ctx.PushReadable(val.Target())
-		if err != nil {
-			return value.ErrValue, err
-		}
 		rg := val.Range()
-
-		return sub.Range(rg.Starts, rg.Ends), nil
+		return v.ctx.Range(rg.Starts, rg.Ends), nil
 	default:
 		return val, nil
 	}

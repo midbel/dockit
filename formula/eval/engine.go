@@ -42,6 +42,18 @@ func NewEngine() *Engine {
 	return &e
 }
 
+func (e *Engine) SetContextDir(dir string) {
+
+}
+
+func (e *Engine) SetNumberFormat(format string) {
+
+}
+
+func (e *Engine) SetDateFormat(format string) {
+
+}
+
 func (e *Engine) RegisterLoader(kind string, loader Loader) {
 	e.loaders[kind] = loader
 }
@@ -49,7 +61,7 @@ func (e *Engine) RegisterLoader(kind string, loader Loader) {
 func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
 	ctx := NewEngineContext()
 	ctx.loaders = maps.Clone(e.loaders)
-	ctx.PushContext(environ)
+	ctx.setEnv(environ)
 
 	ps, err := e.bootstrap(r, ctx)
 	if err != nil {
