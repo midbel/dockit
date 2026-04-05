@@ -20,6 +20,7 @@ type Cell struct {
 	raw     string
 	parsed  value.ScalarValue
 	formula value.Formula
+	dirty   bool
 }
 
 func (c *Cell) At() layout.Position {
@@ -49,13 +50,18 @@ func (c *Cell) Formula() value.Formula {
 	return c.formula
 }
 
+func (c *Cell) Dirty() bool {
+	return c.dirty
+}
+
 func (c *Cell) Sync(ctx value.Context) error {
-	if c.formula == nil {
+	if c.formula == nil || !c.dirty {
 		return nil
 	}
 	val, err := grid.Eval(c.formula, ctx)
 	if err == nil {
 		c.update(val)
+		c.dirty = false
 	}
 	return err
 }

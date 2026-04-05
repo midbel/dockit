@@ -466,6 +466,7 @@ type Cell struct {
 	raw     string
 	parsed  value.ScalarValue
 	formula value.Formula
+	dirty   bool
 }
 
 func (c *Cell) At() layout.Position {
@@ -491,6 +492,13 @@ func (c *Cell) Formula() value.Formula {
 	return c.formula
 }
 
+func (c *Cell) Dirty() bool {
+	if err := c.supported(); err != nil {
+		return false
+	}
+	return c.dirty
+}
+
 func (c *Cell) Sync(ctx value.Context) error {
 	if err := c.supported(); err != nil {
 		return err
@@ -501,6 +509,7 @@ func (c *Cell) Sync(ctx value.Context) error {
 	val, err := grid.Eval(c.formula, ctx)
 	if err == nil {
 		c.update(val)
+		c.dirty = false
 	}
 	return err
 }

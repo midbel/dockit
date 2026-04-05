@@ -60,6 +60,7 @@ type Cell interface {
 	At() layout.Position
 	Value() value.ScalarValue
 	Formula() value.Formula
+	Dirty() bool
 }
 
 func ResetAt(cell Cell, pos layout.Position) Cell {
@@ -83,12 +84,16 @@ func (c empty) At() layout.Position {
 	return c.pos
 }
 
-func (c empty) Value() value.ScalarValue {
+func (empty) Value() value.ScalarValue {
 	return value.Empty()
 }
 
-func (c empty) Formula() value.Formula {
+func (empty) Formula() value.Formula {
 	return nil
+}
+
+func (empty) Dirty() bool {
+	return false
 }
 
 type Callable interface {
