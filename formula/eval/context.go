@@ -27,6 +27,9 @@ func NewEngineContext() *EngineContext {
 }
 
 func (c *EngineContext) Sub(val value.Value) *EngineContext {
+	if val == c.currentValue {
+		return c
+	}
 	x := *c
 	x.currentValue = val
 	return &x
@@ -115,6 +118,9 @@ func (c *EngineContext) At(pos layout.Position) value.Value {
 }
 
 func (c *EngineContext) SetAt(pos layout.Position, val value.Value) error {
+	if pos.Sheet == "active" {
+		pos = pos.WithoutSheet()
+	}
 	sh, err := c.getView(pos.Sheet)
 	if err != nil {
 		return err
@@ -123,6 +129,15 @@ func (c *EngineContext) SetAt(pos layout.Position, val value.Value) error {
 }
 
 func (c *EngineContext) Range(start, end layout.Position) value.Value {
+	if start.Sheet == "active" {
+		start = start.WithoutSheet()
+	}
+	if end.Sheet == "active" {
+		end = end.WithoutSheet()
+	}
+	if start.Sheet != end.Sheet {
+		return value.ErrName
+	}
 	sh, err := c.getView(start.Sheet)
 	if err != nil {
 		return value.ErrNA

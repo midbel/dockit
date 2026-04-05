@@ -236,6 +236,14 @@ func (v astVisitor) VisitTemplate(expr parse.Template) error {
 
 func (v astVisitor) VisitAccess(expr parse.Access) error {
 	node := v.newValue("access", expr)
+	v.stack.Push(node)
+	if err := v.visitExpr(expr.Object()); err != nil {
+		return err
+	}
+	if err := v.visitExpr(expr.Property()); err != nil {
+		return err
+	}
+	v.stack.Pop()
 	v.pushNode(node)
 	return nil
 }

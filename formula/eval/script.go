@@ -109,7 +109,21 @@ func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	if !ok {
 		return fmt.Errorf("object expected")
 	}
-	val := obj.Get(expr.Property())
+	var val value.Value
+	switch prop := expr.Property().(type) {
+	case parse.Identifier:
+		val = obj.Get(prop.Ident())
+	default:
+		ctx := v.ctx
+		defer func() {
+			v.ctx = ctx
+		}()
+		v.ctx = v.ctx.Sub(obj)
+		if err := v.visitExpr(prop); err != nil {
+			return err
+		}
+		val = v.popValue()
+	}
 	v.pushValue(val)
 	return nil
 }

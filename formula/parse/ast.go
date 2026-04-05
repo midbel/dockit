@@ -176,11 +176,11 @@ func (e ExportRef) Accept(v Visitor) error {
 
 type Access struct {
 	expr Expr
-	prop string
+	prop Expr
 	Position
 }
 
-func NewAccess(expr Expr, prop string) Expr {
+func NewAccess(expr, prop Expr) Expr {
 	return Access{
 		expr: expr,
 		prop: prop,
@@ -191,7 +191,7 @@ func (a Access) Object() Expr {
 	return a.expr
 }
 
-func (a Access) Property() string {
+func (a Access) Property() Expr {
 	return a.prop
 }
 

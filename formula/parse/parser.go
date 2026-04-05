@@ -596,14 +596,48 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 	p.next()
 
-	id, ok := left.(Identifier)
-	if !ok {
-		return nil, p.makeError("identifier expected")
-	}
 	right, err := p.parse(powSheet)
 	if err != nil {
 		return nil, err
 	}
+	switch id := left.(type) {
+	case Identifier:
+		return setIdentifierTo(p, id, right)
+	case Access:
+		return setAccessTo(p, id, right)
+	default:
+		return nil, p.makeError("identifier/access expected")
+	}
+}
+
+func setAccessTo(p *Parser, access Access, right Expr) (Expr, error) {
+	id, ok := access.prop.(Identifier)
+	if !ok {
+		return nil, p.makeError("identifier expected")
+	}
+	switch r := right.(type) {
+	case CellAddr:
+		r.Position.Sheet = id.Ident()
+		right = r
+	case RangeAddr:
+		r.startAddr.Sheet = id.Ident()
+		r.endAddr.Sheet = id.Ident()
+		right = r
+	case Identifier:
+		addr, err := parseCellAddr(r.Ident())
+		if err != nil {
+			return nil, err
+		}
+		addr.Sheet = id.Ident()
+		right = addr
+	default:
+		return nil, p.makeError("address/range expected")
+	}
+	access.prop = right
+	return access, nil
+}
+
+func setIdentifierTo(p *Parser, id Identifier, right Expr) (Expr, error) {
 	switch r := right.(type) {
 	case CellAddr:
 		r.Position.Sheet = id.Ident()
@@ -654,9 +688,9 @@ func parseAccess(p *Parser, left Expr) (Expr, error) {
 	if !p.is(op.Ident) {
 		return nil, p.expectedIdent()
 	}
-	a := NewAccess(left, p.currentLiteral())
-	p.next()
-	return a, nil
+	defer p.next()
+	prop := NewIdentifier(p.currentLiteral())
+	return NewAccess(left, prop), nil
 }
 
 func parseAssignment(p *Parser, left Expr) (Expr, error) {

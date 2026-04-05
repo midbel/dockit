@@ -1,10 +1,10 @@
 package types
 
 import (
+	"errors"
 	"os"
 
 	"github.com/midbel/dockit/grid"
-	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -45,7 +45,11 @@ func (*File) String() string {
 }
 
 func (c *File) Sync() error {
-	return c.file.Sync()
+	err := c.file.Sync()
+	if errors.Is(err, grid.ErrSupported) {
+		err = nil
+	}
+	return err
 }
 
 func (c *File) Active() (value.Value, error) {
@@ -70,27 +74,6 @@ func (c *File) Sheet(ident string) (value.Value, error) {
 
 func (c *File) File() grid.File {
 	return c.file
-}
-
-func (c *File) At(pos layout.Position) value.Value {
-	v, err := c.file.Sheet(pos.Sheet)
-	if err != nil {
-		return value.ErrNA
-	}
-	cell, err := v.Cell(pos)
-	if err != nil {
-		return value.ErrNA
-	}
-	return cell.Value()
-}
-
-func (c *File) Range(start, end layout.Position) value.Value {
-	v, err := c.file.Sheet(start.Sheet)
-	if err != nil {
-		return value.ErrNA
-	}
-	rg := layout.NewRange(start, end)
-	return grid.ArrayView(grid.NewBoundedView(v, rg))
 }
 
 func (c *File) Get(ident string) value.Value {

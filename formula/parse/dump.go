@@ -78,7 +78,7 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "access(")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ", ")
-		io.WriteString(w, e.prop)
+		dumpExpr(w, e.prop)
 		io.WriteString(w, ")")
 	case Deferred:
 		io.WriteString(w, "deferred(")

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/midbel/dockit/formula/parse"
@@ -55,7 +56,11 @@ func (c *View) Sync() error {
 	} else {
 		ctx = sub
 	}
-	return c.view.Sync(ctx)
+	err := c.view.Sync(ctx)
+	if errors.Is(err, grid.ErrSupported) {
+		err = nil
+	}
+	return err
 }
 
 // func (c *View) FilterView(predicate value.Predicate) *View {
@@ -87,7 +92,7 @@ func (c *View) Inspect() *InspectValue {
 }
 
 func (c *View) At(pos layout.Position) value.Value {
-	cell, err := c.view.Cell(pos)
+	cell, err := c.view.Cell(pos.WithoutSheet())
 	if err != nil {
 		return value.ErrNA
 	}
@@ -124,7 +129,7 @@ func (c *View) SetAt(pos layout.Position, val value.Value) error {
 }
 
 func (c *View) Range(start, end layout.Position) value.Value {
-	rg := layout.NewRange(start, end)
+	rg := layout.NewRange(start.WithoutSheet(), end.WithoutSheet())
 	for pos := range rg.Positions() {
 		cell, err := c.view.Cell(pos)
 		if err != nil {
@@ -141,7 +146,7 @@ func (c *View) SetRange(start, end layout.Position, val value.Value) error {
 	if c.ro {
 		return ErrReadOnly
 	}
-	rg := layout.NewRange(start, end)
+	rg := layout.NewRange(start.WithoutSheet(), end.WithoutSheet())
 	switch v := val.(type) {
 	case parse.Deferred:
 		fm := grid.NewFormula(v.Expr())
@@ -213,7 +218,10 @@ func (c *View) syncIfNeeded(cell grid.Cell) error {
 		return nil
 	}
 	if s, ok := cell.(interface{ Sync(value.Context) error }); ok {
-		return s.Sync(c.getContext())
+		err := s.Sync(c.getContext())
+		if !errors.Is(err, grid.ErrSupported) {
+			return err
+		}
 	}
 	return nil
 }
