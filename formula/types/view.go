@@ -90,6 +90,14 @@ func (c *View) At(pos layout.Position) value.Value {
 	return cell.Value()
 }
 
+func (c *View) FormulaAt(pos layout.Position) value.Formula {
+	cell, err := c.view.Cell(pos)
+	if err != nil {
+		return nil
+	}
+	return cell.Formula()
+}
+
 func (c *View) SetAt(pos layout.Position, val value.Value) error {
 	if c.ro {
 		return ErrReadOnly

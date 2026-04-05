@@ -49,6 +49,10 @@ func (i inspectForm) inspectCell(eg Runnable, expr parse.CellAddr, ctx *EngineCo
 
 	if view := ctx.CurrentActiveView(); view != nil {
 		iv.Set("view", value.Text(view.Type()))
+		fm := view.FormulaAt(expr.Position)
+		if fm != nil {
+			iv.Set("formula", value.Text("="+fm.String()))
+		}
 	}
 
 	val, _ := eg.Run(expr)
