@@ -12,17 +12,18 @@ import (
 type View struct {
 	view grid.View
 	ro   bool
+	ctx  value.Context
 }
 
 func NewViewValue(view grid.View) value.Value {
-	return newView(view, false)
+	return newView(view, nil, false)
 }
 
-func newView(view grid.View, ro bool) value.Value {
-	return createView(view, ro)
+func newView(view grid.View, ctx value.Context, ro bool) value.Value {
+	return createView(view, ctx, ro)
 }
 
-func createView(view grid.View, ro bool) *View {
+func createView(view grid.View, ctx value.Context, ro bool) *View {
 	return &View{
 		view: view,
 		ro:   ro,
@@ -44,9 +45,12 @@ func (c *View) String() string {
 	return c.view.Name()
 }
 
-func (c *View) Sync(ctx value.Context) error {
-	sub := grid.SheetContext(c.view)
-	if ctx != nil {
+func (c *View) Sync() error {
+	var (
+		sub = grid.SheetContext(c.view)
+		ctx value.Context
+	)
+	if c.ctx != nil {
 		ctx = grid.EnclosedContext(ctx, sub)
 	} else {
 		ctx = sub
@@ -61,12 +65,12 @@ func (c *View) Sync(ctx value.Context) error {
 
 func (c *View) ProjectView(sel layout.Selection) *View {
 	view := grid.NewProjectView(c.view, sel)
-	return createView(view, false)
+	return createView(view, c.ctx, false)
 }
 
 func (c *View) BoundedView(rg *layout.Range) *View {
 	view := grid.NewBoundedView(c.view, rg)
-	return createView(view, false)
+	return createView(view, c.ctx, false)
 }
 
 func (c *View) Inspect() *InspectValue {
@@ -86,6 +90,9 @@ func (c *View) At(pos layout.Position) value.Value {
 	cell, err := c.view.Cell(pos)
 	if err != nil {
 		return value.ErrNA
+	}
+	if err := c.syncIfNeeded(cell); err != nil {
+		return value.ErrValue
 	}
 	return cell.Value()
 }
@@ -118,6 +125,15 @@ func (c *View) SetAt(pos layout.Position, val value.Value) error {
 
 func (c *View) Range(start, end layout.Position) value.Value {
 	rg := layout.NewRange(start, end)
+	for pos := range rg.Positions() {
+		cell, err := c.view.Cell(pos)
+		if err != nil {
+			continue
+		}
+		if err := c.syncIfNeeded(cell); err != nil {
+			return value.ErrValue
+		}
+	}
 	return grid.ArrayView(grid.NewBoundedView(c.view, rg))
 }
 
@@ -190,6 +206,29 @@ func (c *View) View() grid.View {
 		return grid.ReadOnly(c.view)
 	}
 	return c.view
+}
+
+func (c *View) syncIfNeeded(cell grid.Cell) error {
+	if !cell.Dirty() {
+		return nil
+	}
+	if s, ok := cell.(interface{ Sync(value.Context) error }); ok {
+		return s.Sync(c.getContext())
+	}
+	return nil
+}
+
+func (c *View) getContext() value.Context {
+	var (
+		ctx  value.Context
+		curr = grid.SheetContext(c.view)
+	)
+	if c.ctx != nil {
+		ctx = grid.EnclosedContext(c.ctx, curr)
+	} else {
+		ctx = curr
+	}
+	return ctx
 }
 
 func (c *View) AsArray() value.ArrayValue {

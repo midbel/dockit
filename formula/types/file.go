@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/midbel/dockit/grid"
@@ -50,22 +49,23 @@ func (c *File) Sync() error {
 }
 
 func (c *File) Active() (value.Value, error) {
-	v, err := c.file.ActiveSheet()
-	if err != nil {
-		return nil, err
-	}
-	if v == nil {
-		return nil, fmt.Errorf("no active view")
-	}
-	return newView(v, c.ro), nil
+	return c.Sheet("")
 }
 
 func (c *File) Sheet(ident string) (value.Value, error) {
-	v, err := c.file.Sheet(ident)
-	if err != nil {
-		return nil, err
+	var (
+		sh  grid.View
+		err error
+	)
+	if ident == "" {
+		sh, err = c.file.ActiveSheet()
+	} else {
+		sh, err = c.file.Sheet(ident)
 	}
-	return newView(v, c.ro), nil
+	if err != nil {
+		return value.ErrNA, nil
+	}
+	return newView(sh, grid.FileContext(c.file), c.ro), nil
 }
 
 func (c *File) File() grid.File {
@@ -105,11 +105,8 @@ func (c *File) Get(ident string) value.Value {
 	case "protected":
 		return value.Boolean(false)
 	case "active":
-		sh, err := c.file.ActiveSheet()
-		if err != nil {
-			return value.ErrNA
-		}
-		return newView(sh, c.ro)
+		v, _ := c.Sheet("")
+		return v
 	default:
 		v, err := c.Sheet(ident)
 		if err == nil {

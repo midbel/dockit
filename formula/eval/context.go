@@ -61,13 +61,8 @@ func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error)
 }
 
 func (c *EngineContext) Print(v value.Value) error {
-	if v, ok := v.(*types.View); ok {
-		var ctx value.Context
-		if f, ok := c.Default().(*types.File); ok {
-			ctx = grid.FileContext(f.File())
-		}
-		err := v.Sync(ctx)
-		if err != nil {
+	if s, ok := v.(interface{ Sync() error }); ok {
+		if err := s.Sync(); err != nil {
 			return err
 		}
 	}
@@ -76,23 +71,10 @@ func (c *EngineContext) Print(v value.Value) error {
 }
 
 func (c *EngineContext) Export(v value.Value) error {
-	switch v := v.(type) {
-	case *types.File:
-		err := v.Sync()
-		if err != nil {
+	if s, ok := v.(interface{ Sync() error }); ok {
+		if err := s.Sync(); err != nil {
 			return err
 		}
-	case *types.View:
-		var ctx value.Context
-		if f, ok := c.Default().(*types.File); ok {
-			ctx = grid.FileContext(f.File())
-		}
-		err := v.Sync(ctx)
-		if err != nil {
-			return err
-		}
-	default:
-		return types.ErrType
 	}
 	return nil
 }
