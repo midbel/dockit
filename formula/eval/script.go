@@ -122,15 +122,15 @@ func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	case parse.Identifier:
 		val = obj.Get(prop.Ident())
 	default:
-		ctx := v.ctx
-		defer func() {
-			v.ctx = ctx
-		}()
-		v.ctx = v.ctx.Sub(obj)
-		if err := v.visitExpr(prop); err != nil {
+		sub := evalScript(v.ctx.Sub(obj))
+		sub.stack = v.stack.Clone()
+		sub.phases = v.phases.Clone()
+
+		v, err := sub.Run(prop)
+		if err != nil {
 			return err
 		}
-		val = v.popValue()
+		val = v
 	}
 	v.pushValue(val)
 	return nil

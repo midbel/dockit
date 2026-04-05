@@ -1,5 +1,9 @@
 package ds
 
+import (
+	"slices"
+)
+
 type Stack[T any] struct {
 	values []T
 }
@@ -7,6 +11,12 @@ type Stack[T any] struct {
 func NewStack[T any]() *Stack[T] {
 	return &Stack[T]{
 		values: make([]T, 0, 16),
+	}
+}
+
+func (s *Stack[T]) Clone() *Stack[T] {
+	return &Stack[T]{
+		values: slices.Clone(s.values),
 	}
 }
 
