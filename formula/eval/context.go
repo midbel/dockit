@@ -123,12 +123,12 @@ func (c *EngineContext) Range(start, end layout.Position) value.Value {
 	return sh.Range(start, end)
 }
 
-func (c *EngineContext) SetRange(start, end layout.Position, val value.Value) {
+func (c *EngineContext) SetRange(start, end layout.Position, val value.Value) error {
 	sh, err := c.getActiveView(c.Default(), start.Sheet)
 	if err != nil {
-		return
+		return err
 	}
-	_ = sh
+	return sh.SetRange(start, end, val)
 }
 
 func (c *EngineContext) setEnv(environ *env.Environment) {

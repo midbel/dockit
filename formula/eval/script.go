@@ -148,11 +148,12 @@ func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
 	case parse.CellAddr:
 		err = v.ctx.SetAt(e.Position, val)
 	case parse.RangeAddr:
-		v.ctx.SetRange(e.StartAt().Position, e.EndAt().Position, val)
+		err = v.ctx.SetRange(e.StartAt().Position, e.EndAt().Position, val)
 	case parse.Access:
 	case parse.Identifier:
 		v.ctx.Define(e.Ident(), val)
 	default:
+		err = fmt.Errorf("target value is not assignable")
 	}
 	return err
 }

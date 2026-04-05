@@ -1,9 +1,9 @@
 package types
 
 import (
-	"fmt"
 	"slices"
 
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -83,7 +83,7 @@ func (c *View) At(pos layout.Position) value.Value {
 func (c *View) SetAt(pos layout.Position, val value.Value) error {
 	mv, ok := c.view.(grid.MutableView)
 	if !ok {
-		return nil
+		return ErrReadOnly
 	}
 	if f, ok := val.(value.Formula); ok {
 		mv.SetFormula(pos, f)
@@ -100,6 +100,30 @@ func (c *View) SetAt(pos layout.Position, val value.Value) error {
 func (c *View) Range(start, end layout.Position) value.Value {
 	rg := layout.NewRange(start, end)
 	return grid.ArrayView(grid.NewBoundedView(c.view, rg))
+}
+
+func (c *View) SetRange(start, end layout.Position, val value.Value) error {
+	rg := layout.NewRange(start, end)
+	switch v := val.(type) {
+	case parse.Deferred:
+		fm := grid.NewFormula(v.Expr())
+		for pos := range rg.Positions() {
+			if err := c.SetAt(pos, fm); err != nil {
+				return err
+			}
+		}
+	case value.ScalarValue:
+		for pos := range rg.Positions() {
+			if err := c.SetAt(pos, val); err != nil {
+				return err
+			}
+		}
+	case value.ArrayValue:
+		return c.setArray(v, rg)
+	default:
+		return ErrType
+	}
+	return nil
 }
 
 func (c *View) Get(ident string) value.Value {
@@ -146,21 +170,52 @@ func (c *View) View() grid.View {
 	return c.view
 }
 
-func (c *View) Mutable() (grid.MutableView, error) {
-	if c.ro {
-		return nil, fmt.Errorf("view is not mutable")
-	}
-	mv, ok := c.view.(grid.MutableView)
-	if !ok {
-		return nil, fmt.Errorf("view is not mutable")
-	}
-	return mv, nil
-}
-
 func (c *View) AsArray() value.ArrayValue {
 	var data [][]value.ScalarValue
 	for _, r := range c.view.Rows() {
 		data = append(data, slices.Clone(r))
 	}
 	return value.NewArray(data)
+}
+
+func (c *View) setArray(arr value.ArrayValue, rg *layout.Range) error {
+	mode, err := getBroadcastMode(rg, arr)
+	if err != nil {
+		return err
+	}
+	var (
+		index int
+		row   int
+		col   int
+		dim   = arr.Dimension()
+	)
+	for pos := range rg.Positions() {
+		var val value.ScalarValue
+		switch mode {
+		case broadcastExact:
+			val = arr.At(row, col)
+		case broadcastRow:
+			val = arr.At(0, col)
+		case broadcastCol:
+			val = arr.At(row, 0)
+		case broadcastScalar:
+			val = arr.At(0, 0)
+		case broadcastFlat:
+			r := index / int(dim.Lines)
+			c := index % int(dim.Columns)
+			val = arr.At(r, c)
+			index++
+		default:
+			continue
+		}
+		if err := c.SetAt(pos, val); err != nil {
+			return err
+		}
+		col++
+		if col == int(rg.Width()) {
+			col = 0
+			row++
+		}
+	}
+	return nil
 }

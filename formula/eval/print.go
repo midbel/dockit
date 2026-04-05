@@ -133,16 +133,6 @@ func (p valuePrinter) printView(v *types.View, f format.Formatter) {
 		}
 		data = append(data, row)
 	}
-
-	for i := range data {
-		for j := range data[i] {
-			if j > 0 {
-				io.WriteString(writer, " | ")
-			}
-			writeValue(writer, data[i][j], padding[j])
-		}
-		io.WriteString(writer, "\n")
-	}
 	writeView(writer, data, padding, false)
 
 	if truncated {
