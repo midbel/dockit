@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/midbel/dockit/formula/parse"

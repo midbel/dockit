@@ -26,6 +26,12 @@ func NewEngineContext() *EngineContext {
 	return new(EngineContext)
 }
 
+func (c *EngineContext) Sub(val value.Value) *EngineContext {
+	x := *c
+	x.currentValue = val
+	return &x
+}
+
 func (c *EngineContext) Configure(cfg *EngineConfig) error {
 	f, err := cfg.Formatter()
 	if err != nil {
@@ -100,7 +106,7 @@ func (c *EngineContext) SetDefault(val value.Value) {
 }
 
 func (c *EngineContext) At(pos layout.Position) value.Value {
-	sh, err := c.getActiveView(c.Default(), pos.Sheet)
+	sh, err := c.getView(pos.Sheet)
 	if err != nil {
 		return value.ErrNA
 	}
@@ -108,7 +114,7 @@ func (c *EngineContext) At(pos layout.Position) value.Value {
 }
 
 func (c *EngineContext) SetAt(pos layout.Position, val value.Value) error {
-	sh, err := c.getActiveView(c.Default(), pos.Sheet)
+	sh, err := c.getView(pos.Sheet)
 	if err != nil {
 		return err
 	}
@@ -116,7 +122,7 @@ func (c *EngineContext) SetAt(pos layout.Position, val value.Value) error {
 }
 
 func (c *EngineContext) Range(start, end layout.Position) value.Value {
-	sh, err := c.getActiveView(c.Default(), start.Sheet)
+	sh, err := c.getView(start.Sheet)
 	if err != nil {
 		return value.ErrNA
 	}
@@ -124,7 +130,7 @@ func (c *EngineContext) Range(start, end layout.Position) value.Value {
 }
 
 func (c *EngineContext) SetRange(start, end layout.Position, val value.Value) error {
-	sh, err := c.getActiveView(c.Default(), start.Sheet)
+	sh, err := c.getView(start.Sheet)
 	if err != nil {
 		return err
 	}
@@ -135,15 +141,11 @@ func (c *EngineContext) setEnv(environ *env.Environment) {
 	c.env = environ
 }
 
-func (c *EngineContext) getActiveView(val value.Value, name string) (*types.View, error) {
-	switch v := val.(type) {
-	case *types.View:
-		return v, nil
-	case *types.File:
-		return c.getViewFromFile(v, name)
-	default:
-		return nil, fmt.Errorf("%s: view can not be found", name)
+func (c *EngineContext) getView(name string) (*types.View, error) {
+	if f, ok := c.Default().(*types.File); ok {
+		return c.getViewFromFile(f, name)
 	}
+	return nil, fmt.Errorf("%s: view can not be found", name)
 }
 
 func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.View, error) {
@@ -161,7 +163,7 @@ func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.V
 	}
 	tv, ok := sheet.(*types.View)
 	if !ok {
-		return nil, value.ErrValue
+		err = types.ErrType
 	}
-	return tv, nil
+	return tv, err
 }

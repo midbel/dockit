@@ -50,10 +50,10 @@ func (v *evalVisitor) VisitUseRef(expr parse.UseRef) error {
 		return err
 	}
 	switch val.(type) {
-	case *types.File, *types.View:
+	case *types.File:
 		v.ctx.SetDefault(val)
 	default:
-		return fmt.Errorf("file/view expected")
+		return fmt.Errorf("only file can be used as default")
 	}
 	return nil
 }
