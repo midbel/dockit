@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"slices"
 
 	"github.com/midbel/dockit/formula/parse"
@@ -81,20 +82,21 @@ func (c *View) At(pos layout.Position) value.Value {
 }
 
 func (c *View) SetAt(pos layout.Position, val value.Value) error {
+	if c.ro {
+		return ErrReadOnly
+	}
 	mv, ok := c.view.(grid.MutableView)
 	if !ok {
 		return ErrReadOnly
 	}
-	if f, ok := val.(value.Formula); ok {
-		mv.SetFormula(pos, f)
-	} else {
-		scalar, ok := val.(value.ScalarValue)
-		if !ok {
-			return nil
-		}
-		mv.SetValue(pos, scalar)
+	if f, ok := val.(parse.Deferred); ok {
+		return mv.SetFormula(pos, grid.NewFormula(f.Expr()))
 	}
-	return nil
+	scalar, ok := val.(value.ScalarValue)
+	if !ok {
+		return ErrType
+	}
+	return mv.SetValue(pos, scalar)
 }
 
 func (c *View) Range(start, end layout.Position) value.Value {
@@ -103,6 +105,9 @@ func (c *View) Range(start, end layout.Position) value.Value {
 }
 
 func (c *View) SetRange(start, end layout.Position, val value.Value) error {
+	if c.ro {
+		return ErrReadOnly
+	}
 	rg := layout.NewRange(start, end)
 	switch v := val.(type) {
 	case parse.Deferred:
