@@ -11,6 +11,7 @@ import (
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/internal/ds"
+	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
 )
 
@@ -62,8 +63,15 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 	options := expr.Options()
 	switch spec := expr.Specifier(); expr.Format() {
 	case "csv":
+		if spec == "" {
+			spec = v.ctx.GetOptionString(slx.Make("csv", "delimiter"))
+			spec = csvDelimiter(spec)
+		}
 		options["delimiter"] = spec
 	case "log":
+		if spec == "" {
+			spec = v.ctx.GetOptionString(slx.Make("log", "pattern"))
+		}
 		options["pattern"] = spec
 	default:
 	}

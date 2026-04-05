@@ -20,6 +20,7 @@ type EngineContext struct {
 	printer    Printer
 	formatter  format.Formatter
 	contextDir string
+	config     *EngineConfig
 }
 
 func NewEngineContext() *EngineContext {
@@ -36,6 +37,7 @@ func (c *EngineContext) Sub(val value.Value) *EngineContext {
 }
 
 func (c *EngineContext) Configure(cfg *EngineConfig) error {
+	c.config = cfg
 	f, err := cfg.Formatter()
 	if err != nil {
 		return err
@@ -51,6 +53,18 @@ func (c *EngineContext) Configure(cfg *EngineConfig) error {
 	c.contextDir = cfg.ContextDir()
 
 	return nil
+}
+
+func (c *EngineContext) GetOption(key []string) any {
+	return c.config.Get(key)
+}
+
+func (c *EngineContext) GetOptionString(key []string) string {
+	v := c.config.Get(key)
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return fmt.Sprint(v)
 }
 
 func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error) {

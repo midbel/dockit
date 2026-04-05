@@ -85,6 +85,11 @@ func (c *EngineConfig) Set(ident []string, val any) error {
 	return nil
 }
 
+func (c *EngineConfig) Get(key []string) any {
+	v, _ := c.registry.Get(key)
+	return v
+}
+
 func (c *EngineConfig) SetDefaults() {
 	c.Set(slx.Make("context", "dir"), ".")
 	c.Set(slx.Make("print", "debug"), false)
@@ -93,10 +98,27 @@ func (c *EngineConfig) SetDefaults() {
 	c.Set(slx.Make("format", "number"), format.DefaultNumberPattern)
 	c.Set(slx.Make("format", "date"), format.DefaultDatePattern)
 	c.Set(slx.Make("format", "bool"), "")
-	c.Set(slx.Make("csv", "delimiter"), ",")
+	c.Set(slx.Make("csv", "delimiter"), "comma")
 	c.Set(slx.Make("csv", "quoted"), true)
 }
 
 func (c *EngineConfig) Merge(other *EngineConfig) error {
 	return c.registry.Merge(other.registry)
+}
+
+func csvDelimiter(value string) string {
+	switch value {
+	default:
+		return value
+	case "pipe":
+		return "|"
+	case "comma", "":
+		return ","
+	case "semi", "semicolon":
+		return ";"
+	case "tab":
+		return "\t"
+	case "space":
+		return ""
+	}
 }
