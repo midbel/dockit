@@ -80,6 +80,23 @@ func (c *View) At(pos layout.Position) value.Value {
 	return cell.Value()
 }
 
+func (c *View) SetAt(pos layout.Position, val value.Value) error {
+	mv, ok := c.view.(grid.MutableView)
+	if !ok {
+		return nil
+	}
+	if f, ok := val.(value.Formula); ok {
+		mv.SetFormula(pos, f)
+	} else {
+		scalar, ok := val.(value.ScalarValue)
+		if !ok {
+			return nil
+		}
+		mv.SetValue(pos, scalar)
+	}
+	return nil
+}
+
 func (c *View) Range(start, end layout.Position) value.Value {
 	rg := layout.NewRange(start, end)
 	return grid.ArrayView(grid.NewBoundedView(c.view, rg))

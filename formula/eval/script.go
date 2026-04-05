@@ -136,51 +136,26 @@ func (v *evalVisitor) VisitDeferred(expr parse.Deferred) error {
 func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
 	v.enterPhase(phaseAssign)
 	defer v.leavePhase()
-	return nil
-	// lv, cl, err := v.assignmentTarget(expr.Ident())
-	// if err != nil {
-	// 	return err
-	// }
-	// if cl != nil {
-	// 	defer cl.Close()
-	// }
-	// if err := v.visitExpr(expr.Expr()); err != nil {
-	// 	return err
-	// }
-	// val, err := v.normalize(v.popValue())
-	// if err != nil {
-	// 	return err
-	// }
-	// return lv.Set(val)
-}
 
-// func (v *evalVisitor) assignmentTarget(expr parse.Expr) (LValue, io.Closer, error) {
-// 	var (
-// 		lv  LValue
-// 		cl  io.Closer
-// 		err error
-// 	)
-// 	switch expr := expr.(type) {
-// 	case parse.CellAddr:
-// 		cl, err = v.ctx.PushMutable("")
-// 		if err != nil {
-// 			break
-// 		}
-// 		lv, err = resolveCell(v.ctx, expr)
-// 	case parse.RangeAddr:
-// 		cl, err = v.ctx.PushMutable("")
-// 		if err != nil {
-// 			break
-// 		}
-// 		lv, err = resolveRange(v.ctx, expr)
-// 	case parse.Access:
-// 	case parse.Identifier:
-// 		lv, err = resolveIdent(v.ctx, expr)
-// 	default:
-// 		err = fmt.Errorf("value can not be assigned to %s", expr)
-// 	}
-// 	return lv, cl, err
-// }
+	if err := v.visitExpr(expr.Expr()); err != nil {
+		return err
+	}
+	val, err := v.normalize(v.popValue())
+	if err != nil {
+		return err
+	}
+	switch e := expr.Ident().(type) {
+	case parse.CellAddr:
+		err = v.ctx.SetAt(e.Position, val)
+	case parse.RangeAddr:
+		v.ctx.SetRange(e.StartAt().Position, e.EndAt().Position, val)
+	case parse.Access:
+	case parse.Identifier:
+		v.ctx.Define(e.Ident(), val)
+	default:
+	}
+	return err
+}
 
 func (v *evalVisitor) VisitBinary(expr parse.Binary) error {
 	v.enterPhase(phaseBinary)

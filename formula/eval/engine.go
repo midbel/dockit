@@ -66,6 +66,10 @@ func (e *Engine) SetDateFormat(format string) {
 	e.config.Set(slx.Make("format", "date"), format)
 }
 
+func (e *Engine) SetPrintDebug(debug bool) {
+	e.config.Set(slx.Make("print", "debug"), debug)
+}
+
 func (e *Engine) RegisterLoader(kind string, loader Loader) {
 	e.loaders[kind] = loader
 }

@@ -1,7 +1,6 @@
 package eval
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 
@@ -11,12 +10,6 @@ import (
 	"github.com/midbel/dockit/grid/format"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
-)
-
-var (
-	ErrSupported = errors.New("not supported")
-	ErrEmpty     = errors.New("empty context")
-	ErrMutate    = errors.New("context is not mutable")
 )
 
 type EngineContext struct {
@@ -114,12 +107,28 @@ func (c *EngineContext) At(pos layout.Position) value.Value {
 	return sh.At(pos)
 }
 
+func (c *EngineContext) SetAt(pos layout.Position, val value.Value) error {
+	sh, err := c.getActiveView(c.Default(), pos.Sheet)
+	if err != nil {
+		return err
+	}
+	return sh.SetAt(pos, val)
+}
+
 func (c *EngineContext) Range(start, end layout.Position) value.Value {
 	sh, err := c.getActiveView(c.Default(), start.Sheet)
 	if err != nil {
 		return value.ErrNA
 	}
 	return sh.Range(start, end)
+}
+
+func (c *EngineContext) SetRange(start, end layout.Position, val value.Value) {
+	sh, err := c.getActiveView(c.Default(), start.Sheet)
+	if err != nil {
+		return
+	}
+	_ = sh
 }
 
 func (c *EngineContext) setEnv(environ *env.Environment) {
@@ -152,7 +161,7 @@ func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.V
 	}
 	tv, ok := sheet.(*types.View)
 	if !ok {
-		return nil, ErrValue
+		return nil, value.ErrValue
 	}
 	return tv, nil
 }
