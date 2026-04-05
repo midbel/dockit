@@ -44,6 +44,16 @@ func (c *View) String() string {
 	return c.view.Name()
 }
 
+func (c *View) Sync(ctx value.Context) error {
+	sub := grid.SheetContext(c.view)
+	if ctx != nil {
+		ctx = grid.EnclosedContext(ctx, sub)
+	} else {
+		ctx = sub
+	}
+	return c.view.Sync(ctx)
+}
+
 // func (c *View) FilterView(predicate value.Predicate) *View {
 // 	view := grid.FilterView(c.view, predicate)
 // 	return createView(view, false)

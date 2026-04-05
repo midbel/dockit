@@ -45,6 +45,10 @@ func (*File) String() string {
 	return "workbook"
 }
 
+func (c *File) Sync() error {
+	return c.file.Sync()
+}
+
 func (c *File) Active() (value.Value, error) {
 	v, err := c.file.ActiveSheet()
 	if err != nil {

@@ -60,8 +60,41 @@ func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error)
 	return loader.Open(file, opts)
 }
 
-func (c *EngineContext) Print(v value.Value) {
+func (c *EngineContext) Print(v value.Value) error {
+	if v, ok := v.(*types.View); ok {
+		var ctx value.Context
+		if f, ok := c.Default().(*types.File); ok {
+			ctx = grid.FileContext(f.File())
+		}
+		err := v.Sync(ctx)
+		if err != nil {
+			return err
+		}
+	}
 	c.printer.Format(v, c.formatter)
+	return nil
+}
+
+func (c *EngineContext) Export(v value.Value) error {
+	switch v := v.(type) {
+	case *types.File:
+		err := v.Sync()
+		if err != nil {
+			return err
+		}
+	case *types.View:
+		var ctx value.Context
+		if f, ok := c.Default().(*types.File); ok {
+			ctx = grid.FileContext(f.File())
+		}
+		err := v.Sync(ctx)
+		if err != nil {
+			return err
+		}
+	default:
+		return types.ErrType
+	}
+	return nil
 }
 
 func (c *EngineContext) Resolve(ident string) value.Value {
@@ -82,27 +115,13 @@ func (c *EngineContext) Default() value.Value {
 	return c.currentValue
 }
 
-func (c *EngineContext) CurrentActiveView() *types.View {
-	switch c := c.currentValue.(type) {
-	case *types.View:
-		return c
-	case *types.File:
-		active, err := c.Active()
-		if err != nil {
-			return nil
-		}
-		v, ok := active.(*types.View)
-		if ok {
-			return v
-		}
-		return nil
-	default:
-		return nil
-	}
-}
-
 func (c *EngineContext) SetDefault(val value.Value) {
 	c.currentValue = val
+}
+
+func (c *EngineContext) CurrentActiveView() *types.View {
+	v, _ := c.getView("")
+	return v
 }
 
 func (c *EngineContext) At(pos layout.Position) value.Value {

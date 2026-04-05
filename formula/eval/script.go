@@ -94,8 +94,7 @@ func (v *evalVisitor) VisitPrintRef(expr parse.PrintRef) error {
 	if err != nil {
 		return err
 	}
-	v.ctx.Print(val)
-	return err
+	return v.ctx.Print(val)
 }
 
 func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
