@@ -19,10 +19,14 @@ const (
 	kwAnd     = "and"
 	kwOr      = "or"
 	kwNot     = "not"
+	kwAssert  = "assert"
+	kwElse    = "else"
 )
 
 func isKeyword(str string) bool {
 	switch str {
+	case kwAssert:
+	case kwElse:
 	case kwImport:
 	case kwUse:
 	case kwUsing:

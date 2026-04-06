@@ -119,7 +119,13 @@ func (c *View) SetAt(pos layout.Position, val value.Value) error {
 		return ErrReadOnly
 	}
 	if f, ok := val.(parse.Deferred); ok {
-		return mv.SetFormula(pos, grid.NewFormula(f.Expr()))
+		fm := grid.NewFormula(f.Expr())
+		if c, ok := fm.(interface {
+			Clone(layout.Position) value.Formula
+		}); ok {
+			fm = c.Clone(pos)
+		}
+		return mv.SetFormula(pos, fm)
 	}
 	scalar, ok := val.(value.ScalarValue)
 	if !ok {
@@ -149,9 +155,8 @@ func (c *View) SetRange(start, end layout.Position, val value.Value) error {
 	rg := layout.NewRange(start.WithoutSheet(), end.WithoutSheet())
 	switch v := val.(type) {
 	case parse.Deferred:
-		fm := grid.NewFormula(v.Expr())
 		for pos := range rg.Positions() {
-			if err := c.SetAt(pos, fm); err != nil {
+			if err := c.SetAt(pos, val); err != nil {
 				return err
 			}
 		}

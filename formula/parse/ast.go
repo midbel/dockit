@@ -132,6 +132,49 @@ func (i ImportFile) Accept(v Visitor) error {
 	return v.VisitImportFile(i)
 }
 
+type AssertType int8
+
+const (
+	AssertFail AssertType = iota
+	AssertWarn
+	AssertIgnore
+	AssertUnknown
+)
+
+type Assert struct {
+	expr Expr
+	msg  string
+	mode AssertType
+}
+
+func NewAssert(expr Expr, msg string, mode AssertType) Expr {
+	return Assert{
+		expr: expr,
+		msg:  msg,
+		mode: mode,
+	}
+}
+
+func (a Assert) Type() AssertType {
+	return a.mode
+}
+
+func (a Assert) Expr() Expr {
+	return a.expr
+}
+
+func (a Assert) Failure() string {
+	return a.msg
+}
+
+func (a Assert) String() string {
+	return fmt.Sprintf("assert %s else %s", a.expr, a.msg)
+}
+
+func (a Assert) Accept(v Visitor) error {
+	return v.VisitAssert(a)
+}
+
 type PrintRef struct {
 	expr    Expr
 	pattern string

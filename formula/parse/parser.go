@@ -71,6 +71,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterInfix(op.DivAssign, parseAssignment)
 	g.RegisterInfix(op.ConcatAssign, parseAssignment)
 
+	g.RegisterPrefixKeyword(kwAssert, parseAssert)
 	g.RegisterPrefixKeyword(kwUse, parseUse)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
@@ -802,6 +803,45 @@ func parseKeyValuePairs(p *Parser) (map[string]any, error) {
 		}
 	}
 	return kvs, nil
+}
+
+func parseAssert(p *Parser) (Expr, error) {
+	p.next()
+	var mode AssertType
+	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
+		p.next()
+		if !p.is(op.Ident) {
+			return nil, p.expectedIdent()
+		}
+		switch p.currentLiteral() {
+		case "fail":
+			mode = AssertFail
+		case "ignore":
+			mode = AssertIgnore
+		case "warn":
+			mode = AssertWarn
+		default:
+			return nil, fmt.Errorf("%s: unknown assertion mode", p.currentLiteral())
+		}
+		p.next()
+	} else {
+		mode = AssertUnknown
+	}
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	var msg string
+	if p.is(op.Keyword) && p.currentLiteral() == kwElse {
+		p.next()
+		if !p.is(op.Literal) {
+			msg := fmt.Sprintf("literal expected instead of %s", p.curr)
+			return nil, p.makeError(msg)
+		}
+		msg = p.currentLiteral()
+		p.next()
+	}
+	return NewAssert(expr, msg, mode), nil
 }
 
 func parseImport(p *Parser) (Expr, error) {

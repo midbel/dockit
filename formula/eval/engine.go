@@ -18,6 +18,20 @@ var (
 	ErrCallable = errors.New("expression is not callable")
 )
 
+type AbortError struct {
+	msg string
+}
+
+func Abort(msg string) error {
+	return AbortError{
+		msg: msg,
+	}
+}
+
+func (e AbortError) Error() string {
+	return e.msg
+}
+
 type Runnable interface {
 	Run(parse.Expr) (value.Value, error)
 }

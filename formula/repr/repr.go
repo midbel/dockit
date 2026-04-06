@@ -335,6 +335,19 @@ func (v astVisitor) VisitSlice(expr parse.Slice) error {
 	return nil
 }
 
+func (v astVisitor) VisitAssert(expr parse.Assert) error {
+	node := v.newExpr("assert", expr)
+	node.Params = []Param{
+		{Name: "message", Value: expr.Failure()},
+	}
+	v.stack.Push(node)
+	if err := v.visitExpr(expr.Expr()); err != nil {
+		return err
+	}
+	v.stack.Pop()
+	return nil
+}
+
 func (v astVisitor) VisitBinary(expr parse.Binary) error {
 	node := v.newExpr("binary", expr)
 	node.Params = []Param{

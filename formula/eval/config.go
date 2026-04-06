@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/grid/format"
 	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/internal/slx"
@@ -120,5 +121,16 @@ func csvDelimiter(value string) string {
 		return "\t"
 	case "space":
 		return ""
+	}
+}
+
+func assertMode(value string) parse.AssertType {
+	switch value {
+	default:
+		return parse.AssertFail
+	case "warn":
+		return parse.AssertWarn
+	case "ignore":
+		return parse.AssertIgnore
 	}
 }

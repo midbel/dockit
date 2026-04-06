@@ -231,12 +231,39 @@ func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
 	case parse.RangeAddr:
 		err = v.ctx.SetRange(e.StartAt().Position, e.EndAt().Position, val)
 	case parse.Access:
+	case parse.SpecialAccess:
 	case parse.Identifier:
 		v.ctx.Define(e.Ident(), val)
 	default:
 		err = fmt.Errorf("target value is not assignable")
 	}
 	return err
+}
+
+func (v *evalVisitor) VisitAssert(expr parse.Assert) error {
+	if err := v.visitExpr(expr.Expr()); err != nil {
+		return err
+	}
+	ok := value.True(v.popValue())
+	if !ok {
+		mode := expr.Type()
+		if mode == parse.AssertUnknown {
+			opt := v.ctx.GetOptionString(slx.Make("assert", "mode"))
+			mode = assertMode(opt)
+		}
+		switch mode {
+		default:
+		case parse.AssertFail:
+			msg := expr.Failure()
+			if msg == "" {
+				msg = fmt.Sprintf("assertion failed: %s", expr.Expr())
+			}
+			return Abort(msg)
+		case parse.AssertWarn:
+		case parse.AssertIgnore:
+		}
+	}
+	return nil
 }
 
 func (v *evalVisitor) VisitBinary(expr parse.Binary) error {

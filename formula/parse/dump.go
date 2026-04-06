@@ -156,6 +156,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 			dumpExpr(w, e.step)
 		}
 		io.WriteString(w, ")")
+	case Assert:
+		io.WriteString(w, "assert(")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ", ")
+		io.WriteString(w, e.msg)
+		io.WriteString(w, ")")
 	case ImportFile:
 		io.WriteString(w, "import(")
 		io.WriteString(w, e.file)

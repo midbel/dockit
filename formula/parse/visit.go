@@ -21,6 +21,7 @@ type Visitor interface {
 	VisitCall(Call) error
 	VisitSlice(Slice) error
 
+	VisitAssert(Assert) error
 	VisitBinary(Binary) error
 	VisitAssignment(Assignment) error
 	VisitPostfix(Postfix) error
