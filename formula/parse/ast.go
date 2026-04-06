@@ -174,6 +174,39 @@ func (e ExportRef) Accept(v Visitor) error {
 	return v.VisitExportRef(e)
 }
 
+type SpecialAccess struct {
+	expr Expr
+	prop Expr
+	Position
+}
+
+func NewSpecial(expr, prop Expr) Expr {
+	return SpecialAccess{
+		expr: expr,
+		prop: prop,
+	}
+}
+
+func (a SpecialAccess) Object() Expr {
+	return a.expr
+}
+
+func (a SpecialAccess) Property() Expr {
+	return a.prop
+}
+
+func (a SpecialAccess) String() string {
+	return fmt.Sprintf("%s@%s", a.expr.String(), a.prop)
+}
+
+func (SpecialAccess) KindOf() string {
+	return "access"
+}
+
+func (a SpecialAccess) Accept(v Visitor) error {
+	return v.VisitSpecial(a)
+}
+
 type Access struct {
 	expr Expr
 	prop Expr

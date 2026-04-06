@@ -55,8 +55,10 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
+	g.RegisterPrefix(op.Special, parseSpecialAccessPrefix)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
+	g.RegisterPostfix(op.Special, parseSpecialAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
 	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 
@@ -605,15 +607,48 @@ func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 		return setIdentifierTo(p, id, right)
 	case Access:
 		return setAccessTo(p, id, right)
+	case SpecialAccess:
+		return setSpecialTo(p, id, right)
 	default:
 		return nil, p.makeError("identifier/access expected")
 	}
 }
 
+func setSpecialTo(p *Parser, access SpecialAccess, right Expr) (Expr, error) {
+	id, ok := access.prop.(Identifier)
+	if !ok {
+		return nil, p.makeError("special: identifier expected")
+	}
+	ident := id.Ident()
+	if ident == "active" {
+		ident = ""
+	}
+	switch r := right.(type) {
+	case CellAddr:
+		r.Position.Sheet = ident
+		right = r
+	case RangeAddr:
+		r.startAddr.Sheet = ident
+		r.endAddr.Sheet = ident
+		right = r
+	case Identifier:
+		addr, err := parseCellAddr(r.Ident())
+		if err != nil {
+			return nil, err
+		}
+		addr.Sheet = ident
+		right = addr
+	default:
+		return nil, p.makeError("address/range expected")
+	}
+	access.prop = right
+	return access, nil
+}
+
 func setAccessTo(p *Parser, access Access, right Expr) (Expr, error) {
 	id, ok := access.prop.(Identifier)
 	if !ok {
-		return nil, p.makeError("identifier expected")
+		return nil, p.makeError("access: identifier expected")
 	}
 	switch r := right.(type) {
 	case CellAddr:
@@ -691,6 +726,20 @@ func parseAccess(p *Parser, left Expr) (Expr, error) {
 	defer p.next()
 	prop := NewIdentifier(p.currentLiteral())
 	return NewAccess(left, prop), nil
+}
+
+func parseSpecialAccessPrefix(p *Parser) (Expr, error) {
+	return parseSpecialAccess(p, nil)
+}
+
+func parseSpecialAccess(p *Parser, left Expr) (Expr, error) {
+	p.next()
+	if !p.is(op.Ident) {
+		return nil, p.expectedIdent()
+	}
+	defer p.next()
+	prop := NewIdentifier(p.currentLiteral())
+	return NewSpecial(left, prop), nil
 }
 
 func parseAssignment(p *Parser, left Expr) (Expr, error) {

@@ -15,6 +15,7 @@ type Visitor interface {
 	VisitRangeAddr(RangeAddr) error
 	VisitTemplate(Template) error
 	VisitAccess(Access) error
+	VisitSpecial(SpecialAccess) error
 	VisitDeferred(Deferred) error
 	VisitCall(Call) error
 	VisitSlice(Slice) error

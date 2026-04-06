@@ -80,6 +80,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.prop)
 		io.WriteString(w, ")")
+	case SpecialAccess:
+		io.WriteString(w, "special(")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.prop)
+		io.WriteString(w, ")")
 	case Deferred:
 		io.WriteString(w, "deferred(")
 		dumpExpr(w, e.expr)

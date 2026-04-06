@@ -48,6 +48,7 @@ const (
 	EndProp
 	RangeRef
 	SheetRef
+	Special
 )
 
 var mapping = map[Op]string{

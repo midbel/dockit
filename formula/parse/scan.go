@@ -281,6 +281,8 @@ func (s *Scanner) scanLiteral(tok *Token) {
 func (s *Scanner) scanOperator(tok *Token) {
 	tok.Type = op.Invalid
 	switch s.char {
+	case arobase:
+		tok.Type = op.Special
 	case dot:
 		tok.Type = op.Dot
 	case pipe:
@@ -553,6 +555,7 @@ const (
 	lsquare    = '['
 	rsquare    = ']'
 	backslash  = '\\'
+	arobase    = '@'
 )
 
 func isComment(c rune) bool {
@@ -604,5 +607,5 @@ func isOperator(c rune) bool {
 	return c == plus || c == minus || c == slash || c == star ||
 		c == langle || c == rangle || c == colon || c == bang ||
 		c == equal || c == caret || c == amper || c == percent ||
-		c == dot || c == pipe
+		c == dot || c == pipe || c == arobase
 }

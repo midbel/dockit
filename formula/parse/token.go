@@ -88,6 +88,8 @@ func (t Token) String() string {
 		return "<not>"
 	case op.Dot:
 		return "<dot>"
+	case op.Special:
+		return "<special>"
 	case op.BegGrp:
 		return "<beg-group>"
 	case op.EndGrp:

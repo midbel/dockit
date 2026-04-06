@@ -248,6 +248,20 @@ func (v astVisitor) VisitAccess(expr parse.Access) error {
 	return nil
 }
 
+func (v astVisitor) VisitSpecial(expr parse.SpecialAccess) error {
+	node := v.newValue("special", expr)
+	v.stack.Push(node)
+	if err := v.visitExpr(expr.Object()); err != nil {
+		return err
+	}
+	if err := v.visitExpr(expr.Property()); err != nil {
+		return err
+	}
+	v.stack.Pop()
+	v.pushNode(node)
+	return nil
+}
+
 func (v astVisitor) VisitDeferred(expr parse.Deferred) error {
 	node := v.newValue("formula", expr)
 	v.stack.Push(node)

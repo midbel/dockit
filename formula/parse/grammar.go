@@ -26,7 +26,6 @@ const (
 	powRange
 	powProp
 	powCall
-	powSpread
 )
 
 var defaultBindings = map[op.Op]int{
@@ -54,6 +53,7 @@ var defaultBindings = map[op.Op]int{
 	op.BegGrp:       powCall,
 	op.BegProp:      powProp,
 	op.Dot:          powProp,
+	op.Special:      powProp,
 	op.SheetRef:     powSheet,
 	op.RangeRef:     powRange,
 	op.And:          powLogical,

@@ -109,6 +109,30 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 	return nil
 }
 
+func (v *evalVisitor) VisitSpecial(expr parse.SpecialAccess) error {
+	var target value.Value
+	if src := expr.Object(); src != nil {
+		err := v.visitExpr(src)
+		if err != nil {
+			return err
+		}
+		target = v.popValue()
+	} else {
+		target = v.ctx.Default()
+	}
+	obj, ok := target.(*types.File)
+	if !ok {
+		return fmt.Errorf("file expected")
+	}
+	id, ok := expr.Property().(parse.Identifier)
+	if !ok {
+		return fmt.Errorf("identifier expected")
+	}
+	val := obj.Get(id.Ident())
+	v.pushValue(val)
+	return nil
+}
+
 func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	if err := v.visitExpr(expr.Object()); err != nil {
 		return err
@@ -120,7 +144,7 @@ func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	var val value.Value
 	switch prop := expr.Property().(type) {
 	case parse.Identifier:
-		val = obj.Get(prop.Ident())
+		val = evalAccess(obj, prop)
 	default:
 		sub := evalScript(v.ctx.Sub(obj))
 		sub.stack = v.stack.Clone()
@@ -134,6 +158,21 @@ func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	}
 	v.pushValue(val)
 	return nil
+}
+
+func evalAccess(obj value.Value, prop parse.Identifier) value.Value {
+	switch obj := obj.(type) {
+	case *types.File:
+		prop, err := obj.Sheet(prop.Ident())
+		if err != nil {
+			prop = value.ErrName
+		}
+		return prop
+	case *types.View:
+		return obj.Get(prop.Ident())
+	default:
+		return value.ErrValue
+	}
 }
 
 func (v *evalVisitor) VisitTemplate(expr parse.Template) error {
