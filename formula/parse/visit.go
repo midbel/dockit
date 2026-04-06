@@ -16,6 +16,7 @@ type Visitor interface {
 	VisitTemplate(Template) error
 	VisitAccess(Access) error
 	VisitSpecial(SpecialAccess) error
+	VisitCellAccess(CellAccess) error
 	VisitDeferred(Deferred) error
 	VisitCall(Call) error
 	VisitSlice(Slice) error

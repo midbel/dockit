@@ -109,6 +109,10 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 	return nil
 }
 
+func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {
+	return nil
+}
+
 func (v *evalVisitor) VisitSpecial(expr parse.SpecialAccess) error {
 	var target value.Value
 	if src := expr.Object(); src != nil {

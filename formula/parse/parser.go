@@ -597,101 +597,23 @@ func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 
 func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 	p.next()
-
 	right, err := p.parse(powSheet)
 	if err != nil {
 		return nil, err
 	}
-	switch id := left.(type) {
-	case Identifier:
-		return setIdentifierTo(p, id, right)
-	case Access:
-		return setAccessTo(p, id, right)
-	case SpecialAccess:
-		return setSpecialTo(p, id, right)
-	default:
-		return nil, p.makeError("identifier/access expected")
-	}
-}
-
-func setSpecialTo(p *Parser, access SpecialAccess, right Expr) (Expr, error) {
-	id, ok := access.prop.(Identifier)
-	if !ok {
-		return nil, p.makeError("special: identifier expected")
-	}
-	ident := id.Ident()
-	if ident == "active" {
-		ident = ""
-	}
 	switch r := right.(type) {
 	case CellAddr:
-		r.Position.Sheet = ident
-		right = r
 	case RangeAddr:
-		r.startAddr.Sheet = ident
-		r.endAddr.Sheet = ident
-		right = r
 	case Identifier:
 		addr, err := parseCellAddr(r.Ident())
 		if err != nil {
 			return nil, err
 		}
-		addr.Sheet = ident
 		right = addr
 	default:
 		return nil, p.makeError("address/range expected")
 	}
-	access.prop = right
-	return access, nil
-}
-
-func setAccessTo(p *Parser, access Access, right Expr) (Expr, error) {
-	id, ok := access.prop.(Identifier)
-	if !ok {
-		return nil, p.makeError("access: identifier expected")
-	}
-	switch r := right.(type) {
-	case CellAddr:
-		r.Position.Sheet = id.Ident()
-		right = r
-	case RangeAddr:
-		r.startAddr.Sheet = id.Ident()
-		r.endAddr.Sheet = id.Ident()
-		right = r
-	case Identifier:
-		addr, err := parseCellAddr(r.Ident())
-		if err != nil {
-			return nil, err
-		}
-		addr.Sheet = id.Ident()
-		right = addr
-	default:
-		return nil, p.makeError("address/range expected")
-	}
-	access.prop = right
-	return access, nil
-}
-
-func setIdentifierTo(p *Parser, id Identifier, right Expr) (Expr, error) {
-	switch r := right.(type) {
-	case CellAddr:
-		r.Position.Sheet = id.Ident()
-		right = r
-	case RangeAddr:
-		r.startAddr.Sheet = id.Ident()
-		r.endAddr.Sheet = id.Ident()
-		right = r
-	case Identifier:
-		addr, err := parseCellAddr(r.Ident())
-		if err != nil {
-			return nil, err
-		}
-		addr.Sheet = id.Ident()
-		right = addr
-	default:
-		return nil, p.makeError("address/range expected")
-	}
-	return right, nil
+	return NewCellAccess(left, right), nil
 }
 
 func parseAddress(p *Parser) (Expr, error) {

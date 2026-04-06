@@ -174,6 +174,39 @@ func (e ExportRef) Accept(v Visitor) error {
 	return v.VisitExportRef(e)
 }
 
+type CellAccess struct {
+	expr Expr
+	addr Expr
+	Position
+}
+
+func NewCellAccess(expr, addr Expr) Expr {
+	return CellAccess{
+		expr: expr,
+		addr: addr,
+	}
+}
+
+func (a CellAccess) Expr() Expr {
+	return a.expr
+}
+
+func (a CellAccess) Addr() Expr {
+	return a.addr
+}
+
+func (a CellAccess) String() string {
+	return fmt.Sprintf("%s!%s", a.expr, a.addr)
+}
+
+func (CellAccess) KindOf() string {
+	return "access"
+}
+
+func (a CellAccess) Accept(v Visitor) error {
+	return v.VisitCellAccess(a)
+}
+
 type SpecialAccess struct {
 	expr Expr
 	prop Expr

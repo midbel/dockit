@@ -86,6 +86,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.prop)
 		io.WriteString(w, ")")
+	case CellAccess:
+		io.WriteString(w, "cell(")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.addr)
+		io.WriteString(w, ")")
 	case Deferred:
 		io.WriteString(w, "deferred(")
 		dumpExpr(w, e.expr)

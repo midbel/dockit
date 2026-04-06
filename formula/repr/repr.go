@@ -248,6 +248,20 @@ func (v astVisitor) VisitAccess(expr parse.Access) error {
 	return nil
 }
 
+func (v astVisitor) VisitCellAccess(expr parse.CellAccess) error {
+	node := v.newValue("cell", expr)
+	v.stack.Push(node)
+	if err := v.visitExpr(expr.Expr()); err != nil {
+		return err
+	}
+	if err := v.visitExpr(expr.Addr()); err != nil {
+		return err
+	}
+	v.stack.Pop()
+	v.pushNode(node)
+	return nil
+}
+
 func (v astVisitor) VisitSpecial(expr parse.SpecialAccess) error {
 	node := v.newValue("special", expr)
 	v.stack.Push(node)
@@ -420,9 +434,12 @@ func (v astVisitor) VisitUnary(expr parse.Unary) error {
 }
 
 func (v astVisitor) visitExpr(expr parse.Expr) error {
+	if expr == nil {
+		return nil
+	}
 	a, ok := expr.(parse.VisitableExpr)
 	if !ok {
-		return fmt.Errorf("expression can not inspected")
+		return fmt.Errorf("expression can not be inspected")
 	}
 	return a.Accept(v)
 }
