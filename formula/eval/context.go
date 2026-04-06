@@ -21,6 +21,8 @@ type EngineContext struct {
 	formatter  format.Formatter
 	contextDir string
 	config     *EngineConfig
+
+	depth int
 }
 
 func NewEngineContext() *EngineContext {
@@ -33,6 +35,7 @@ func (c *EngineContext) Sub(val value.Value) *EngineContext {
 	}
 	x := *c
 	x.currentValue = val
+	x.depth = c.depth + 1
 	return &x
 }
 
@@ -165,6 +168,9 @@ func (c *EngineContext) setEnv(environ *env.Environment) {
 func (c *EngineContext) getView(name string) (*types.View, error) {
 	if f, ok := c.Default().(*types.File); ok {
 		return c.getViewFromFile(f, name)
+	}
+	if v, ok := c.Default().(*types.View); ok {
+		return v, nil
 	}
 	return nil, fmt.Errorf("%s: view can not be found", name)
 }

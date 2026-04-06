@@ -33,7 +33,8 @@ func (v *evalVisitor) Run(expr parse.Expr) (value.Value, error) {
 	if err := v.visitExpr(expr); err != nil {
 		return value.ErrValue, err
 	}
-	return v.popValue(), nil
+	val := v.popValue()
+	return v.normalize(val)
 }
 
 func (v *evalVisitor) VisitScript(expr parse.Script) error {
@@ -110,7 +111,23 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 }
 
 func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {
-	return nil
+	if err := v.visitExpr(expr.Expr()); err != nil {
+		return err
+	}
+	var (
+		val = v.popValue()
+		sub = evalScript(v.ctx.Sub(val))
+		err error
+	)
+	sub.stack = v.stack.Clone()
+	sub.phases = v.phases.Clone()
+
+	val, err = sub.Run(expr.Addr())
+	if err != nil {
+		val = value.ErrValue
+	}
+	v.pushValue(val)
+	return err
 }
 
 func (v *evalVisitor) VisitSpecial(expr parse.SpecialAccess) error {
