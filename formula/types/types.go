@@ -8,6 +8,21 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+func Rebase(fm value.Formula, anchor, target layout.Position) value.Formula {
+	var (
+		dy     = target.Line - anchor.Line
+		dx     = target.Column - anchor.Column
+		offset = layout.NewPosition(dy, dx)
+		other = fm
+	)
+	if c, ok := fm.(interface {
+		Clone(layout.Position) value.Formula
+	}); ok {
+		other = c.Clone(offset)
+	}
+	return other
+}
+
 var (
 	ErrValue     = errors.New("invalid value")
 	ErrReadOnly  = errors.New("read only view")
