@@ -339,12 +339,14 @@ func (v astVisitor) VisitAssert(expr parse.Assert) error {
 	node := v.newExpr("assert", expr)
 	node.Params = []Param{
 		{Name: "message", Value: expr.Failure()},
+		{Name: "mode", Value: "fail"},
 	}
 	v.stack.Push(node)
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
 	}
 	v.stack.Pop()
+	v.pushNode(node)
 	return nil
 }
 
