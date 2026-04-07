@@ -232,7 +232,7 @@ func Rebase(fm value.Formula, anchor, target layout.Position) value.Formula {
 		dy     = target.Line - anchor.Line
 		dx     = target.Column - anchor.Column
 		offset = layout.NewPosition(dy, dx)
-		other = fm
+		other  = fm
 	)
 	if c, ok := fm.(interface {
 		Clone(layout.Position) value.Formula

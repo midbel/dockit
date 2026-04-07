@@ -14,6 +14,7 @@ import (
 
 type EngineContext struct {
 	loaders      map[string]Loader
+	writers      map[string]Writer
 	env          *env.Environment
 	currentValue value.Value
 
@@ -80,6 +81,17 @@ func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error)
 	return loader.Open(file, opts)
 }
 
+func (c *EngineContext) EmptyFile(format string) (*types.File, error) {
+	return nil, nil
+}
+
+func (c *EngineContext) Export(out string, file grid.File) error {
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *EngineContext) Print(v value.Value) error {
 	if s, ok := v.(interface{ Sync() error }); ok {
 		if err := s.Sync(); err != nil {
@@ -87,15 +99,6 @@ func (c *EngineContext) Print(v value.Value) error {
 		}
 	}
 	c.printer.Format(v, c.formatter)
-	return nil
-}
-
-func (c *EngineContext) Export(v value.Value) error {
-	if s, ok := v.(interface{ Sync() error }); ok {
-		if err := s.Sync(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

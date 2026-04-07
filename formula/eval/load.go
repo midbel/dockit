@@ -7,6 +7,7 @@ import (
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/ods"
 	"github.com/midbel/dockit/oxml"
 )
 
@@ -14,6 +15,10 @@ type LoaderOptions map[string]any
 
 type Loader interface {
 	Open(string, LoaderOptions) (grid.File, error)
+}
+
+type Writer interface {
+	Write(string, grid.File) error
 }
 
 type logLoader struct{}
@@ -34,6 +39,10 @@ type csvLoader struct{}
 
 func CsvLoader() Loader {
 	return csvLoader{}
+}
+
+func (c csvLoader) Write(out string, file grid.File) error {
+	return nil
 }
 
 func (c csvLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
@@ -84,6 +93,15 @@ func XlsxLoader() Loader {
 	return xlsxLoader{}
 }
 
+func (x xlsxLoader) Write(out string, file grid.File) error {
+	w, err := os.Create(out)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	return nil
+}
+
 func (xlsxLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
 	return oxml.Open(file)
 }
@@ -94,6 +112,15 @@ func OdsLoader() Loader {
 	return odsLoader{}
 }
 
+func (odsLoader) Write(out string, file grid.File) error {
+	w, err := os.Create(out)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	return nil
+}
+
 func (odsLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	return nil, nil
+	return ods.Open(file)
 }

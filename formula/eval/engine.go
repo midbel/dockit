@@ -42,6 +42,7 @@ type Engine struct {
 	config *EngineConfig
 
 	loaders map[string]Loader
+	writers map[string]Writer
 }
 
 func NewEngine() *Engine {
@@ -49,12 +50,12 @@ func NewEngine() *Engine {
 		Stdout:  os.Stdout,
 		Stderr:  os.Stderr,
 		loaders: make(map[string]Loader),
+		writers: make(map[string]Writer),
 		config:  NewConfig(),
 	}
 	e.RegisterLoader(".csv", CsvLoader())
 	e.RegisterLoader(".xlsx", XlsxLoader())
 	e.RegisterLoader(".ods", OdsLoader())
-	e.RegisterLoader(".csv", CsvLoader())
 	e.RegisterLoader(".log", LogLoader())
 	return &e
 }
@@ -88,9 +89,14 @@ func (e *Engine) RegisterLoader(kind string, loader Loader) {
 	e.loaders[kind] = loader
 }
 
+func (e *Engine) RegisterWriter(kind string, writer Writer) {
+	e.writers[kind] = writer
+}
+
 func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error) {
 	ctx := NewEngineContext()
 	ctx.loaders = maps.Clone(e.loaders)
+	ctx.writers = maps.Clone(e.writers)
 	ctx.setEnv(environ)
 
 	ps, err := e.bootstrap(r, ctx)

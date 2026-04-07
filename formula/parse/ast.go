@@ -209,6 +209,18 @@ type ExportRef struct {
 	Position
 }
 
+func (e ExportRef) Expr() Expr {
+	return e.expr
+}
+
+func (e ExportRef) File() string {
+	return e.file
+}
+
+func (e ExportRef) Format() string {
+	return e.format
+}
+
 func (e ExportRef) String() string {
 	return fmt.Sprintf("export %s", e.expr.String())
 }

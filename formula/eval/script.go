@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
-	"github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
@@ -107,7 +107,21 @@ func (v *evalVisitor) VisitPrintRef(expr parse.PrintRef) error {
 }
 
 func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
-	return nil
+	if err := v.visitExpr(expr.Expr()); err != nil {
+		return err
+	}
+	wb, err := v.ctx.EmptyFile(expr.Format())
+	if err != nil {
+		return err
+	}
+	val := v.popValue()
+	switch val.(type) {
+	case *types.File:
+	case *types.View:
+	case *types.Range:
+	default:
+	}
+	return v.ctx.Export(expr.File(), wb.File())
 }
 
 func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {
