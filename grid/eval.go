@@ -227,6 +227,21 @@ func (a arg) Eval() value.Value {
 	return eval(a.expr, a.ctx)
 }
 
+func Rebase(fm value.Formula, anchor, target layout.Position) value.Formula {
+	var (
+		dy     = target.Line - anchor.Line
+		dx     = target.Column - anchor.Column
+		offset = layout.NewPosition(dy, dx)
+		other = fm
+	)
+	if c, ok := fm.(interface {
+		Clone(layout.Position) value.Formula
+	}); ok {
+		other = c.Clone(offset)
+	}
+	return other
+}
+
 type formula struct {
 	expr parse.Expr
 }

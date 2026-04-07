@@ -161,7 +161,7 @@ func (c *View) SetRange(start, end layout.Position, val value.Value) error {
 	case parse.Deferred:
 		fm := grid.NewFormula(v.Expr())
 		for pos := range rg.Positions() {
-			rb := Rebase(fm, start, pos)
+			rb := grid.Rebase(fm, start, pos)
 			if err := c.SetAt(pos, rb); err != nil {
 				return err
 			}
