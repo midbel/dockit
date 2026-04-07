@@ -52,6 +52,14 @@ func (c *File) Sync() error {
 	return err
 }
 
+func (c *File) Merge(other *File) error {
+	return nil
+}
+
+func (c *File) Append(view *View) error {
+	return nil
+}
+
 func (c *File) Active() (value.Value, error) {
 	return c.Sheet("")
 }

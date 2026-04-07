@@ -101,6 +101,8 @@ func (c *EngineConfig) SetDefaults() {
 	c.Set(slx.Make("format", "bool"), "")
 	c.Set(slx.Make("csv", "delimiter"), "comma")
 	c.Set(slx.Make("csv", "quoted"), true)
+	c.Set(slx.Make("assert", "mode"), "fail")
+	c.Set(slx.Make("export", "format"), "oxml")
 }
 
 func (c *EngineConfig) Merge(other *EngineConfig) error {

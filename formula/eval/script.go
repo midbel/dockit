@@ -115,9 +115,11 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 		return err
 	}
 	val := v.popValue()
-	switch val.(type) {
+	switch val := val.(type) {
 	case *types.File:
+		err = wb.Merge(val)
 	case *types.View:
+		err = wb.Append(val)
 	case *types.Range:
 	default:
 	}

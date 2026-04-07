@@ -8,7 +8,10 @@ import (
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/format"
+	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/layout"
+	"github.com/midbel/dockit/ods"
+	"github.com/midbel/dockit/oxml"
 	"github.com/midbel/dockit/value"
 )
 
@@ -82,7 +85,24 @@ func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error)
 }
 
 func (c *EngineContext) EmptyFile(format string) (*types.File, error) {
-	return nil, nil
+	var file grid.File
+	switch format {
+	case "oxml", "xlsx":
+		file = oxml.NewFile()
+	case "ods":
+		file = ods.NewFile()
+	case "csv", "tsv":
+	case "":
+		format = c.GetOptionString(slx.Make("export", "format"))
+		if format == "" {
+			return nil, fmt.Errorf("empty file can not be created for format %s", format)
+		}
+		return c.EmptyFile(format)
+	default:
+		return nil, fmt.Errorf("empty file can not be created for format %s", format)
+	}
+	tmp := types.NewFileValue(file, false)
+	return tmp.(*types.File), nil
 }
 
 func (c *EngineContext) Export(out string, file grid.File) error {
