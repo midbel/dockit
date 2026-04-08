@@ -298,6 +298,10 @@ func (v *arrayView) String() string {
 	return fmt.Sprintf("%s(%s)", value.TypeArray, v.inner.Name())
 }
 
+func (v *arrayView) Unwrap() View {
+	return v.inner
+}
+
 func (v *arrayView) Dimension() layout.Dimension {
 	rg := v.inner.Bounds()
 	dm := layout.Dimension{

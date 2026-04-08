@@ -53,11 +53,15 @@ func (c *File) Sync() error {
 }
 
 func (c *File) Merge(other *File) error {
-	return nil
+	mg, ok := c.file.(interface{ Merge(grid.File) error })
+	if !ok {
+		return nil
+	}
+	return mg.Merge(other.File())
 }
 
 func (c *File) Append(view *View) error {
-	return nil
+	return c.file.AppendSheet(view.View())
 }
 
 func (c *File) Active() (value.Value, error) {

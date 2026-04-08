@@ -31,6 +31,10 @@ func (Array) String() string {
 	return TypeArray
 }
 
+func (a Array) GetData() [][]ScalarValue {
+	return a.Data
+}
+
 func (a Array) Count() int64 {
 	d := a.Dimension()
 	return d.Lines * d.Columns

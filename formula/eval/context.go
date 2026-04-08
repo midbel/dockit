@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
@@ -106,8 +107,10 @@ func (c *EngineContext) EmptyFile(format string) (*types.File, error) {
 }
 
 func (c *EngineContext) Export(val value.Value, out, format string) error {
-	if err := file.Sync(); err != nil {
-		return err
+	if f, ok := val.(interface{ Sync() error }); ok {
+		if err := f.Sync(); err != nil {
+			return err
+		}
 	}
 	wb, err := c.EmptyFile(format)
 	if err != nil {
@@ -119,6 +122,19 @@ func (c *EngineContext) Export(val value.Value, out, format string) error {
 	case *types.View:
 		err = wb.Append(val)
 	case *types.Range:
+	case value.ScalarValue:
+		arr := [][]value.ScalarValue{
+			{val},
+		}
+		sh := flat.NewSheet("sheet", arr)
+		err = wb.Append(types.NewViewValue(sh).(*types.View))
+	case value.ArrayValue:
+		var all [][]value.ScalarValue
+		if k, ok := val.(interface{ GetData() [][]value.ScalarValue }); ok {
+			all = k.GetData()
+		}
+		sh := flat.NewSheet("sheet", all)
+		err = wb.Append(types.NewViewValue(sh).(*types.View))
 	default:
 	}
 	return nil

@@ -111,6 +111,7 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 		return err
 	}
 	val := v.popValue()
+	fmt.Printf("export: %T\n", val)
 	return v.ctx.Export(val, expr.File(), expr.Format())
 }
 
