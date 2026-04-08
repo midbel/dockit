@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
@@ -123,18 +122,11 @@ func (c *EngineContext) Export(val value.Value, out, format string) error {
 		err = wb.Append(val)
 	case *types.Range:
 	case value.ScalarValue:
-		arr := [][]value.ScalarValue{
-			{val},
-		}
-		sh := flat.NewSheet("sheet", arr)
-		err = wb.Append(types.NewViewValue(sh).(*types.View))
+		sh := types.NewViewValue(NewScalarView(val))
+		err = wb.Append(sh.(*types.View))
 	case value.ArrayValue:
-		var all [][]value.ScalarValue
-		if k, ok := val.(interface{ GetData() [][]value.ScalarValue }); ok {
-			all = k.GetData()
-		}
-		sh := flat.NewSheet("sheet", all)
-		err = wb.Append(types.NewViewValue(sh).(*types.View))
+		sh := types.NewViewValue(NewArrayView(val))
+		err = wb.Append(sh.(*types.View))
 	default:
 	}
 	return nil

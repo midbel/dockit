@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
@@ -122,16 +121,9 @@ func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {
 	val := v.popValue()
 	switch x := val.(type) {
 	case value.ScalarValue:
-		sh := flat.NewSheet("sheet", [][]value.ScalarValue{
-			slx.One(x),
-		})
-		val = types.NewViewValue(sh)
+		val = types.NewViewValue(NewScalarView(x))
 	case value.ArrayValue:
-		var all [][]value.ScalarValue
-		if k, ok := x.(interface{ GetData() [][]value.ScalarValue }); ok {
-			all = k.GetData()
-		}
-		val = types.NewViewValue(flat.NewSheet("sheet", all))
+		val = types.NewViewValue(NewArrayView(x))
 	default:
 	}
 	var (
