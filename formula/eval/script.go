@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
@@ -111,7 +112,6 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 		return err
 	}
 	val := v.popValue()
-	fmt.Printf("export: %T\n", val)
 	return v.ctx.Export(val, expr.File(), expr.Format())
 }
 
@@ -119,8 +119,22 @@ func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
 	}
+	val := v.popValue()
+	switch x := val.(type) {
+	case value.ScalarValue:
+		sh := flat.NewSheet("sheet", [][]value.ScalarValue{
+			slx.One(x),
+		})
+		val = types.NewViewValue(sh)
+	case value.ArrayValue:
+		var all [][]value.ScalarValue
+		if k, ok := x.(interface{ GetData() [][]value.ScalarValue }); ok {
+			all = k.GetData()
+		}
+		val = types.NewViewValue(flat.NewSheet("sheet", all))
+	default:
+	}
 	var (
-		val = v.popValue()
 		sub = evalScript(v.ctx.Sub(val))
 		err error
 	)
