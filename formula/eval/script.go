@@ -110,20 +110,8 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
 	}
-	wb, err := v.ctx.EmptyFile(expr.Format())
-	if err != nil {
-		return err
-	}
 	val := v.popValue()
-	switch val := val.(type) {
-	case *types.File:
-		err = wb.Merge(val)
-	case *types.View:
-		err = wb.Append(val)
-	case *types.Range:
-	default:
-	}
-	return v.ctx.Export(expr.File(), wb.File())
+	return v.ctx.Export(val, expr.File(), expr.Format())
 }
 
 func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {

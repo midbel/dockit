@@ -105,9 +105,21 @@ func (c *EngineContext) EmptyFile(format string) (*types.File, error) {
 	return tmp.(*types.File), nil
 }
 
-func (c *EngineContext) Export(out string, file grid.File) error {
+func (c *EngineContext) Export(val value.Value, out, format string) error {
 	if err := file.Sync(); err != nil {
 		return err
+	}
+	wb, err := c.EmptyFile(format)
+	if err != nil {
+		return err
+	}
+	switch val := val.(type) {
+	case *types.File:
+		err = wb.Merge(val)
+	case *types.View:
+		err = wb.Append(val)
+	case *types.Range:
+	default:
 	}
 	return nil
 }
