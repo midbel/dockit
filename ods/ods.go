@@ -253,18 +253,45 @@ func (s *Sheet) IsLock() bool {
 }
 
 func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
+	c, ok := s.cells[pos]
+	if !ok {
+		return grid.NoCell(pos)
+	}
+	if err := s.ClearFormula(pos); err != nil {
+		return err
+	}
+	c.raw = val.String()
+	c.parsed = val
 	return nil
 }
 
 func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
+	c, ok := s.cells[pos]
+	if !ok {
+		return grid.NoCell(pos)
+	}
+	c.formula = expr
+	c.raw = ""
+	c.parsed = value.Empty()
+	c.dirty = true
 	return nil
 }
 
 func (s *Sheet) ClearCell(pos layout.Position) error {
-	return nil
+	err := s.ClearValue(pos)
+	if err != nil {
+		return err
+	}
+	return s.ClearFormula(pos)
 }
 
 func (s *Sheet) ClearValue(pos layout.Position) error {
+	c, ok := s.cells[pos]
+	if !ok {
+		return grid.NoCell(pos)
+	}
+	c.raw = ""
+	c.parsed = value.Empty()
 	return nil
 }
 
@@ -273,6 +300,11 @@ func (s *Sheet) ClearRange(rg *layout.Range) error {
 }
 
 func (s *Sheet) ClearFormula(pos layout.Position) error {
+	c, ok := s.cells[pos]
+	if !ok {
+		return grid.NoCell(pos)
+	}
+	c.formula = nil
 	return nil
 }
 
