@@ -128,8 +128,10 @@ func (c *EngineContext) Export(val value.Value, out, format string) error {
 		sh := types.NewViewValue(NewArrayView(val))
 		err = wb.Append(sh.(*types.View))
 	default:
+		return nil
 	}
-	return nil
+	file := filepath.Join(c.contextDir, out)
+	return wb.WriteFile(file)
 }
 
 func (c *EngineContext) Print(v value.Value) error {

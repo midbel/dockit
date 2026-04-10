@@ -90,7 +90,7 @@ func (a arrayView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 }
 
 func (a arrayView) Cell(pos layout.Position) (grid.Cell, error) {
-	x := a.array.At(int(pos.Line), int(pos.Column))
+	x := a.array.At(int(pos.Line-1), int(pos.Column-1))
 	return grid.Single(x, pos), nil
 }
 

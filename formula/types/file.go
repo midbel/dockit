@@ -52,6 +52,14 @@ func (c *File) Sync() error {
 	return err
 }
 
+func (c *File) WriteFile(file string) error {
+	w, ok := c.file.(interface{ WriteFile(string) error })
+	if !ok {
+		return nil
+	}
+	return w.WriteFile(file)
+}
+
 func (c *File) Merge(other *File) error {
 	mg, ok := c.file.(interface{ Merge(grid.File) error })
 	if !ok {
