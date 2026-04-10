@@ -537,10 +537,8 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 	if fn, err := builtins.Lookup(id.Ident()); err == nil {
 		var args []value.Value
 		for _, a := range expr.Args() {
-			if err := v.visitExpr(a); err != nil {
-				return err
-			}
-			args = append(args, v.popValue())
+			g := newArg(a, v)
+			args = append(args, g)
 		}
 		val := fn(args)
 		v.pushValue(val)
@@ -672,4 +670,36 @@ func (v *evalVisitor) inAssignment() bool {
 func (v *evalVisitor) inPhase(ph scriptPhase) bool {
 	top, _ := v.phases.Peek()
 	return top == ph
+}
+
+type arg struct {
+	expr parse.Expr
+	eval *evalVisitor
+}
+
+func newArg(expr parse.Expr, e *evalVisitor) value.Value {
+	return arg{
+		expr: expr,
+		eval: e,
+	}
+}
+
+func (arg) Type() string {
+	return "argument"
+}
+
+func (arg) Kind() value.ValueKind {
+	return value.KindScalar
+}
+
+func (a arg) String() string {
+	return a.expr.String()
+}
+
+func (a arg) Eval() value.Value {
+	val, err := a.eval.Run(a.expr)
+	if err != nil {
+		return value.ErrValue
+	}
+	return val
 }
