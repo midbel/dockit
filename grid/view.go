@@ -71,7 +71,15 @@ func ResetAt(cell Cell, pos layout.Position) Cell {
 }
 
 type empty struct {
-	pos layout.Position
+	pos   layout.Position
+	value value.ScalarValue
+}
+
+func Single(val value.ScalarValue, pos layout.Position) Cell {
+	return empty{
+		pos:   pos,
+		value: val,
+	}
 }
 
 func Empty(pos layout.Position) Cell {
@@ -84,8 +92,11 @@ func (c empty) At() layout.Position {
 	return c.pos
 }
 
-func (empty) Value() value.ScalarValue {
-	return value.Empty()
+func (c empty) Value() value.ScalarValue {
+	if c.value == nil {
+		return value.Empty()
+	}
+	return c.value
 }
 
 func (empty) Formula() value.Formula {
