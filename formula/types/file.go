@@ -65,7 +65,12 @@ func (c *File) Merge(other *File) error {
 	if !ok {
 		return nil
 	}
-	return mg.Merge(other.File())
+	err := mg.Merge(other.File())
+	if err != nil {
+		return err
+	}
+	reLock(other, c.file)
+	return nil
 }
 
 func (c *File) Append(view *View) error {

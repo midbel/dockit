@@ -467,7 +467,7 @@ func (s *Sheet) put(cell grid.Cell) {
 		Position: pos,
 		raw:      val.String(),
 		parsed:   val,
-		formula: cell.Formula(),
+		formula:  cell.Formula(),
 	}
 	if c.formula != nil {
 		c.Type = TypeFormula

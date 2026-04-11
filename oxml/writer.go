@@ -329,13 +329,13 @@ func (w *sheetWriter) WriteSheet(sheet *Sheet) error {
 	w.writer.Empty(sax.LocalName("dimension"), []sax.A{
 		createAttr("ref", sheet.Bounds().String()),
 	})
+	if err := w.writeRows(sheet); err != nil {
+		return err
+	}
 	if sheet.Protected != 0 {
 		if err := w.writeProtection(sheet); err != nil {
 			return err
 		}
-	}
-	if err := w.writeRows(sheet); err != nil {
-		return err
 	}
 	w.writer.Close(wshName)
 	return w.writer.Flush()
@@ -346,32 +346,36 @@ func (w *sheetWriter) writeProtection(sheet *Sheet) error {
 	if sheet.Protected&ProtectedSheet != 0 {
 		attrs = append(attrs, createAttr("sheet", "1"))
 	}
-	if sheet.Protected&ProtectedObjects != 0 {
-		attrs = append(attrs, createAttr("objects", "1"))
-	}
-	if sheet.Protected&ProtectedScenarios != 0 {
-		attrs = append(attrs, createAttr("scenarios", "1"))
-	}
 	if sheet.Protected&ProtectedFormatCells != 0 {
 		attrs = append(attrs, createAttr("formatCells", "1"))
 	}
 	if sheet.Protected&ProtectedFormatColumns != 0 {
 		attrs = append(attrs, createAttr("formatColumns", "1"))
 	}
-	if sheet.Protected&ProtectedDeleteColumns != 0 {
-		attrs = append(attrs, createAttr("deleteColumns", "1"))
+	if sheet.Protected&ProtectedFormatRows != 0 {
+		attrs = append(attrs, createAttr("formatRows", "1"))
 	}
 	if sheet.Protected&ProtectedInsertColumns != 0 {
 		attrs = append(attrs, createAttr("insertColumns", "1"))
 	}
-	if sheet.Protected&ProtectedDeleteRows != 0 {
-		attrs = append(attrs, createAttr("deleteRows", "1"))
-	}
 	if sheet.Protected&ProtectedInsertRows != 0 {
 		attrs = append(attrs, createAttr("insertRows", "1"))
 	}
+	if sheet.Protected&ProtectedSheet != 0 {
+		attrs = append(attrs, createAttr("insertHyperlinks", "1"))
+	}
+	if sheet.Protected&ProtectedDeleteColumns != 0 {
+		attrs = append(attrs, createAttr("deleteColumns", "1"))
+	}
+	if sheet.Protected&ProtectedDeleteRows != 0 {
+		attrs = append(attrs, createAttr("deleteRows", "1"))
+	}
 	if sheet.Protected&ProtectedSort != 0 {
 		attrs = append(attrs, createAttr("sort", "1"))
+	}
+	if sheet.Protected&ProtectedSheet != 0 {
+		attrs = append(attrs, createAttr("autoFilter", "1"))
+		attrs = append(attrs, createAttr("pivotTables", "1"))
 	}
 	return w.writer.Empty(sax.LocalName("sheetProtection"), attrs)
 }

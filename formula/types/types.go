@@ -49,3 +49,14 @@ func getBroadcastMode(target *layout.Range, val value.ArrayValue) (broadcastMode
 	}
 	return mode, nil
 }
+
+func reLock(src, target any) {
+	is, ok := src.(interface{ IsLock() bool })
+	if !ok && !is.IsLock() {
+		return
+	}
+	k, ok := target.(interface{ Lock() })
+	if ok {
+		k.Lock()
+	}
+}
