@@ -86,8 +86,8 @@ func (c *Cell) update(val value.Value) {
 		c.parsed = value.ErrValue
 	} else {
 		c.parsed = val.(value.ScalarValue)
+		c.raw = val.String()
 	}
-	c.raw = val.String()
 }
 
 func typeFromValue(val value.ScalarValue) string {
@@ -274,16 +274,12 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 func (s *Sheet) Sync(ctx value.Context) error {
 	ctx = grid.EnclosedContext(ctx, grid.SheetContext(s))
 	for _, r := range s.rows {
-		for _, c := range r.Cells {
-			f := c.Formula()
-			if f == nil {
-				continue
-			}
-			val, err := grid.Eval(f, ctx)
-			if err != nil {
+		for i, c := range r.Cells {
+			if err := c.Sync(ctx); err != nil {
 				return err
 			}
-			c.update(val)
+			r.Cells[i] = c
+			s.cells[c.Position] = c
 		}
 	}
 	return nil
@@ -370,8 +366,12 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	if err := s.ClearFormula(pos); err != nil {
 		return err
 	}
-	c.raw = val.String()
+	if c.formula == nil {
+		c.Type = typeFromValue(val)
+		c.raw = val.String()
+	}
 	c.parsed = val
+	s.cells[pos] = c
 	return nil
 }
 
@@ -380,10 +380,25 @@ func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
 	if !ok {
 		return grid.NoCell(pos)
 	}
+	c.Type = TypeFormula
 	c.formula = expr
-	c.raw = ""
+	c.raw = expr.String()
 	c.parsed = value.Empty()
 	c.dirty = true
+	s.cells[pos] = c
+
+	rx := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line == pos.Line
+	})
+	if rx >= 0 {
+		cx := slices.IndexFunc(s.rows[rx].Cells, func(other *Cell) bool {
+			return other.Position.Equal(c.Position)
+		})
+		if cx >= 0 {
+			s.rows[rx].Cells[cx] = c
+		}
+	}
+
 	return nil
 }
 
@@ -396,12 +411,12 @@ func (s *Sheet) ClearCell(pos layout.Position) error {
 }
 
 func (s *Sheet) ClearValue(pos layout.Position) error {
-	c, ok := s.cells[pos]
-	if !ok {
-		return grid.NoCell(pos)
-	}
-	c.raw = ""
-	c.parsed = value.Empty()
+	// c, ok := s.cells[pos]
+	// if !ok {
+	// 	return grid.NoCell(pos)
+	// }
+	// c.raw = ""
+	// c.parsed = value.Empty()
 	return nil
 }
 
@@ -410,11 +425,11 @@ func (s *Sheet) ClearRange(rg *layout.Range) error {
 }
 
 func (s *Sheet) ClearFormula(pos layout.Position) error {
-	c, ok := s.cells[pos]
-	if !ok {
-		return grid.NoCell(pos)
-	}
-	c.formula = nil
+	// c, ok := s.cells[pos]
+	// if !ok {
+	// 	return grid.NoCell(pos)
+	// }
+	// c.formula = nil
 	return nil
 }
 
@@ -452,6 +467,10 @@ func (s *Sheet) put(cell grid.Cell) {
 		Position: pos,
 		raw:      val.String(),
 		parsed:   val,
+		formula: cell.Formula(),
+	}
+	if c.formula != nil {
+		c.Type = TypeFormula
 	}
 	r.Cells = append(r.Cells, c)
 	s.cells[pos] = c
