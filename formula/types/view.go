@@ -63,6 +63,30 @@ func (c *View) Sync() error {
 	return err
 }
 
+func (c *View) IsLock() bool {
+	k, ok := c.view.(interface{ IsLock() bool })
+	if ok {
+		return k.IsLock()
+	}
+	return false
+}
+
+func (c *View) Lock() error {
+	k, ok := c.view.(interface{ Lock() })
+	if ok {
+		k.Lock()
+	}
+	return nil
+}
+
+func (c *View) Unlock() error {
+	k, ok := c.view.(interface{ Unlock() })
+	if ok {
+		k.Unlock()
+	}
+	return nil
+}
+
 // func (c *View) FilterView(predicate value.Predicate) *View {
 // 	view := grid.FilterView(c.view, predicate)
 // 	return createView(view, false)

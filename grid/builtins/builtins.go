@@ -219,6 +219,15 @@ func Make(params []Param, do BuiltinFunc) BuiltinFunc {
 	return fn
 }
 
+func Object(name, desc string, k string) Param {
+	return Param{
+		Name: name,
+		Desc: desc,
+		Type: k,
+		Mode: value.KindObject,
+	}
+}
+
 func Scalar(name, desc string, k string) Param {
 	return Param{
 		Name: name,

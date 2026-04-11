@@ -9,24 +9,42 @@ var lockBuiltin = gbs.Builtin{
 	Name:     "lock",
 	Desc:     "",
 	Category: "sheet",
-	Params:   []gbs.Param{},
-	Func:     Lock,
+	Params: []gbs.Param{
+		gbs.Object("value", "", value.TypeAny),
+	},
+	Func: Lock,
 }
 
 func Lock(args []value.Value) value.Value {
-	return value.ErrValue
+	k, ok := args[0].(interface{ Lock() error })
+	if ok {
+		err := k.Lock()
+		if err != nil {
+			return value.ErrValue
+		}
+	}
+	return value.Boolean(true)
 }
 
 var unlockBuiltin = gbs.Builtin{
 	Name:     "unlock",
 	Desc:     "",
 	Category: "sheet",
-	Params:   []gbs.Param{},
-	Func:     Unlock,
+	Params: []gbs.Param{
+		gbs.Object("value", "", value.TypeAny),
+	},
+	Func: Unlock,
 }
 
 func Unlock(args []value.Value) value.Value {
-	return value.ErrValue
+	k, ok := args[0].(interface{ Unlock() error })
+	if ok {
+		err := k.Unlock()
+		if err != nil {
+			return value.ErrValue
+		}
+	}
+	return value.Boolean(true)
 }
 
 var newFileBuiltin = gbs.Builtin{

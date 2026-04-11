@@ -72,6 +72,30 @@ func (c *File) Append(view *View) error {
 	return c.file.AppendSheet(view.View())
 }
 
+func (c *File) IsLock() bool {
+	k, ok := c.file.(interface{ IsLock() bool })
+	if ok {
+		return k.IsLock()
+	}
+	return false
+}
+
+func (c *File) Lock() error {
+	k, ok := c.file.(interface{ Lock() })
+	if ok {
+		k.Lock()
+	}
+	return nil
+}
+
+func (c *File) Unlock() error {
+	k, ok := c.file.(interface{ Unlock() })
+	if ok {
+		k.Unlock()
+	}
+	return nil
+}
+
 func (c *File) Active() (value.Value, error) {
 	return c.Sheet("")
 }
