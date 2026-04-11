@@ -129,8 +129,9 @@ func (c *File) Get(ident string) value.Value {
 		return value.Float(float64(len(x)))
 	case "readonly":
 		return value.Boolean(c.ro)
-	case "protected":
-		return value.Boolean(false)
+	case "protected", "locked":
+		ok := c.IsLock()
+		return value.Boolean(ok)
 	case "active":
 		v, _ := c.Sheet("")
 		return v

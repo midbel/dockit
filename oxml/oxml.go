@@ -564,7 +564,12 @@ func (f *File) Sheets() []grid.View {
 	return views
 }
 
+func (f *File) IsLock() bool {
+	return f.locked
+}
+
 func (f *File) Lock() {
+	f.locked = true
 	for i := range f.sheets {
 		f.sheets[i].Lock()
 	}
@@ -579,6 +584,7 @@ func (f *File) LockSheet(name string) error {
 }
 
 func (f *File) Unlock() {
+	f.locked = false
 	for i := range f.sheets {
 		f.sheets[i].Unlock()
 	}
