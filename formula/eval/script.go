@@ -573,10 +573,9 @@ func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 			return err
 		}
 		view = view.ProjectView(sel)
-	case parse.Binary:
-	case parse.And:
-	case parse.Or:
-	case parse.Not:
+	case parse.Binary, parse.And, parse.Or, parse.Not:
+		p := types.NewExprPredicate(grid.NewFormula(e))
+		view = view.FilterView(p)
 	case parse.Identifier:
 	default:
 		return fmt.Errorf("invalid slice expression")

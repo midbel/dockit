@@ -3,7 +3,25 @@ package builtins
 import (
 	gbs "github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/value"
+	// "github.com/midbel/dockit/gridx"
 )
+
+var joinBuiltin = gbs.Builtin{
+	Name:     "join",
+	Desc:     "",
+	Category: "sheet",
+	Params: []gbs.Param{
+		gbs.Object("sheet1", "", value.TypeAny),
+		gbs.Object("sheet2", "", value.TypeAny),
+		gbs.Object("cols1", "", value.TypeAny),
+		gbs.Object("cols2", "", value.TypeAny),
+	},
+	Func: Lock,
+}
+
+func Join(args []value.Value) value.Value {
+	return nil
+}
 
 var lockBuiltin = gbs.Builtin{
 	Name:     "lock",
@@ -102,4 +120,5 @@ var sheetBuiltins = []gbs.Builtin{
 	newFileBuiltin,
 	unlockBuiltin,
 	lockBuiltin,
+	joinBuiltin,
 }

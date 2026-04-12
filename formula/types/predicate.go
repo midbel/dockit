@@ -14,13 +14,10 @@ func NewExprPredicate(expr value.Formula) value.Predicate {
 	}
 }
 
-func (p ExprPredicate) Test(ctx value.Context) (bool, error) {
+func (p ExprPredicate) Test(ctx value.Context) bool {
 	if p.expr == nil {
-		return false, nil
+		return false
 	}
-	val, err := p.expr.Eval(ctx)
-	if err != nil {
-		return false, err
-	}
-	return value.True(val), nil
+	val := p.expr.Eval(ctx)
+	return value.True(val)
 }
