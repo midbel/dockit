@@ -234,9 +234,8 @@ print <expr>
 
 Load external data
 
-
 ```
-import <file> [using <format>] [with <specifier>] [as <alias>] [default] [ro|rw]
+import <file> [using <format>] [with <specifier|options>] [as <alias>] [default] [ro|rw]
 ```
 
 ### use
@@ -244,7 +243,7 @@ import <file> [using <format>] [with <specifier>] [as <alias>] [default] [ro|rw]
 Specify data to be used as default:
 
 ```
-use <ident>
+use <ident> [ro|rw]
 ```
 
 default object can then be accessed without their full name
@@ -255,7 +254,7 @@ default object can then be accessed without their full name
 Save results to a file:
 
 ```
-export <expr> [using <format>] [with <specifier>] to <file>
+export <expr> [using <format>] [with <specifier|options>] to <file>
 ```
 
 ### assert
@@ -277,6 +276,12 @@ The valid modes are:
 
 * inspect
 * kindof
+* lock
+* unlock
+* mkaddr
+* mkrange
+* newfile
+* newsheet
 
 ### openxml/openformula
 
