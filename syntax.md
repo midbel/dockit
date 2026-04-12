@@ -54,6 +54,8 @@ true
 false
 ```
 
+### Identifiers
+
 ### Working with cells and ranges
 
 #### Cell Addresses
@@ -119,6 +121,14 @@ Access properties using `.`:
 ```
 view.name
 ```
+
+#### Creating view from other view
+
+* Bounding: limited rectangular area on top of base view
+* Projection: selection of specific columns on top of base view
+* Filter: selection of rows based on a predicate
+
+When creating a new view, the new view coordinates starts at position (1, 1) and ends at (rows, columns) where (rows, columns) depends of the source view
 
 ### Deferred expressions
 
@@ -290,6 +300,7 @@ The valid modes are:
 * mkrange
 * newfile
 * newsheet
+* join
 
 ### openxml/openformula
 
