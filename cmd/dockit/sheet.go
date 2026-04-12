@@ -71,15 +71,37 @@ func (c LockCommand) Run(args []string) error {
 		return err
 	}
 	return updateFile(set.Arg(0), func(wb grid.File) error {
-		k, ok := wb.(interface{ LockSheet(string) })
-		if !ok {
-			return nil
+		var err error
+		if set.NArg() <= 1 {
+			c.lockFile(wb)
+		} else {
+			args := set.Args()
+			err = c.lockSheets(wb, args[1:])
 		}
-		for i := 1; i < set.NArg(); i++ {
-			k.LockSheet(set.Arg(i))
-		}
-		return nil
+		return err
 	})
+}
+
+func (c LockCommand) lockFile(wb grid.File) {
+	k, ok := wb.(interface{ Lock() })
+	if !ok {
+		return
+	}
+	k.Lock()
+}
+
+func (c LockCommand) lockSheets(wb grid.File, sheets []string) error {
+	k, ok := wb.(interface{ LockSheet(string) error })
+	if !ok {
+		return nil
+	}
+	for _, sh := range sheets {
+		err := k.LockSheet(sh)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type UnlockCommand struct{}
@@ -90,15 +112,37 @@ func (c UnlockCommand) Run(args []string) error {
 		return err
 	}
 	return updateFile(set.Arg(0), func(wb grid.File) error {
-		k, ok := wb.(interface{ UnLockSheet(string) })
-		if !ok {
-			return nil
+		var err error
+		if set.NArg() <= 1 {
+			c.unlockFile(wb)
+		} else {
+			args := set.Args()
+			err = c.unlockSheets(wb, args[1:])
 		}
-		for i := 1; i < set.NArg(); i++ {
-			k.UnLockSheet(set.Arg(i))
-		}
-		return nil
+		return err
 	})
+}
+
+func (c UnlockCommand) unlockFile(wb grid.File) {
+	k, ok := wb.(interface{ Unlock() })
+	if !ok {
+		return
+	}
+	k.Unlock()
+}
+
+func (c UnlockCommand) unlockSheets(wb grid.File, sheets []string) error {
+	k, ok := wb.(interface{ UnlockSheet(string) error })
+	if !ok {
+		return nil
+	}
+	for _, sh := range sheets {
+		err := k.UnlockSheet(sh)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type AddCommand struct{}
