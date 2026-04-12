@@ -14,7 +14,7 @@ import (
 var addCmd = cli.Command{
 	Name:    "add",
 	Alias:   slx.Make("append"),
-	Summary: "Import specific sheets from a source spreadsheet into a target file",
+	Summary: "Import sheets from a spreadsheet into a target file",
 	Usage:   "add <target> <source> <sheet> [<sheet>...]",
 	Handler: &AddCommand{},
 }
@@ -45,20 +45,20 @@ var copyCmd = cli.Command{
 var printCmd = cli.Command{
 	Name:    "print",
 	Summary: "Print content of a sheet on stdout",
-	Usage:   "print [-select <selection>] <file> [<sheet>]",
+	Usage:   "print [-c <columns>] <file> [<sheet>]",
 	Handler: &PrintCommand{},
 }
 
 var lockCmd = cli.Command{
 	Name:    "lock",
-	Summary: "Lock a sheet or all in a spreadsheet",
+	Summary: "Lock one or more sheets from a spreadsheet",
 	Usage:   "lock <file> [<sheet>]",
 	Handler: &LockCommand{},
 }
 
 var unlockCmd = cli.Command{
 	Name:    "unlock",
-	Summary: "Unlock a sheet or all from a spreadsheet",
+	Summary: "Unlock one or more sheets from a spreadsheet",
 	Usage:   "unlock <file> [<sheet>]",
 	Handler: &UnlockCommand{},
 }
@@ -237,7 +237,7 @@ func (c PrintCommand) Run(args []string) error {
 	set.StringVar(&c.Pattern, "p", "", "pattern")
 	set.BoolVar(&c.Quoted, "q", false, "quoted")
 	set.BoolVar(&c.SkipErr, "ignore-errors", false, "skip rows having error values")
-	set.Func("select", "selected columns", func(str string) error {
+	set.Func("c", "selected columns", func(str string) error {
 		sel, err := layout.SelectionFromString(str)
 		if err == nil {
 			c.Columns = sel

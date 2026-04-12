@@ -9,7 +9,7 @@ import (
 
 var nowBuiltin = Builtin{
 	Name:     "now",
-	Desc:     "Returns the current date and time.",
+	Desc:     "Returns the current date and time",
 	Category: "time",
 	Func:     Now,
 }
@@ -21,7 +21,7 @@ func Now(args []value.Value) value.Value {
 
 var todayBuiltin = Builtin{
 	Name:     "today",
-	Desc:     "Returns the current date and time.",
+	Desc:     "Returns the current date and time",
 	Category: "time",
 	Func:     Today,
 }
