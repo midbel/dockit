@@ -14,8 +14,8 @@ import (
 
 var runCmd = cli.Command{
 	Name:    "run",
-	Summary: "",
-	Usage:   "",
+	Summary: "Execute given script",
+	Usage:   "run [-g] [-d <dir>] <script.dk>",
 	Handler: &RunCommand{},
 }
 
@@ -23,7 +23,7 @@ var dumpCmd = cli.Command{
 	Name:    "dump",
 	Alias:   []string{"inspect"},
 	Summary: "Export the AST representation of script",
-	Usage:   "",
+	Usage:   "dump <script.dk>",
 	Handler: &DumpCommand{},
 }
 
