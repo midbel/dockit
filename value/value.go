@@ -125,6 +125,10 @@ type ObjectValue interface {
 	Get(string) Value
 }
 
+type Predicate interface {
+	Test(Context) bool
+}
+
 type CastableValue interface {
 	ToString() ScalarValue
 	ToBool() ScalarValue

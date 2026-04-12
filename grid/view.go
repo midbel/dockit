@@ -51,62 +51,6 @@ const (
 	CopyAll = CopyValue | CopyFormula | CopyStyle
 )
 
-type Row interface {
-	Values() []value.ScalarValue
-	Sparse() bool
-}
-
-type Cell interface {
-	At() layout.Position
-	Value() value.ScalarValue
-	Formula() value.Formula
-	Dirty() bool
-}
-
-func ResetAt(cell Cell, pos layout.Position) Cell {
-	if a, ok := cell.(interface{ SetAt(layout.Position) }); ok {
-		a.SetAt(pos)
-	}
-	return cell
-}
-
-type empty struct {
-	pos   layout.Position
-	value value.ScalarValue
-}
-
-func Single(val value.ScalarValue, pos layout.Position) Cell {
-	return empty{
-		pos:   pos,
-		value: val,
-	}
-}
-
-func Empty(pos layout.Position) Cell {
-	return empty{
-		pos: pos,
-	}
-}
-
-func (c empty) At() layout.Position {
-	return c.pos
-}
-
-func (c empty) Value() value.ScalarValue {
-	if c.value == nil {
-		return value.Empty()
-	}
-	return c.value
-}
-
-func (empty) Formula() value.Formula {
-	return nil
-}
-
-func (empty) Dirty() bool {
-	return false
-}
-
 type Callable interface {
 	Call(value.Context) (value.Value, error)
 }
@@ -644,4 +588,36 @@ func (v *boundedView) recomputePosition(pos layout.Position) layout.Position {
 	pos.Line = v.part.Starts.Line + pos.Line - 1
 	pos.Column = v.part.Starts.Column + pos.Column - 1
 	return pos
+}
+
+type filteredView struct {
+	view      View
+	predicate value.Predicate
+}
+
+func FilterView(view View, predicate value.Predicate) View {
+	return &filteredView{
+		view:      view,
+		predicate: predicate,
+	}
+}
+
+func (v *filteredView) Name() string {
+	return v.view.Name()
+}
+
+func (v *filteredView) Bounds() *layout.Range {
+	return v.view.Bounds()
+}
+
+func (v *filteredView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+	return v.view.Rows()
+}
+
+func (v *filteredView) Cell(pos layout.Position) (Cell, error) {
+	return v.view.Cell(pos)
+}
+
+func (v *filteredView) Sync(ctx value.Context) error {
+	return v.view.Sync(ctx)
 }

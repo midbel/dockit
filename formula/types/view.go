@@ -87,10 +87,10 @@ func (c *View) Unlock() error {
 	return nil
 }
 
-// func (c *View) FilterView(predicate value.Predicate) *View {
-// 	view := grid.FilterView(c.view, predicate)
-// 	return createView(view, false)
-// }
+func (c *View) FilterView(predicate value.Predicate) *View {
+	view := grid.FilterView(c.view, predicate)
+	return createView(view, c.ctx, false)
+}
 
 func (c *View) ProjectView(sel layout.Selection) *View {
 	view := grid.NewProjectView(c.view, sel)
