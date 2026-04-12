@@ -226,7 +226,7 @@ func (c *View) Get(ident string) value.Value {
 		return value.Float(float64(0))
 	case "readonly":
 		return value.Boolean(c.ro)
-	case "protected":
+	case "protected", "locked":
 		var locked bool
 		if k, ok := c.view.(interface{ IsLock() bool }); ok {
 			locked = k.IsLock()
