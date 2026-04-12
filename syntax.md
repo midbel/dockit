@@ -236,7 +236,15 @@ Load external data
 
 ```
 import <file> [using <format>] [with <specifier|options>] [as <alias>] [default] [ro|rw]
+
 ```
+
+Supported format:
+
+* xlsx
+* ods
+* csv (or similar)
+* log
 
 ### use
 
