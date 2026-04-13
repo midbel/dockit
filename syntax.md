@@ -40,6 +40,8 @@ print "Foobar is ${age}"
 
 ### Numbers
 
+Dockit has support for classic number formats. Numbers are represented internally as decimal:
+
 * Integers
 * Floating-point numbers
 * Scientific notation (implementation-dependent)
@@ -47,6 +49,7 @@ print "Foobar is ${age}"
 ```
 42
 3.14
+2e+11
 ```
 
 ### Dates
@@ -65,6 +68,10 @@ false
 ```
 
 ### Identifiers
+
+Identifiers are used to name variables.
+
+They must start with a letter and can only contain alphanumeric characters.
 
 ### Working with cells and ranges
 
@@ -230,6 +237,8 @@ Assign values to variables or ranges:
 var := value
 A1:C100 := 1
 A1:C100 := A1:C100 * 2
+
+sheet!A1 := =sum(A1:C100)
 ```
 
 ### Compound assignment
@@ -407,3 +416,9 @@ Dockit includes many built-ins inspired by Excel.
 * isna
 * isnumber
 * istext
+
+## Script configuration
+
+### startup
+
+### directives
