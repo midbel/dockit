@@ -5,7 +5,7 @@ Dockit offers a small domain-specific language designed to manipulate tabular da
 It combines concepts from **OpenXML/OpenFormula (Excel-like formulas)** with lightweight scripting capabilities, allowing both **data transformation** and **automation** in a single language.
 
 
-## basic expressions
+## Basic expressions
 
 ### Comments
 
@@ -14,6 +14,8 @@ Use `#` to add comments only at beginning of line. Comments are ignored during e
 ```
 # this is a comment
 ```
+
+Currently, comments are only allowed at the beginning of a line.
 
 ### Literals
 
@@ -26,7 +28,7 @@ There is no semantic difference between the two forms.
 "string"
 ```
 
-### Template
+### Template string
 
 ### Numbers
 

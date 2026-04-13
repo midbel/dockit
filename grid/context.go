@@ -5,13 +5,6 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-func EnclosedContext(file, sheet value.Context) value.Context {
-	return evalContext{
-		file:  file,
-		sheet: sheet,
-	}
-}
-
 type rowContext struct {
 	rows []value.ScalarValue
 }
@@ -141,8 +134,15 @@ func (c fileContext) sheet(name string) (View, error) {
 }
 
 type evalContext struct {
-	file  value.Context
-	sheet value.Context
+	parent value.Context
+	child  value.Context
+}
+
+func EnclosedContext(parent, child value.Context) value.Context {
+	return evalContext{
+		parent: parent,
+		child:  child,
+	}
 }
 
 func (c evalContext) Resolve(ident string) value.Value {
@@ -150,27 +150,27 @@ func (c evalContext) Resolve(ident string) value.Value {
 }
 
 func (c evalContext) At(pos layout.Position) value.Value {
-	if c.sheet != nil {
-		val := c.sheet.At(pos)
+	if c.child != nil {
+		val := c.child.At(pos)
 		if !value.IsError(val) {
 			return val
 		}
 	}
-	if c.file != nil {
-		return c.file.At(pos)
+	if c.parent != nil {
+		return c.parent.At(pos)
 	}
 	return value.ErrValue
 }
 
 func (c evalContext) Range(start, end layout.Position) value.Value {
-	if c.sheet != nil {
-		val := c.sheet.Range(start, end)
+	if c.child != nil {
+		val := c.child.Range(start, end)
 		if !value.IsError(val) {
 			return val
 		}
 	}
-	if c.file != nil {
-		return c.file.Range(start, end)
+	if c.parent != nil {
+		return c.parent.Range(start, end)
 	}
 	return value.ErrValue
 }

@@ -591,14 +591,22 @@ func (v *boundedView) recomputePosition(pos layout.Position) layout.Position {
 }
 
 type filteredView struct {
-	view      View
-	predicate value.Predicate
+	view View
+	rows []int64
 }
 
-func FilterView(view View, predicate value.Predicate) View {
+func FilterView(view View, ctx value.Context, predicate value.Predicate) View {
+	var rows []int64
+	for lino, row := range view.Rows() {
+		sub := EnclosedContext(ctx, RowContext(row))
+		ok := predicate.Test(sub)
+		if ok {
+			rows = append(rows, lino)
+		}
+	}
 	return &filteredView{
-		view:      view,
-		predicate: predicate,
+		view: view,
+		rows: rows,
 	}
 }
 
@@ -607,14 +615,38 @@ func (v *filteredView) Name() string {
 }
 
 func (v *filteredView) Bounds() *layout.Range {
-	return v.view.Bounds()
+	var (
+		bd    = v.view.Bounds()
+		start = layout.NewPosition(1, 1)
+		end   = layout.NewPosition(int64(len(v.rows)), bd.Width())
+	)
+	return layout.NewRange(start, end)
 }
 
 func (v *filteredView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	return v.view.Rows()
+	it := func(yield func(int64, []value.ScalarValue) bool) {
+		bd := v.view.Bounds()
+		for i, r := range v.rows {
+			out := make([]value.ScalarValue, 0, bd.Width())
+			for c := int64(1); c <= bd.Width(); c++ {
+				pos := layout.NewPosition(r, c)
+				cell, _ := v.view.Cell(pos)
+				out = append(out, cell.Value())
+			}
+			if !yield(int64(i+1), out) {
+				return
+			}
+		}
+	}
+	return it
 }
 
 func (v *filteredView) Cell(pos layout.Position) (Cell, error) {
+	lino := pos.Line - 1
+	if lino < 0 || lino >= int64(len(v.rows)) {
+		return Empty(pos), nil
+	}
+	pos.Line = v.rows[lino]
 	return v.view.Cell(pos)
 }
 

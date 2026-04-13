@@ -88,7 +88,10 @@ func (c *View) Unlock() error {
 }
 
 func (c *View) FilterView(predicate value.Predicate) *View {
-	view := grid.FilterView(c.view, predicate)
+	var (
+		ctx  = grid.EnclosedContext(c.ctx, grid.SheetContext(c.view))
+		view = grid.FilterView(c.view, ctx, predicate)
+	)
 	return createView(view, c.ctx, false)
 }
 
