@@ -245,30 +245,28 @@ func (s *Scanner) scanNumber(tok *Token) {
 		s.read()
 	}
 	tok.Literal = s.literal()
-	if s.char != dot {
-		return
-	}
-	s.write()
-	s.read()
-	for !s.done() && isDigit(s.char) {
+	if s.char == dot {
 		s.write()
 		s.read()
+		for !s.done() && isDigit(s.char) {
+			s.write()
+			s.read()
+		}
+		tok.Literal = s.literal()
 	}
-	tok.Literal = s.literal()
-	if s.char != 'e' && s.char != 'E' {
-		return
-	}
-	s.write()
-	s.read()
-	if isSign(s.char) {
+	if s.char == 'e' || s.char == 'E' {
 		s.write()
 		s.read()
+		if isSign(s.char) {
+			s.write()
+			s.read()
+		}
+		for !s.done() && isDigit(s.char) {
+			s.write()
+			s.read()
+		}
+		tok.Literal = s.literal()
 	}
-	for !s.done() && isDigit(s.char) {
-		s.write()
-		s.read()
-	}
-	tok.Literal = s.literal()
 }
 
 func (s *Scanner) scanLiteral(tok *Token) {

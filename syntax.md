@@ -21,14 +21,22 @@ Currently, comments are only allowed at the beginning of a line.
 
 Strings can be defined using single (`'`) or double (`"`) quotes.
 
-There is no semantic difference between the two forms.
-
 ```
 'string'
 "string"
 ```
 
-### Template string
+The second form, surrounded by `"`, allows for template string to be used.
+
+Template strings provide a convenient way to embed values directly inside a string using placeholders, without requiring explicit string concatenation.
+
+They are particularly useful for building dynamic text from variables, cells, or expressions.
+
+```
+age := 42
+print "Total ${A10}"
+print "Foobar is ${age}"
+```
 
 ### Numbers
 
@@ -220,6 +228,8 @@ Assign values to variables or ranges:
 
 ```
 var := value
+A1:C100 := 1
+A1:C100 := A1:C100 * 2
 ```
 
 ### Compound assignment
@@ -267,7 +277,6 @@ use <ident> [ro|rw]
 ```
 
 default object can then be accessed without their full name
-
 
 ### export
 
