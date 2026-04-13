@@ -255,6 +255,20 @@ func (s *Scanner) scanNumber(tok *Token) {
 		s.read()
 	}
 	tok.Literal = s.literal()
+	if s.char != 'e' && s.char != 'E' {
+		return
+	}
+	s.write()
+	s.read()
+	if isSign(s.char) {
+		s.write()
+		s.read()
+	}
+	for !s.done() && isDigit(s.char) {
+		s.write()
+		s.read()
+	}
+	tok.Literal = s.literal()
 }
 
 func (s *Scanner) scanLiteral(tok *Token) {
@@ -608,4 +622,8 @@ func isOperator(c rune) bool {
 		c == langle || c == rangle || c == colon || c == bang ||
 		c == equal || c == caret || c == amper || c == percent ||
 		c == dot || c == pipe || c == arobase
+}
+
+func isSign(c rune) bool {
+	return c == plus || c == minus
 }
