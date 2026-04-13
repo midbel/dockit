@@ -2,6 +2,8 @@ package oxml
 
 import (
 	"encoding/xml"
+
+	"github.com/midbel/dockit/value"
 )
 
 const (
