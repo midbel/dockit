@@ -21,16 +21,6 @@ const (
 	FormulaShared = "shared"
 )
 
-const (
-	TypeSharedStr = "s"
-	TypeInlineStr = "inlineStr"
-	TypeFormula   = "str"
-	TypeDate      = "d"
-	TypeError     = "e"
-	TypeBool      = "b"
-	TypeNumber    = "n"
-)
-
 type Cell struct {
 	Type  string
 	style int
@@ -87,21 +77,6 @@ func (c *Cell) update(val value.Value) {
 	} else {
 		c.parsed = val.(value.ScalarValue)
 		c.raw = val.String()
-	}
-}
-
-func typeFromValue(val value.ScalarValue) string {
-	switch val.Type() {
-	case value.TypeNumber:
-		return TypeNumber
-	case value.TypeText:
-		return TypeInlineStr
-	case value.TypeBool:
-		return TypeBool
-	case value.TypeDate:
-		return TypeDate
-	default:
-		return TypeInlineStr
 	}
 }
 

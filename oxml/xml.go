@@ -4,6 +4,31 @@ import (
 	"encoding/xml"
 )
 
+const (
+	TypeSharedStr = "s"
+	TypeInlineStr = "inlineStr"
+	TypeFormula   = "str"
+	TypeDate      = "d"
+	TypeError     = "e"
+	TypeBool      = "b"
+	TypeNumber    = "n"
+)
+
+func typeFromValue(val value.ScalarValue) string {
+	switch val.Type() {
+	case value.TypeNumber:
+		return TypeNumber
+	case value.TypeText:
+		return TypeInlineStr
+	case value.TypeBool:
+		return TypeBool
+	case value.TypeDate:
+		return TypeDate
+	default:
+		return TypeInlineStr
+	}
+}
+
 const wbBaseDir = "xl"
 
 const (
