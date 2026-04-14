@@ -17,19 +17,6 @@ import (
 	"github.com/midbel/textwrap"
 )
 
-var infoCmd = cli.Command{
-	Name:    "info",
-	Summary: "Display metadata, sheet names of a spreadsheet file",
-	Help: `Arguments:
-  file    path to input file.
-
-Options:
-  -f <format>    force to use the given format
-  -p <pattern>   use pattern to extract columns from log file`,
-	Usage:   "info [-f <format>] [-p <pattern>] [-h|--help] <file>",
-	Handler: &GetInfoCommand{},
-}
-
 var mergeCmd = cli.Command{
 	Name:    "merge",
 	Summary: "Consolidate multiple spreadsheet files into a single workbooks",
@@ -42,25 +29,6 @@ Options:
   -c           resync values before merge`,
 	Usage:   "merge [-f <file>] [-r] [-c] <file...>",
 	Handler: &MergeCommand{},
-}
-
-var formatCmd = cli.Command{
-	Name:    "format",
-	Summary: "List supported spreadsheet formats",
-	Usage:   "format [-h|--help]",
-	Handler: &FormatCommand{},
-}
-
-var builtinsCmd = cli.Command{
-	Name:    "builtins",
-	Summary: "Display list of supported builtins",
-	Help: `Arguments:
-  name    builtin's name to get detailled info
-
-Options:
-  -c <category>    list builtins from given category only`,
-	Usage:   "builtins [-c <category>] [-h|--help] [<name>]",
-	Handler: &GetBuiltinCommand{},
 }
 
 type MergeCommand struct{}
@@ -108,6 +76,13 @@ func (c MergeCommand) removeFiles(files []string) {
 	}
 }
 
+var formatCmd = cli.Command{
+	Name:    "format",
+	Summary: "List supported spreadsheet formats",
+	Usage:   "format [-h|--help]",
+	Handler: &FormatCommand{},
+}
+
 type FormatCommand struct{}
 
 func (c FormatCommand) Run(args []string) error {
@@ -121,7 +96,18 @@ func (c FormatCommand) Run(args []string) error {
 	return nil
 }
 
-const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
+var infoCmd = cli.Command{
+	Name:    "info",
+	Summary: "Display metadata, sheet names of a spreadsheet file",
+	Help: `Arguments:
+  file    path to input file.
+
+Options:
+  -f <format>    force to use the given format
+  -p <pattern>   use pattern to extract columns from log file`,
+	Usage:   "info [-f <format>] [-p <pattern>] [-h|--help] <file>",
+	Handler: &GetInfoCommand{},
+}
 
 type GetInfoCommand struct {
 	Format  string
@@ -163,6 +149,18 @@ func (c GetInfoCommand) openFile(file string) (grid.File, error) {
 		return flat.OpenLog(file, c.Pattern)
 	}
 	return workbook.OpenFormat(file, c.Format)
+}
+
+var builtinsCmd = cli.Command{
+	Name:    "builtins",
+	Summary: "Display list of supported builtins",
+	Help: `Arguments:
+  name    builtin's name to get detailled info
+
+Options:
+  -c <category>    list builtins from given category only`,
+	Usage:   "builtins [-c <category>] [-h|--help] [<name>]",
+	Handler: &GetBuiltinCommand{},
 }
 
 type GetBuiltinCommand struct {

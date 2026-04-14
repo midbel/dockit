@@ -9,10 +9,10 @@ import (
 )
 
 var copyBuiltin = gbs.Builtin{
-	Name: "copy",
-	Desc: "",
+	Name:     "copy",
+	Desc:     "",
 	Category: "sheet",
-	Func: CopySheet,
+	Func:     CopySheet,
 }
 
 func CopySheet(args []value.Value) value.Value {

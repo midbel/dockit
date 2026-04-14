@@ -11,6 +11,13 @@ import (
 var transposeCmd = cli.Command{
 	Name:    "transpose",
 	Summary: "Transpose rows and columns in a sheet",
+	Help: `Arguments:
+  file    path input to file
+  sheet   name of sheet - if not provided active will be used
+
+Options:
+  -f <file>       path where transposed sheet will be written
+  -c <columns>    selection of columns from input sheet to be transposed`,
 	Usage:   "transpose [-f <output>] [-c <columns>] <file> [<sheet>]",
 	Handler: &TransposeCommand{},
 }
@@ -53,6 +60,7 @@ func (c TransposeCommand) writeView(view grid.View) error {
 
 func (c TransposeCommand) createView(view grid.View) grid.View {
 	if c.Columns != nil {
+		view = grid.NewProjectView(view, c.Columns)
 		view = grid.NewTransposedView(view)
 	}
 	return view
@@ -61,7 +69,18 @@ func (c TransposeCommand) createView(view grid.View) grid.View {
 var joinCmd = cli.Command{
 	Name:    "join",
 	Summary: "Perform a join on two sheets",
-	Usage:   "join [-f <output>] [-c <columns>] <wb1> <sheet1> <key1> <wb2> <sheet2> <key2>",
+	Help: `Arguments:
+  wb1       path to left file
+  sheet1    name of sheet from left file
+  key1      selection of columns used for the join
+  wb2       path to right file
+  sheet2    name of sheet from right file
+  key2      selection of columns used for the join
+
+Options:
+  -f <file>       path where joined sheets will be written
+  -c <columns>    selection of columns from joined sheets to be selected`,
+	Usage:   "join [-f <output>] [-c <columns>] [-h|--help] <wb1> <sheet1> <key1> <wb2> <sheet2> <key2>",
 	Handler: &JoinCommand{},
 }
 
