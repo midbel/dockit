@@ -20,28 +20,46 @@ import (
 var infoCmd = cli.Command{
 	Name:    "info",
 	Summary: "Display metadata, sheet names of a spreadsheet file",
-	Usage:   "info [-a] <spreadsheet>",
+	Help: `Arguments:
+  file    path to input file.
+
+Options:
+  -f <format>    force to use the given format
+  -p <pattern>   use pattern to extract columns from log file`,
+	Usage:   "info [-f <format>] [-p <pattern>] [-h|--help] <file>",
 	Handler: &GetInfoCommand{},
 }
 
 var mergeCmd = cli.Command{
 	Name:    "merge",
 	Summary: "Consolidate multiple spreadsheet files into a single workbooks",
-	Usage:   "merge [-f <out>] [-r] [-c] <file1> <file2> [...<fileN>]",
+	Help: `Arguments:
+  file    path to input file(s).
+
+Options:
+  -f <file>    write merge result to given file
+  -r           remove input file(s)
+  -c           resync values before merge`,
+	Usage:   "merge [-f <file>] [-r] [-c] <file...>",
 	Handler: &MergeCommand{},
 }
 
 var formatCmd = cli.Command{
 	Name:    "format",
-	Summary: "Print list of supported spreadsheet like formats",
-	Usage:   "List all compatible spreadsheet file format",
+	Summary: "List supported spreadsheet formats",
+	Usage:   "format [-h|--help]",
 	Handler: &FormatCommand{},
 }
 
 var builtinsCmd = cli.Command{
 	Name:    "builtins",
 	Summary: "Display list of supported builtins",
-	Usage:   "builtins",
+	Help: `Arguments:
+  name    builtin's name to get detailled info
+
+Options:
+  -c <category>    list builtins from given category only`,
+	Usage:   "builtins [-c <category>] [-h|--help] [<name>]",
 	Handler: &GetBuiltinCommand{},
 }
 
@@ -106,16 +124,14 @@ func (c FormatCommand) Run(args []string) error {
 const infoPattern = "%d %s%s(%s): %d lines, %d columns - %s"
 
 type GetInfoCommand struct {
-	Format    string
-	Pattern   string
-	Delimiter string
+	Format  string
+	Pattern string
 }
 
 func (c GetInfoCommand) Run(args []string) error {
 	set := cli.NewFlagSet("info")
 	set.StringVar(&c.Format, "f", "", "format")
 	set.StringVar(&c.Pattern, "p", "", "pattern")
-	set.StringVar(&c.Delimiter, "d", "", "format")
 	if err := set.Parse(args); err != nil {
 		return err
 	}

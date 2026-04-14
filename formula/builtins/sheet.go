@@ -8,6 +8,17 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+var copyBuiltin = gbs.Builtin{
+	Name: "copy",
+	Desc: "",
+	Category: "sheet",
+	Func: CopySheet,
+}
+
+func CopySheet(args []value.Value) value.Value {
+	return value.ErrValue
+}
+
 var joinBuiltin = gbs.Builtin{
 	Name:     "join",
 	Desc:     "",
@@ -140,4 +151,5 @@ var sheetBuiltins = []gbs.Builtin{
 	unlockBuiltin,
 	lockBuiltin,
 	joinBuiltin,
+	copyBuiltin,
 }
