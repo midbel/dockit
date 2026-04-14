@@ -18,8 +18,19 @@ import (
 var errFail = errors.New("fail")
 
 var (
-	summary = "dockit"
-	help    = ""
+	summary = "Dockit transforms the way you handle spreadsheets by moving manual data tasks into your terminal"
+	help    = `Dockit CLI is a data processing tool designed to manipulate, transform, and export tabular data directly from your terminal. 
+
+Built to bridge the gap between raw data and spreadsheets, it automates tedious manual workflows with a dedicated suite of commands for sheet management and/or data reshaping.
+
+With Dockit CLI, you can:
+
+* Manage Sheets: Seamlessly add, remove, or reorganize sheets within your workbooks
+* Unified Format Support: Interface with .csv, .xlsx, and .ods files using a single, consistent toolset
+* Restructure Data: Transform and reshape sheet layouts to fit your specific requirements
+* Join & Merge: Combine sheets across the same workbook or consolidate data from multiple different files
+
+Finally, with Dockit, manipulating spreadsheets from the command line becomes a workflow.`
 )
 
 func init() {
@@ -36,8 +47,6 @@ func main() {
 		set  = cli.NewFlagSet("dockit")
 		root = prepare()
 	)
-	root.SetSummary(summary)
-	root.SetHelp(help)
 	if err := set.Parse(os.Args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
 			root.Help()
@@ -61,6 +70,9 @@ func main() {
 
 func prepare() *cli.CommandTrie {
 	root := cli.New()
+	root.SetSummary(summary)
+	root.SetHelp(help)
+
 	root.Register(slx.One("info"), &infoCmd)
 	root.Register(slx.One("merge"), &mergeCmd)
 	root.Register(slx.One("format"), &formatCmd)
@@ -79,7 +91,7 @@ func prepare() *cli.CommandTrie {
 	root.Register(slx.One("audit"), &auditCmd)
 	root.Register(slx.One("builtins"), &builtinsCmd)
 
-	root.Register(slx.Make("studio", "browse-ast"), &terminalBrowseAstCmd)
+	// root.Register(slx.Make("studio", "browse-ast"), &terminalBrowseAstCmd)
 
 	return root
 }
