@@ -16,14 +16,6 @@ var depsCmd = cli.Command{
 	Usage:   "deps <file>",
 	Handler: &DepCommand{},
 }
-
-var auditCmd = cli.Command{
-	Name:    "audit",
-	Summary: "",
-	Usage:   "audit <file> <sheet>",
-	Handler: &AuditCommand{},
-}
-
 type DepCommand struct{}
 
 func (c DepCommand) Run(args []string) error {
@@ -38,6 +30,14 @@ func (c DepCommand) Run(args []string) error {
 		return nil
 	})
 }
+
+var auditCmd = cli.Command{
+	Name:    "audit",
+	Summary: "",
+	Usage:   "audit <file> <sheet>",
+	Handler: &AuditCommand{},
+}
+
 
 type AuditCommand struct {
 	Function bool

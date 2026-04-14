@@ -19,14 +19,6 @@ var runCmd = cli.Command{
 	Handler: &RunCommand{},
 }
 
-var dumpCmd = cli.Command{
-	Name:    "dump",
-	Alias:   []string{"inspect"},
-	Summary: "Export the AST representation of script",
-	Usage:   "dump <script.dk>",
-	Handler: &DumpCommand{},
-}
-
 type RunCommand struct {
 	Debug        bool
 	Dialect      string
@@ -55,6 +47,14 @@ func (c RunCommand) Run(args []string) error {
 	engine.SetDateFormat(c.DateFormat)
 	_, err = engine.Exec(r, env.Empty())
 	return err
+}
+
+var dumpCmd = cli.Command{
+	Name:    "dump",
+	Alias:   []string{"inspect"},
+	Summary: "Export the AST representation of script",
+	Usage:   "dump <script.dk>",
+	Handler: &DumpCommand{},
 }
 
 type DumpCommand struct{}

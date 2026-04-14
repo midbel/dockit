@@ -11,56 +11,11 @@ import (
 	"github.com/midbel/dockit/workbook"
 )
 
-var addCmd = cli.Command{
-	Name:    "add",
-	Alias:   slx.Make("append"),
-	Summary: "Import sheets from a spreadsheet into a target file",
-	Usage:   "add <target> <source> <sheet> [<sheet>...]",
-	Handler: &AddCommand{},
-}
-
-var dropCmd = cli.Command{
-	Name:    "drop",
-	Alias:   slx.Make("remove", "rm"),
-	Summary: "Delete one or more sheets from a spreadsheet",
-	Usage:   "drop <file> <sheet> [<sheet>...]",
-	Handler: &DropCommand{},
-}
-
-var renameCmd = cli.Command{
-	Name:    "rename",
-	Summary: "Change the name of a specific sheet within a file",
-	Usage:   "rename <file> <source> <target>",
-	Handler: &RenameCommand{},
-}
-
-var copyCmd = cli.Command{
-	Name:    "copy",
-	Alias:   slx.Make("cp"),
-	Summary: "Duplicate a sheet within its original file",
-	Usage:   "copy <file> <sheet>",
-	Handler: &CopyCommand{},
-}
-
-var printCmd = cli.Command{
-	Name:    "print",
-	Summary: "Print content of a sheet on stdout",
-	Usage:   "print [-c <columns>] <file> [<sheet>]",
-	Handler: &PrintCommand{},
-}
-
 var lockCmd = cli.Command{
 	Name:    "lock",
 	Summary: "Lock one or more sheets from a spreadsheet",
 	Usage:   "lock <file> [<sheet>]",
 	Handler: &LockCommand{},
-}
-
-var unlockCmd = cli.Command{
-	Name:    "unlock",
-	Summary: "Unlock one or more sheets from a spreadsheet",
-	Usage:   "unlock <file> [<sheet>]",
-	Handler: &UnlockCommand{},
 }
 
 type LockCommand struct{}
@@ -104,6 +59,13 @@ func (c LockCommand) lockSheets(wb grid.File, sheets []string) error {
 	return nil
 }
 
+var unlockCmd = cli.Command{
+	Name:    "unlock",
+	Summary: "Unlock one or more sheets from a spreadsheet",
+	Usage:   "unlock <file> [<sheet>]",
+	Handler: &UnlockCommand{},
+}
+
 type UnlockCommand struct{}
 
 func (c UnlockCommand) Run(args []string) error {
@@ -145,6 +107,14 @@ func (c UnlockCommand) unlockSheets(wb grid.File, sheets []string) error {
 	return nil
 }
 
+var addCmd = cli.Command{
+	Name:    "add",
+	Alias:   slx.Make("append"),
+	Summary: "Import sheets from a spreadsheet into a target file",
+	Usage:   "add <target> <source> <sheet> [<sheet>...]",
+	Handler: &AddCommand{},
+}
+
 type AddCommand struct{}
 
 func (c AddCommand) Run(args []string) error {
@@ -173,6 +143,14 @@ func (c AddCommand) Run(args []string) error {
 	})
 }
 
+var dropCmd = cli.Command{
+	Name:    "drop",
+	Alias:   slx.Make("remove", "rm"),
+	Summary: "Delete one or more sheets from a spreadsheet",
+	Usage:   "drop <file> <sheet> [<sheet>...]",
+	Handler: &DropCommand{},
+}
+
 type DropCommand struct{}
 
 func (c DropCommand) Run(args []string) error {
@@ -193,6 +171,14 @@ func (c DropCommand) Run(args []string) error {
 	})
 }
 
+var copyCmd = cli.Command{
+	Name:    "copy",
+	Alias:   slx.Make("cp"),
+	Summary: "Duplicate a sheet within its original file",
+	Usage:   "copy <file> <sheet>",
+	Handler: &CopyCommand{},
+}
+
 type CopyCommand struct{}
 
 func (c CopyCommand) Run(args []string) error {
@@ -208,6 +194,13 @@ func (c CopyCommand) Run(args []string) error {
 	})
 }
 
+var renameCmd = cli.Command{
+	Name:    "rename",
+	Summary: "Change the name of a specific sheet within a file",
+	Usage:   "rename <file> <source> <target>",
+	Handler: &RenameCommand{},
+}
+
 type RenameCommand struct{}
 
 func (c RenameCommand) Run(args []string) error {
@@ -221,6 +214,13 @@ func (c RenameCommand) Run(args []string) error {
 	return updateFile(set.Arg(0), func(wb grid.File) error {
 		return wb.Rename(set.Arg(1), set.Arg(2))
 	})
+}
+
+var printCmd = cli.Command{
+	Name:    "print",
+	Summary: "Print content of a sheet on stdout",
+	Usage:   "print [-c <columns>] <file> [<sheet>]",
+	Handler: &PrintCommand{},
 }
 
 type PrintCommand struct {
