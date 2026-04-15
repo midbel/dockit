@@ -174,6 +174,10 @@ func (f *File) RemoveSheet(name string) error {
 	return nil
 }
 
+func (f *File) CopySheet(ident string, mode grid.CopyMode) error {
+	return nil
+}
+
 func (f *File) Sync() error {
 	if err := f.supported(); err != nil {
 		return err

@@ -25,32 +25,6 @@ func NoCell(pos layout.Position) error {
 	return fmt.Errorf("%s no cell at given position", pos)
 }
 
-type CopyMode int
-
-func CopyModeFromString(str string) (CopyMode, error) {
-	var mode CopyMode
-	switch str {
-	case "value":
-		mode |= CopyValue
-	case "formula":
-		mode |= CopyFormula
-	case "style":
-		mode |= CopyStyle
-	case "", "all":
-		mode |= CopyAll
-	default:
-		return mode, fmt.Errorf("%s invalid value for copy mode", str)
-	}
-	return mode, nil
-}
-
-const (
-	CopyValue = iota << 1
-	CopyFormula
-	CopyStyle
-	CopyAll = CopyValue | CopyFormula | CopyStyle
-)
-
 type Callable interface {
 	Call(value.Context) (value.Value, error)
 }

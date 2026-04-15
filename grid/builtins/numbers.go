@@ -14,7 +14,7 @@ var signBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Params: []Param{
-		Var(ScalarArray("number", "", value.TypeNumber)),
+		Var(Scalar("number", "", value.TypeNumber)),
 	},
 	Func: Sign,
 }
@@ -32,7 +32,7 @@ var isOddBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Params: []Param{
-		Var(ScalarArray("number", "", value.TypeNumber)),
+		Var(Scalar("number", "", value.TypeNumber)),
 	},
 	Func: IsOdd,
 }

@@ -655,6 +655,10 @@ func (f *File) AppendSheet(sheet grid.View) error {
 	return nil
 }
 
+func (f *File) CopySheet(ident string, mode grid.CopyMode) error {
+	return nil
+}
+
 // append sheets of given file to current fule
 func (f *File) Merge(other grid.File) error {
 	if f.locked {

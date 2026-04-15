@@ -1,8 +1,36 @@
 package grid
 
 import (
+	"fmt"
+	
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
+)
+
+type CopyMode int
+
+func CopyModeFromString(str string) (CopyMode, error) {
+	var mode CopyMode
+	switch str {
+	case "value":
+		mode |= CopyValue
+	case "formula":
+		mode |= CopyFormula
+	case "style":
+		mode |= CopyStyle
+	case "", "all":
+		mode |= CopyAll
+	default:
+		return mode, fmt.Errorf("%s invalid value for copy mode", str)
+	}
+	return mode, nil
+}
+
+const (
+	CopyValue = iota << 1
+	CopyFormula
+	CopyStyle
+	CopyAll = CopyValue | CopyFormula | CopyStyle
 )
 
 type Row interface {
