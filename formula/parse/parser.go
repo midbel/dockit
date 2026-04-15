@@ -77,6 +77,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
 	g.RegisterPrefixKeyword(kwClear, parseClear)
+	g.RegisterPrefixKeyword(kwInclude, parseInclude)
 
 	return g
 }
@@ -842,6 +843,28 @@ func parseAssert(p *Parser) (Expr, error) {
 		p.next()
 	}
 	return NewAssert(expr, msg, mode), nil
+}
+
+func parseInclude(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(op.Literal) {
+		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
+		return nil, p.makeError(msg)
+	}
+	var (
+		file  = p.currentLiteral()
+		alias string
+	)
+	p.next()
+	if p.is(op.Keyword) && p.currentLiteral() == "as" {
+		p.next()
+		if !p.is(op.Ident) {
+			return nil, p.expectedIdent()
+		}
+		alias = p.currentLiteral()
+		p.next()
+	}
+	return NewInclude(file, alias), nil
 }
 
 func parseImport(p *Parser) (Expr, error) {

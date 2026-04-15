@@ -2,6 +2,7 @@ package parse
 
 import (
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -27,6 +28,7 @@ type Kind int8
 const (
 	KindStmt Kind = 1 << iota
 	KindImport
+	KindInclude
 	KindUse
 )
 
@@ -73,6 +75,49 @@ func (u UseRef) String() string {
 
 func (u UseRef) Accept(v Visitor) error {
 	return v.VisitUseRef(u)
+}
+
+type IncludeFile struct {
+	file  string
+	alias string
+}
+
+func NewInclude(file, alias string) Expr {
+	return IncludeFile{
+		file:  file,
+		alias: alias,
+	}
+}
+
+func (i IncludeFile) File() string {
+	return i.file
+}
+
+func (i IncludeFile) Alias() string {
+	if i.alias != "" {
+		return i.alias
+	}
+	alias := filepath.Base(i.file)
+	for {
+		ext := filepath.Ext(alias)
+		if ext == "" {
+			break
+		}
+		alias = strings.TrimSuffix(alias, ext)
+	}
+	return alias
+}
+
+func (i IncludeFile) String() string {
+	return fmt.Sprintf("include(%s, alias: %s)", i.file, i.alias)
+}
+
+func (IncludeFile) Kind() Kind {
+	return KindInclude
+}
+
+func (i IncludeFile) Accept(v Visitor) error {
+	return v.VisitIncludeFile(i)
 }
 
 type ImportFile struct {

@@ -21,9 +21,7 @@ var (
 	summary = "Dockit transforms the way you handle spreadsheets by moving manual data tasks into your terminal"
 	help    = `Dockit CLI is a data processing tool designed to manipulate, transform, and export tabular data directly from your terminal. 
 
-Built to bridge the gap between raw data and spreadsheets, it automates tedious manual workflows with a dedicated suite of commands for sheet management and/or data reshaping.
-
-With Dockit CLI, you can:
+Built to bridge the gap between raw data and spreadsheets, with Dockit CLI, you can:
 
 * Manage Sheets: Seamlessly add, remove, or reorganize sheets within your workbooks
 * Unified Format Support: Interface with .csv, .xlsx, and .ods files using a single, consistent toolset

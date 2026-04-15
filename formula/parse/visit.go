@@ -3,6 +3,7 @@ package parse
 type Visitor interface {
 	VisitScript(Script) error
 
+	VisitIncludeFile(IncludeFile) error
 	VisitImportFile(ImportFile) error
 	VisitExportRef(ExportRef) error
 	VisitPrintRef(PrintRef) error

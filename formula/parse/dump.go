@@ -162,6 +162,14 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		io.WriteString(w, e.msg)
 		io.WriteString(w, ")")
+	case IncludeFile:
+		io.WriteString(w, "include(")
+		io.WriteString(w, e.file)
+		if e.alias != "" {
+			io.WriteString(w, ", alias: ")
+			io.WriteString(w, e.alias)
+		}
+		io.WriteString(w, ")")
 	case ImportFile:
 		io.WriteString(w, "import(")
 		io.WriteString(w, e.file)

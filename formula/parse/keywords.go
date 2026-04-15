@@ -21,6 +21,7 @@ const (
 	kwNot     = "not"
 	kwAssert  = "assert"
 	kwElse    = "else"
+	kwInclude = "include"
 )
 
 func isKeyword(str string) bool {
