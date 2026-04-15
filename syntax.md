@@ -253,6 +253,8 @@ var ^= value
 
 ## Statements
 
+### include
+
 ### print
 
 Display content of variable/cell/array/view
