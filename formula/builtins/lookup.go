@@ -45,6 +45,7 @@ func List() []gbs.Builtin {
 
 func init() {
 	registerBuiltins(sheetBuiltins)
+	registerBuiltins(numberBuiltins)
 }
 
 func registerBuiltins(list []gbs.Builtin) {
