@@ -487,8 +487,10 @@ func (f *File) Copy(oldName, newName string) error {
 	if newName == "" {
 		newName = oldName
 	}
-	target := NewSheet(newName)
-	target.FillWith(source)
+	target, _ := source.Clone(grid.CopyAll)
+	if sh, ok := target.(*Sheet); ok {
+		sh.Label = newName
+	}
 	return f.AppendSheet(target)
 }
 
