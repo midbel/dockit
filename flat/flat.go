@@ -174,8 +174,8 @@ func (f *File) RemoveSheet(name string) error {
 	return nil
 }
 
-func (f *File) CopySheet(ident string, mode grid.CopyMode) error {
-	return nil
+func (f *File) CloneSheet(ident string, mode grid.CopyMode) (grid.View, error) {
+	return nil, nil
 }
 
 func (f *File) Sync() error {
@@ -348,14 +348,18 @@ func (s *Sheet) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	return it
 }
 
+func (s *Sheet) Clone(mode grid.CopyMode) (grid.View, error) {
+	return nil, nil
+}
+
+func (s *Sheet) FillWith(other grid.View) error {
+	return nil
+}
+
 func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	cell, ok := s.cells[pos]
 	if !ok {
-		cell = &Cell{
-			Position: pos,
-			raw:      value.ErrRef.String(),
-			parsed:   value.ErrRef,
-		}
+		return grid.Empty(pos), nil
 	}
 	return cell, nil
 }

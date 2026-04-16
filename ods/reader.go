@@ -368,7 +368,7 @@ func (h *cellHandler) Close(rs *sax.Reader, e sax.E) error {
 		h.column++
 
 		cell := h.create(int64(ix))
-		h.sheet.put(cell)
+		h.sheet.put(cell, grid.CopyAll)
 	}
 
 	return nil

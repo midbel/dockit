@@ -236,12 +236,7 @@ func (s *Sheet) Sub(start, end layout.Position) grid.View {
 func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	cell, ok := s.cells[pos]
 	if !ok {
-		cell = &Cell{
-			Type:     TypeError,
-			Position: pos,
-			raw:      "",
-			parsed:   value.Empty(),
-		}
+		return grid.Empty(pos), nil
 	}
 	return cell, nil
 }
@@ -309,14 +304,29 @@ func (s *Sheet) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	return it
 }
 
-func (s *Sheet) Copy(other grid.View) error {
+func (s *Sheet) Clone(mode grid.CopyMode) (grid.View, error) {
+	if !mode.Valid() {
+		return nil, fmt.Errorf("specify at least value to for mode")
+	}
+	var (
+		sh = NewSheet(s.Label)
+		bd = s.Bounds()
+	)
+	for pos := range bd.Positions() {
+		c, _ := s.Cell(pos)
+		sh.put(c, mode)
+	}
+	return sh, nil
+}
+
+func (s *Sheet) FillWith(other grid.View) error {
 	if s.Protected.RowsLocked() || s.Protected.ColumnsLocked() {
 		return grid.ErrLock
 	}
 	b := other.Bounds()
 	for p := range b.Positions() {
 		c, _ := other.Cell(p)
-		s.put(c)
+		s.put(c, grid.CopyAll)
 	}
 	return nil
 }
@@ -386,12 +396,6 @@ func (s *Sheet) ClearCell(pos layout.Position) error {
 }
 
 func (s *Sheet) ClearValue(pos layout.Position) error {
-	// c, ok := s.cells[pos]
-	// if !ok {
-	// 	return grid.NoCell(pos)
-	// }
-	// c.raw = ""
-	// c.parsed = value.Empty()
 	return nil
 }
 
@@ -400,11 +404,6 @@ func (s *Sheet) ClearRange(rg *layout.Range) error {
 }
 
 func (s *Sheet) ClearFormula(pos layout.Position) error {
-	// c, ok := s.cells[pos]
-	// if !ok {
-	// 	return grid.NoCell(pos)
-	// }
-	// c.formula = nil
 	return nil
 }
 
@@ -420,7 +419,7 @@ func (s *Sheet) DeleteRow(ix int64) error {
 	return nil
 }
 
-func (s *Sheet) put(cell grid.Cell) {
+func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
 	var (
 		pos = cell.At()
 		val = cell.Value()
@@ -440,11 +439,13 @@ func (s *Sheet) put(cell grid.Cell) {
 	c := &Cell{
 		Type:     typeFromValue(val),
 		Position: pos,
-		raw:      val.String(),
-		parsed:   val,
-		formula:  cell.Formula(),
 	}
-	if c.formula != nil {
+	if mode.Value() {
+		c.raw = val.String()
+		c.parsed = val
+	}
+	if f := cell.Formula(); f != nil && mode.Formula() {
+		c.formula = f
 		c.Type = TypeFormula
 	}
 	r.Cells = append(r.Cells, c)
@@ -620,9 +621,38 @@ func (f *File) Copy(oldName, newName string) error {
 	if newName == "" {
 		newName = oldName
 	}
-	target := NewSheet(newName)
-	target.Copy(source)
+	target, _ := source.Clone(grid.CopyAll)
+	if sh, ok := target.(*Sheet); ok {
+		sh.Label = newName
+	}
 	return f.AppendSheet(target)
+}
+
+func (f *File) AppendSheet(sheet grid.View) error {
+	if f.locked {
+		return grid.ErrLock
+	}
+	sh, ok := sheet.(*Sheet)
+	if !ok {
+		sh = NewSheet(sheet.Name())
+		sh.Label = cleanName(sheet.Name())
+		if err := sh.FillWith(sheet); err != nil {
+			return err
+		}
+	}
+	sh.Label = f.names.Next(sh.Label)
+	sh.Index = len(f.sheets) + 1
+	sh.Id = sheetId(sh.Index)
+	f.sheets = append(f.sheets, sh)
+	return nil
+}
+
+func (f *File) CloneSheet(ident string, mode grid.CopyMode) (grid.View, error) {
+	sh, err := f.sheetByName(ident)
+	if err != nil {
+		return nil, err
+	}
+	return sh.Clone(mode)
 }
 
 func (f *File) RemoveSheet(name string) error {
@@ -636,26 +666,6 @@ func (f *File) RemoveSheet(name string) error {
 	if size != len(f.sheets) {
 		f.names.Delete(name)
 	}
-	return nil
-}
-
-func (f *File) AppendSheet(sheet grid.View) error {
-	if f.locked {
-		return grid.ErrLock
-	}
-	sh := NewSheet(sheet.Name())
-	sh.Label = cleanName(sheet.Name())
-	sh.Label = f.names.Next(sh.Label)
-	if err := sh.Copy(sheet); err != nil {
-		return err
-	}
-	sh.Index = len(f.sheets) + 1
-	sh.Id = fmt.Sprintf("rId%d", sh.Index)
-	f.sheets = append(f.sheets, sh)
-	return nil
-}
-
-func (f *File) CopySheet(ident string, mode grid.CopyMode) error {
 	return nil
 }
 
@@ -732,4 +742,8 @@ func cleanName(str string) string {
 		ret = ret[:maxSheetNameLen]
 	}
 	return ret
+}
+
+func sheetId(id int) string {
+	return fmt.Sprintf("rId%d", id)
 }

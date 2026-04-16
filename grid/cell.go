@@ -2,7 +2,7 @@ package grid
 
 import (
 	"fmt"
-	
+
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -24,6 +24,18 @@ func CopyModeFromString(str string) (CopyMode, error) {
 		return mode, fmt.Errorf("%s invalid value for copy mode", str)
 	}
 	return mode, nil
+}
+
+func (c CopyMode) Valid() bool {
+	return c != 0
+}
+
+func (c CopyMode) Value() bool {
+	return c == CopyAll || (c&CopyValue != 0)
+}
+
+func (c CopyMode) Formula() bool {
+	return c == CopyAll || (c&CopyFormula != 0)
 }
 
 const (
