@@ -6,8 +6,8 @@ import (
 )
 
 var seqBuiltin = gbs.Builtin{
-	Name:     "seq",
-	Desc:     "",
+	Name: "seq",
+	Desc: "",
 	Params: []gbs.Param{
 		gbs.Scalar("start", "", value.TypeAny),
 		gbs.Scalar("step", "", value.TypeNumber),
@@ -22,8 +22,8 @@ func Seq(args []value.Value) value.Value {
 }
 
 var rangeBuiltin = gbs.Builtin{
-	Name:     "range",
-	Desc:     "",
+	Name: "range",
+	Desc: "",
 	Params: []gbs.Param{
 		gbs.Scalar("start", "", value.TypeAny),
 		gbs.Scalar("end", "", value.TypeAny),
