@@ -37,7 +37,8 @@ type ExprKind interface {
 }
 
 type Script struct {
-	Body []Expr
+	Body     []Expr
+	Includes []Expr
 	Position
 }
 

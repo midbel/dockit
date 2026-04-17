@@ -286,7 +286,23 @@ func (p *Parser) parseFormula() (Expr, error) {
 }
 
 func (p *Parser) parseScript() (Expr, error) {
-	var script Script
+	var (
+		script Script
+		err error
+	)
+	script.Includes, err = p.parseIncludes()
+	if err != nil {
+		return nil, err
+	}
+	script.Body, err = p.parseBody()
+	if err != nil {
+		return nil, err
+	}
+	return script, nil
+}
+
+func (p *Parser) parseBody() ([]Expr, error) {
+	var list []Expr
 	for {
 		p.skipComment()
 		if p.done() {
@@ -296,13 +312,34 @@ func (p *Parser) parseScript() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		script.Body = append(script.Body, e)
+		list = append(list, e)
 		if !p.isTerminator() {
 			return nil, p.expectedEOL()
 		}
 		p.skipTerminator()
 	}
-	return script, nil
+	return list, nil
+}
+
+func (p *Parser) parseIncludes() ([]Expr, error) {
+	var list []Expr
+	for {
+		p.skipComment()
+		if p.done() {
+			break
+		}
+		if p.is(op.Keyword) && p.currentLiteral() == kwInclude {
+			expr, err := parseInclude(p)
+			if err != nil {
+				return nil, err
+			}
+			list = append(list, expr)
+		} else {
+			break
+		}
+	}
+	p.currGrammar().UnregisterPrefixKeyword(kwInclude)	
+	return list, nil
 }
 
 func (p *Parser) parse(pow int) (Expr, error) {
