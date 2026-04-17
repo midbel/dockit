@@ -95,6 +95,9 @@ func (vf *ValueFormatter) Bool(pattern string) error {
 }
 
 func (vf *ValueFormatter) Format(v value.Value) (string, error) {
+	if v == nil {
+		v = value.Empty()
+	}
 	if v, ok := v.(formattedValue); ok {
 		return v.Format()
 	}

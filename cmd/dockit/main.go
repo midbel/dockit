@@ -80,6 +80,7 @@ func prepare() *cli.CommandTrie {
 	root.Register(slx.One("unlock"), &unlockCmd)
 	root.Register(slx.One("add"), &addCmd)
 	root.Register(slx.One("join"), &joinCmd)
+	root.Register(slx.One("group"), &groupCmd)
 	root.Register(slx.One("transpose"), &transposeCmd)
 	root.Register(slx.One("drop"), &dropCmd)
 	root.Register(slx.One("rename"), &renameCmd)

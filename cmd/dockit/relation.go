@@ -66,6 +66,34 @@ func (c TransposeCommand) createView(view grid.View) grid.View {
 	return view
 }
 
+var groupCmd = cli.Command{
+	Name:    "group",
+	Summary: "",
+	Help:    "",
+	Usage:   "",
+	Handler: &GroupCommand{},
+}
+
+type GroupCommand struct{}
+
+func (c GroupCommand) Run(args []string) error {
+	set := cli.NewFlagSet("group")
+	if err := set.Parse(args); err != nil {
+		return err
+	}
+
+	return withSheet(set.Arg(0), set.Arg(1), func(view grid.View) error {
+		// v, err := gridx.Group(view)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// rd := cli.NewTableRenderer(cli.Stdout)
+		// rd.Render(sheet2Table(v, false))
+		return nil
+	})
+}
+
 var joinCmd = cli.Command{
 	Name:    "join",
 	Summary: "Perform a join on two sheets",
