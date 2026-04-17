@@ -12,16 +12,16 @@ const (
 	kwIn      = "in"
 	kwAs      = "as"
 	kwTo      = "to"
-	kwEnd     = "end"
 	kwRo      = "ro"
 	kwRw      = "rw"
-	kwClear   = "clear"
 	kwAnd     = "and"
 	kwOr      = "or"
 	kwNot     = "not"
 	kwAssert  = "assert"
 	kwElse    = "else"
 	kwInclude = "include"
+	kwMacro   = "macro"
+	kwEnd     = "end"
 )
 
 func isKeyword(str string) bool {
@@ -42,10 +42,10 @@ func isKeyword(str string) bool {
 	case kwEnd:
 	case kwRo:
 	case kwRw:
-	case kwClear:
 	case kwAnd:
 	case kwOr:
 	case kwNot:
+	case kwMacro:
 	default:
 		return false
 	}

@@ -56,6 +56,24 @@ func (s Script) Accept(v Visitor) error {
 	return v.VisitScript(s)
 }
 
+type Macro struct {
+	name string
+	args []Expr
+	body []Expr
+}
+
+func NewMacro(name string, args, body []Expr) Expr {
+	return Macro{
+		name: name,
+		args: args,
+		body: body,
+	}
+}
+
+func (m Macro) String() string {
+	return m.name
+}
+
 type UseRef struct {
 	ident    string
 	readOnly bool

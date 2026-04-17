@@ -76,8 +76,8 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
-	g.RegisterPrefixKeyword(kwClear, parseClear)
 	g.RegisterPrefixKeyword(kwInclude, parseInclude)
+	g.RegisterPrefixKeyword(kwMacro, parseMacro)
 
 	return g
 }
@@ -288,7 +288,7 @@ func (p *Parser) parseFormula() (Expr, error) {
 func (p *Parser) parseScript() (Expr, error) {
 	var (
 		script Script
-		err error
+		err    error
 	)
 	script.Includes, err = p.parseIncludes()
 	if err != nil {
@@ -338,7 +338,7 @@ func (p *Parser) parseIncludes() ([]Expr, error) {
 			break
 		}
 	}
-	p.currGrammar().UnregisterPrefixKeyword(kwInclude)	
+	p.currGrammar().UnregisterPrefixKeyword(kwInclude)
 	return list, nil
 }
 
@@ -882,6 +882,69 @@ func parseAssert(p *Parser) (Expr, error) {
 	return NewAssert(expr, msg, mode), nil
 }
 
+func parseMacro(p *Parser) (Expr, error) {
+	p.next()
+	if !p.is(op.Ident) {
+		return nil, p.expectedIdent()
+	}
+	var (
+		name = p.currentLiteral()
+		args []Expr
+		body []Expr
+	)
+	p.next()
+	if !p.is(op.BegGrp) {
+		return nil, p.makeError("expected '(' before arguments list")
+	}
+	p.next()
+	for !p.done() && !p.is(op.EndGrp) {
+		p.skipEOL()
+		if !p.is(op.Ident) {
+			return nil, p.expectedIdent()
+		}
+		args = append(args, NewIdentifier(p.currentLiteral()))
+		p.next()
+
+		switch p.curr.Type {
+		case op.Eol:
+			p.skipEOL()
+			if !p.is(op.EndGrp) {
+				return nil, p.makeError("expected ')' after last argument")
+			}
+		case op.Comma:
+			p.next()
+			p.skipEOL()
+			if p.is(op.EndGrp) {
+				return nil, p.makeError("unexpected ')' after ','")
+			}
+		case op.EndGrp:
+		default:
+			return nil, p.makeError("unexpected character in function call")
+		}
+	}
+	if !p.is(op.EndGrp) {
+		return nil, p.makeError("unexpected character in function call")
+	}
+	p.next()
+
+	for !p.done() && !(p.is(op.Keyword) && p.currentLiteral() == kwEnd) {
+		p.skipComment()
+		if p.done() {
+			break
+		}
+		e, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		body = append(body, e)
+		if !p.isTerminator() {
+			return nil, p.expectedEOL()
+		}
+		p.skipTerminator()
+	}
+	return NewMacro(name, args, body), nil
+}
+
 func parseInclude(p *Parser) (Expr, error) {
 	p.next()
 	if !p.is(op.Literal) {
@@ -954,10 +1017,6 @@ func parseImport(p *Parser) (Expr, error) {
 	}
 	stmt.readOnly = ro
 	return stmt, nil
-}
-
-func parseClear(p *Parser) (Expr, error) {
-	return nil, nil
 }
 
 func parseReadonly(p *Parser) (bool, error) {
