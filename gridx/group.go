@@ -1,7 +1,6 @@
 package gridx
 
 import (
-	"fmt"
 	"iter"
 	"maps"
 	"math"
@@ -25,43 +24,23 @@ type Aggr struct {
 	Column int64
 }
 
-func NewAggr(col int64, aggr Aggregator) Aggr {
-	return Aggr{
+func NewAggr(col int64, aggr Aggregator) *Aggr {
+	return &Aggr{
 		Column:     col,
 		Aggregator: aggr,
 	}
 }
 
-type groupRow struct {
-	key     string
-	values  []value.Value
-	aggr    []Aggr
-	indices []int64
+func (a *Aggr) Update(row []value.ScalarValue) {
+	if a.Column < 0 || int(a.Column) >= len(row) {
+		return
+	}
+	a.Aggregator.Aggr(row[int(a.Column)])
 }
 
-func (r *groupRow) Columns() int64 {
-	t := len(r.values) + len(r.aggr)
-	return int64(t)
-}
-
-func (r *groupRow) Values() []value.ScalarValue {
-	out := make([]value.ScalarValue, 0, int(r.Columns()))
-	for _, v := range r.values {
-		if value.IsScalar(v) {
-			out = append(out, v.(value.ScalarValue))
-		} else {
-			out = append(out, value.Empty())
-		}
-	}
-	for _, v := range r.aggr {
-		res := v.Result()
-		if value.IsScalar(res) {
-			out = append(out, res.(value.ScalarValue))
-		} else {
-			out = append(out, value.Empty())
-		}
-	}
-	return out
+func (a *Aggr) Clone() *Aggr {
+	x := NewAggr(a.Column, a.Aggregator.clone())
+	return x
 }
 
 func Group(view grid.View, keys layout.Selection, aggr []Aggr) (grid.View, error) {
@@ -83,23 +62,17 @@ func createGroups(view grid.View, keys layout.Selection, aggr []Aggr) (map[strin
 
 		gr, ok := groups[k]
 		if !ok {
-			row := groupRow{
-				key: k,
-			}
+			row := new(groupRow)
 			for _, c := range cols {
 				row.values = append(row.values, rs[c])
 			}
 			for _, a := range aggr {
-				n := a
-				n.Aggregator = n.Aggregator.clone()
-				row.aggr = append(row.aggr, n)
+				row.aggr = append(row.aggr, a.Clone())
 			}
-			gr = &row
+			gr = row
 			groups[k] = gr
 		}
-		for _, a := range gr.aggr {
-			a.Aggr(rs[int(a.Column)])
-		}
+		gr.Update(rs)
 		gr.indices = append(gr.indices, lino)
 	}
 	return groups, nil
@@ -133,7 +106,6 @@ func (g *groupedView) Bounds() *layout.Range {
 func (g *groupedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	it := func(yield func(int64, []value.ScalarValue) bool) {
 		for lino, r := range g.groups {
-			fmt.Println(r.Values())
 			ok := yield(int64(lino)+1, r.Values())
 			if !ok {
 				return
@@ -152,6 +124,43 @@ func (g *groupedView) Sync(ctx value.Context) error {
 		return err
 	}
 	return grid.ErrSupported
+}
+
+type groupRow struct {
+	values  []value.Value
+	aggr    []*Aggr
+	indices []int64
+}
+
+func (r *groupRow) Update(row []value.ScalarValue) {
+	for i := range r.aggr {
+		r.aggr[i].Update(row)
+	}
+}
+
+func (r *groupRow) Columns() int64 {
+	t := len(r.values) + len(r.aggr)
+	return int64(t)
+}
+
+func (r *groupRow) Values() []value.ScalarValue {
+	out := make([]value.ScalarValue, 0, int(r.Columns()))
+	for _, v := range r.values {
+		if value.IsScalar(v) {
+			out = append(out, v.(value.ScalarValue))
+		} else {
+			out = append(out, value.Empty())
+		}
+	}
+	for _, v := range r.aggr {
+		res := v.Result()
+		if value.IsScalar(res) {
+			out = append(out, res.(value.ScalarValue))
+		} else {
+			out = append(out, value.Empty())
+		}
+	}
+	return out
 }
 
 type minv struct {
