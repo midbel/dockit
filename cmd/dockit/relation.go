@@ -70,7 +70,7 @@ var groupCmd = cli.Command{
 	Name:    "group",
 	Summary: "",
 	Help:    "",
-	Usage:   "",
+	Usage:   "group <file> <sheet> <columns> <aggr> <col> [<aggr> <col>...]",
 	Handler: &GroupCommand{},
 }
 
@@ -83,13 +83,25 @@ func (c GroupCommand) Run(args []string) error {
 	}
 
 	return withSheet(set.Arg(0), set.Arg(1), func(view grid.View) error {
-		// v, err := gridx.Group(view)
-		// if err != nil {
-		// 	return err
-		// }
+		keys, err := layout.SelectionFromString(set.Arg(2))
+		if err != nil {
+			return err
+		}
+		var list []gridx.Aggr
+		for i := 3; i < set.NArg(); i += 2 {
+			a, err := gridx.CreateAggr(set.Arg(i+1), set.Arg(i))
+			if err != nil {
+				return err
+			}
+			list = append(list, *a)
+		}
+		v, err := gridx.Group(view, keys, list)
+		if err != nil {
+			return err
+		}
 
-		// rd := cli.NewTableRenderer(cli.Stdout)
-		// rd.Render(sheet2Table(v, false))
+		rd := cli.NewTableRenderer(cli.Stdout)
+		rd.Render(sheet2Table(v, false))
 		return nil
 	})
 }

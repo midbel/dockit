@@ -1,6 +1,7 @@
 package gridx
 
 import (
+	"fmt"
 	"iter"
 	"maps"
 	"math"
@@ -24,6 +25,18 @@ type Aggr struct {
 	Column int64
 }
 
+func CreateAggr(col, aggr string) (*Aggr, error) {
+	var a Aggr
+	a.Column, _ = layout.ParseIndex(col)
+
+	fn, ok := aggrBuilder[aggr]
+	if !ok {
+		return nil, fmt.Errorf("%s: unknown aggregate function", aggr)
+	}
+	a.Aggregator = fn()
+	return &a, nil
+}
+
 func NewAggr(col int64, aggr Aggregator) *Aggr {
 	return &Aggr{
 		Column:     col,
@@ -32,10 +45,11 @@ func NewAggr(col int64, aggr Aggregator) *Aggr {
 }
 
 func (a *Aggr) Update(row []value.ScalarValue) {
-	if a.Column < 0 || int(a.Column) >= len(row) {
+	col := a.Column - 1
+	if col < 0 || int(col) >= len(row) {
 		return
 	}
-	a.Aggregator.Aggr(row[int(a.Column)])
+	a.Aggregator.Aggr(row[int(col)])
 }
 
 func (a *Aggr) Clone() *Aggr {
@@ -161,6 +175,15 @@ func (r *groupRow) Values() []value.ScalarValue {
 		}
 	}
 	return out
+}
+
+var aggrBuilder = map[string]func() Aggregator{
+	"min":      Min,
+	"max":      Max,
+	"avg":      Avg,
+	"avergage": Avg,
+	"sum":      Sum,
+	"count":    Count,
 }
 
 type minv struct {

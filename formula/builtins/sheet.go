@@ -95,8 +95,8 @@ func Unlock(args []value.Value) value.Value {
 	return value.Boolean(true)
 }
 
-var newFileBuiltin = gbs.Builtin{
-	Name:     "newfile",
+var fileBuiltin = gbs.Builtin{
+	Name:     "file",
 	Desc:     "",
 	Category: "sheet",
 	Params:   []gbs.Param{},
@@ -147,7 +147,7 @@ var sheetBuiltins = []gbs.Builtin{
 	mkAddrBuiltin,
 	mkRangeBuiltin,
 	newSheetBuiltin,
-	newFileBuiltin,
+	fileBuiltin,
 	unlockBuiltin,
 	lockBuiltin,
 	joinBuiltin,
