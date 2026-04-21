@@ -2,19 +2,11 @@ package parse
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/midbel/dockit/formula/op"
-)
-
-type Dialect int8
-
-const (
-	OxmlDialect Dialect = 1 << iota
-	OdsDialect
 )
 
 type ScanMode int8
@@ -24,82 +16,197 @@ const (
 	ScanScript
 )
 
-type ScannerState struct {
-	pos      int
-	next     int
-	char     rune
-	position Position
+type Scanner interface {
+	Scan() Token
+	Script() bool
 }
+
+type Dialect interface {
+	Init(*Scanner) error
+
+	IsOperator(rune) bool
+	IsQuote(rune) bool
+	IsDelimiter(rune) bool
+	IsDigit(rune) bool
+	IsAddress(rune) bool
+	IsError(rune) bool
+
+	ScanOperator(*Scanner, *Token)
+	ScanDelimiter(*Scanner, *Token)
+	ScanLiteral(*Scanner, *Token)
+	ScanNumber(*Scanner, *Token)
+	ScanIdentifier(*Scanner, *Token)
+	ScanError(*Scanner, *Token)
+	ScanAddress(*Scanner, *Token)
+}
+
+type oxmlDialect struct{}
+
+func (d oxmlDialect) Init(sc *Scanner) error {
+	return nil
+}
+
+func (d oxmlDialect) IsOperator(ch rune) bool {
+	return ch == plus || ch == minus || ch == slash || ch == star ||
+		ch == langle || ch == rangle || ch == equal || ch == caret ||
+		ch == amper || ch == percent || ch == bang || ch == colon
+}
+
+func (d oxmlDialect) IsQuote(ch rune) bool {
+	return isQuote(ch)
+}
+
+func (d oxmlDialect) IsDelimiter(ch rune) bool {
+	return isDelimiter(ch)
+}
+
+func (d oxmlDialect) IsDigit(ch rune) bool {
+	return isDigit(ch)
+}
+
+func (d oxmlDialect) IsAddress(ch rune) bool {
+	return ch == dollar
+}
+
+func (d oxmlDialect) IsError(ch rune) bool {
+	return ch == pound
+}
+
+func (d oxmlDialect) ScanOperator(sc *Scanner, tok *Token) {
+	if sc.is(bang) {
+		tok.Type = op.SheetRef
+		return
+	}
+	sc.scanOperator(tok)
+}
+
+func (d oxmlDialect) ScanDelimiter(sc *Scanner, tok *Token) {
+	sc.scanDelimiter(tok)
+}
+
+func (d oxmlDialect) ScanLiteral(sc *Scanner, tok *Token) {
+	sc.scanLiteral(tok)
+}
+
+func (d oxmlDialect) ScanNumber(sc *Scanner, tok *Token) {
+	sc.scanNumber(tok)
+}
+
+func (d oxmlDialect) ScanIdentifier(sc *Scanner, tok *Token) {
+	sc.scanIdent(tok)
+}
+
+func (d oxmlDialect) ScanError(sc *Scanner, tok *Token) {
+	sc.scanError(tok)
+}
+
+func (d oxmlDialect) ScanAddress(sc *Scanner, tok *Token) {
+	sc.scanIdent(tok)
+}
+
+type odsDialect struct{}
+
+func (d odsDialect) Init(*Scanner) error {
+	return nil
+}
+
+func (d odsDialect) IsOperator(ch rune) bool {
+	return ch == plus || ch == minus || ch == slash || ch == star ||
+		ch == langle || ch == rangle || ch == equal || ch == caret ||
+		ch == amper || ch == percent || ch == dot || ch == colon
+}
+
+func (d odsDialect) IsQuote(ch rune) bool {
+	return isQuote(ch)
+}
+
+func (d odsDialect) IsDelimiter(ch rune) bool {
+	return isDelimiter(ch)
+}
+
+func (d odsDialect) IsDigit(ch rune) bool {
+	return isDigit(ch)
+}
+
+func (d odsDialect) IsAddress(ch rune) bool {
+	return ch == dot || ch == lsquare || ch == dollar
+}
+
+func (d odsDialect) IsError(ch rune) bool {
+	return ch == pound
+}
+
+func (d odsDialect) ScanOperator(sc *Scanner, tok *Token) {
+	if sc.is(dot) {
+		tok.Type = op.SheetRef
+		return
+	}
+	sc.scanOperator(tok)
+}
+
+func (d odsDialect) ScanDelimiter(sc *Scanner, tok *Token) {
+	sc.scanDelimiter(tok)
+}
+
+func (d odsDialect) ScanLiteral(sc *Scanner, tok *Token) {
+	sc.scanLiteral(tok)
+}
+
+func (d odsDialect) ScanNumber(sc *Scanner, tok *Token) {
+	sc.scanNumber(tok)
+}
+
+func (d odsDialect) ScanIdentifier(sc *Scanner, tok *Token) {
+	sc.scanIdent(tok)
+}
+
+func (d odsDialect) ScanError(sc *Scanner, tok *Token) {
+	sc.scanError(tok)
+}
+
+func (d odsDialect) ScanAddress(sc *Scanner, tok *Token) {
+
+}
+
+var (
+	Ods  = odsDialect{}
+	Oxml = oxmlDialect{}
+)
 
 type Scanner struct {
 	dialect Dialect
-
-	input []byte
-	pos   int
-	next  int
-	char  rune
-
-	Position
-
-	buf  bytes.Buffer
+	*reader
 	mode ScanMode
 }
 
-func ScanDialect(r io.Reader, mode ScanMode, dialect Dialect) (*Scanner, error) {
-	switch dialect {
-	case OdsDialect, OxmlDialect:
-	default:
-		return nil, fmt.Errorf("unsupported dialect given")
-	}
-	scan := Scanner{
-		mode:    mode,
-		dialect: dialect,
-	}
-	input, err := io.ReadAll(r)
+func ScanDialect(r io.Reader, dialect Dialect) (*Scanner, error) {
+	rs, err := prepare(r)
 	if err != nil {
 		return nil, err
 	}
-	scan.input = input
-	scan.Position.Line = 1
-	scan.read()
-	if mode == ScanFormula && scan.char == equal {
+	scan := Scanner{
+		reader:  rs,
+		dialect: dialect,
+	}
+	if scan.is(equal) {
 		scan.read()
-		if scan.dialect == OdsDialect {
-			str := scan.readUntil(colon, true)
-			if str != "of" {
-				return nil, fmt.Errorf("invalid openformula namespace")
-			}
-		}
+	}
+	if err := scan.dialect.Init(&scan); err != nil {
+		return nil, err
 	}
 	return &scan, nil
 }
 
 func ScanOxml(r io.Reader, mode ScanMode) (*Scanner, error) {
-	return ScanDialect(r, mode, OxmlDialect)
+	return ScanDialect(r, Oxml)
 }
 
 func ScanOds(r io.Reader, mode ScanMode) (*Scanner, error) {
-	return ScanDialect(r, mode, OdsDialect)
+	return ScanDialect(r, Ods)
 }
 
 func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
-	return ScanDialect(r, mode, OxmlDialect)
-}
-
-func (s *Scanner) Save() ScannerState {
-	return ScannerState{
-		pos:      s.pos,
-		next:     s.next,
-		char:     s.char,
-		position: s.Position,
-	}
-}
-
-func (s *Scanner) Restore(state ScannerState) {
-	s.Position = state.position
-	s.pos = state.pos
-	s.next = state.next
-	s.char = state.char
+	return ScanOxml(r, mode)
 }
 
 func (s *Scanner) Peek() Token {
@@ -108,11 +215,11 @@ func (s *Scanner) Peek() Token {
 	return s.Scan()
 }
 
+func (s *Scanner) Script() bool {
+	return false
+}
+
 func (s *Scanner) Scan() Token {
-	if s.inScript() && s.char == backslash && isNL(s.peek()) {
-		s.read()
-		s.read()
-	}
 	s.skipBlanks()
 
 	var tok Token
@@ -124,78 +231,27 @@ func (s *Scanner) Scan() Token {
 	defer s.reset()
 	switch {
 	case isNL(s.char):
-		if s.inScript() {
-			s.scanNL(&tok)
-		} else {
-			s.SkipNL()
-			return s.Scan()
-		}
-	case s.inScript() && isComment(s.char):
-		s.scanComment(&tok)
-	case !s.inScript() && isComment(s.char):
-		s.scanIdentError(&tok)
-	case isOperator(s.char):
-		s.scanOperator(&tok)
-	case isDelimiter(s.char):
-		s.scanDelimiter(&tok)
-	case isQuote(s.char):
-		s.scanLiteral(&tok)
-	case isDigit(s.char):
-		s.scanNumber(&tok)
-	case isAbsolute(s.char):
-		s.scanIdent(&tok)
+		s.SkipNL()
+		return s.Scan()
+	case s.dialect.IsError(s.char):
+		s.dialect.ScanError(s, &tok)
+	case s.dialect.IsOperator(s.char):
+		s.dialect.ScanOperator(s, &tok)
+	case s.dialect.IsDelimiter(s.char):
+		s.dialect.ScanDelimiter(s, &tok)
+	case s.dialect.IsQuote(s.char):
+		s.dialect.ScanLiteral(s, &tok)
+	case s.dialect.IsDigit(s.char):
+		s.dialect.ScanNumber(s, &tok)
+	case s.dialect.IsAddress(s.char):
+		s.dialect.ScanAddress(s, &tok)
 	default:
-		s.scanIdent(&tok)
+		s.dialect.ScanIdentifier(s, &tok)
 	}
 	return tok
 }
 
-func (s *Scanner) inScript() bool {
-	return s.mode == ScanScript
-}
-
-func (s *Scanner) scanNL(tok *Token) {
-	s.SkipNL()
-	tok.Type = op.Eol
-}
-
-func (s *Scanner) scanComment(tok *Token) {
-	s.read()
-	if s.char == bang {
-		s.scanDirective(tok)
-		return
-	} else if s.char == question {
-
-	}
-	s.skipBlanks()
-	for !s.done() && !isNL(s.char) {
-		s.write()
-		s.read()
-	}
-	s.SkipNL()
-	tok.Type = op.Comment
-	tok.Literal = s.literal()
-	if !s.inScript() {
-		tok.Type = op.Invalid
-	}
-}
-
-func (s *Scanner) scanDirective(tok *Token) {
-	s.read()
-	if s.char == space {
-		s.skipBlanks()
-		tok.Type = op.Pragma
-		return
-	}
-	for !s.done() && !isNL(s.char) {
-		s.write()
-		s.read()
-	}
-	tok.Type = op.Directive
-	tok.Literal = s.literal()
-}
-
-func (s *Scanner) scanIdentError(tok *Token) {
+func (s *Scanner) scanError(tok *Token) {
 	s.write()
 	s.read()
 	accept := func(ch rune) bool {
@@ -219,20 +275,6 @@ func (s *Scanner) scanIdent(tok *Token) {
 	}
 	tok.Type = op.Ident
 	tok.Literal = s.literal()
-	if reco.IsCell() {
-		tok.Type = op.Cell
-	}
-
-	if s.inScript() && isKeyword(tok.Literal) {
-		tok.Type = op.Keyword
-		if tok.Literal == kwAnd {
-			tok.Type = op.And
-		} else if tok.Literal == kwOr {
-			tok.Type = op.Or
-		} else if tok.Literal == kwNot {
-			tok.Type = op.Not
-		}
-	}
 	if reco.IsCell() {
 		tok.Type = op.Cell
 	}
@@ -293,62 +335,33 @@ func (s *Scanner) scanLiteral(tok *Token) {
 func (s *Scanner) scanOperator(tok *Token) {
 	tok.Type = op.Invalid
 	switch s.char {
-	case arobase:
-		tok.Type = op.Special
-	case dot:
-		tok.Type = op.Dot
-	case pipe:
-		tok.Type = op.Union
 	case amper:
 		tok.Type = op.Concat
-		if s.inScript() && s.peek() == equal {
-			s.read()
-			tok.Type = op.ConcatAssign
-		}
 	case percent:
 		tok.Type = op.Percent
 	case plus:
 		tok.Type = op.Add
-		if s.inScript() && s.peek() == equal {
-			s.read()
-			tok.Type = op.AddAssign
-		}
 	case minus:
 		tok.Type = op.Sub
-		if s.inScript() && s.peek() == equal {
-			s.read()
-			tok.Type = op.SubAssign
-		}
 	case star:
 		tok.Type = op.Mul
-		if s.inScript() && s.peek() == equal {
-			s.read()
-			tok.Type = op.MulAssign
-		}
 	case slash:
 		tok.Type = op.Div
-		if s.inScript() && s.peek() == equal {
-			s.read()
-			tok.Type = op.DivAssign
-		}
 	case caret:
 		tok.Type = op.Pow
-		if s.inScript() && s.peek() == equal {
-			s.read()
-			tok.Type = op.PowAssign
-		}
 	case langle:
 		tok.Type = op.Lt
-		if s.peek() == equal {
-			s.read()
+		if k := s.peek(); k == equal {
 			tok.Type = op.Le
-		} else if s.peek() == rangle {
-			s.read()
+		} else if k == rangle {
 			tok.Type = op.Ne
+		}
+		if tok.Type != op.Lt {
+			s.read()
 		}
 	case rangle:
 		tok.Type = op.Gt
-		if s.peek() == equal {
+		if k := s.peek(); k == equal {
 			s.read()
 			tok.Type = op.Ge
 		}
@@ -356,13 +369,8 @@ func (s *Scanner) scanOperator(tok *Token) {
 		tok.Type = op.Eq
 	case colon:
 		tok.Type = op.RangeRef
-		if s.inScript() && s.peek() == equal {
-			s.read()
-			tok.Type = op.Assign
-		}
-	case bang:
-		tok.Type = op.SheetRef
 	default:
+		tok.Type = op.Invalid
 	}
 	s.read()
 }
@@ -378,159 +386,125 @@ func (s *Scanner) scanDelimiter(tok *Token) {
 		tok.Type = op.BegGrp
 	case rparen:
 		tok.Type = op.EndGrp
-	case lsquare:
-		tok.Type = op.BegProp
-	case rsquare:
-		tok.Type = op.EndProp
 	default:
 	}
 	s.read()
 }
 
-func (s *Scanner) literal() string {
-	return s.buf.String()
+type ScannerState struct {
+	pos      int
+	next     int
+	char     rune
+	position Position
 }
 
-func (s *Scanner) write() {
-	s.buf.WriteRune(s.char)
+type reader struct {
+	input []byte
+	pos   int
+	next  int
+	char  rune
+
+	Position
+
+	buf  bytes.Buffer
+	mode ScanMode
 }
 
-func (s *Scanner) reset() {
-	s.buf.Reset()
+func prepare(r io.Reader) (*reader, error) {
+	input, err := io.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	rs := reader{
+		input: input,
+	}
+	rs.Position.Line++
+	rs.read()
+	return &rs, nil
 }
 
-func (s *Scanner) read() {
-	if s.pos >= len(s.input) {
-		s.char = 0
+func (r *reader) Save() ScannerState {
+	return ScannerState{
+		pos:      r.pos,
+		next:     r.next,
+		char:     r.char,
+		position: r.Position,
+	}
+}
+
+func (r *reader) Restore(state ScannerState) {
+	r.Position = state.position
+	r.pos = state.pos
+	r.next = state.next
+	r.char = state.char
+}
+
+func (r *reader) literal() string {
+	return r.buf.String()
+}
+
+func (r *reader) write() {
+	r.buf.WriteRune(r.char)
+}
+
+func (r *reader) reset() {
+	r.buf.Reset()
+}
+
+func (r *reader) read() {
+	if r.pos >= len(r.input) {
+		r.char = 0
 		return
 	}
-	r, n := utf8.DecodeRune(s.input[s.next:])
-	if r == utf8.RuneError {
-		s.char = 0
-		s.next = len(s.input)
+	c, n := utf8.DecodeRune(r.input[r.next:])
+	if c == utf8.RuneError {
+		r.char = 0
+		r.next = len(r.input)
 	}
-	s.char, s.pos, s.next = r, s.next, s.next+n
+	r.char, r.pos, r.next = c, r.next, r.next+n
 
-	if s.char == nl {
-		s.Line += 1
-		s.Column = 0
+	if r.char == nl {
+		r.Line += 1
+		r.Column = 0
 	}
-	s.Column++
+	r.Column++
 }
 
-func (s *Scanner) readUntil(char rune, eat bool) string {
-	defer s.reset()
-	for !s.done() && s.char != char {
-		s.write()
-		s.read()
+func (r *reader) readUntil(char rune, eat bool) string {
+	defer r.reset()
+	for !r.done() && r.char != char {
+		r.write()
+		r.read()
 	}
-	if s.char == char && eat {
-		s.read()
+	if r.char == char && eat {
+		r.read()
 	}
-	return strings.ToLower(s.literal())
+	return strings.ToLower(r.literal())
 }
 
-func (s *Scanner) peek() rune {
-	r, _ := utf8.DecodeRune(s.input[s.next:])
-	return r
+func (r *reader) is(char rune) bool {
+	return r.char == char
 }
 
-func (s *Scanner) done() bool {
-	return s.pos >= len(s.input) || s.char == 0
+func (r *reader) peek() rune {
+	c, _ := utf8.DecodeRune(r.input[r.next:])
+	return c
 }
 
-func (s *Scanner) SkipNL() {
-	for isNL(s.char) {
-		s.read()
-	}
+func (r *reader) done() bool {
+	return r.pos >= len(r.input) || r.char == 0
 }
 
-func (s *Scanner) skipBlanks() {
-	for isBlank(s.char) {
-		s.read()
+func (r *reader) SkipNL() {
+	for isNL(r.char) {
+		r.read()
 	}
 }
 
-type recoMode int
-
-const (
-	cellCol recoMode = iota // reading column (A-Z)
-	cellRow                 // reading row (1-9 then 0-9)
-	cellAbsCol
-	cellAbsRow
-	cellDead // invalid
-)
-
-type cellRecognizer struct {
-	state  recoMode
-	hasRow bool
-}
-
-func recognizeCell() *cellRecognizer {
-	return &cellRecognizer{
-		state: cellAbsCol,
+func (r *reader) skipBlanks() {
+	for isBlank(r.char) {
+		r.read()
 	}
-}
-
-func (c *cellRecognizer) Update(ch rune) {
-	if c.state == cellDead {
-		return
-	}
-	switch c.state {
-	case cellAbsCol:
-		if ch == dollar {
-			break
-		}
-		if isUpper(ch) {
-			c.toCol()
-			break
-		}
-		c.toDead()
-	case cellAbsRow:
-		if isDigit(ch) && ch != '0' {
-			c.toRow()
-			break
-		}
-		c.toDead()
-	case cellCol:
-		if isUpper(ch) {
-			break
-		}
-		if ch == dollar {
-			c.toAbsRow()
-			break
-		}
-		if isDigit(ch) && ch != '0' {
-			c.toRow()
-			break
-		}
-		c.toDead()
-	case cellRow:
-		if isDigit(ch) {
-			break
-		}
-		c.toDead()
-	}
-}
-
-func (c *cellRecognizer) IsCell() bool {
-	return c.state == cellRow
-}
-
-func (c *cellRecognizer) toDead() {
-	c.state = cellDead
-}
-
-func (c *cellRecognizer) toCol() {
-	c.state = cellCol
-}
-
-func (c *cellRecognizer) toRow() {
-	c.state = cellRow
-}
-
-func (c *cellRecognizer) toAbsRow() {
-	c.state = cellAbsRow
 }
 
 const (
