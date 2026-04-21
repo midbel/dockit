@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/value"
 )
 
@@ -47,6 +46,13 @@ type Evaluable interface {
 
 type BuiltinFunc func([]value.Value) value.Value
 
+type Dialect int8
+
+const (
+	OxmlDialect Dialect = 1 << iota
+	OdsDialect
+)
+
 type Builtin struct {
 	Name     string
 	Desc     string
@@ -55,29 +61,29 @@ type Builtin struct {
 	Params   []Param
 	Func     BuiltinFunc
 
-	Dialect parse.Dialect
+	Dialect Dialect
 }
 
 func (b Builtin) OxmlSupported() bool {
 	if b.Dialect == 0 {
 		return true
 	}
-	return b.Dialect&parse.OxmlDialect != 0
+	return b.Dialect&OxmlDialect != 0
 }
 
 func (b Builtin) OdsSupported() bool {
 	if b.Dialect == 0 {
 		return true
 	}
-	return b.Dialect&parse.OdsDialect != 0
+	return b.Dialect&OdsDialect != 0
 }
 
 func (b Builtin) OxmlOnly() bool {
-	return b.Dialect&parse.OxmlDialect == parse.OxmlDialect
+	return b.Dialect&OxmlDialect == OxmlDialect
 }
 
 func (b Builtin) OdsOnly() bool {
-	return b.Dialect&parse.OdsDialect == parse.OdsDialect
+	return b.Dialect&OdsDialect == OdsDialect
 }
 
 func (b Builtin) Make() BuiltinFunc {
