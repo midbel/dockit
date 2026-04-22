@@ -85,7 +85,6 @@ func forbiddenPrefix(_ *Parser) (Expr, error) {
 
 type Grammar struct {
 	name  string
-	mode  ScanMode
 	scope GrammarScope
 
 	terminators []op.Op
@@ -99,10 +98,9 @@ type Grammar struct {
 	kwInfix  map[string]InfixFunc
 }
 
-func NewGrammar(name string, mode ScanMode) *Grammar {
+func NewGrammar(name string) *Grammar {
 	g := Grammar{
 		name:     name,
-		mode:     mode,
 		scope:    GrammarDefault,
 		prefix:   make(map[op.Op]PrefixFunc),
 		kwPrefix: make(map[string]PrefixFunc),
@@ -224,10 +222,6 @@ func (gs *GrammarStack) Top() *Grammar {
 		return nil
 	}
 	return (*gs)[n-1]
-}
-
-func (gs *GrammarStack) Mode() ScanMode {
-	return gs.Top().mode
 }
 
 func (gs *GrammarStack) Context() string {

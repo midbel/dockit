@@ -9,20 +9,312 @@ import (
 	"github.com/midbel/dockit/formula/op"
 )
 
-type ScanMode int8
+// type ScanMode int8
 
-const (
-	ScanFormula ScanMode = 1 << iota
-	ScanScript
-)
+// const (
+// 	ScanFormula ScanMode = 1 << iota
+// 	ScanScript
+// )
 
 type Scanner interface {
 	Scan() Token
+	Peek() Token
 	Script() bool
 }
 
+func ScanScript(r io.Reader) (Scanner, error) {
+	rs, err := prepare(r)
+	if err != nil {
+		return nil, err
+	}
+	scan := ScriptLexer{
+		reader: rs,
+	}
+	return &scan, nil
+}
+
+func ScanDialect(r io.Reader, dialect Dialect) (Scanner, error) {
+	rs, err := prepare(r)
+	if err != nil {
+		return nil, err
+	}
+	scan := FormulaLexer{
+		reader:  rs,
+		dialect: dialect,
+	}
+	if scan.is(equal) {
+		scan.read()
+	}
+	if err := scan.dialect.Init(&scan); err != nil {
+		return nil, err
+	}
+	return &scan, nil
+}
+
+func ScanFormula(r io.Reader) (Scanner, error) {
+	return ScanDialect(r, Oxml)
+}
+
+type ScriptLexer struct {
+	*reader
+}
+
+func (x *ScriptLexer) Script() bool {
+	return true
+}
+
+func (x *ScriptLexer) Scan() Token {
+	if x.is(backslash) && isNL(x.peek()) {
+		x.read()
+		x.read()
+	}
+	x.skipBlanks()
+
+	var tok Token
+	tok.Position = x.Position
+	if x.done() {
+		tok.Type = op.EOF
+		return tok
+	}
+	defer x.reset()
+
+	switch {
+	case isNL(x.char):
+		x.scanNL(&tok)
+	case isComment(x.char) && x.peek() != bang:
+		x.scanComment(&tok)
+	case isComment(x.char) && x.peek() == bang:
+		x.scanDirective(&tok)
+	case isOperator(x.char):
+		x.scanOperator(&tok)
+	case isDelimiter(x.char):
+		x.scanDelimiter(&tok)
+	case isQuote(x.char):
+		x.scanLiteral(&tok)
+	case isDigit(x.char):
+		x.scanNumber(&tok)
+	default:
+		x.scanIdent(&tok)
+	}
+	return tok
+}
+
+func (x *ScriptLexer) Peek() Token {
+	currState := x.Save()
+	defer x.Restore(currState)
+	return x.Scan()
+}
+
+func (x *ScriptLexer) scanNL(tok *Token) {
+	x.SkipNL()
+	tok.Type = op.Eol
+}
+
+func (x *ScriptLexer) scanComment(tok *Token) {
+	x.read()
+	x.skipBlanks()
+	for !x.done() && !isNL(x.char) {
+		x.write()
+		x.read()
+	}
+	x.SkipNL()
+	tok.Type = op.Comment
+	tok.Literal = x.literal()
+}
+
+func (x *ScriptLexer) scanDirective(tok *Token) {
+	x.read()
+	x.read()
+	if x.char == space {
+		x.skipBlanks()
+		tok.Type = op.Pragma
+		return
+	}
+	for !x.done() && !isNL(x.char) {
+		x.write()
+		x.read()
+	}
+	tok.Type = op.Directive
+	tok.Literal = x.literal()
+}
+
+func (x *ScriptLexer) scanIdent(tok *Token) {
+	reco := recognizeCell()
+	for !x.done() && isAlpha(x.char) {
+		reco.Update(x.char)
+		x.write()
+		x.read()
+	}
+	tok.Type = op.Ident
+	tok.Literal = x.literal()
+	if reco.IsCell() {
+		tok.Type = op.Cell
+	}
+
+	if isKeyword(tok.Literal) {
+		tok.Type = op.Keyword
+		if tok.Literal == kwAnd {
+			tok.Type = op.And
+		} else if tok.Literal == kwOr {
+			tok.Type = op.Or
+		} else if tok.Literal == kwNot {
+			tok.Type = op.Not
+		}
+	}
+}
+
+func (x *ScriptLexer) scanNumber(tok *Token) {
+	tok.Type = op.Number
+	for !x.done() && isDigit(x.char) {
+		x.write()
+		x.read()
+	}
+	tok.Literal = x.literal()
+	if x.char == dot {
+		x.write()
+		x.read()
+		for !x.done() && isDigit(x.char) {
+			x.write()
+			x.read()
+		}
+		tok.Literal = x.literal()
+	}
+	if x.char == 'e' || x.char == 'E' {
+		x.write()
+		x.read()
+		if isSign(x.char) {
+			x.write()
+			x.read()
+		}
+		for !x.done() && isDigit(x.char) {
+			x.write()
+			x.read()
+		}
+		tok.Literal = x.literal()
+	}
+}
+
+func (x *ScriptLexer) scanLiteral(tok *Token) {
+	quote := x.char
+	x.read()
+	for !x.done() && !isQuote(x.char) {
+		x.write()
+		x.read()
+		if x.char == dquote && x.peek() == x.char {
+			x.write()
+			x.read()
+			x.read()
+		}
+	}
+	tok.Type = op.Literal
+	tok.Literal = x.literal()
+	if isQuote(x.char) && quote == x.char {
+		x.read()
+	} else {
+		tok.Type = op.Invalid
+	}
+}
+
+func (x *ScriptLexer) scanOperator(tok *Token) {
+	tok.Type = op.Invalid
+	switch x.char {
+	case arobase:
+		tok.Type = op.Special
+	case dot:
+		tok.Type = op.Dot
+	case pipe:
+		tok.Type = op.Union
+	case amper:
+		tok.Type = op.Concat
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.ConcatAssign
+		}
+	case percent:
+		tok.Type = op.Percent
+	case plus:
+		tok.Type = op.Add
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.AddAssign
+		}
+	case minus:
+		tok.Type = op.Sub
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.SubAssign
+		}
+	case star:
+		tok.Type = op.Mul
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.MulAssign
+		}
+	case slash:
+		tok.Type = op.Div
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.DivAssign
+		}
+	case caret:
+		tok.Type = op.Pow
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.PowAssign
+		}
+	case langle:
+		tok.Type = op.Lt
+		if k := x.peek(); k == equal {
+			tok.Type = op.Le
+		} else if k == rangle {
+			tok.Type = op.Ne
+		}
+		if tok.Type != op.Lt {
+			x.read()
+		}
+	case rangle:
+		tok.Type = op.Gt
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.Ge
+		}
+	case equal:
+		tok.Type = op.Eq
+	case colon:
+		tok.Type = op.RangeRef
+		if x.peek() == equal {
+			x.read()
+			tok.Type = op.Assign
+		}
+	case bang:
+		tok.Type = op.SheetRef
+	default:
+	}
+	x.read()
+}
+
+func (x *ScriptLexer) scanDelimiter(tok *Token) {
+	tok.Type = op.Invalid
+	switch x.char {
+	case comma:
+		tok.Type = op.Comma
+	case semi:
+		tok.Type = op.Semi
+	case lparen:
+		tok.Type = op.BegGrp
+	case rparen:
+		tok.Type = op.EndGrp
+	case lsquare:
+		tok.Type = op.BegProp
+	case rsquare:
+		tok.Type = op.EndProp
+	default:
+	}
+	x.read()
+}
+
 type Dialect interface {
-	Init(*Scanner) error
+	Init(*FormulaLexer) error
 
 	IsOperator(rune) bool
 	IsQuote(rune) bool
@@ -31,18 +323,18 @@ type Dialect interface {
 	IsAddress(rune) bool
 	IsError(rune) bool
 
-	ScanOperator(*Scanner, *Token)
-	ScanDelimiter(*Scanner, *Token)
-	ScanLiteral(*Scanner, *Token)
-	ScanNumber(*Scanner, *Token)
-	ScanIdentifier(*Scanner, *Token)
-	ScanError(*Scanner, *Token)
-	ScanAddress(*Scanner, *Token)
+	ScanOperator(*FormulaLexer, *Token)
+	ScanDelimiter(*FormulaLexer, *Token)
+	ScanLiteral(*FormulaLexer, *Token)
+	ScanNumber(*FormulaLexer, *Token)
+	ScanIdentifier(*FormulaLexer, *Token)
+	ScanError(*FormulaLexer, *Token)
+	ScanAddress(*FormulaLexer, *Token)
 }
 
 type oxmlDialect struct{}
 
-func (d oxmlDialect) Init(sc *Scanner) error {
+func (d oxmlDialect) Init(sc *FormulaLexer) error {
 	return nil
 }
 
@@ -72,7 +364,7 @@ func (d oxmlDialect) IsError(ch rune) bool {
 	return ch == pound
 }
 
-func (d oxmlDialect) ScanOperator(sc *Scanner, tok *Token) {
+func (d oxmlDialect) ScanOperator(sc *FormulaLexer, tok *Token) {
 	if sc.is(bang) {
 		tok.Type = op.SheetRef
 		return
@@ -80,33 +372,33 @@ func (d oxmlDialect) ScanOperator(sc *Scanner, tok *Token) {
 	sc.scanOperator(tok)
 }
 
-func (d oxmlDialect) ScanDelimiter(sc *Scanner, tok *Token) {
+func (d oxmlDialect) ScanDelimiter(sc *FormulaLexer, tok *Token) {
 	sc.scanDelimiter(tok)
 }
 
-func (d oxmlDialect) ScanLiteral(sc *Scanner, tok *Token) {
+func (d oxmlDialect) ScanLiteral(sc *FormulaLexer, tok *Token) {
 	sc.scanLiteral(tok)
 }
 
-func (d oxmlDialect) ScanNumber(sc *Scanner, tok *Token) {
+func (d oxmlDialect) ScanNumber(sc *FormulaLexer, tok *Token) {
 	sc.scanNumber(tok)
 }
 
-func (d oxmlDialect) ScanIdentifier(sc *Scanner, tok *Token) {
+func (d oxmlDialect) ScanIdentifier(sc *FormulaLexer, tok *Token) {
 	sc.scanIdent(tok)
 }
 
-func (d oxmlDialect) ScanError(sc *Scanner, tok *Token) {
+func (d oxmlDialect) ScanError(sc *FormulaLexer, tok *Token) {
 	sc.scanError(tok)
 }
 
-func (d oxmlDialect) ScanAddress(sc *Scanner, tok *Token) {
+func (d oxmlDialect) ScanAddress(sc *FormulaLexer, tok *Token) {
 	sc.scanIdent(tok)
 }
 
 type odsDialect struct{}
 
-func (d odsDialect) Init(*Scanner) error {
+func (d odsDialect) Init(*FormulaLexer) error {
 	return nil
 }
 
@@ -136,7 +428,7 @@ func (d odsDialect) IsError(ch rune) bool {
 	return ch == pound
 }
 
-func (d odsDialect) ScanOperator(sc *Scanner, tok *Token) {
+func (d odsDialect) ScanOperator(sc *FormulaLexer, tok *Token) {
 	if sc.is(dot) {
 		tok.Type = op.SheetRef
 		return
@@ -144,27 +436,27 @@ func (d odsDialect) ScanOperator(sc *Scanner, tok *Token) {
 	sc.scanOperator(tok)
 }
 
-func (d odsDialect) ScanDelimiter(sc *Scanner, tok *Token) {
+func (d odsDialect) ScanDelimiter(sc *FormulaLexer, tok *Token) {
 	sc.scanDelimiter(tok)
 }
 
-func (d odsDialect) ScanLiteral(sc *Scanner, tok *Token) {
+func (d odsDialect) ScanLiteral(sc *FormulaLexer, tok *Token) {
 	sc.scanLiteral(tok)
 }
 
-func (d odsDialect) ScanNumber(sc *Scanner, tok *Token) {
+func (d odsDialect) ScanNumber(sc *FormulaLexer, tok *Token) {
 	sc.scanNumber(tok)
 }
 
-func (d odsDialect) ScanIdentifier(sc *Scanner, tok *Token) {
+func (d odsDialect) ScanIdentifier(sc *FormulaLexer, tok *Token) {
 	sc.scanIdent(tok)
 }
 
-func (d odsDialect) ScanError(sc *Scanner, tok *Token) {
+func (d odsDialect) ScanError(sc *FormulaLexer, tok *Token) {
 	sc.scanError(tok)
 }
 
-func (d odsDialect) ScanAddress(sc *Scanner, tok *Token) {
+func (d odsDialect) ScanAddress(sc *FormulaLexer, tok *Token) {
 
 }
 
@@ -173,53 +465,22 @@ var (
 	Oxml = oxmlDialect{}
 )
 
-type Scanner struct {
+type FormulaLexer struct {
 	dialect Dialect
 	*reader
-	mode ScanMode
 }
 
-func ScanDialect(r io.Reader, dialect Dialect) (*Scanner, error) {
-	rs, err := prepare(r)
-	if err != nil {
-		return nil, err
-	}
-	scan := Scanner{
-		reader:  rs,
-		dialect: dialect,
-	}
-	if scan.is(equal) {
-		scan.read()
-	}
-	if err := scan.dialect.Init(&scan); err != nil {
-		return nil, err
-	}
-	return &scan, nil
-}
-
-func ScanOxml(r io.Reader, mode ScanMode) (*Scanner, error) {
-	return ScanDialect(r, Oxml)
-}
-
-func ScanOds(r io.Reader, mode ScanMode) (*Scanner, error) {
-	return ScanDialect(r, Ods)
-}
-
-func Scan(r io.Reader, mode ScanMode) (*Scanner, error) {
-	return ScanOxml(r, mode)
-}
-
-func (s *Scanner) Peek() Token {
+func (s *FormulaLexer) Peek() Token {
 	currState := s.Save()
 	defer s.Restore(currState)
 	return s.Scan()
 }
 
-func (s *Scanner) Script() bool {
+func (s *FormulaLexer) Script() bool {
 	return false
 }
 
-func (s *Scanner) Scan() Token {
+func (s *FormulaLexer) Scan() Token {
 	s.skipBlanks()
 
 	var tok Token
@@ -251,7 +512,7 @@ func (s *Scanner) Scan() Token {
 	return tok
 }
 
-func (s *Scanner) scanError(tok *Token) {
+func (s *FormulaLexer) scanError(tok *Token) {
 	s.write()
 	s.read()
 	accept := func(ch rune) bool {
@@ -266,7 +527,7 @@ func (s *Scanner) scanError(tok *Token) {
 	tok.Literal = s.literal()
 }
 
-func (s *Scanner) scanIdent(tok *Token) {
+func (s *FormulaLexer) scanIdent(tok *Token) {
 	reco := recognizeCell()
 	for !s.done() && isAlpha(s.char) {
 		reco.Update(s.char)
@@ -280,7 +541,7 @@ func (s *Scanner) scanIdent(tok *Token) {
 	}
 }
 
-func (s *Scanner) scanNumber(tok *Token) {
+func (s *FormulaLexer) scanNumber(tok *Token) {
 	tok.Type = op.Number
 	for !s.done() && isDigit(s.char) {
 		s.write()
@@ -311,7 +572,7 @@ func (s *Scanner) scanNumber(tok *Token) {
 	}
 }
 
-func (s *Scanner) scanLiteral(tok *Token) {
+func (s *FormulaLexer) scanLiteral(tok *Token) {
 	quote := s.char
 	s.read()
 	for !s.done() && !isQuote(s.char) {
@@ -332,7 +593,7 @@ func (s *Scanner) scanLiteral(tok *Token) {
 	}
 }
 
-func (s *Scanner) scanOperator(tok *Token) {
+func (s *FormulaLexer) scanOperator(tok *Token) {
 	tok.Type = op.Invalid
 	switch s.char {
 	case amper:
@@ -375,7 +636,7 @@ func (s *Scanner) scanOperator(tok *Token) {
 	s.read()
 }
 
-func (s *Scanner) scanDelimiter(tok *Token) {
+func (s *FormulaLexer) scanDelimiter(tok *Token) {
 	tok.Type = op.Invalid
 	switch s.char {
 	case comma:
@@ -406,8 +667,7 @@ type reader struct {
 
 	Position
 
-	buf  bytes.Buffer
-	mode ScanMode
+	buf bytes.Buffer
 }
 
 func prepare(r io.Reader) (*reader, error) {

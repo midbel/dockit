@@ -57,7 +57,7 @@ func InspectFile(file string) (*Envelop, error) {
 }
 
 func Inspect(r io.Reader) (*Envelop, error) {
-	scan, err := parse.Scan(r, parse.ScanScript)
+	scan, err := parse.ScanScript(r)
 	if err != nil {
 		return nil, err
 	}

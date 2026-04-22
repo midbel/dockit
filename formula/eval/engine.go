@@ -117,7 +117,7 @@ func (e *Engine) Exec(r io.Reader, environ *env.Environment) (value.Value, error
 }
 
 func (e *Engine) bootstrap(r io.Reader, ctx *EngineContext) (*parse.Parser, error) {
-	scan, err := parse.Scan(r, parse.ScanScript)
+	scan, err := parse.ScanScript(r)
 	if err != nil {
 		return nil, err
 	}

@@ -10,7 +10,7 @@ import (
 )
 
 func FormulaGrammar() *Grammar {
-	g := NewGrammar("formula", ScanFormula)
+	g := NewGrammar("formula")
 
 	g.terminators = []op.Op{op.EOF}
 
@@ -46,7 +46,6 @@ func FormulaGrammar() *Grammar {
 func ScriptGrammar() *Grammar {
 	g := FormulaGrammar()
 	g.name = "script"
-	g.mode = ScanScript
 
 	g.terminators = []op.Op{op.EOF, op.Eol, op.Semi}
 
@@ -91,7 +90,7 @@ func LambdaGrammar() *Grammar {
 }
 
 func SliceGrammar() *Grammar {
-	g := NewGrammar("slice", ScanScript)
+	g := NewGrammar("slice")
 	g.scope = GrammarIsolated
 	g.bindings[op.Semi] = powList
 
@@ -136,7 +135,7 @@ const (
 )
 
 type Parser struct {
-	scan *Scanner
+	scan Scanner
 	curr Token
 	peek Token
 
@@ -146,7 +145,7 @@ type Parser struct {
 }
 
 func ParseFormula(str string) (Expr, error) {
-	scan, err := Scan(strings.NewReader(str), ScanFormula)
+	scan, err := ScanFormula(strings.NewReader(str))
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +156,7 @@ func ParseFormula(str string) (Expr, error) {
 	return p.Parse()
 }
 
-func NewParser(scan *Scanner) (*Parser, error) {
+func NewParser(scan Scanner) (*Parser, error) {
 	p := Parser{
 		scan:  scan,
 		stack: new(GrammarStack),
@@ -165,7 +164,7 @@ func NewParser(scan *Scanner) (*Parser, error) {
 	}
 	p.next()
 	p.next()
-	if scan.inScript() {
+	if scan.Script() {
 		mode, err := p.parseMode()
 		if err != nil {
 			return nil, err
@@ -185,7 +184,7 @@ func NewParser(scan *Scanner) (*Parser, error) {
 }
 
 func parseExprFromString(str string) (Expr, error) {
-	scan, err := Scan(strings.NewReader(str), ScanScript)
+	scan, err := ScanScript(strings.NewReader(str))
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +205,7 @@ func parseExprFromString(str string) (Expr, error) {
 }
 
 func (p *Parser) Parse() (Expr, error) {
-	if p.stack.Mode() == ScanFormula {
+	if !p.scan.Script() {
 		return p.parseFormula()
 	}
 	return p.parseScript()
@@ -259,9 +258,6 @@ func (p *Parser) ParseNext() (Expr, error) {
 }
 
 func (p *Parser) parseMode() (Mode, error) {
-	if p.scan.mode == ScanFormula {
-		return ModeFormula, nil
-	}
 	if !p.is(op.Directive) {
 		return ModeScript, nil
 	}
