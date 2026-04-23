@@ -275,7 +275,7 @@ func TestExpr(t *testing.T) {
 	}{
 		{
 			Expr: "file.sheets",
-			Want: NewAccess(NewIdentifier("file"), "sheets"),
+			Want: NewAccess(NewIdentifier("file"), NewIdentifier("sheets")),
 		},
 		{
 			Expr: "100 ^ 1%",
@@ -701,14 +701,6 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.AbsRow != g.AbsRow {
 			t.Errorf("absolute column mismatched!")
 		}
-	case QualifiedCellAddr:
-		g, ok := got.(QualifiedCellAddr)
-		if !ok {
-			t.Errorf("qualifiedCellAddr expression expected but got %T", got)
-			return
-		}
-		assertEqualExpr(t, w.path, g.path)
-		assertEqualExpr(t, w.addr, g.addr)
 	case Assignment:
 		g, ok := got.(Assignment)
 		if !ok {
@@ -962,7 +954,7 @@ func u(left, op string) string {
 }
 
 func parseExpr(str string) (Expr, error) {
-	scan, err := Scan(strings.NewReader(str), ScanScript)
+	scan, err := ScanScript(strings.NewReader(str))
 	if err != nil {
 		return nil, err
 	}
