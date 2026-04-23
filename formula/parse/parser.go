@@ -122,7 +122,9 @@ func SliceGrammar() *Grammar {
 	g.scope = GrammarIsolated
 	g.bindings[op.Semi] = powList
 
-	g.RegisterPrefix(op.Cell, parseAddress)
+	g.RegisterPrefix(op.Cell, func(p *Parser) (Expr, error) {
+		return p.dialect.ParseAddress(p, DefaultAddressContext)
+	})
 	g.RegisterPrefix(op.Ident, parseIdentifier)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
