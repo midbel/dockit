@@ -275,9 +275,10 @@ func (h *rowHandler) Close(rs *sax.Reader, e sax.E) error {
 type cellHandler struct {
 	column int
 
-	repeat int
-	raw    string
-	parsed value.ScalarValue
+	repeat  int
+	raw     string
+	parsed  value.ScalarValue
+	formula value.Formula
 
 	sheet *Sheet
 	text  *textHandler
@@ -320,6 +321,14 @@ func (h *cellHandler) Open(rs *sax.Reader, e sax.E) error {
 		count = c
 	}
 	h.repeat = count
+
+	if f := e.GetAttributeValue("formula"); f != "" {
+		e, err := grid.ParseOdsFormula(f)
+		if err != nil {
+			return err
+		}
+		h.formula = e
+	}
 
 	switch e.GetAttributeValue("value-type") {
 	case "float", "currency", "percentage":
@@ -368,6 +377,7 @@ func (h *cellHandler) Close(rs *sax.Reader, e sax.E) error {
 		h.column++
 
 		cell := h.create(int64(ix))
+		cell.formula = h.formula
 		h.sheet.put(cell, grid.CopyAll)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"iter"
 	"slices"
+	"strings"
 
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
@@ -21,11 +22,19 @@ func Eval(expr value.Formula, ctx value.Context) (value.Value, error) {
 }
 
 func EvalString(expr string, ctx value.Context) (value.Value, error) {
-	e, err := ParseFormula(expr)
+	var (
+		node value.Formula
+		err  error
+	)
+	if strings.HasPrefix(expr, "of:") {
+		node, err = ParseOdsFormula(expr)
+	} else {
+		node, err = ParseOxmlFormula(expr)
+	}
 	if err != nil {
 		return nil, err
 	}
-	return Eval(e, ctx)
+	return Eval(node, ctx)
 }
 
 func eval(expr parse.Expr, ctx value.Context) value.Value {
@@ -191,8 +200,16 @@ func evalRangeAddr(e parse.RangeAddr, ctx value.Context) value.Value {
 	return ctx.Range(e.StartAt().Position, e.EndAt().Position)
 }
 
-func ParseFormula(str string) (value.Formula, error) {
-	expr, err := parse.ParseFormula(str)
+func ParseOxmlFormula(str string) (value.Formula, error) {
+	expr, err := parse.ParseOxmlFormula(str)
+	if err != nil {
+		return nil, err
+	}
+	return NewFormula(expr), nil
+}
+
+func ParseOdsFormula(str string) (value.Formula, error) {
+	expr, err := parse.ParseOdsFormula(str)
 	if err != nil {
 		return nil, err
 	}

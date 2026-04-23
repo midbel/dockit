@@ -317,7 +317,7 @@ func (r *sheetReader) parseCellFormula(cell *Cell, el sax.E, rs *sax.Reader) err
 		return nil
 	}
 	rs.OnText(func(_ *sax.Reader, str string) error {
-		formula, err := grid.ParseFormula(str)
+		formula, err := grid.ParseOxmlFormula(str)
 		if err != nil {
 			return err
 		}
