@@ -333,6 +333,10 @@ func (p *Parser) parseIncludes() ([]Expr, error) {
 		} else {
 			break
 		}
+		if !p.isTerminator() {
+			return nil, p.expectedEOL()
+		}
+		p.skipTerminator()
 	}
 	p.currGrammar().UnregisterPrefixKeyword(kwInclude)
 	return list, nil

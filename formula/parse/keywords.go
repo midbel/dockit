@@ -46,6 +46,7 @@ func isKeyword(str string) bool {
 	case kwOr:
 	case kwNot:
 	case kwMacro:
+	case kwInclude:
 	default:
 		return false
 	}
