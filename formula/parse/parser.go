@@ -21,6 +21,8 @@ type DialectRules interface {
 	ParseAddress(*Parser, AddressContext) (Expr, error)
 	ParseQualifiedAddress(*Parser, Expr) (Expr, error)
 	ParseRangeAddress(*Parser, Expr) (Expr, error)
+
+	Separator() op.Op
 }
 
 func FormulaGrammar() *Grammar {
@@ -543,7 +545,7 @@ func parseCall(p *Parser, expr Expr) (Expr, error) {
 			if !p.is(op.EndGrp) {
 				return nil, p.makeError("expected ')' after last argument")
 			}
-		case op.Comma:
+		case p.dialect.Separator():
 			p.next()
 			p.skipEOL()
 			if p.is(op.EndGrp) {
@@ -1221,6 +1223,10 @@ func (oxmlDialectRules) ParseRangeAddress(p *Parser, expr Expr) (Expr, error) {
 	return parseRangeAddress(p, expr)
 }
 
+func (oxmlDialectRules) Separator() op.Op {
+	return op.Comma
+}
+
 type odsDialectRules struct{}
 
 func (odsDialectRules) ParseAddress(p *Parser, ctx AddressContext) (Expr, error) {
@@ -1252,4 +1258,8 @@ func (odsDialectRules) ParseQualifiedAddress(p *Parser, expr Expr) (Expr, error)
 
 func (odsDialectRules) ParseRangeAddress(p *Parser, expr Expr) (Expr, error) {
 	return parseRangeAddress(p, expr)
+}
+
+func (odsDialectRules) Separator() op.Op {
+	return op.Semi
 }

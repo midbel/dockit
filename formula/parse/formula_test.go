@@ -37,6 +37,17 @@ func testParseOdsFormula(t *testing.T) {
 		// 	Want: nil,
 		// },
 		{
+			Expr: "of:=sum([.A1]; [.A2]; [.A3])",
+			Want: NewCall(
+				NewIdentifier("sum"),
+				[]Expr{
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+					NewCellAddr(layout.NewPosition(2, 1), false, false),
+					NewCellAddr(layout.NewPosition(3, 1), false, false),
+				},
+			),
+		},
+		{
 			Expr: "of:=[.A1]+[.B1]",
 			Want: NewBinary(
 				NewCellAddr(layout.NewPosition(1, 1), false, false),
