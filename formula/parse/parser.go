@@ -145,7 +145,23 @@ type Parser struct {
 }
 
 func ParseFormula(str string) (Expr, error) {
-	scan, err := ScanFormula(strings.NewReader(str))
+	return ParseOxmlFormula(str)
+}
+
+func ParseOxmlFormula(str string) (Expr, error) {
+	scan, err := ScanOxml(strings.NewReader(str))
+	if err != nil {
+		return nil, err
+	}
+	p, err := NewParser(scan)
+	if err != nil {
+		return nil, err
+	}
+	return p.Parse()
+}
+
+func ParseOdsFormula(str string) (Expr, error) {
+	scan, err := ScanOds(strings.NewReader(str))
 	if err != nil {
 		return nil, err
 	}

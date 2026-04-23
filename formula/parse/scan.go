@@ -2,19 +2,13 @@ package parse
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/midbel/dockit/formula/op"
 )
-
-// type ScanMode int8
-
-// const (
-// 	ScanFormula ScanMode = 1 << iota
-// 	ScanScript
-// )
 
 type Scanner interface {
 	Scan() Token
@@ -42,17 +36,25 @@ func ScanDialect(r io.Reader, dialect Dialect) (Scanner, error) {
 		reader:  rs,
 		dialect: dialect,
 	}
-	if scan.is(equal) {
-		scan.read()
-	}
 	if err := scan.dialect.Init(&scan); err != nil {
 		return nil, err
+	}
+	if scan.is(equal) {
+		scan.read()
 	}
 	return &scan, nil
 }
 
 func ScanFormula(r io.Reader) (Scanner, error) {
 	return ScanDialect(r, Oxml)
+}
+
+func ScanOxml(r io.Reader) (Scanner, error) {
+	return ScanDialect(r, Oxml)
+}
+
+func ScanOds(r io.Reader) (Scanner, error) {
+	return ScanDialect(r, Ods)
 }
 
 type ScriptLexer struct {
@@ -367,6 +369,7 @@ func (d oxmlDialect) IsError(ch rune) bool {
 func (d oxmlDialect) ScanOperator(sc *FormulaLexer, tok *Token) {
 	if sc.is(bang) {
 		tok.Type = op.SheetRef
+		sc.read()
 		return
 	}
 	sc.scanOperator(tok)
@@ -398,7 +401,11 @@ func (d oxmlDialect) ScanAddress(sc *FormulaLexer, tok *Token) {
 
 type odsDialect struct{}
 
-func (d odsDialect) Init(*FormulaLexer) error {
+func (d odsDialect) Init(lex *FormulaLexer) error {
+	str := lex.readUntil(colon, true)
+	if str != "of" {
+		return fmt.Errorf("invalid openformula namespace")
+	}
 	return nil
 }
 
@@ -429,15 +436,33 @@ func (d odsDialect) IsError(ch rune) bool {
 }
 
 func (d odsDialect) ScanOperator(sc *FormulaLexer, tok *Token) {
-	if sc.is(dot) {
+	var fallback bool
+	switch {
+	case sc.is(dot):
 		tok.Type = op.SheetRef
-		return
+	default:
+		fallback = true
+		sc.scanOperator(tok)
 	}
-	sc.scanOperator(tok)
+	if !fallback {
+		sc.read()
+	}
 }
 
 func (d odsDialect) ScanDelimiter(sc *FormulaLexer, tok *Token) {
-	sc.scanDelimiter(tok)
+	var fallback bool
+	switch {
+	case sc.is(lsquare):
+		tok.Type = op.BegAddr
+	case sc.is(rsquare):
+		tok.Type = op.EndAddr
+	default:
+		fallback = true
+		sc.scanDelimiter(tok)
+	}
+	if !fallback {
+		sc.read()
+	}
 }
 
 func (d odsDialect) ScanLiteral(sc *FormulaLexer, tok *Token) {

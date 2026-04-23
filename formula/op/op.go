@@ -42,6 +42,8 @@ const (
 	Comma
 	Semi
 	Dot
+	BegAddr
+	EndAddr
 	BegGrp
 	EndGrp
 	BegProp

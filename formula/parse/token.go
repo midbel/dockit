@@ -90,6 +90,10 @@ func (t Token) String() string {
 		return "<dot>"
 	case op.Special:
 		return "<special>"
+	case op.BegAddr:
+		return "<beg-addr>"
+	case op.EndAddr:
+		return "<end-addr>"
 	case op.BegGrp:
 		return "<beg-group>"
 	case op.EndGrp:

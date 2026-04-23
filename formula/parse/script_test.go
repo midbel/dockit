@@ -402,9 +402,12 @@ func TestExpr(t *testing.T) {
 							NewCellAddr(layout.NewPosition(100, 1), false, false),
 						},
 					),
-					NewRangeAddr(
-						NewCellAddr(layout.NewSheetPosition("view", 1, 1), false, false),
-						NewCellAddr(layout.NewSheetPosition("view", 100, 1), false, false),
+					NewCellAccess(
+						NewIdentifier("view"),
+						NewRangeAddr(
+							NewCellAddr(layout.NewPosition(1, 1), false, false),
+							NewCellAddr(layout.NewPosition(100, 1), false, false),
+						),
 					),
 					op.Add,
 				),
@@ -824,6 +827,13 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if w.prop != g.prop {
 			t.Errorf("property mismatched! want %s, got %s", w.prop, g.prop)
 		}
+	case CellAccess:
+		g, ok := got.(CellAccess)
+		if !ok {
+			t.Errorf("cell access expression expected but got %T", got)
+		}
+		assertEqualExpr(t, w.expr, g.expr)
+		assertEqualExpr(t, w.addr, g.addr)
 	case Identifier:
 		g, ok := got.(Identifier)
 		if !ok {
