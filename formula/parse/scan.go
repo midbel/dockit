@@ -14,6 +14,7 @@ type Scanner interface {
 	Scan() Token
 	Peek() Token
 	Script() bool
+	Type() DialectType
 }
 
 func ScanScript(r io.Reader) (Scanner, error) {
@@ -63,6 +64,10 @@ type ScriptLexer struct {
 
 func (x *ScriptLexer) Script() bool {
 	return true
+}
+
+func (x *ScriptLexer) Type() DialectType {
+	return TypeOxml
 }
 
 func (x *ScriptLexer) Scan() Token {
@@ -315,8 +320,16 @@ func (x *ScriptLexer) scanDelimiter(tok *Token) {
 	x.read()
 }
 
+type DialectType int8
+
+const (
+	TypeOxml DialectType = iota
+	TypeOds
+)
+
 type Dialect interface {
 	Init(*FormulaLexer) error
+	Type() DialectType
 
 	IsOperator(rune) bool
 	IsQuote(rune) bool
@@ -338,6 +351,10 @@ type oxmlDialect struct{}
 
 func (d oxmlDialect) Init(sc *FormulaLexer) error {
 	return nil
+}
+
+func (oxmlDialect) Type() DialectType {
+	return TypeOxml
 }
 
 func (d oxmlDialect) IsOperator(ch rune) bool {
@@ -407,6 +424,10 @@ func (d odsDialect) Init(lex *FormulaLexer) error {
 		return fmt.Errorf("invalid openformula namespace")
 	}
 	return nil
+}
+
+func (odsDialect) Type() DialectType {
+	return TypeOds
 }
 
 func (d odsDialect) IsOperator(ch rune) bool {
@@ -503,6 +524,10 @@ func (s *FormulaLexer) Peek() Token {
 
 func (s *FormulaLexer) Script() bool {
 	return false
+}
+
+func (s *FormulaLexer) Type() DialectType {
+	return s.dialect.Type()
 }
 
 func (s *FormulaLexer) Scan() Token {

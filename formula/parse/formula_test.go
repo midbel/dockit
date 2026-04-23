@@ -25,18 +25,39 @@ func testParseOdsFormula(t *testing.T) {
 				op.Add,
 			),
 		},
-		// {
-		// 	Expr: "of:=[Sheet1.A1]",
-		// 	Want: nil,
-		// },
+		{
+			Expr: "of:=[Sheet1.A1]",
+			Want: NewCellAccess(
+				NewIdentifier("Sheet1"),
+				NewCellAddr(layout.NewPosition(1, 1), false, false),
+			),
+		},
 		// {
 		// 	Expr: "of:=SUM([.A1:.A10])",
 		// 	Want: nil,
 		// },
-		// {
-		// 	Expr: "of:=[.A1]+[.B1]",
-		// 	Want: nil,
-		// },
+		{
+			Expr: "of:=[.A1]+[.B1]",
+			Want: NewBinary(
+				NewCellAddr(layout.NewPosition(1, 1), false, false),
+				NewCellAddr(layout.NewPosition(1, 2), false, false),
+				op.Add,
+			),
+		},
+		{
+			Expr: "of:=[sheet1.A1]+[sheet2.B1]",
+			Want: NewBinary(
+				NewCellAccess(
+					NewIdentifier("sheet1"),
+					NewCellAddr(layout.NewPosition(1, 1), false, false),
+				),
+				NewCellAccess(
+					NewIdentifier("sheet2"),
+					NewCellAddr(layout.NewPosition(1, 2), false, false),
+				),
+				op.Add,
+			),
+		},
 		// {
 		// 	Expr: "of:=CONCATENATE([.A1];" ";[.B1])",
 		// 	Want: nil,

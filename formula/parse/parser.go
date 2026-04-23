@@ -9,12 +9,34 @@ import (
 	"github.com/midbel/dockit/formula/op"
 )
 
+type AddressContext int8
+
+const (
+	DefaultAddressContext AddressContext = iota
+	DottedAddressContext
+	BracketAddressContext
+)
+
+type DialectRules interface {
+	ParseAddress(*Parser, AddressContext) (Expr, error)
+	ParseQualifiedAddress(*Parser, Expr) (Expr, error)
+	ParseRangeAddress(*Parser, Expr) (Expr, error)
+}
+
 func FormulaGrammar() *Grammar {
 	g := NewGrammar("formula")
 
 	g.terminators = []op.Op{op.EOF}
 
-	g.RegisterPrefix(op.Cell, parseAddress)
+	g.RegisterPrefix(op.Cell, func(p *Parser) (Expr, error) {
+		return p.dialect.ParseAddress(p, DefaultAddressContext)
+	})
+	g.RegisterPrefix(op.BegAddr, func(p *Parser) (Expr, error) {
+		return p.dialect.ParseAddress(p, BracketAddressContext)
+	})
+	g.RegisterPrefix(op.SheetRef, func(p *Parser) (Expr, error) {
+		return p.dialect.ParseAddress(p, DottedAddressContext)
+	})
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.Sub, parseUnary)
@@ -22,11 +44,15 @@ func FormulaGrammar() *Grammar {
 	g.RegisterPrefix(op.Ident, parseIdentifier)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 
-	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
+	g.RegisterPostfix(op.SheetRef, func(p *Parser, expr Expr) (Expr, error) {
+		return p.dialect.ParseQualifiedAddress(p, expr)
+	})
 	g.RegisterPostfix(op.BegGrp, parseCall)
 	g.RegisterPostfix(op.Percent, parsePercent)
 
-	g.RegisterInfix(op.RangeRef, parseRangeAddress)
+	g.RegisterInfix(op.RangeRef, func(p *Parser, expr Expr) (Expr, error) {
+		return p.dialect.ParseRangeAddress(p, expr)
+	})
 	g.RegisterInfix(op.Add, parseBinary)
 	g.RegisterInfix(op.Sub, parseBinary)
 	g.RegisterInfix(op.Mul, parseBinary)
@@ -51,7 +77,7 @@ func ScriptGrammar() *Grammar {
 
 	g.RegisterPrefix(op.Eq, parseDeferred)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
-	g.RegisterPrefix(op.Cell, parseAddress)
+	// g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 	g.RegisterPrefix(op.Special, parseSpecialAccessPrefix)
@@ -59,7 +85,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.Special, parseSpecialAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
-	g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
+	// g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 
 	g.RegisterInfix(op.Union, parseBinary)
 	g.RegisterInfix(op.Assign, parseAssignment)
@@ -141,7 +167,8 @@ type Parser struct {
 
 	mode Mode
 
-	stack *GrammarStack
+	stack   *GrammarStack
+	dialect DialectRules
 }
 
 func ParseFormula(str string) (Expr, error) {
@@ -177,6 +204,14 @@ func NewParser(scan Scanner) (*Parser, error) {
 		scan:  scan,
 		stack: new(GrammarStack),
 		mode:  ModeScript,
+	}
+	switch scan.Type() {
+	case TypeOds:
+		p.dialect = odsDialectRules{}
+	case TypeOxml:
+		p.dialect = oxmlDialectRules{}
+	default:
+		return nil, fmt.Errorf("unsupported dialect")
 	}
 	p.next()
 	p.next()
@@ -1167,4 +1202,54 @@ func parseOr(p *Parser, left Expr) (Expr, error) {
 		return nil, err
 	}
 	return NewOr(left, right), nil
+}
+
+type oxmlDialectRules struct{}
+
+func (oxmlDialectRules) ParseAddress(p *Parser, ctx AddressContext) (Expr, error) {
+	if ctx != DefaultAddressContext {
+		return nil, fmt.Errorf("unsupported address type")
+	}
+	return parseAddress(p)
+}
+
+func (oxmlDialectRules) ParseQualifiedAddress(p *Parser, expr Expr) (Expr, error) {
+	return parseQualifiedAddress(p, expr)
+}
+
+func (oxmlDialectRules) ParseRangeAddress(p *Parser, expr Expr) (Expr, error) {
+	return parseRangeAddress(p, expr)
+}
+
+type odsDialectRules struct{}
+
+func (odsDialectRules) ParseAddress(p *Parser, ctx AddressContext) (Expr, error) {
+	switch ctx {
+	case DefaultAddressContext:
+		return parseAddress(p)
+	case DottedAddressContext:
+		p.next()
+		return parseAddress(p)
+	case BracketAddressContext:
+		p.next()
+		expr, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		if !p.is(op.EndAddr) {
+			return nil, fmt.Errorf("invalid address - missing ]")
+		}
+		p.next()
+		return expr, nil
+	default:
+		return nil, fmt.Errorf("unsupported address type")
+	}
+}
+
+func (odsDialectRules) ParseQualifiedAddress(p *Parser, expr Expr) (Expr, error) {
+	return parseQualifiedAddress(p, expr)
+}
+
+func (odsDialectRules) ParseRangeAddress(p *Parser, expr Expr) (Expr, error) {
+	return parseRangeAddress(p, expr)
 }
