@@ -290,12 +290,19 @@ func (c PrintCommand) openSheet(file, name string) (grid.View, error) {
 	if c.Columns != nil {
 		sheet = grid.NewProjectView(sheet, c.Columns)
 	}
-	if c.Count > 0 {
+	if c.Count != 0 {
 		var (
+			start layout.Position
+			end   layout.Position
 			bd    = sheet.Bounds()
-			start = layout.NewPosition(1, 1)
-			end   = layout.NewPosition(int64(c.Count), bd.Width())
 		)
+		if c.Count < 0 {
+			start = layout.NewPosition(bd.Height()+int64(c.Count), 1)
+			end = layout.NewPosition(bd.Height(), bd.Width())
+		} else {
+			start = layout.NewPosition(1, 1)
+			end = layout.NewPosition(int64(c.Count), bd.Width())
+		}
 		sheet = grid.NewBoundedView(sheet, layout.NewRange(start, end))
 	}
 	return sheet, nil
