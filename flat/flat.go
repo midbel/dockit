@@ -367,10 +367,15 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	c, ok := s.cells[pos]
 	if !ok {
-		return grid.NoCell(pos)
+		c = &Cell{
+			Position: pos,
+			parsed:   val,
+		}
 	}
+	s.ClearFormula(pos)
 	c.raw = val.String()
 	c.parsed = val
+	s.insertOrReplaceCell(c)
 	return nil
 }
 
@@ -384,25 +389,12 @@ func (s *Sheet) SetFormula(pos layout.Position, f value.Formula) error {
 			Position: pos,
 			raw:      f.String(),
 		}
-		s.cells[pos] = cell
-		ix := slices.IndexFunc(s.rows, func(r *row) bool {
-			return r.Line == pos.Line
-		})
-		if ix < 0 {
-			r := &row{
-				Line: pos.Line,
-			}
-			r.Cells = append(r.Cells, cell)
-			s.rows = append(s.rows, r)
-			slices.SortFunc(s.rows, func(r1, r2 *row) int {
-				return int(r1.Line - r2.Line)
-			})
-		} else {
-			s.rows[ix].Cells = append(s.rows[ix].Cells, cell)
-		}
 	}
 	cell.formula = f
 	cell.parsed = nil
+	cell.dirty = true
+
+	s.insertOrReplaceCell(cell)
 	return nil
 }
 
@@ -462,9 +454,62 @@ func (s *Sheet) supported() error {
 	return nil
 }
 
+func (s *Sheet) insertOrReplaceCell(cell *Cell) {
+	s.cells[cell.Position] = cell
+
+	ix := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line == cell.Line
+	})
+	if ix < 0 {
+		r := row{
+			Line: cell.Line,
+		}
+		r.Append(cell)
+		s.rows = append(s.rows, &r)
+		slices.SortFunc(s.rows, func(r1, r2 *row) int {
+			return int(r1.Line) - int(r2.Line)
+		})
+	} else {
+		s.rows[ix].AppendOrReplace(cell)
+	}
+
+	s.updateSize(cell)
+}
+
+func (s *Sheet) updateSize(cell *Cell) {
+	s.size.Columns = max(s.size.Columns, cell.Column)
+	s.size.Lines = max(s.size.Lines, cell.Line)
+}
+
 type row struct {
 	Line  int64
 	Cells []*Cell
+}
+
+func (r *row) AppendOrReplace(cell *Cell) {
+	cx := slices.IndexFunc(r.Cells, func(other *Cell) bool {
+		return other.Position.Equal(cell.Position)
+	})
+	if cx >= 0 {
+		r.Cells[cx] = cell
+	} else {
+		r.Append(cell)
+	}
+}
+
+func (r *row) Append(cell *Cell) {
+	r.Cells = append(r.Cells, cell)
+	slices.SortFunc(r.Cells, func(c1, c2 *Cell) int {
+		return int(c1.Column - c2.Column)
+	})
+}
+
+func (r *row) Values() []value.ScalarValue {
+	var ds []value.ScalarValue
+	for _, c := range r.Cells {
+		ds = append(ds, c.Value())
+	}
+	return ds
 }
 
 type Cell struct {

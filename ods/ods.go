@@ -85,7 +85,7 @@ func (r *row) AppendOrReplace(cell *Cell) {
 		return other.Position.Equal(cell.Position)
 	})
 	if cx >= 0 {
-		r.Cells[cx] = c
+		r.Cells[cx] = cell
 	} else {
 		r.Append(cell)
 	}
@@ -359,16 +359,16 @@ func (s *Sheet) DeleteRow(ix int64) error {
 }
 
 func (s *Sheet) insertOrReplaceCell(cell *Cell) {
-	s.cells[pos] = cell
+	s.cells[cell.Position] = cell
 
 	ix := slices.IndexFunc(s.rows, func(r *row) bool {
-		return r.Line == pos.Line
+		return r.Line == cell.Line
 	})
 	if ix < 0 {
 		r := row{
-			Line: pos.Line,
+			Line: cell.Line,
 		}
-		r.Append(c)
+		r.Append(cell)
 		s.rows = append(s.rows, &r)
 		slices.SortFunc(s.rows, func(r1, r2 *row) int {
 			return int(r1.Line) - int(r2.Line)
@@ -377,8 +377,12 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 		s.rows[ix].AppendOrReplace(cell)
 	}
 
-	s.Size.Columns = max(s.Size.Columns, c.Column)
-	s.Size.Lines = max(s.Size.Lines, c.Line)
+	s.updateSize(cell)
+}
+
+func (s *Sheet) updateSize(cell *Cell) {
+	s.Size.Columns = max(s.Size.Columns, cell.Column)
+	s.Size.Lines = max(s.Size.Lines, cell.Line)
 }
 
 func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
