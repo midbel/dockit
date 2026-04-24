@@ -219,7 +219,7 @@ func (c RenameCommand) Run(args []string) error {
 var printCmd = cli.Command{
 	Name:    "print",
 	Summary: "Print content of a sheet on stdout",
-	Usage:   "print [-c <columns>] <file> [<sheet>]",
+	Usage:   "print [-c <columns>] [-n <count>] <file> [<sheet>]",
 	Handler: &PrintCommand{},
 }
 
@@ -227,6 +227,7 @@ type PrintCommand struct {
 	Format  string
 	Pattern string
 	Columns layout.Selection
+	Count   int
 	Quoted  bool
 	SkipErr bool
 }
@@ -235,6 +236,7 @@ func (c PrintCommand) Run(args []string) error {
 	set := cli.NewFlagSet("print")
 	set.StringVar(&c.Format, "f", "", "format")
 	set.StringVar(&c.Pattern, "p", "", "pattern")
+	set.IntVar(&c.Count, "n", 0, "number of rows")
 	set.BoolVar(&c.Quoted, "q", false, "quoted")
 	set.BoolVar(&c.SkipErr, "ignore-errors", false, "skip rows having error values")
 	set.Func("c", "selected columns", func(str string) error {
@@ -287,6 +289,14 @@ func (c PrintCommand) openSheet(file, name string) (grid.View, error) {
 	}
 	if c.Columns != nil {
 		sheet = grid.NewProjectView(sheet, c.Columns)
+	}
+	if c.Count > 0 {
+		var (
+			bd    = sheet.Bounds()
+			start = layout.NewPosition(1, 1)
+			end   = layout.NewPosition(int64(c.Count), bd.Width())
+		)
+		sheet = grid.NewBoundedView(sheet, layout.NewRange(start, end))
 	}
 	return sheet, nil
 }
