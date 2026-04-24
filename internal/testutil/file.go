@@ -24,8 +24,8 @@ func CreateFile() grid.File {
 		[]value.ScalarValue{value.Text("foo"), value.Float(2)},
 		[]value.ScalarValue{value.Text("bar"), value.Float(5)},
 	))
-	f1, _ := grid.ParseFormula("=(B1 + sheet2!B1)*2")
-	f2, _ := grid.ParseFormula("=(B2 + sheet2!B2)*2")
+	f1, _ := grid.ParseOxmlFormula("=(B1 + sheet2!B1)*2")
+	f2, _ := grid.ParseOxmlFormula("=(B2 + sheet2!B2)*2")
 	sheet1.SetFormula(layout.NewPosition(1, 3), f1)
 	sheet1.SetFormula(layout.NewPosition(2, 3), f2)
 
@@ -33,10 +33,10 @@ func CreateFile() grid.File {
 		[]value.ScalarValue{value.Text("quz"), value.Float(10)},
 		[]value.ScalarValue{value.Text("bee"), value.Float(5)},
 	))
-	f3, _ := grid.ParseFormula("=UPPER(sheet2!A1)")
-	f4, _ := grid.ParseFormula("=UPPER(sheet2!A2)")
-	f5, _ := grid.ParseFormula("=UPPER(sheet1!A1)")
-	f6, _ := grid.ParseFormula("=UPPER(sheet1!A2)")
+	f3, _ := grid.ParseOxmlFormula("=UPPER(sheet2!A1)")
+	f4, _ := grid.ParseOxmlFormula("=UPPER(sheet2!A2)")
+	f5, _ := grid.ParseOxmlFormula("=UPPER(sheet1!A1)")
+	f6, _ := grid.ParseOxmlFormula("=UPPER(sheet1!A2)")
 	sheet2.SetFormula(layout.NewPosition(1, 3), f3)
 	sheet2.SetFormula(layout.NewPosition(1, 4), f5)
 	sheet2.SetFormula(layout.NewPosition(2, 3), f4)
@@ -48,10 +48,10 @@ func CreateFile() grid.File {
 		[]value.ScalarValue{value.Text("min")},
 		[]value.ScalarValue{value.Text("max")},
 	))
-	f7, _ := grid.ParseFormula("=SUM(sheet1!B1:B10)")
-	f8, _ := grid.ParseFormula("=AVERAGE(sheet1!B1:B10)")
-	f9, _ := grid.ParseFormula("=MIN(sheet2!B1:B2)")
-	f10, _ := grid.ParseFormula("=MAX(sheet2!B1:B2)")
+	f7, _ := grid.ParseOxmlFormula("=SUM(sheet1!B1:B10)")
+	f8, _ := grid.ParseOxmlFormula("=AVERAGE(sheet1!B1:B10)")
+	f9, _ := grid.ParseOxmlFormula("=MIN(sheet2!B1:B2)")
+	f10, _ := grid.ParseOxmlFormula("=MAX(sheet2!B1:B2)")
 
 	sheet3.SetFormula(layout.NewPosition(1, 2), f7)
 	sheet3.SetFormula(layout.NewPosition(2, 2), f8)
