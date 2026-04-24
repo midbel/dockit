@@ -57,7 +57,10 @@ func eval(expr parse.Expr, ctx value.Context) value.Value {
 		return evalCellAddr(e, ctx)
 	case parse.RangeAddr:
 		return evalRangeAddr(e, ctx)
+	case parse.CellAccess:
+		return evalCellAccess(e, ctx)
 	default:
+		fmt.Printf("%T\n", expr)
 		return value.ErrNA
 	}
 }
@@ -182,6 +185,30 @@ func evalCall(e parse.Call, ctx value.Context) value.Value {
 		return value.ErrName
 	}
 	return fn(args)
+}
+
+func evalCellAccess(e parse.CellAccess, ctx value.Context) value.Value {
+	ident, ok := e.Expr().(parse.Identifier)
+	if !ok {
+		return value.ErrValue
+	}
+	var expr parse.Expr
+	switch addr := e.Addr().(type) {
+	case parse.CellAddr:
+		addr.Sheet = ident.Ident()
+		expr = addr
+	case parse.RangeAddr:
+		var (
+			start = addr.StartAt()
+			end   = addr.EndAt()
+		)
+		start.Sheet = ident.Ident()
+		end.Sheet = ident.Ident()
+		expr = parse.NewRangeAddr(start, end)
+	default:
+		return value.ErrValue
+	}
+	return eval(expr, ctx)
 }
 
 func evalCellAddr(e parse.CellAddr, ctx value.Context) value.Value {
