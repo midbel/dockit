@@ -355,7 +355,7 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 	} else {
 		local = sax.LocalName("v")
 	}
-	r.sheet.rows[pos].Cells = append(r.sheet.rows[pos].Cells, cell)
+	r.sheet.rows[pos].Append(cell)
 	r.sheet.cells[cell.Position] = cell
 
 	rs.Element(local, func(rs *sax.Reader, _ sax.E) error {

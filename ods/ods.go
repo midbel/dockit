@@ -80,6 +80,24 @@ type row struct {
 	Cells []*Cell
 }
 
+func (r *row) AppendOrReplace(cell *Cell) {
+	cx := slices.IndexFunc(r.Cells, func(other *Cell) bool {
+		return other.Position.Equal(cell.Position)
+	})
+	if cx >= 0 {
+		r.Cells[cx] = c
+	} else {
+		r.Append(cell)
+	}
+}
+
+func (r *row) Append(cell *Cell) {
+	r.Cells = append(r.Cells, cell)
+	slices.SortFunc(r.Cells, func(c1, c2 *Cell) int {
+		return int(c1.Column - c2.Column)
+	})
+}
+
 func (r *row) Values() []value.ScalarValue {
 	var ds []value.ScalarValue
 	for _, c := range r.Cells {
@@ -265,25 +283,35 @@ func (s *Sheet) IsLock() bool {
 func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	c, ok := s.cells[pos]
 	if !ok {
-		return grid.NoCell(pos)
+		c = &Cell{
+			Position: pos,
+			parsed:   val,
+		}
 	}
 	if err := s.ClearFormula(pos); err != nil {
 		return err
 	}
 	c.raw = val.String()
 	c.parsed = val
+
+	s.insertOrReplaceCell(c)
 	return nil
 }
 
 func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
 	c, ok := s.cells[pos]
 	if !ok {
-		return grid.NoCell(pos)
+		c = &Cell{
+			Position: pos,
+		}
 	}
 	c.formula = expr
-	c.raw = ""
+	c.raw = expr.String()
 	c.parsed = value.Empty()
 	c.dirty = true
+	s.cells[pos] = c
+
+	s.insertOrReplaceCell(c)
 	return nil
 }
 
@@ -330,24 +358,34 @@ func (s *Sheet) DeleteRow(ix int64) error {
 	return nil
 }
 
+func (s *Sheet) insertOrReplaceCell(cell *Cell) {
+	s.cells[pos] = cell
+
+	ix := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line == pos.Line
+	})
+	if ix < 0 {
+		r := row{
+			Line: pos.Line,
+		}
+		r.Append(c)
+		s.rows = append(s.rows, &r)
+		slices.SortFunc(s.rows, func(r1, r2 *row) int {
+			return int(r1.Line) - int(r2.Line)
+		})
+	} else {
+		s.rows[ix].AppendOrReplace(cell)
+	}
+
+	s.Size.Columns = max(s.Size.Columns, c.Column)
+	s.Size.Lines = max(s.Size.Lines, c.Line)
+}
+
 func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
 	var (
 		pos = cell.At()
 		val = cell.Value()
 	)
-	ix := slices.IndexFunc(s.rows, func(r *row) bool {
-		return r.Line == pos.Line
-	})
-	var r *row
-	if ix < 0 {
-		r = &row{
-			Line: pos.Line,
-		}
-		s.rows = append(s.rows, r)
-		s.Size.Lines++
-	} else {
-		r = s.rows[ix]
-	}
 	c := &Cell{
 		Position: pos,
 	}
@@ -358,9 +396,7 @@ func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
 	if f := cell.Formula(); f != nil && mode.Formula() {
 		c.formula = f
 	}
-	r.Cells = append(r.Cells, c)
-	s.cells[pos] = c
-	s.Size.Columns = max(s.Size.Columns, c.Column)
+	s.insertOrReplaceCell(c)
 }
 
 type File struct {
