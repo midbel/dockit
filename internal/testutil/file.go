@@ -60,3 +60,15 @@ func CreateFile() grid.File {
 
 	return flat.NewFileFromSheets(sheet1, sheet2, sheet3)
 }
+
+func Collect(view grid.View) [][]string {
+	var got [][]string
+	for _, rs := range view.Rows() {
+		arr := make([]string, 0, len(rs))
+		for i := range rs {
+			arr = append(arr, rs[i].String())
+		}
+		got = append(got, arr)
+	}
+	return got
+}

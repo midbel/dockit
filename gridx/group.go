@@ -105,21 +105,25 @@ func newGroupedView(view grid.View, rows []*groupRow) grid.View {
 	return &v
 }
 
-func (g *groupedView) Name() string {
-	return g.view.Name()
+func (v *groupedView) Name() string {
+	return v.view.Name()
 }
 
-func (g *groupedView) Bounds() *layout.Range {
+func (v *groupedView) Bounds() *layout.Range {
+	if len(v.groups) == 0 {
+		pos := layout.NewPosition(1, 1)
+		return layout.NewRange(pos, pos)
+	}
 	var (
 		start = layout.NewPosition(1, 1)
-		end   = layout.NewPosition(int64(len(g.groups)), g.groups[0].Columns())
+		end   = layout.NewPosition(int64(len(v.groups)), v.groups[0].Columns())
 	)
 	return layout.NewRange(start, end)
 }
 
-func (g *groupedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+func (v *groupedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	it := func(yield func(int64, []value.ScalarValue) bool) {
-		for lino, r := range g.groups {
+		for lino, r := range v.groups {
 			ok := yield(int64(lino)+1, r.Values())
 			if !ok {
 				return
@@ -129,12 +133,15 @@ func (g *groupedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	return it
 }
 
-func (g *groupedView) Cell(pos layout.Position) (grid.Cell, error) {
-	return grid.Empty(pos), nil
+func (v *groupedView) Cell(pos layout.Position) (grid.Cell, error) {
+	if pos.Line < 1 || pos.Line > int64(len(v.groups)) {
+		return grid.Empty(pos), nil
+	}
+	return v.groups[pos.Line].At(pos), nil
 }
 
-func (g *groupedView) Sync(ctx value.Context) error {
-	if err := g.view.Sync(ctx); err != nil {
+func (v *groupedView) Sync(ctx value.Context) error {
+	if err := v.view.Sync(ctx); err != nil {
 		return err
 	}
 	return grid.ErrSupported
@@ -155,6 +162,22 @@ func (r *groupRow) Update(row []value.ScalarValue) {
 func (r *groupRow) Columns() int64 {
 	t := len(r.values) + len(r.aggr)
 	return int64(t)
+}
+
+func (r *groupRow) At(pos layout.Position) grid.Cell {
+	if pos.Column < 0 || pos.Column >= r.Columns() {
+		return grid.Empty(pos)
+	}
+	var val value.Value
+	if pos.Column < int64(len(r.values)) {
+		val = r.values[int(pos.Column)]
+	} else {
+		val = r.aggr[int(pos.Column)-len(r.values)].Result()
+	}
+	if !value.IsScalar(val) {
+		return grid.Single(value.ErrValue, pos)
+	}
+	return grid.Single(val.(value.ScalarValue), pos)
 }
 
 func (r *groupRow) Values() []value.ScalarValue {
@@ -188,6 +211,7 @@ var aggrBuilder = map[string]func() Aggregator{
 
 type minv struct {
 	result float64
+	count  int
 }
 
 func Min() Aggregator {
@@ -205,6 +229,11 @@ func (a *minv) Aggr(val value.Value) {
 	f, err := value.CastToFloat(val)
 	if err != nil {
 		a.result = math.NaN()
+		return
+	}
+	a.count++
+	if a.count == 1 {
+		a.result = float64(f)
 		return
 	}
 	a.result = min(a.result, float64(f))

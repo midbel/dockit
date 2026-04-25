@@ -57,11 +57,17 @@ type Cell interface {
 	Dirty() bool
 }
 
+type proxyCell struct {
+	Cell
+	layout.Position
+}
+
 func ResetAt(cell Cell, pos layout.Position) Cell {
-	if a, ok := cell.(interface{ SetAt(layout.Position) }); ok {
-		a.SetAt(pos)
+	c := proxyCell{
+		Position: pos,
+		Cell:     cell,
 	}
-	return cell
+	return c
 }
 
 type empty struct {
