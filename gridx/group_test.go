@@ -1,12 +1,9 @@
 package gridx
 
 import (
-	"slices"
 	"strings"
 	"testing"
 
-	"github.com/midbel/dockit/csv"
-	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/testutil"
 	"github.com/midbel/dockit/layout"
@@ -43,7 +40,7 @@ func testGroupMultiKey(t *testing.T) {
 		got     = testutil.Collect(view)
 	)
 
-	compareGroupResult(t, want, got, func(rs1, rs2 []string) int {
+	testutil.AssertViewEqual(t, want, got, func(rs1, rs2 []string) int {
 		res := strings.Compare(rs1[0], rs2[0])
 		if res == 0 {
 			res = strings.Compare(rs1[1], rs2[1])
@@ -65,33 +62,15 @@ func testGroupSingleKey(t *testing.T) {
 		got     = testutil.Collect(view)
 	)
 
-	compareGroupResult(t, want, got, func(rs1, rs2 []string) int {
+	testutil.AssertViewEqual(t, want, got, func(rs1, rs2 []string) int {
 		return strings.Compare(rs1[0], rs2[0])
 	})
-}
-
-func compareGroupResult(t *testing.T, want, got [][]string, cmp func([]string, []string) int) {
-	t.Helper()
-
-	slices.SortFunc(got, cmp)
-	slices.SortFunc(want, cmp)
-
-	if len(got) != len(want) {
-		t.Fatalf("number of rows mismatched! want %d, got %d", len(want), len(got))
-		return
-	}
-	for i := 0; i < len(got); i++ {
-		if !slices.Equal(want[i], got[i]) {
-			t.Errorf("[%d] results mismatched! want %v, got %v", i, want[i], got[i])
-		}
-	}
 }
 
 func createGroupView(t *testing.T, keys layout.Selection) grid.View {
 	t.Helper()
 
-	r := csv.NewReader(strings.NewReader(groupSample))
-	f, err := flat.OpenReader(r)
+	f, err := testutil.CreateCsvFile(strings.NewReader(groupSample))
 	if err != nil {
 		t.Fatalf("fail to create file from sample: %s", err)
 	}
