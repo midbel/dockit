@@ -16,8 +16,8 @@ var joinBuiltin = gbs.Builtin{
 	Params: []gbs.Param{
 		gbs.Object("sheet1", "", value.TypeAny),
 		gbs.Object("sheet2", "", value.TypeAny),
-		gbs.Object("cols1", "", value.TypeAny),
-		gbs.Object("cols2", "", value.TypeAny),
+		gbs.Scalar("cols1", "", value.TypeText),
+		gbs.Scalar("cols2", "", value.TypeText),
 	},
 	Func: Join,
 }
