@@ -31,16 +31,10 @@ func Join(args []value.Value) value.Value {
 	if err != nil {
 		return value.ErrValue
 	}
-	v1, ok := args[0].(*types.View)
-	if !ok {
-		return value.ErrValue
-	}
-	v2, ok := args[1].(*types.View)
-	if !ok {
-		return value.ErrValue
-	}
-	v := gridx.Join(v1.View(), v2.View(), keys1, keys2)
-	return types.NewViewValue(v)
+	return combineViews(args[0], args[1], func(left, right grid.View) (grid.View, error) {
+		v := gridx.Join(left, right, keys1, keys2)
+		return v, nil
+	})
 }
 
 var groupBuiltin = gbs.Builtin{
