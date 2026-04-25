@@ -3,7 +3,23 @@ package testutil
 import (
 	"slices"
 	"testing"
+
+	"github.com/midbel/dockit/grid"
 )
+
+func AssertSize(t *testing.T, view grid.View, got [][]string) {
+	t.Helper()
+
+	bd := view.Bounds()
+	if bd.Height() != int64(len(got)) {
+		t.Fatalf("number of rows mismatched! want %d, got %d", bd.Height(), len(got))
+	}
+	for i := range got {
+		if int64(len(got[i])) != bd.Width() {
+			t.Fatalf("row #%d: number of columns mismatched! want %d, got %d", i+1, bd.Width(), len(got[i]))
+		}
+	}
+}
 
 func AssertViewEqual(t *testing.T, want, got [][]string, cmp func([]string, []string) int) {
 	t.Helper()

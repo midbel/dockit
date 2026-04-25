@@ -15,7 +15,7 @@ js,quz,100`
 const secondSample = `go,foo,250
 go,foo,100
 js,bar,100`
-const thirdSample = `bel,1000
+const thirdSample = `be,1000
 fr,5000
 de,8000`
 
@@ -51,6 +51,7 @@ func testUnionSameSample(t *testing.T) {
 		{"js", "quz", "100"},
 	}
 	got := testutil.Collect(view)
+	testutil.AssertSize(t, view, got)
 	testutil.AssertViewEqual(t, want, got, nil)
 }
 
@@ -71,6 +72,7 @@ func testUnionDifferentSample(t *testing.T) {
 		{"js", "bar", "100"},
 	}
 	got := testutil.Collect(view)
+	testutil.AssertSize(t, view, got)
 	testutil.AssertViewEqual(t, want, got, nil)
 }
 
@@ -81,17 +83,32 @@ func TestIntersect(t *testing.T) {
 	)
 	view, err := Intersect(v1, v2)
 	if err != nil {
-		t.Fatalf("error with union of two views: %s", err)
+		t.Fatalf("error with intersect of two views: %s", err)
 	}
 	want := [][]string{
 		{"go", "foo", "100"},
 	}
 	got := testutil.Collect(view)
+	testutil.AssertSize(t, view, got)
 	testutil.AssertViewEqual(t, want, got, nil)
 }
 
 func TestExcept(t *testing.T) {
-	t.SkipNow()
+	var (
+		v1 = getViewFrom(t, firstSample)
+		v2 = getViewFrom(t, secondSample)
+	)
+	view, err := Except(v1, v2)
+	if err != nil {
+		t.Fatalf("error with except of two views: %s", err)
+	}
+	want := [][]string{
+		{"go", "bar", "50"},
+		{"js", "quz", "100"},
+	}
+	got := testutil.Collect(view)
+	testutil.AssertSize(t, view, got)
+	testutil.AssertViewEqual(t, want, got, nil)
 }
 
 func getViewFrom(t *testing.T, content string) grid.View {

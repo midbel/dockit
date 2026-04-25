@@ -40,6 +40,7 @@ func testGroupMultiKey(t *testing.T) {
 		got     = testutil.Collect(view)
 	)
 
+	testutil.AssertSize(t, view, got)
 	testutil.AssertViewEqual(t, want, got, func(rs1, rs2 []string) int {
 		res := strings.Compare(rs1[0], rs2[0])
 		if res == 0 {
@@ -62,6 +63,7 @@ func testGroupSingleKey(t *testing.T) {
 		got     = testutil.Collect(view)
 	)
 
+	testutil.AssertSize(t, view, got)
 	testutil.AssertViewEqual(t, want, got, func(rs1, rs2 []string) int {
 		return strings.Compare(rs1[0], rs2[0])
 	})
