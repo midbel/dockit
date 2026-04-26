@@ -1,6 +1,7 @@
 package text
 
 import (
+	"strings"
 	"unicode/utf8"
 )
 

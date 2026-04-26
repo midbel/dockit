@@ -13,7 +13,8 @@ var matchBuiltin = Builtin{
 	Category: "conditional",
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
-		Array("array", "", value.TypeAny),
+		Array("array", "", value.TypeArray),
+		Scalar("mode", "", value.TypeNumber),
 	},
 	Func: Match,
 }
@@ -22,7 +23,7 @@ func Match(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	return value.FindIndex(args[1:], args[0])
+	return value.ErrValue
 }
 
 var indexBuiltin = Builtin{
