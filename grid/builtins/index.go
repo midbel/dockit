@@ -3,6 +3,7 @@ package builtins
 import (
 	"math"
 
+	_ "github.com/midbel/dockit/grid/text"
 	"github.com/midbel/dockit/value"
 )
 
