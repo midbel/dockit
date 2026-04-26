@@ -5,20 +5,10 @@ import (
 	"unicode/utf8"
 )
 
-type MatchMode int
-
-const (
-	ExactOrWildcard  MatchMode = iota // match_type = 0
-	ApproxAscending                   // match_type = 1
-	ApproxDescending                  // match_type = -1
-)
-
-func Match(str, pattern string, mode MatchMode) bool {
+func Match(str, pattern string) bool {
 	var (
 		offset       int
 		ptr          int
-		lastStarPos  = -1
-		lastValidPtr = -1
 	)
 	pattern = strings.ToLower(pattern)
 	str = strings.ToLower(str)
@@ -27,8 +17,18 @@ func Match(str, pattern string, mode MatchMode) bool {
 		offset += z
 		switch c {
 		case '*':
-			lastStarPos = offset - z
-			lastValidPtr = ptr
+			c, z := utf8.DecodeRuneInString(pattern[offset:])
+			if c == utf8.RuneError {
+				return true
+			}
+			offset += z
+			for ptr < len(ptr) {
+				x, z := utf8.DecodeRuneInString(ptr[str:])
+				if x == z {
+					break
+				}
+				ptr += z
+			}
 		case '?':
 			_, z := utf8.DecodeRuneInString(str[ptr:])
 			ptr += z
@@ -39,32 +39,16 @@ func Match(str, pattern string, mode MatchMode) bool {
 			}
 			offset += z
 			x, z := utf8.DecodeRuneInString(str[ptr:])
-			if x == c {
-				ptr += z
-				continue
+			if x != c {
+				return false
 			}
-			if lastStarPos >= 0 {
-				_, z := utf8.DecodeRuneInString(str[lastValidPtr:])
-				lastValidPtr += z
-				ptr = lastValidPtr
-				offset = lastStarPos
-				continue
-			}
-			return false
+			ptr += z
 		default:
 			x, z := utf8.DecodeRuneInString(str[ptr:])
-			if x == c {
-				ptr += z
-				continue
+			if x != c {
+				return false
 			}
-			if lastStarPos >= 0 {
-				_, z := utf8.DecodeRuneInString(str[lastValidPtr:])
-				lastValidPtr += z
-				ptr = lastValidPtr
-				offset = lastStarPos
-				continue
-			}
-			return false
+			ptr += z
 		}
 	}
 	for offset < len(pattern) {

@@ -3,7 +3,6 @@ package builtins
 import (
 	"math"
 
-	_ "github.com/midbel/dockit/grid/text"
 	"github.com/midbel/dockit/value"
 )
 
@@ -23,7 +22,7 @@ func Match(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	return value.ErrValue
+	return value.FindIndex(args[1:], args[0])
 }
 
 var indexBuiltin = Builtin{
