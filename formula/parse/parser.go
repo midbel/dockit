@@ -79,7 +79,6 @@ func ScriptGrammar() *Grammar {
 
 	g.RegisterPrefix(op.Eq, parseDeferred)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
-	// g.RegisterPrefix(op.Cell, parseAddress)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 	g.RegisterPrefix(op.Special, parseSpecialAccessPrefix)
@@ -87,7 +86,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.Special, parseSpecialAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
-	// g.RegisterPostfix(op.SheetRef, parseQualifiedAddress)
 
 	g.RegisterInfix(op.Union, parseBinary)
 	g.RegisterInfix(op.Assign, parseAssignment)
@@ -103,8 +101,8 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
-	g.RegisterPrefixKeyword(kwInclude, parseInclude)
-	g.RegisterPrefixKeyword(kwMacro, parseMacro)
+	// g.RegisterPrefixKeyword(kwInclude, parseInclude)
+	// g.RegisterPrefixKeyword(kwMacro, parseMacro)
 
 	return g
 }
@@ -981,6 +979,10 @@ func parseMacro(p *Parser) (Expr, error) {
 		return nil, p.makeError("unexpected character in function call")
 	}
 	p.next()
+	if !p.isTerminator() {
+		return nil, p.expectedEOL()
+	}
+	p.skipTerminator()
 
 	for !p.done() && !(p.is(op.Keyword) && p.currentLiteral() == kwEnd) {
 		p.skipComment()
@@ -997,6 +999,10 @@ func parseMacro(p *Parser) (Expr, error) {
 		}
 		p.skipTerminator()
 	}
+	if !p.is(op.Keyword) && p.currentLiteral() != kwEnd {
+		return nil, p.makeError("end keyword expected at end of macro")
+	}
+	p.next()
 	return NewMacro(name, args, body), nil
 }
 
