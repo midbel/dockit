@@ -91,7 +91,7 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 			if ext == "" {
 				break
 			}
-			alias = strings.TrimSuffix(file, ext)
+			file = strings.TrimSuffix(file, ext)
 		}
 	}
 	wb := types.NewFileValue(file, expr.ReadOnly())

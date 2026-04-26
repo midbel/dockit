@@ -127,7 +127,12 @@ func (p valuePrinter) printView(v *types.View, f format.Formatter) {
 		}
 		row = make([]string, size)
 		for i := 0; i < min(size, len(row)); i++ {
-			str, _ := f.Format(r[i])
+			var str string
+			if i >= len(r) {
+				str = ""
+			} else {
+				str, _ = f.Format(r[i])
+			}
 			row[i] = str
 			padding[i] = max(padding[i], len(row[i]))
 		}
@@ -252,7 +257,11 @@ func (p debugPrinter) printView(v *types.View) {
 		}
 		row = make([]string, size)
 		for i := 0; i < min(size, len(row)); i++ {
-			row[i] = r[i].String()
+			if i >= len(r) {
+				row[i] = ""
+			} else {
+				row[i] = r[i].String()
+			}
 			padding[i] = max(padding[i], len(row[i]))
 		}
 		data = append(data, row)

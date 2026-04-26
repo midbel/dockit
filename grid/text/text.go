@@ -7,8 +7,8 @@ import (
 
 func Match(str, pattern string) bool {
 	var (
-		offset       int
-		ptr          int
+		offset int
+		ptr    int
 	)
 	pattern = strings.ToLower(pattern)
 	str = strings.ToLower(str)
