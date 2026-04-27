@@ -66,6 +66,10 @@ func (c *cellRecognizer) IsCell() bool {
 	return c.state == cellRow
 }
 
+func (c *cellRecognizer) IsCol() bool {
+	return c.state == cellCol
+}
+
 func (c *cellRecognizer) toDead() {
 	c.state = cellDead
 }

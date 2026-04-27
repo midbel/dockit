@@ -12,6 +12,7 @@ const (
 	Keyword
 	Ident
 	Cell
+	Column
 	Number
 	Literal
 	Comment

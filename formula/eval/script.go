@@ -597,6 +597,10 @@ func (v *evalVisitor) VisitIdentifier(expr parse.Identifier) error {
 	return nil
 }
 
+func (v *evalVisitor) VisitColumnAddr(expr parse.ColumnAddr) error {
+	return nil
+}
+
 func (v *evalVisitor) VisitCellAddr(expr parse.CellAddr) error {
 	val := v.ctx.At(expr.Position)
 	v.pushValue(val)

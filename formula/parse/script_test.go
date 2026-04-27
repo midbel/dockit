@@ -525,9 +525,9 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view1"),
 				NewIntervalList([]Expr{
-					NewIdentifier("A"),
-					NewIdentifier("B"),
-					NewIdentifier("C"),
+					NewColumnAddr(layout.NewPosition(0, 1), false),
+					NewColumnAddr(layout.NewPosition(0, 2), false),
+					NewColumnAddr(layout.NewPosition(0, 3), false),
 				}),
 			),
 		},
@@ -536,9 +536,21 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view2"),
 				NewIntervalList([]Expr{
-					NewInterval(nil, NewIdentifier("E"), nil),
-					NewInterval(NewIdentifier("B"), NewIdentifier("D"), NewNumber(2)),
-					NewInterval(NewIdentifier("C"), nil, NewNumber(3)),
+					NewInterval(
+						nil,
+						NewColumnAddr(layout.NewPosition(0, 5), false),
+						nil,
+					),
+					NewInterval(
+						NewColumnAddr(layout.NewPosition(0, 2), false),
+						NewColumnAddr(layout.NewPosition(0, 4), false),
+						NewNumber(2),
+					),
+					NewInterval(
+						NewIdentifier("C"),
+						nil,
+						NewNumber(3),
+					),
 				}),
 			),
 		},
@@ -557,7 +569,11 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view4"),
 				NewIntervalList([]Expr{
-					NewInterval(NewIdentifier("A"), NewIdentifier("C"), nil),
+					NewInterval(
+						NewColumnAddr(layout.NewPosition(0, 1), false),
+						NewColumnAddr(layout.NewPosition(0, 3), false),
+						nil,
+					),
 				}),
 			),
 		},
@@ -608,8 +624,16 @@ func TestSlices(t *testing.T) {
 			Want: NewSlice(
 				NewIdentifier("view8"),
 				NewIntervalList([]Expr{
-					NewInterval(NewIdentifier("E"), NewIdentifier("A"), NewNumber(2)),
-					NewInterval(NewIdentifier("F"), nil, nil),
+					NewInterval(
+						NewColumnAddr(layout.NewPosition(0, 5), false),
+						NewColumnAddr(layout.NewPosition(0, 1), false),
+						NewNumber(2),
+					),
+					NewInterval(
+						NewColumnAddr(layout.NewPosition(0, 6), false), 
+						nil, 
+						nil,
+					),
 				}),
 			),
 		},
@@ -689,6 +713,18 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		}
 		assertEqualExpr(t, w.startAddr, g.startAddr)
 		assertEqualExpr(t, w.endAddr, g.endAddr)
+	case ColumnAddr:
+		g, ok := got.(ColumnAddr)
+		if !ok {
+			t.Errorf("columnAddr expression expected but got %T", got)
+			return
+		}
+		if !w.Position.Equal(g.Position) {
+			t.Errorf("position mismatched! want %s, got %s", w.Position, g.Position)
+		}
+		if w.Absolute != g.Absolute {
+			t.Errorf("absolute column mismatched!")
+		}
 	case CellAddr:
 		g, ok := got.(CellAddr)
 		if !ok {

@@ -200,6 +200,13 @@ func (v astVisitor) VisitNumber(expr parse.Number) error {
 	return nil
 }
 
+func (v astVisitor) VisitColumnAddr(expr parse.ColumnAddr) error {
+	node := v.newValue("address", expr)
+	node.Value = expr.String()
+	v.pushNode(node)
+	return nil
+}
+
 func (v astVisitor) VisitCellAddr(expr parse.CellAddr) error {
 	node := v.newValue("address", expr)
 	node.Value = expr.String()

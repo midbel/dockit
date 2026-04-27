@@ -946,6 +946,35 @@ func (i Identifier) Accept(v Visitor) error {
 	return v.VisitIdentifier(i)
 }
 
+type ColumnAddr struct {
+	layout.Position
+	Absolute bool
+}
+
+func NewColumnAddr(pos layout.Position, abs bool) Expr {
+	return ColumnAddr{
+		Position: pos,
+		Absolute: abs,
+	}
+}
+
+func (a ColumnAddr) String() string {
+	c := NewCellAddr(a.Position, false, false)
+	return formatCellAddr(c.(CellAddr))
+}
+
+func (ColumnAddr) KindOf() string {
+	return "address"
+}
+
+func (a ColumnAddr) CloneWithOffset(pos layout.Position) Expr {
+	return a
+}
+
+func (a ColumnAddr) Accept(v Visitor) error {
+	return v.VisitColumnAddr(a)
+}
+
 type CellAddr struct {
 	layout.Position
 	AbsCol bool

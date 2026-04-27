@@ -157,6 +157,9 @@ func (x *ScriptLexer) scanIdent(tok *Token) {
 	if reco.IsCell() {
 		tok.Type = op.Cell
 	}
+	if reco.IsCol() {
+		tok.Type = op.Column
+	}
 
 	if isKeyword(tok.Literal) {
 		tok.Type = op.Keyword

@@ -79,6 +79,7 @@ func ScriptGrammar() *Grammar {
 
 	g.RegisterPrefix(op.Eq, parseDeferred)
 	g.RegisterPrefix(op.Ident, parseIdentifier)
+	g.RegisterPrefix(op.Column, parseColumn)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 	g.RegisterPrefix(op.Special, parseSpecialAccessPrefix)
@@ -124,6 +125,7 @@ func SliceGrammar() *Grammar {
 		return p.dialect.ParseAddress(p, DefaultAddressContext)
 	})
 	g.RegisterPrefix(op.Ident, parseIdentifier)
+	g.RegisterPrefix(op.Column, parseColumn)
 	g.RegisterPrefix(op.Number, parseNumber)
 	g.RegisterPrefix(op.Literal, parseLiteral)
 	g.RegisterPrefix(op.RangeRef, parseOpenSelectedColumns)
@@ -706,6 +708,15 @@ func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 		return nil, p.makeError("address/range expected")
 	}
 	return NewCellAccess(left, right), nil
+}
+
+func parseColumn(p *Parser) (Expr, error) {
+	addr, err := parseColumnAddr(p.currentLiteral())
+	if err != nil {
+		return nil, err
+	}
+	p.next()
+	return addr, nil
 }
 
 func parseAddress(p *Parser) (Expr, error) {

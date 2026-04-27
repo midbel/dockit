@@ -113,6 +113,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
+	case ColumnAddr:
+		io.WriteString(w, "column(")
+		io.WriteString(w, e.Position.String())
+		io.WriteString(w, ", ")
+		io.WriteString(w, strconv.FormatBool(e.Absolute))
+		io.WriteString(w, ")")
 	case CellAddr:
 		io.WriteString(w, "cell(")
 		io.WriteString(w, e.Position.String())

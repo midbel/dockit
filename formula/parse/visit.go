@@ -13,6 +13,7 @@ type Visitor interface {
 	VisitLiteral(Literal) error
 	VisitNumber(Number) error
 	VisitCellAddr(CellAddr) error
+	VisitColumnAddr(ColumnAddr) error
 	VisitRangeAddr(RangeAddr) error
 	VisitTemplate(Template) error
 	VisitAccess(Access) error

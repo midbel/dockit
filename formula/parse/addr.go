@@ -28,11 +28,29 @@ func formatCellAddr(addr CellAddr) string {
 		parts = append(parts, "$")
 	}
 	parts = append(parts, result)
-	if addr.AbsRow {
-		parts = append(parts, "$")
+	if addr.Line != 0 {
+		if addr.AbsRow {
+			parts = append(parts, "$")
+		}
+		parts = append(parts, strconv.FormatInt(addr.Line, 10))
 	}
-	parts = append(parts, strconv.FormatInt(addr.Line, 10))
 	return strings.Join(parts, "")
+}
+
+func parseColumnAddr(addr string) (ColumnAddr, error) {
+	var (
+		pos    ColumnAddr
+		offset int
+	)
+	if addr == "" {
+		return pos, fmt.Errorf("empty column address")
+	}
+	if offset < len(addr) && addr[offset] == dollar {
+		pos.Absolute = true
+		offset++
+	}
+	pos.Column, _ = parseIndex(addr[offset:])
+	return pos, nil
 }
 
 func parseCellAddr(addr string) (CellAddr, error) {
