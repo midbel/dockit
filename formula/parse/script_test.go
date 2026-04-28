@@ -547,7 +547,7 @@ func TestSlices(t *testing.T) {
 						NewNumber(2),
 					),
 					NewInterval(
-						NewIdentifier("C"),
+						NewColumnAddr(layout.NewPosition(0, 3), false),
 						nil,
 						NewNumber(3),
 					),
@@ -630,8 +630,8 @@ func TestSlices(t *testing.T) {
 						NewNumber(2),
 					),
 					NewInterval(
-						NewColumnAddr(layout.NewPosition(0, 6), false), 
-						nil, 
+						NewColumnAddr(layout.NewPosition(0, 6), false),
+						nil,
 						nil,
 					),
 				}),
