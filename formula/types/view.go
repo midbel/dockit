@@ -105,6 +105,10 @@ func (c *View) BoundedView(rg *layout.Range) *View {
 	return createView(view, c.ctx, false)
 }
 
+func (c *View) Bounds() *layout.Range {
+	return c.view.Bounds()
+}
+
 func (c *View) Inspect() *InspectValue {
 	var (
 		iv = InspectView()

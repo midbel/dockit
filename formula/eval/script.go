@@ -12,6 +12,7 @@ import (
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/internal/slx"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -243,6 +244,7 @@ func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
 	switch e := expr.Ident().(type) {
 	case parse.CellAddr:
 		err = v.ctx.SetAt(e.Position, val)
+	case parse.ColumnAddr:
 	case parse.RangeAddr:
 		err = v.ctx.SetRange(e.StartAt().Position, e.EndAt().Position, val)
 	case parse.Access:
@@ -299,6 +301,8 @@ func (v *evalVisitor) VisitBinary(expr parse.Binary) error {
 	switch {
 	case value.IsScalar(left) && value.IsScalar(right):
 		val, err = v.evalScalarBinary(left, right, expr.Op())
+	case (value.IsArray(right) || value.IsObject(right)) && value.IsScalar(left):
+		val, err = v.evalScalarArrayBinary(left, right, expr.Op())
 	case (value.IsArray(left) || value.IsObject(left)) && value.IsScalar(right):
 		val, err = v.evalScalarArrayBinary(right, left, expr.Op())
 	case value.IsArray(left) && value.IsArray(right):
@@ -357,7 +361,7 @@ func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op)
 		return value.ErrValue, nil
 	}
 	arr.Apply(func(val value.ScalarValue) value.ScalarValue {
-		ret, err := v.evalScalarBinary(left, val, oper)
+		ret, err := v.evalScalarBinary(val, left, oper)
 		if err != nil {
 			return value.ErrValue
 		}
@@ -371,6 +375,9 @@ func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op)
 }
 
 func (v *evalVisitor) evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+	left, _ = v.normalize(left)
+	right, _ = v.normalize(right)
+
 	larr, err := value.CastToArray(left)
 	if err != nil {
 		return value.ErrValue, nil
@@ -598,6 +605,14 @@ func (v *evalVisitor) VisitIdentifier(expr parse.Identifier) error {
 }
 
 func (v *evalVisitor) VisitColumnAddr(expr parse.ColumnAddr) error {
+	var (
+		view  = v.ctx.CurrentActiveView()
+		bd    = view.Bounds()
+		start = layout.NewPosition(bd.Starts.Line, expr.Column)
+		end   = layout.NewPosition(bd.Ends.Line, expr.Column)
+		rg    = types.NewRangeValue(start, end)
+	)
+	v.pushValue(rg)
 	return nil
 }
 
@@ -634,6 +649,9 @@ func (v *evalVisitor) normalize(val value.Value) (value.Value, error) {
 		rg := val.Range()
 		return v.ctx.Range(rg.Starts, rg.Ends), nil
 	default:
+		if a, ok := val.(interface{ AsArray() value.ArrayValue }); ok {
+			return a.AsArray(), nil
+		}
 		return val, nil
 	}
 }

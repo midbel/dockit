@@ -72,6 +72,10 @@ func (a arrayView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
+func (a arrayView) AsArray() value.ArrayValue {
+	return a.array
+}
+
 func (a arrayView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	it := func(yield func(int64, []value.ScalarValue) bool) {
 		dim := a.array.Dimension()
