@@ -385,3 +385,23 @@ func (a arrayView) AsArray() value.ArrayValue {
 	}
 	return value.NewArray(data)
 }
+
+func (a arrayView) Apply(do func(value.ScalarValue) value.ScalarValue) {
+	bd := a.inner.Bounds()
+	mv, ok := a.inner.(MutableView)
+	if !ok {
+		return
+	}
+	for pos := range bd.Positions() {
+		v := do(a.At(int(pos.Line), int(pos.Column)))
+		mv.SetValue(pos, v)
+	}
+}
+
+func (a arrayView) ApplyArray(other value.Array, do func(value.ScalarValue, value.ScalarValue) value.ScalarValue) value.Value {
+	arr := a.AsArray()
+	if arr, ok := arr.(value.Array); ok {
+		return arr.ApplyArray(other, do)
+	}
+	return value.NewArray(nil)
+}
