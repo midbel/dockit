@@ -248,7 +248,7 @@ func (t Text) Div(other Value) ScalarValue {
 	if x == 0 {
 		return ErrDiv0
 	}
-	return Float(f * x)
+	return Float(f / x)
 }
 
 func (t Text) Pow(other Value) ScalarValue {

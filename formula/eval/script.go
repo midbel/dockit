@@ -302,9 +302,9 @@ func (v *evalVisitor) VisitBinary(expr parse.Binary) error {
 	case value.IsScalar(left) && value.IsScalar(right):
 		val, err = v.evalScalarBinary(left, right, expr.Op())
 	case (value.IsArray(right) || value.IsObject(right)) && value.IsScalar(left):
-		val, err = v.evalScalarArrayBinary(left, right, expr.Op())
+		val, err = v.evalScalarInArrayBinary(left, right, expr.Op())
 	case (value.IsArray(left) || value.IsObject(left)) && value.IsScalar(right):
-		val, err = v.evalScalarArrayBinary(right, left, expr.Op())
+		val, err = v.evalArrayWithScalarBinary(left, right, expr.Op())
 	case value.IsArray(left) && value.IsArray(right):
 		val, err = v.evalArrayBinary(left, right, expr.Op())
 	case value.IsObject(left) && value.IsObject(right):
@@ -352,7 +352,7 @@ func (v *evalVisitor) evalScalarBinary(left, right value.Value, oper op.Op) (val
 	return ret, nil
 }
 
-func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+func (v *evalVisitor) evalScalarInArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	if v, ok := right.(interface{ AsArray() value.ArrayValue }); ok {
 		right = v.AsArray()
 	}
@@ -360,19 +360,69 @@ func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op)
 	if err != nil {
 		return value.ErrValue, nil
 	}
-	arr.Apply(func(val value.ScalarValue) value.ScalarValue {
-		ret, err := v.evalScalarBinary(val, left, oper)
+	scalar, ok := left.(value.ScalarValue)
+	if !ok {
+		return value.ErrValue, nil
+	}
+	return value.ApplyScalarInArray(scalar, arr, func(left, right value.ScalarValue) (value.ScalarValue, error) {
+		ret, err := v.evalScalarBinary(left, right, oper)
 		if err != nil {
-			return value.ErrValue
+			return value.ErrValue, err
 		}
 		scalar, ok := ret.(value.ScalarValue)
 		if !ok {
-			return value.ErrValue
+			return value.ErrValue, nil
 		}
-		return scalar
+		return scalar, nil
 	})
-	return arr, nil
 }
+
+func (v *evalVisitor) evalArrayWithScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+	if v, ok := left.(interface{ AsArray() value.ArrayValue }); ok {
+		left = v.AsArray()
+	}
+	arr, err := value.CastToArray(left)
+	if err != nil {
+		return value.ErrValue, nil
+	}
+	scalar, ok := right.(value.ScalarValue)
+	if !ok {
+		return value.ErrValue, nil
+	}
+	return value.ApplyArrayWithScalar(arr, scalar, func(left, right value.ScalarValue) (value.ScalarValue, error) {
+		ret, err := v.evalScalarBinary(left, right, oper)
+		if err != nil {
+			return value.ErrValue, err
+		}
+		scalar, ok := ret.(value.ScalarValue)
+		if !ok {
+			return value.ErrValue, nil
+		}
+		return scalar, nil
+	})
+}
+
+// func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+// 	if v, ok := right.(interface{ AsArray() value.ArrayValue }); ok {
+// 		right = v.AsArray()
+// 	}
+// 	arr, err := value.CastToArray(right)
+// 	if err != nil {
+// 		return value.ErrValue, nil
+// 	}
+// 	arr.Apply(func(val value.ScalarValue) value.ScalarValue {
+// 		ret, err := v.evalScalarBinary(val, left, oper)
+// 		if err != nil {
+// 			return value.ErrValue
+// 		}
+// 		scalar, ok := ret.(value.ScalarValue)
+// 		if !ok {
+// 			return value.ErrValue
+// 		}
+// 		return scalar
+// 	})
+// 	return arr, nil
+// }
 
 func (v *evalVisitor) evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	left, _ = v.normalize(left)
