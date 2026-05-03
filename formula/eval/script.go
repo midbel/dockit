@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/midbel/dockit/formula/builtins"
@@ -10,6 +11,7 @@ import (
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
+	gbs "github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/internal/ds"
 	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/layout"
@@ -596,6 +598,13 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 		return err
 	}
 	if fn, err := builtins.Lookup(id.Ident()); err == nil {
+		ok := slices.ContainsFunc(expr.Args(), func(e parse.Expr) bool {
+			_, ok := e.(parse.ColumnAddr)
+			return ok
+		})
+		if ok {
+			return v.vectorizeCall(fn, expr.Args())
+		}
 		var args []value.Value
 		for _, a := range expr.Args() {
 			g := newArg(a, v)
@@ -606,6 +615,10 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 		return nil
 	}
 	return fmt.Errorf("%s: builtin undefined", id.Ident())
+}
+
+func (v *evalVisitor) vectorizeCall(fn gbs.BuiltinFunc, args []parse.Expr) error {
+	return nil
 }
 
 func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
