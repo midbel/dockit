@@ -16,7 +16,8 @@ var signBuiltin = Builtin{
 	Params: []Param{
 		Var(Scalar("number", "", value.TypeNumber)),
 	},
-	Func: Sign,
+	Func:    Sign,
+	Dialect: MainDialect,
 }
 
 func Sign(args []value.Value) value.Value {
@@ -34,7 +35,8 @@ var isOddBuiltin = Builtin{
 	Params: []Param{
 		Var(Scalar("number", "", value.TypeNumber)),
 	},
-	Func: IsOdd,
+	Func:    IsOdd,
+	Dialect: MainDialect,
 }
 
 func IsOdd(args []value.Value) value.Value {
@@ -52,7 +54,8 @@ var isEvenBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: IsEven,
+	Func:    IsEven,
+	Dialect: MainDialect,
 }
 
 func IsEven(args []value.Value) value.Value {
@@ -70,7 +73,8 @@ var minBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Min,
+	Func:    Min,
+	Dialect: MainDialect,
 }
 
 func Min(args []value.Value) value.Value {
@@ -91,7 +95,8 @@ var maxBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Max,
+	Func:    Max,
+	Dialect: MainDialect,
 }
 
 func Max(args []value.Value) value.Value {
@@ -112,7 +117,8 @@ var sumBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Sum,
+	Func:    Sum,
+	Dialect: MainDialect,
 }
 
 func Sum(args []value.Value) value.Value {
@@ -134,7 +140,8 @@ var sumifBuiltin = Builtin{
 		Array("value", "", value.TypeAny),
 		Scalar("predicate", "", value.TypeText),
 	},
-	Func: SumIf,
+	Func:    SumIf,
+	Dialect: MainDialect,
 }
 
 func SumIf(args []value.Value) value.Value {
@@ -162,7 +169,8 @@ var avgBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Avg,
+	Func:    Avg,
+	Dialect: MainDialect,
 }
 
 func Avg(args []value.Value) value.Value {
@@ -184,7 +192,8 @@ var avgifBuiltin = Builtin{
 		Array("value", "", value.TypeAny),
 		Scalar("predicate", "", value.TypeText),
 	},
-	Func: AvgIf,
+	Func:    AvgIf,
+	Dialect: MainDialect,
 }
 
 func AvgIf(args []value.Value) value.Value {
@@ -207,6 +216,7 @@ var stdevBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Func:     Stdev,
+	Dialect:  MainDialect,
 }
 
 func Stdev(args []value.Value) value.Value {
@@ -226,6 +236,7 @@ var varianceBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Func:     Variance,
+	Dialect:  MainDialect,
 }
 
 func Variance(args []value.Value) value.Value {
@@ -244,6 +255,7 @@ var modeBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Func:     Mode,
+	Dialect:  MainDialect,
 }
 
 func Mode(args []value.Value) value.Value {
@@ -262,6 +274,7 @@ var medianBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Func:     Median,
+	Dialect:  MainDialect,
 }
 
 func Median(args []value.Value) value.Value {
@@ -282,7 +295,8 @@ var countBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("value", "", value.TypeAny)),
 	},
-	Func: Count,
+	Func:    Count,
+	Dialect: MainDialect,
 }
 
 func Count(args []value.Value) value.Value {
@@ -300,7 +314,8 @@ var countifBuiltin = Builtin{
 		Array("value", "", value.TypeAny),
 		Scalar("predicate", "", value.TypeText),
 	},
-	Func: CountIf,
+	Func:    CountIf,
+	Dialect: MainDialect,
 }
 
 func CountIf(args []value.Value) value.Value {
@@ -327,7 +342,8 @@ var countaBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("value", "", value.TypeAny)),
 	},
-	Func: Count,
+	Func:    Count,
+	Dialect: MainDialect,
 }
 
 func Counta(args []value.Value) value.Value {
@@ -347,7 +363,8 @@ var roundBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Round,
+	Func:    Round,
+	Dialect: MainDialect,
 }
 
 func Round(args []value.Value) value.Value {
@@ -367,7 +384,8 @@ var floorBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Floor,
+	Func:    Floor,
+	Dialect: MainDialect,
 }
 
 func Floor(args []value.Value) value.Value {
@@ -387,7 +405,8 @@ var ceilBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Ceil,
+	Func:    Ceil,
+	Dialect: MainDialect,
 }
 
 func Ceil(args []value.Value) value.Value {
@@ -406,7 +425,8 @@ var sqrtBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Sqrt,
+	Func:    Sqrt,
+	Dialect: MainDialect,
 }
 
 func Sqrt(args []value.Value) value.Value {
@@ -428,7 +448,8 @@ var absBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Abs,
+	Func:    Abs,
+	Dialect: MainDialect,
 }
 
 func Abs(args []value.Value) value.Value {
@@ -448,7 +469,8 @@ var modBuiltin = Builtin{
 		Scalar("number", "", value.TypeNumber),
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Mod,
+	Func:    Mod,
+	Dialect: MainDialect,
 }
 
 func Mod(args []value.Value) value.Value {
@@ -475,7 +497,8 @@ var powBuiltin = Builtin{
 		Scalar("number", "", value.TypeNumber),
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Pow,
+	Func:    Pow,
+	Dialect: MainDialect,
 }
 
 func Pow(args []value.Value) value.Value {
@@ -497,7 +520,8 @@ var intBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Int,
+	Func:    Int,
+	Dialect: MainDialect,
 }
 
 func Int(args []value.Value) value.Value {
@@ -514,6 +538,7 @@ var randBuiltin = Builtin{
 	Category: "math",
 	Params:   []Param{},
 	Func:     Rand,
+	Dialect:  MainDialect,
 }
 
 func Rand(args []value.Value) value.Value {
@@ -528,7 +553,8 @@ var sinBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Sin,
+	Func:    Sin,
+	Dialect: MainDialect,
 }
 
 func Sin(args []value.Value) value.Value {
@@ -549,7 +575,8 @@ var cosBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Cos,
+	Func:    Cos,
+	Dialect: MainDialect,
 }
 
 func Cos(args []value.Value) value.Value {
@@ -570,7 +597,8 @@ var tanBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Tan,
+	Func:    Tan,
+	Dialect: MainDialect,
 }
 
 func Tan(args []value.Value) value.Value {
@@ -591,7 +619,8 @@ var asinBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Asin,
+	Func:    Asin,
+	Dialect: MainDialect,
 }
 
 func Asin(args []value.Value) value.Value {
@@ -612,7 +641,8 @@ var acosBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Acos,
+	Func:    Acos,
+	Dialect: MainDialect,
 }
 
 func Acos(args []value.Value) value.Value {
@@ -634,7 +664,8 @@ var atan2Builtin = Builtin{
 		Var(ScalarArray("xnum", "", value.TypeNumber)),
 		Var(ScalarArray("ynum", "", value.TypeNumber)),
 	},
-	Func: Atan2,
+	Func:    Atan2,
+	Dialect: MainDialect,
 }
 
 func Atan2(args []value.Value) value.Value {
@@ -653,7 +684,8 @@ var degBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Deg,
+	Func:    Deg,
+	Dialect: MainDialect,
 }
 
 func Deg(args []value.Value) value.Value {
@@ -671,7 +703,8 @@ var radBuiltin = Builtin{
 	Params: []Param{
 		Scalar("number", "", value.TypeNumber),
 	},
-	Func: Rad,
+	Func:    Rad,
+	Dialect: MainDialect,
 }
 
 func Rad(args []value.Value) value.Value {
@@ -687,6 +720,7 @@ var piBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Func:     Pi,
+	Dialect:  MainDialect,
 }
 
 func Pi(args []value.Value) value.Value {
@@ -701,7 +735,8 @@ var log10Builtin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Log10,
+	Func:    Log10,
+	Dialect: MainDialect,
 }
 
 func Log10(args []value.Value) value.Value {
@@ -722,7 +757,8 @@ var lnBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Ln,
+	Func:    Ln,
+	Dialect: MainDialect,
 }
 
 func Ln(args []value.Value) value.Value {
@@ -743,7 +779,8 @@ var expBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
 	},
-	Func: Exp,
+	Func:    Exp,
+	Dialect: MainDialect,
 }
 
 func Exp(args []value.Value) value.Value {
@@ -762,6 +799,7 @@ var eBuiltin = Builtin{
 	Desc:     "",
 	Category: "math",
 	Func:     E,
+	Dialect:  MainDialect,
 }
 
 func E(args []value.Value) value.Value {

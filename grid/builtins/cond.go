@@ -13,7 +13,8 @@ var ifsBuiltin = Builtin{
 	Params: []Param{
 		Var(Scalar("value", "", value.TypeAny)),
 	},
-	Func: Ifs,
+	Func:    Ifs,
+	Dialect: MainDialect,
 }
 
 func Ifs(args []value.Value) value.Value {
@@ -41,7 +42,8 @@ var ifBuiltin = Builtin{
 		Deferrable(Scalar("csq", "", value.TypeAny)),
 		Deferrable(Scalar("alt", "", value.TypeAny)),
 	},
-	Func: If,
+	Func:    If,
+	Dialect: MainDialect,
 }
 
 func If(args []value.Value) value.Value {
@@ -62,7 +64,8 @@ var ifErrorBuiltin = Builtin{
 		Scalar("value", "", value.TypeAny),
 		Deferrable(ScalarArray("replace", "", value.TypeAny)),
 	},
-	Func: IfError,
+	Func:    IfError,
+	Dialect: MainDialect,
 }
 
 func IfError(args []value.Value) value.Value {
@@ -80,7 +83,8 @@ var ifNaBuiltin = Builtin{
 		Scalar("value", "", value.TypeAny),
 		Deferrable(ScalarArray("replace", "", value.TypeAny)),
 	},
-	Func: IfNA,
+	Func:    IfNA,
+	Dialect: MainDialect,
 }
 
 func IfNA(args []value.Value) value.Value {
@@ -98,7 +102,8 @@ var andBuiltin = Builtin{
 		ScalarArray("value1", "", value.TypeAny),
 		ScalarArray("value2", "", value.TypeAny),
 	},
-	Func: And,
+	Func:    And,
+	Dialect: MainDialect,
 }
 
 func And(args []value.Value) value.Value {
@@ -120,7 +125,8 @@ var orBuiltin = Builtin{
 		ScalarArray("value1", "", value.TypeAny),
 		ScalarArray("value2", "", value.TypeAny),
 	},
-	Func: Or,
+	Func:    Or,
+	Dialect: MainDialect,
 }
 
 func Or(args []value.Value) value.Value {
@@ -141,7 +147,8 @@ var xorBuiltin = Builtin{
 	Params: []Param{
 		Var(ScalarArray("value", "", value.TypeAny)),
 	},
-	Func: Xor,
+	Func:    Xor,
+	Dialect: MainDialect,
 }
 
 func Xor(args []value.Value) value.Value {
@@ -163,7 +170,8 @@ var notBuiltin = Builtin{
 	Params: []Param{
 		ScalarArray("value", "", value.TypeAny),
 	},
-	Func: Not,
+	Func:    Not,
+	Dialect: MainDialect,
 }
 
 func Not(args []value.Value) value.Value {
@@ -182,7 +190,8 @@ var chooseBuiltin = Builtin{
 		Scalar("index", "", value.TypeNumber),
 		Deferrable(Var(Scalar("value", "", value.TypeAny))),
 	},
-	Func: Choose,
+	Func:    Choose,
+	Dialect: MainDialect,
 }
 
 func Choose(args []value.Value) value.Value {
@@ -205,7 +214,8 @@ var switchBuiltin = Builtin{
 		Var(Scalar("value", "", value.TypeAny)),
 		Opt(Scalar("default", "", value.TypeAny)),
 	},
-	Func: Switch,
+	Func:    Switch,
+	Dialect: MainDialect,
 }
 
 func Switch(args []value.Value) value.Value {

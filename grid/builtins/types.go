@@ -27,7 +27,8 @@ var isNumberBuiltin = Builtin{
 	Params: []Param{
 		ScalarArray("value", "", value.TypeAny),
 	},
-	Func: IsNumber,
+	Func:    IsNumber,
+	Dialect: MainDialect,
 }
 
 func IsNumber(args []value.Value) value.Value {
@@ -42,7 +43,8 @@ var isTextBuiltin = Builtin{
 	Params: []Param{
 		ScalarArray("value", "", value.TypeAny),
 	},
-	Func: IsText,
+	Func:    IsText,
+	Dialect: MainDialect,
 }
 
 func IsText(args []value.Value) value.Value {
@@ -57,7 +59,8 @@ var isBlankBuiltin = Builtin{
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
 	},
-	Func: IsBlank,
+	Func:    IsBlank,
+	Dialect: MainDialect,
 }
 
 func IsBlank(args []value.Value) value.Value {
@@ -72,7 +75,8 @@ var isErrorBuiltin = Builtin{
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
 	},
-	Func: IsError,
+	Func:    IsError,
+	Dialect: MainDialect,
 }
 
 func IsError(args []value.Value) value.Value {
@@ -87,7 +91,8 @@ var isNaBuiltin = Builtin{
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
 	},
-	Func: IsNA,
+	Func:    IsNA,
+	Dialect: MainDialect,
 }
 
 func IsNA(args []value.Value) value.Value {

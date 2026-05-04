@@ -12,6 +12,7 @@ var nowBuiltin = Builtin{
 	Desc:     "Returns the current date and time",
 	Category: "time",
 	Func:     Now,
+	Dialect:  MainDialect,
 }
 
 func Now(args []value.Value) value.Value {
@@ -24,6 +25,7 @@ var todayBuiltin = Builtin{
 	Desc:     "Returns the current date and time",
 	Category: "time",
 	Func:     Today,
+	Dialect:  MainDialect,
 }
 
 func Today(args []value.Value) value.Value {
@@ -40,7 +42,8 @@ var dateBuiltin = Builtin{
 		Scalar("month", "", value.TypeNumber),
 		Scalar("day", "", value.TypeNumber),
 	},
-	Func: Date,
+	Func:    Date,
+	Dialect: MainDialect,
 }
 
 func Date(args []value.Value) value.Value {
@@ -63,7 +66,8 @@ var yearBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: Year,
+	Func:    Year,
+	Dialect: MainDialect,
 }
 
 func Year(args []value.Value) value.Value {
@@ -81,7 +85,8 @@ var monthBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: Month,
+	Func:    Month,
+	Dialect: MainDialect,
 }
 
 func Month(args []value.Value) value.Value {
@@ -99,7 +104,8 @@ var dayBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: Day,
+	Func:    Day,
+	Dialect: MainDialect,
 }
 
 func Day(args []value.Value) value.Value {
@@ -117,7 +123,8 @@ var yeardayBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: YearDay,
+	Func:    YearDay,
+	Dialect: MainDialect,
 }
 
 func YearDay(args []value.Value) value.Value {
@@ -135,7 +142,8 @@ var hourBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: Hour,
+	Func:    Hour,
+	Dialect: MainDialect,
 }
 
 func Hour(args []value.Value) value.Value {
@@ -153,7 +161,8 @@ var minuteBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: Minute,
+	Func:    Minute,
+	Dialect: MainDialect,
 }
 
 func Minute(args []value.Value) value.Value {
@@ -171,7 +180,8 @@ var secondBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: Second,
+	Func:    Second,
+	Dialect: MainDialect,
 }
 
 func Second(args []value.Value) value.Value {
@@ -189,7 +199,8 @@ var weekdayBuiltin = Builtin{
 	Params: []Param{
 		Scalar("date", "", value.TypeDate),
 	},
-	Func: Weekday,
+	Func:    Weekday,
+	Dialect: MainDialect,
 }
 
 func Weekday(args []value.Value) value.Value {
@@ -217,7 +228,8 @@ var datediffBuiltin = Builtin{
 		Scalar("toDate", "", value.TypeDate),
 		Scalar("diffUnit", "", value.TypeText),
 	},
-	Func: DateDiff,
+	Func:    DateDiff,
+	Dialect: MainDialect,
 }
 
 func DateDiff(args []value.Value) value.Value {

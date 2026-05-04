@@ -53,6 +53,8 @@ const (
 	OdsDialect
 )
 
+const MainDialect = OxmlDialect | OdsDialect
+
 type Builtin struct {
 	Name     string
 	Desc     string
@@ -65,16 +67,10 @@ type Builtin struct {
 }
 
 func (b Builtin) OxmlSupported() bool {
-	if b.Dialect == 0 {
-		return true
-	}
 	return b.Dialect&OxmlDialect != 0
 }
 
 func (b Builtin) OdsSupported() bool {
-	if b.Dialect == 0 {
-		return true
-	}
 	return b.Dialect&OdsDialect != 0
 }
 
@@ -116,7 +112,7 @@ type Param struct {
 	Variadic   bool
 	Deferrable bool
 
-	DefaultValue value.Value
+	Default value.Value
 }
 
 func (p Param) Valid(val value.Value) bool {

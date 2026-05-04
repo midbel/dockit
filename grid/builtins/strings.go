@@ -17,7 +17,8 @@ var concatBuiltin = Builtin{
 	Params: []Param{
 		Var(Scalar("str", "", value.TypeText)),
 	},
-	Func: Concat,
+	Func:    Concat,
+	Dialect: MainDialect,
 }
 
 func Concat(args []value.Value) value.Value {
@@ -41,7 +42,8 @@ var leftBuiltin = Builtin{
 		Scalar("str", "", value.TypeText),
 		Opt(Scalar("chars", "", value.TypeNumber)),
 	},
-	Func: Left,
+	Func:    Left,
+	Dialect: MainDialect,
 }
 
 func Left(args []value.Value) value.Value {
@@ -73,7 +75,8 @@ var rightBuiltin = Builtin{
 		Scalar("str", "", value.TypeText),
 		Opt(Scalar("chars", "", value.TypeNumber)),
 	},
-	Func: Right,
+	Func:    Right,
+	Dialect: MainDialect,
 }
 
 func Right(args []value.Value) value.Value {
@@ -107,7 +110,8 @@ var midBuiltin = Builtin{
 		Scalar("index", "", value.TypeNumber),
 		Scalar("chars", "", value.TypeNumber),
 	},
-	Func: Mid,
+	Func:    Mid,
+	Dialect: MainDialect,
 }
 
 func Mid(args []value.Value) value.Value {
@@ -142,7 +146,8 @@ var lenBuiltin = Builtin{
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
 	},
-	Func: Len,
+	Func:    Len,
+	Dialect: MainDialect,
 }
 
 func Len(args []value.Value) value.Value {
@@ -160,7 +165,8 @@ var upperBuiltin = Builtin{
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
 	},
-	Func: Upper,
+	Func:    Upper,
+	Dialect: MainDialect,
 }
 
 func Upper(args []value.Value) value.Value {
@@ -178,7 +184,8 @@ var lowerBuiltin = Builtin{
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
 	},
-	Func: Lower,
+	Func:    Lower,
+	Dialect: MainDialect,
 }
 
 func Lower(args []value.Value) value.Value {
@@ -196,7 +203,8 @@ var properBuiltin = Builtin{
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
 	},
-	Func: Proper,
+	Func:    Proper,
+	Dialect: MainDialect,
 }
 
 func Proper(args []value.Value) value.Value {
@@ -230,7 +238,8 @@ var trimBuiltin = Builtin{
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
 	},
-	Func: Trim,
+	Func:    Trim,
+	Dialect: MainDialect,
 }
 
 func Trim(args []value.Value) value.Value {
@@ -250,7 +259,8 @@ var searchBuiltin = Builtin{
 		Scalar("find", "", value.TypeText),
 		Opt(Scalar("offset", "", value.TypeNumber)),
 	},
-	Func: Search,
+	Func:    Search,
+	Dialect: MainDialect,
 }
 
 func Search(args []value.Value) value.Value {
@@ -292,7 +302,8 @@ var findBuiltin = Builtin{
 		Scalar("find", "", value.TypeText),
 		Opt(Scalar("offset", "", value.TypeNumber)),
 	},
-	Func: Find,
+	Func:    Find,
+	Dialect: MainDialect,
 }
 
 func Find(args []value.Value) value.Value {
@@ -330,7 +341,8 @@ var replaceBuiltin = Builtin{
 		Scalar("num", "", value.TypeNumber),
 		Scalar("new", "", value.TypeText),
 	},
-	Func: Replace,
+	Func:    Replace,
+	Dialect: MainDialect,
 }
 
 func Replace(args []value.Value) value.Value {
@@ -363,7 +375,8 @@ var substituteBuiltin = Builtin{
 		Scalar("new", "", value.TypeText),
 		Opt(Scalar("num", "", value.TypeNumber)),
 	},
-	Func: Substitute,
+	Func:    Substitute,
+	Dialect: MainDialect,
 }
 
 func Substitute(args []value.Value) value.Value {
@@ -391,7 +404,8 @@ var textBuiltin = Builtin{
 		Scalar("str", "", value.TypeText),
 		Scalar("pattern", "", value.TypeText),
 	},
-	Func: Text,
+	Func:    Text,
+	Dialect: MainDialect,
 }
 
 func Text(args []value.Value) value.Value {
@@ -428,7 +442,8 @@ var valueBuiltin = Builtin{
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
 	},
-	Func: Value,
+	Func:    Value,
+	Dialect: MainDialect,
 }
 
 func Value(args []value.Value) value.Value {
@@ -451,7 +466,8 @@ var textjoinBuiltin = Builtin{
 		Scalar("ignore", "", value.TypeBool),
 		Var(Scalar("str", "", value.TypeText)),
 	},
-	Func: Textjoin,
+	Func:    Textjoin,
+	Dialect: MainDialect,
 }
 
 func Textjoin(args []value.Value) value.Value {
@@ -482,7 +498,8 @@ var exactBuiltin = Builtin{
 		Scalar("str1", "", value.TypeText),
 		Scalar("str2", "", value.TypeText),
 	},
-	Func: Exact,
+	Func:    Exact,
+	Dialect: MainDialect,
 }
 
 func Exact(args []value.Value) value.Value {
@@ -505,7 +522,8 @@ var reptBuiltin = Builtin{
 		Scalar("str", "", value.TypeText),
 		Scalar("num", "", value.TypeNumber),
 	},
-	Func: Rept,
+	Func:    Rept,
+	Dialect: MainDialect,
 }
 
 func Rept(args []value.Value) value.Value {
@@ -530,7 +548,8 @@ var cleanBuiltin = Builtin{
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
 	},
-	Func: Clean,
+	Func:    Clean,
+	Dialect: MainDialect,
 }
 
 func Clean(args []value.Value) value.Value {

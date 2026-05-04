@@ -15,7 +15,8 @@ var matchBuiltin = Builtin{
 		Array("array", "", value.TypeArray),
 		Scalar("mode", "", value.TypeNumber),
 	},
-	Func: Match,
+	Func:    Match,
+	Dialect: MainDialect,
 }
 
 func Match(args []value.Value) value.Value {
@@ -34,7 +35,8 @@ var indexBuiltin = Builtin{
 		Scalar("row", "", value.TypeAny),
 		Opt(Scalar("col", "", value.TypeAny)),
 	},
-	Func: Index,
+	Func:    Index,
+	Dialect: MainDialect,
 }
 
 func Index(args []value.Value) value.Value {
@@ -61,6 +63,7 @@ var vlookupBuiltin = Builtin{
 	Category: "conditional",
 	Params:   []Param{},
 	Func:     VLookup,
+	Dialect:  MainDialect,
 }
 
 func VLookup(args []value.Value) value.Value {
@@ -78,5 +81,5 @@ func XLookup(args []value.Value) value.Value {
 var indexBuiltins = []Builtin{
 	matchBuiltin,
 	indexBuiltin,
-	vlookupBuiltin,
+	// vlookupBuiltin,
 }
