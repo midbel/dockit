@@ -306,6 +306,11 @@ func NewCellAccess(expr, addr Expr) Expr {
 	}
 }
 
+func (a CellAccess) Vectorizable() bool {
+	v, ok := a.addr.(interface{ Vectorizable() bool })
+	return ok && v.Vectorizable()
+}
+
 func (a CellAccess) Expr() Expr {
 	return a.expr
 }
@@ -956,6 +961,10 @@ func NewColumnAddr(pos layout.Position, abs bool) Expr {
 		Position: pos,
 		Absolute: abs,
 	}
+}
+
+func (ColumnAddr) Vectorizable() bool {
+	return true
 }
 
 func (a ColumnAddr) String() string {
