@@ -27,6 +27,8 @@ func (i inspectForm) Run(eg Runnable, args []parse.Expr, ctx *EngineContext) (va
 	switch a := args[0].(type) {
 	case parse.CellAddr:
 		return i.inspectCell(eg, a, ctx)
+	case parse.ColumnAddr:
+		return i.inspectColumn(eg, a, ctx)
 	case parse.RangeAddr:
 		return i.inspectRange(eg, a, ctx)
 	case parse.Slice:
@@ -59,6 +61,11 @@ func (i inspectForm) inspectCell(eg Runnable, expr parse.CellAddr, ctx *EngineCo
 	if val != nil {
 		iv = types.ReinspectValue(iv, val)
 	}
+	return iv, nil
+}
+
+func (i inspectForm) inspectColumn(eg Runnable, expr parse.ColumnAddr, ctx *EngineContext) (value.Value, error) {
+	iv := types.InspectRange()
 	return iv, nil
 }
 
