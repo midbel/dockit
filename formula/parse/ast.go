@@ -775,6 +775,16 @@ func NewCall(id Expr, args []Expr) Expr {
 	}
 }
 
+func (c Call) Vectorizable() bool {
+	for _, a := range c.args {
+		v, ok := a.(interface{ Vectorizable() bool })
+		if ok && v.Vectorizable() {
+			return true
+		}
+	}
+	return false
+}
+
 func (c Call) Name() Expr {
 	return c.ident
 }

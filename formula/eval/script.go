@@ -3,7 +3,6 @@ package eval
 import (
 	"fmt"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/midbel/dockit/formula/builtins"
@@ -597,27 +596,62 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 		v.pushValue(val)
 		return err
 	}
-	if fn, err := builtins.Lookup(id.Ident()); err == nil {
-		ok := slices.ContainsFunc(expr.Args(), func(e parse.Expr) bool {
-			_, ok := e.(parse.ColumnAddr)
-			return ok
-		})
-		if ok {
-			return v.vectorizeCall(fn, expr.Args())
-		}
-		var args []value.Value
-		for _, a := range expr.Args() {
-			g := newArg(a, v)
-			args = append(args, g)
-		}
-		val := fn(args)
-		v.pushValue(val)
-		return nil
+	fn, err := builtins.Lookup(id.Ident())
+	if err != nil {
+		return fmt.Errorf("%s: builtin undefined", id.Ident())
 	}
-	return fmt.Errorf("%s: builtin undefined", id.Ident())
+	if ok := expr.Vectorizable(); ok {
+		return v.vectorizeCall(fn, expr.Args())
+	}
+	var args []value.Value
+	for _, a := range expr.Args() {
+		arg, err := v.visitNormalize(a)
+		if err != nil {
+			return err
+		}
+		args = append(args, arg)
+	}
+	val := fn(args)
+	v.pushValue(val)
+	return nil
 }
 
 func (v *evalVisitor) vectorizeCall(fn gbs.BuiltinFunc, args []parse.Expr) error {
+	var (
+		count  int
+		values []value.Value
+	)
+	for i, e := range args {
+		x, err := v.visitNormalize(e)
+		if err != nil {
+			return err
+		}
+		values = append(values, x)
+		var vector bool
+		if v, ok := args[i].(interface{ Vectorizable() bool }); ok {
+			vector = v.Vectorizable()
+		}
+		if a, ok := x.(value.ArrayValue); ok && count == 0 && vector {
+			d := a.Dimension()
+			count = int(d.Lines)
+		}
+	}
+	arr := make([][]value.ScalarValue, count)
+	for i := 0; i < count; i++ {
+		var params []value.Value
+		for j := range args {
+			if a, ok := values[j].(value.ArrayValue); ok {
+				params = append(params, a.At(i, 0))
+			} else {
+				params = append(params, values[j])
+			}
+		}
+		res := fn(params)
+		if s, ok := res.(value.ScalarValue); ok {
+			arr[i] = slx.One(s)
+		}
+	}
+	v.pushValue(value.NewArray(arr))
 	return nil
 }
 
@@ -770,6 +804,11 @@ func newArg(expr parse.Expr, e *evalVisitor) value.Value {
 		expr: expr,
 		eval: e,
 	}
+}
+
+func (a arg) Vectorizable() bool {
+	v, ok := a.expr.(interface{ Vectorizable() bool })
+	return ok && v.Vectorizable()
 }
 
 func (arg) Type() string {

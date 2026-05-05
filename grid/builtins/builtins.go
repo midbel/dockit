@@ -201,10 +201,7 @@ func Make(params []Param, do BuiltinFunc) BuiltinFunc {
 			} else {
 				as = args[aix : aix+1]
 			}
-			for i := range as {
-				ret := p.Convert(as[i])
-				newArgs = append(newArgs, ret)
-			}
+			newArgs = append(newArgs, as...)
 			pix++
 		}
 		for _, p := range params[pix:] {
