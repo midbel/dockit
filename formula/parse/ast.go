@@ -868,7 +868,7 @@ func (i IntervalList) Count() int {
 }
 
 func (i IntervalList) String() string {
-	return fmt.Sprintf("internval(%v)", i.items)
+	return fmt.Sprintf("interval(%v)", i.items)
 }
 
 func (i IntervalList) Selection() (layout.Selection, error) {
@@ -988,6 +988,14 @@ func (ColumnAddr) KindOf() string {
 
 func (a ColumnAddr) CloneWithOffset(pos layout.Position) Expr {
 	return a
+}
+
+func (a ColumnAddr) Selection() (layout.Selection, error) {
+	ix, err := parseColumnExpr(a)
+	if err != nil {
+		return nil, err
+	}
+	return layout.SelectSingle(int64(ix)), nil
 }
 
 func (a ColumnAddr) Accept(v Visitor) error {

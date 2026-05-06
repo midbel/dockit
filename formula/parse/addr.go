@@ -103,13 +103,16 @@ func parseIndex(str string) (int64, int) {
 }
 
 func parseColumnExpr(expr Expr) (int, error) {
-	e, ok := expr.(Identifier)
-	if !ok {
+	switch expr := expr.(type) {
+	case Identifier:
+		ix, size := parseIndex(expr.name)
+		if size != len(expr.name) {
+			return 0, fmt.Errorf("invalid column index")
+		}
+		return int(ix), nil
+	case ColumnAddr:
+		return int(expr.Column), nil
+	default:
 		return 0, fmt.Errorf("invalid column identifier")
 	}
-	ix, size := parseIndex(e.name)
-	if size != len(e.name) {
-		return 0, fmt.Errorf("invalid column index")
-	}
-	return int(ix), nil
 }

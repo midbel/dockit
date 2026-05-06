@@ -74,7 +74,7 @@ var intersectBuiltin = gbs.Builtin{
 		gbs.Object("sheet1", "", value.TypeAny),
 		gbs.Object("sheet2", "", value.TypeAny),
 	},
-	Func: Group,
+	Func: Intersect,
 }
 
 func Intersect(args []value.Value) value.Value {
@@ -89,7 +89,7 @@ var exceptBuiltin = gbs.Builtin{
 		gbs.Object("sheet1", "", value.TypeAny),
 		gbs.Object("sheet2", "", value.TypeAny),
 	},
-	Func: Group,
+	Func: Except,
 }
 
 func Except(args []value.Value) value.Value {

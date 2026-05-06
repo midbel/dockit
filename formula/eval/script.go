@@ -752,6 +752,8 @@ func (v *evalVisitor) normalize(val value.Value) (value.Value, error) {
 	case *types.Range:
 		rg := val.Range()
 		return v.ctx.Range(rg.Starts, rg.Ends), nil
+	case *types.View, *types.File:
+		return val, nil
 	default:
 		if a, ok := val.(interface{ AsArray() value.ArrayValue }); ok {
 			return a.AsArray(), nil
