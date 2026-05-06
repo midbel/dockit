@@ -63,7 +63,8 @@ type Builtin struct {
 	Params   []Param
 	Func     BuiltinFunc
 
-	Dialect Dialect
+	Dialect   Dialect
+	Vectorize bool
 }
 
 func (b Builtin) OxmlSupported() bool {

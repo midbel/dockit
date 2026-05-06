@@ -178,7 +178,7 @@ func evalCall(e parse.Call, ctx value.Context) value.Value {
 	}
 	var args []value.Value
 	for _, e := range e.Args() {
-		args = append(args, newArg(e, ctx))
+		args = append(args, eval(e, ctx))
 	}
 	fn, err := builtins.Lookup(id.Ident())
 	if err != nil {
@@ -241,34 +241,6 @@ func ParseOdsFormula(str string) (value.Formula, error) {
 		return nil, err
 	}
 	return NewFormula(expr), nil
-}
-
-type arg struct {
-	expr parse.Expr
-	ctx  value.Context
-}
-
-func newArg(expr parse.Expr, ctx value.Context) value.Value {
-	return arg{
-		expr: expr,
-		ctx:  ctx,
-	}
-}
-
-func (arg) Type() string {
-	return "argument"
-}
-
-func (arg) Kind() value.ValueKind {
-	return value.KindScalar
-}
-
-func (a arg) String() string {
-	return a.expr.String()
-}
-
-func (a arg) Eval() value.Value {
-	return eval(a.expr, a.ctx)
 }
 
 func Rebase(fm value.Formula, anchor, target layout.Position) value.Formula {

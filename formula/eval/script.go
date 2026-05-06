@@ -246,6 +246,13 @@ func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
 	case parse.CellAddr:
 		err = v.ctx.SetAt(e.Position, val)
 	case parse.ColumnAddr:
+		var (
+			view  = v.ctx.CurrentActiveView()
+			bd    = view.Bounds()
+			start = layout.NewPosition(bd.Starts.Line, e.Column)
+			end   = layout.NewPosition(bd.Ends.Line, e.Column)
+		)
+		err = v.ctx.SetRange(start, end, val)
 	case parse.RangeAddr:
 		err = v.ctx.SetRange(e.StartAt().Position, e.EndAt().Position, val)
 	case parse.Access:
@@ -792,41 +799,4 @@ func (v *evalVisitor) inAssignment() bool {
 func (v *evalVisitor) inPhase(ph scriptPhase) bool {
 	top, _ := v.phases.Peek()
 	return top == ph
-}
-
-type arg struct {
-	expr parse.Expr
-	eval *evalVisitor
-}
-
-func newArg(expr parse.Expr, e *evalVisitor) value.Value {
-	return arg{
-		expr: expr,
-		eval: e,
-	}
-}
-
-func (a arg) Vectorizable() bool {
-	v, ok := a.expr.(interface{ Vectorizable() bool })
-	return ok && v.Vectorizable()
-}
-
-func (arg) Type() string {
-	return "argument"
-}
-
-func (arg) Kind() value.ValueKind {
-	return value.KindScalar
-}
-
-func (a arg) String() string {
-	return a.expr.String()
-}
-
-func (a arg) Eval() value.Value {
-	val, err := a.eval.Run(a.expr)
-	if err != nil {
-		return value.ErrValue
-	}
-	return val
 }
