@@ -1,0 +1,5 @@
+import "users.csv" as usr
+import "projects.csv" as pjt
+
+view := join(usr@active, pjt@active, "A", "D")
+print view[C:E;G;B]

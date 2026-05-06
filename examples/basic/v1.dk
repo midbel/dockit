@@ -1,0 +1,5 @@
+import "sample.csv" as pjt default
+
+D := lower(concatenate("github.com/", B, "/", A))
+
+print @active

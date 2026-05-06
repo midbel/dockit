@@ -1,0 +1,8 @@
+import "sample.csv" as pjt default
+
+D1 := lower(concatenate("github.com/", B1, "/", A1))
+D2 := lower(concatenate("github.com/", B2, "/", A2))
+D3 := lower(concatenate("github.com/", B3, "/", A3))
+D4 := lower(concatenate("github.com/", B4, "/", A4))
+
+print @active[C1 = 'run']

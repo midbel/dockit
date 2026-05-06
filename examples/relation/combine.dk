@@ -1,0 +1,22 @@
+import "series1.csv" as fst
+import "series2.csv" as snd
+
+print "union"
+
+view := union(fst@active, snd@active)
+print view
+
+print "-----"
+
+print "intersect"
+
+view := intersect  (fst@active, snd@active)
+print view
+
+print "-----"
+
+
+print "except"
+
+view := except(fst@active, snd@active)
+print view
