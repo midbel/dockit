@@ -1,7 +1,6 @@
 package env
 
 import (
-	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -21,17 +20,9 @@ func (c *Environment) Resolve(ident string) value.Value {
 	if ok {
 		return v
 	}
-	return value.ErrName
+	return value.ErrRef
 }
 
 func (c *Environment) Define(ident string, val value.Value) {
 	c.values[ident] = val
-}
-
-func (c *Environment) At(_ layout.Position) value.Value {
-	return value.ErrRef
-}
-
-func (c *Environment) Range(_, _ layout.Position) value.Value {
-	return value.ErrRef
 }

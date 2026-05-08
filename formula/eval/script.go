@@ -700,10 +700,7 @@ func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 }
 
 func (v *evalVisitor) VisitIdentifier(expr parse.Identifier) error {
-	val, err := v.resolve(expr.Ident())
-	if err != nil {
-		return value.ErrValue
-	}
+	val, _ := v.resolve(expr.Ident())
 	v.pushValue(val)
 	return nil
 }
