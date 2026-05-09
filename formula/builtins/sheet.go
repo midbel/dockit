@@ -1,7 +1,10 @@
 package builtins
 
 import (
+	"github.com/midbel/dockit/flat"
+	"github.com/midbel/dockit/formula/types"
 	gbs "github.com/midbel/dockit/grid/builtins"
+	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
 
@@ -67,35 +70,61 @@ var fileBuiltin = gbs.Builtin{
 }
 
 func EmptyFile(args []value.Value) value.Value {
-	return value.ErrValue
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	f := flat.NewFile()
+	return types.NewFileValue(f, false)
 }
 
 var newSheetBuiltin = gbs.Builtin{
-	Name:     "newsheet",
+	Name:     "sheet",
 	Desc:     "",
 	Category: "sheet",
-	Params:   []gbs.Param{},
-	Func:     EmptySheet,
+	Params: []gbs.Param{
+		gbs.Scalar("name", "", value.TypeText),
+	},
+	Func: EmptySheet,
 }
 
 func EmptySheet(args []value.Value) value.Value {
-	return value.ErrValue
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	var (
+		name = asString(args[0])
+		sh   = flat.NewSheet(name, nil)
+	)
+	return types.NewViewValue(sh)
 }
 
 var mkRangeBuiltin = gbs.Builtin{
 	Name:     "mkrange",
 	Desc:     "",
 	Category: "sheet",
-	Params:   []gbs.Param{},
-	Func:     MakeRange,
+	Params: []gbs.Param{
+		gbs.Scalar("fromCol", "", value.TypeNumber),
+		gbs.Scalar("fromRow", "", value.TypeNumber),
+		gbs.Scalar("toCol", "", value.TypeNumber),
+		gbs.Scalar("toRow", "", value.TypeNumber),
+	},
+	Func: MakeRange,
 }
 
 func MakeRange(args []value.Value) value.Value {
-	return value.ErrValue
+	var (
+		fromCol = asFloat(args[0])
+		fromRow = asFloat(args[1])
+		toCol   = asFloat(args[2])
+		toRow   = asFloat(args[2])
+		start   = layout.NewPosition(int64(fromRow), int64(fromCol))
+		end     = layout.NewPosition(int64(toRow), int64(toCol))
+	)
+	return types.NewRangeValue(start, end)
 }
 
-var mkAddrBuiltin = gbs.Builtin{
-	Name:     "mkaddr",
+var mkRefBuiltin = gbs.Builtin{
+	Name:     "mkref",
 	Desc:     "",
 	Category: "sheet",
 	Params:   []gbs.Param{},
@@ -107,7 +136,7 @@ func MakeAddr(args []value.Value) value.Value {
 }
 
 var sheetBuiltins = []gbs.Builtin{
-	mkAddrBuiltin,
+	mkRefBuiltin,
 	mkRangeBuiltin,
 	newSheetBuiltin,
 	fileBuiltin,

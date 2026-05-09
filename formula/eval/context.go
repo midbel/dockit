@@ -150,6 +150,7 @@ func (c *EngineContext) Resolve(ident string) value.Value {
 		if !value.IsError(val) {
 			return val
 		}
+		return val
 	}
 	return c.env.Resolve(ident)
 }

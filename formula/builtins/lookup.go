@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	gbs "github.com/midbel/dockit/grid/builtins"
+	"github.com/midbel/dockit/value"
 )
 
 var registry = map[string]gbs.Builtin{}
@@ -53,4 +54,14 @@ func registerBuiltins(list []gbs.Builtin) {
 	for _, b := range list {
 		registry[b.Name] = b
 	}
+}
+
+func asString(arg value.Value) string {
+	v, _ := value.CastToText(arg)
+	return string(v)
+}
+
+func asFloat(arg value.Value) float64 {
+	v, _ := value.CastToFloat(arg)
+	return float64(v)
 }
