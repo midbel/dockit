@@ -20,6 +20,8 @@ func testImportFile(t *testing.T) {
 	var (
 		ev     = env.Empty()
 		script = `import "testdata/sample.csv" as data default
+		import "testdata/countries.csv" using csv with tab as tab1 
+		import "testdata/countries.csv" using csv as tab2
 		foo := A1
 		answer := B1`
 		eg = NewEngine()

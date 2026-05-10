@@ -121,7 +121,7 @@ func (r *Reader) Read() ([]string, error) {
 		}
 		i += size
 		if i < len(line) && line[i] != r.Comma && line[i] != cr && line[i] != nl {
-			return nil, fmt.Errorf("unexpected character after field")
+			return nil, fmt.Errorf("unexpected character after field (%02x - %c)", line[i], line[i])
 		}
 		i++
 		res = append(res, string(field))
