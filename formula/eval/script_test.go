@@ -15,35 +15,22 @@ func TestScript(t *testing.T) {
 	t.Run("syntax-error", testSyntaxError)
 	t.Run("undefined-identifier", testUndefinedIdentifier)
 	t.Run("import-file", testImportFile)
-	t.Run("slice-bounded-view", testSliceBoundedView)
+	t.Run("slices-view", testSlicesView)
 }
 
-func testSliceBoundedView(t *testing.T) {
+func testSlicesView(t *testing.T) {
 	var (
 		ev     = env.Empty()
 		script = `import "testdata/cities.csv" as cit
 		use cit
-		view := @active[A1:B3]`
+		bs := @active[A1:B3]
+		cs := @active[A:B]
+		fs := @active[C1 = "1"]`
 	)
 	execScript(t, script, ev)
-	view := ev.Resolve("view")
-	if value.IsError(view) {
-		t.Fatalf("view variable not defined: %s", view)
-	}
-	v, ok := view.(*types.View)
-	if !ok {
-		t.Fatalf("expected view to be types.View but got %T", view)
-	}
-	var (
-		x = v.View()
-		r = x.Bounds()
-	)
-	if r.Width() != 2 {
-		t.Errorf("width mismatched! want 2, got %d", r.Width())
-	}
-	if r.Height() != 3 {
-		t.Errorf("height mismatched! want 3, got %d", r.Height())
-	}
+	testView(t, ev, "bs", 2, 3)
+	testView(t, ev, "cs", 2, 13)
+	testView(t, ev, "fs", 4, 5)
 }
 
 func testImportFile(t *testing.T) {
@@ -126,6 +113,28 @@ func testEnv(t *testing.T, ev *env.Environment, ident string, want value.Value) 
 	}
 	if !isEqual(got, want) {
 		t.Errorf("%s value mismatched! want %s, got %s", ident, want, got)
+	}
+}
+
+func testView(t *testing.T, ev *env.Environment, ident string, cols, rows int64) {
+	t.Helper()
+	view := ev.Resolve(ident)
+	if value.IsError(view) {
+		t.Errorf("%s: view variable not defined", ident)
+	}
+	v, ok := view.(*types.View)
+	if !ok {
+		t.Errorf("%s: expected view to be a View but got %T", ident, view)
+	}
+	var (
+		x = v.View()
+		r = x.Bounds()
+	)
+	if r.Width() != cols {
+		t.Errorf("columns number mismatched! want %d, got %d", cols, r.Width())
+	}
+	if r.Height() != rows {
+		t.Errorf("rows number mismatched! want %d, got %d", rows, r.Height())
 	}
 }
 
