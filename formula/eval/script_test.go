@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/midbel/dockit/formula/env"
+	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/value"
 )
 
@@ -14,6 +15,39 @@ func TestScript(t *testing.T) {
 	t.Run("syntax-error", testSyntaxError)
 	t.Run("undefined-identifier", testUndefinedIdentifier)
 	t.Run("import-file", testImportFile)
+	t.Run("slice-bounded-view", testSliceBoundedView)
+}
+
+func testSliceBoundedView(t *testing.T) {
+	var (
+		ev     = env.Empty()
+		script = `import "testdata/cities.csv" as cit
+		use cit
+		view := @active[A1:B3]`
+		eg = createEngine()
+	)
+	_, err := eg.Exec(strings.NewReader(script), ev)
+	if err != nil {
+		t.Fatalf("slice bound failed due to unexpected error: %s", err)
+	}
+	view := ev.Resolve("view")
+	if value.IsError(view) {
+		t.Fatalf("view variable not defined: %s", view)
+	}
+	v, ok := view.(*types.View)
+	if !ok {
+		t.Fatalf("expected view to be types.View but got %T", view)
+	}
+	var (
+		x = v.View()
+		r = x.Bounds()
+	)
+	if r.Width() != 2 {
+		t.Errorf("width mismatched! want 2, got %d", r.Width())
+	}
+	if r.Height() != 3 {
+		t.Errorf("height mismatched! want 3, got %d", r.Height())
+	}
 }
 
 func testImportFile(t *testing.T) {
@@ -24,9 +58,8 @@ func testImportFile(t *testing.T) {
 		import "testdata/countries.csv" using csv as tab2
 		foo := A1
 		answer := B1`
-		eg = NewEngine()
+		eg = createEngine()
 	)
-	eg.SetContextDir(".")
 	_, err := eg.Exec(strings.NewReader(script), ev)
 	if err != nil {
 		t.Fatalf("import-file failed due to unexpected error: %s", err)
@@ -39,13 +72,15 @@ func testMultilineBasicScript(t *testing.T) {
 	var (
 		ev     = env.Empty()
 		script = `
+		fourty2 := 42
 		a := 1
 		b := 1
 		add := a + b
 		sub := a - b
 		div := a / b
 		mul := a * b
-		pow := a ^ b`
+		pow := a ^ b
+		tpl := "answer is ${fourty2}"`
 		eg = NewEngine()
 	)
 	_, err := eg.Exec(strings.NewReader(script), ev)
@@ -57,6 +92,7 @@ func testMultilineBasicScript(t *testing.T) {
 	testEnv(t, ev, "div", value.Float(1))
 	testEnv(t, ev, "mul", value.Float(1))
 	testEnv(t, ev, "pow", value.Float(1))
+	testEnv(t, ev, "tpl", value.Text("answer is 42"))
 }
 
 func testBasicScript(t *testing.T) {
@@ -65,7 +101,7 @@ func testBasicScript(t *testing.T) {
 		script = `
 		name := upper(foo & 'bar') 
 		answer`
-		eg = NewEngine()
+		eg = createEngine()
 	)
 	ev.Define("foo", value.Text("foo"))
 	ev.Define("answer", value.Float(42))
@@ -83,7 +119,7 @@ func testBasicScript(t *testing.T) {
 func testSyntaxError(t *testing.T) {
 	var (
 		script = `name :=`
-		eg     = NewEngine()
+		eg     = createEngine()
 	)
 
 	_, err := eg.Exec(strings.NewReader(script), env.Empty())
@@ -95,7 +131,7 @@ func testSyntaxError(t *testing.T) {
 func testUndefinedIdentifier(t *testing.T) {
 	var (
 		script = `foo + missing`
-		eg     = NewEngine()
+		eg     = createEngine()
 	)
 
 	got, err := eg.Exec(strings.NewReader(script), env.Empty())
@@ -124,4 +160,10 @@ func testEnv(t *testing.T, ev *env.Environment, ident string, want value.Value) 
 func isEqual(got, want value.Value) bool {
 	ok := value.Eq(got, want)
 	return value.True(ok)
+}
+
+func createEngine() *Engine {
+	eg := NewEngine()
+	eg.SetContextDir(".")
+	return eg
 }
