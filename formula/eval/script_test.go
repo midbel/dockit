@@ -24,12 +24,8 @@ func testSliceBoundedView(t *testing.T) {
 		script = `import "testdata/cities.csv" as cit
 		use cit
 		view := @active[A1:B3]`
-		eg = createEngine()
 	)
-	_, err := eg.Exec(strings.NewReader(script), ev)
-	if err != nil {
-		t.Fatalf("slice bound failed due to unexpected error: %s", err)
-	}
+	execScript(t, script, ev)
 	view := ev.Resolve("view")
 	if value.IsError(view) {
 		t.Fatalf("view variable not defined: %s", view)
@@ -51,19 +47,13 @@ func testSliceBoundedView(t *testing.T) {
 }
 
 func testImportFile(t *testing.T) {
-	var (
-		ev     = env.Empty()
-		script = `import "testdata/sample.csv" as data default
-		import "testdata/countries.csv" using csv with tab as tab1 
-		import "testdata/countries.csv" using csv as tab2
-		foo := A1
-		answer := B1`
-		eg = createEngine()
-	)
-	_, err := eg.Exec(strings.NewReader(script), ev)
-	if err != nil {
-		t.Fatalf("import-file failed due to unexpected error: %s", err)
-	}
+	script := `import "testdata/sample.csv" as data default
+	import "testdata/countries.csv" using csv with tab as tab1 
+	import "testdata/countries.csv" using csv as tab2
+	foo := A1
+	answer := B1`
+	ev := env.Empty()
+	execScript(t, script, ev)
 	testEnv(t, ev, "foo", value.Text("foobar"))
 	testEnv(t, ev, "answer", value.Float(42))
 }
@@ -81,12 +71,8 @@ func testMultilineBasicScript(t *testing.T) {
 		mul := a * b
 		pow := a ^ b
 		tpl := "answer is ${fourty2}"`
-		eg = NewEngine()
 	)
-	_, err := eg.Exec(strings.NewReader(script), ev)
-	if err != nil {
-		t.Fatalf("basic script failed due to unexpected error: %s", err)
-	}
+	execScript(t, script, ev)
 	testEnv(t, ev, "add", value.Float(2))
 	testEnv(t, ev, "sub", value.Float(0))
 	testEnv(t, ev, "div", value.Float(1))
@@ -101,15 +87,13 @@ func testBasicScript(t *testing.T) {
 		script = `
 		name := upper(foo & 'bar') 
 		answer`
-		eg = createEngine()
 	)
 	ev.Define("foo", value.Text("foo"))
 	ev.Define("answer", value.Float(42))
-	got, err := eg.Exec(strings.NewReader(script), ev)
-	if err != nil {
-		t.Fatalf("basic script failed due to unexpected error: %s", err)
-	}
-	want := value.Float(42)
+	var (
+		got  = execScript(t, script, ev)
+		want = value.Float(42)
+	)
 	if !isEqual(want, got) {
 		t.Fatalf("result mismatched! want %v, got %v", want, got)
 	}
@@ -117,27 +101,15 @@ func testBasicScript(t *testing.T) {
 }
 
 func testSyntaxError(t *testing.T) {
-	var (
-		script = `name :=`
-		eg     = createEngine()
-	)
-
-	_, err := eg.Exec(strings.NewReader(script), env.Empty())
-	if err == nil {
-		t.Fatal("syntax error expected but none returned")
-	}
+	script := `name :=`
+	execScript(t, script, nil)
 }
 
 func testUndefinedIdentifier(t *testing.T) {
 	var (
 		script = `foo + missing`
-		eg     = createEngine()
+		got    = execScript(t, script, nil)
 	)
-
-	got, err := eg.Exec(strings.NewReader(script), env.Empty())
-	if err != nil {
-		t.Fatalf("basic script failed due to unexpected error: %s", err)
-	}
 	if !value.IsError(got) {
 		t.Fatalf("errors expected, got %s", got)
 	}
@@ -166,4 +138,18 @@ func createEngine() *Engine {
 	eg := NewEngine()
 	eg.SetContextDir(".")
 	return eg
+}
+
+func execScript(t *testing.T, script string, ev *env.Environment) value.Value {
+	t.Helper()
+
+	eg := createEngine()
+	if ev == nil {
+		ev = env.Empty()
+	}
+	got, err := eg.Exec(strings.NewReader(script), ev)
+	if err != nil {
+		t.Fatalf("error executing script: %s", err)
+	}
+	return got
 }
