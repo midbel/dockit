@@ -437,8 +437,10 @@ func (p *Parser) value() any {
 	case op.Ident:
 		if str == "true" {
 			return true
+		} else if str == "false" {
+			return false
 		}
-		return false
+		return str
 	case op.Literal:
 		return str
 	default:

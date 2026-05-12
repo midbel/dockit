@@ -70,7 +70,7 @@ func (c *EngineContext) GetOptionString(key []string) string {
 	v := c.config.Get(key)
 	if s, ok := v.(string); ok {
 		return s
-	}
+	} 
 	return fmt.Sprint(v)
 }
 

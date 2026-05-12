@@ -72,9 +72,8 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 	case "csv":
 		if spec == "" {
 			spec = v.ctx.GetOptionString(slx.Make("csv", "delimiter"))
-			spec = csvDelimiter(spec)
 		}
-		options["delimiter"] = spec
+		options["delimiter"] = csvDelimiter(spec)
 	case "log":
 		if spec == "" {
 			spec = v.ctx.GetOptionString(slx.Make("log", "pattern"))

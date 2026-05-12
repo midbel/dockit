@@ -169,6 +169,10 @@ func (i ImportFile) File() string {
 }
 
 func (i ImportFile) Format() string {
+	if i.format == "" {
+		ext := filepath.Ext(i.file)
+		return strings.TrimPrefix(ext, ".")
+	}
 	return i.format
 }
 

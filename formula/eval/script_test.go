@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -15,6 +16,7 @@ func TestScript(t *testing.T) {
 	t.Run("syntax-error", testSyntaxError)
 	t.Run("undefined-identifier", testUndefinedIdentifier)
 	t.Run("import-file", testImportFile)
+	t.Run("import-config-file", testImportConfigFile)
 	t.Run("slices-view", testSlicesView)
 }
 
@@ -31,6 +33,20 @@ func testSlicesView(t *testing.T) {
 	testView(t, ev, "bs", 2, 3)
 	testView(t, ev, "cs", 2, 13)
 	testView(t, ev, "fs", 4, 5)
+}
+
+func testImportConfigFile(t *testing.T) {
+	script := `#!script
+	#! csv.delimiter := tab
+	#! log.pattern := ""
+
+	import "testdata/countries.csv" default
+	abbr := A1
+	name := lower(B1)`
+	ev := env.Empty()
+	execScript(t, script, ev)
+	testEnv(t, ev, "abbr", value.Text("be"))
+	testEnv(t, ev, "name", value.Text("belgium"))
 }
 
 func testImportFile(t *testing.T) {
@@ -153,6 +169,8 @@ func execScript(t *testing.T, script string, ev *env.Environment) value.Value {
 	t.Helper()
 
 	eg := createEngine()
+	eg.Stdout = bytes.NewBuffer(nil)
+	eg.Stderr = bytes.NewBuffer(nil)
 	if ev == nil {
 		ev = env.Empty()
 	}

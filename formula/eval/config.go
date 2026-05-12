@@ -122,7 +122,7 @@ func csvDelimiter(value string) string {
 	case "tab":
 		return "\t"
 	case "space":
-		return ""
+		return " "
 	}
 }
 
