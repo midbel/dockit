@@ -38,15 +38,23 @@ func testSlicesView(t *testing.T) {
 func testImportConfigFile(t *testing.T) {
 	script := `#!script
 	#! csv.delimiter := tab
-	#! log.pattern := ""
+	#! log.pattern := "%t %l%b[%p]%b[%u:%g]%b%n:%b%m"
 
 	import "testdata/countries.csv" default
+	import "testdata/app.log" using log as app
+
 	abbr := A1
-	name := lower(B1)`
+	name := lower(B1)
+	user := app.sheet!D1
+	group := app.sheet!E1
+	perm := user & ':' & group`
 	ev := env.Empty()
 	execScript(t, script, ev)
 	testEnv(t, ev, "abbr", value.Text("be"))
 	testEnv(t, ev, "name", value.Text("belgium"))
+	testEnv(t, ev, "user", value.Text("alice"))
+	testEnv(t, ev, "group", value.Text("admin"))
+	testEnv(t, ev, "perm", value.Text("alice:admin"))
 }
 
 func testImportFile(t *testing.T) {

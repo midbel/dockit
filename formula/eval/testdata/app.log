@@ -1,0 +1,4 @@
+2026-02-16 11:40:01 INFO [1024] [alice:admin] auth: logged in from
+2026-02-16 11:40:12 DEBUG [2150] [system:root] cache: cache cleared
+2026-02-16 11:40:45 WARN [3112] [bob:dev] db: slow query
+2026-02-16 11:41:03 ERROR [4092] [bob:dev] filesystem: quota exceeded

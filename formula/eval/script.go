@@ -87,6 +87,7 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 	}
 	alias := expr.Alias()
 	if file := expr.File(); alias == "" {
+		file = filepath.Base(file)
 		for {
 			ext := filepath.Ext(file)
 			if ext == "" {
@@ -94,6 +95,7 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 			}
 			file = strings.TrimSuffix(file, ext)
 		}
+		alias = file
 	}
 	wb := types.NewFileValue(file, expr.ReadOnly())
 	v.ctx.Define(alias, wb)
@@ -174,7 +176,8 @@ func (v *evalVisitor) VisitAccess(expr parse.Access) error {
 	if err := v.visitExpr(expr.Object()); err != nil {
 		return err
 	}
-	obj, ok := v.popValue().(value.ObjectValue)
+	curr := v.popValue()
+	obj, ok := curr.(value.ObjectValue)
 	if !ok {
 		return fmt.Errorf("object expected")
 	}
