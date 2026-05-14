@@ -38,8 +38,10 @@ func (odsFormatter) FormatCell(expr parse.CellAddr) (string, error) {
 func (odsFormatter) FormatRange(expr parse.RangeAddr) (string, error) {
 	var str strings.Builder
 	str.WriteString("[")
+	str.WriteString(".")
 	writeCellAddr(&str, expr.StartAt())
 	io.WriteString(&str, ":")
+	str.WriteString(".")
 	writeCellAddr(&str, expr.EndAt())
 	str.WriteString("]")
 	return str.String(), nil

@@ -53,12 +53,12 @@ func testOds(t *testing.T) {
 	tests := []string{
 		"of:=[.A1]",
 		"of:=[.A1] & \"test\"",
-		"of:=sum(1;2;3;[.A1:.A100])",
+		"of:=sum(1; 2; 3; [.A1:.A100])",
 	}
 	for _, c := range tests {
 		e, err := parse.ParseOdsFormula(c)
 		if err != nil {
-			t.Errorf("%s: expression error: %s", c, err)
+			t.Errorf("%s: parse expression error: %s", c, err)
 			continue
 		}
 		got, err := FormatOds(e)
@@ -75,16 +75,17 @@ func testOds(t *testing.T) {
 func testOxml(t *testing.T) {
 	tests := []string{
 		"=A1",
+		"=sum(1, 2, 3, A1:A100)",
 	}
 	for _, c := range tests {
 		e, err := parse.ParseOxmlFormula(c)
 		if err != nil {
-			t.Errorf("expression error: %s", err)
+			t.Errorf("%s: parse expression error: %s", c, err)
 			continue
 		}
 		got, err := FormatOxml(e)
 		if err != nil {
-			t.Errorf("error formatting expression: %s", err)
+			t.Errorf("%s: error formatting expression: %s", c, err)
 			continue
 		}
 		if c != got {

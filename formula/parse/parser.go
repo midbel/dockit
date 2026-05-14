@@ -659,7 +659,7 @@ func parseIdentifier(p *Parser) (Expr, error) {
 func parseRangeAddress(p *Parser, left Expr) (Expr, error) {
 	p.next()
 
-	addr, err := parseAddress(p)
+	addr, err := p.parse(powRange)
 	if err != nil {
 		return nil, err
 	}
@@ -708,6 +708,9 @@ func parseQualifiedAddress(p *Parser, left Expr) (Expr, error) {
 		right = addr
 	default:
 		return nil, p.makeError("address/range expected")
+	}
+	if left == nil {
+		return right, nil
 	}
 	return NewCellAccess(left, right), nil
 }
@@ -1255,8 +1258,7 @@ func (odsDialectRules) ParseAddress(p *Parser, ctx AddressContext) (Expr, error)
 	case DefaultAddressContext:
 		return parseAddress(p)
 	case DottedAddressContext:
-		p.next()
-		return parseAddress(p)
+		return parseQualifiedAddress(p, nil)
 	case BracketAddressContext:
 		p.next()
 		expr, err := p.parse(powLowest)
