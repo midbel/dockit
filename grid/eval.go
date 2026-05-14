@@ -60,7 +60,6 @@ func eval(expr parse.Expr, ctx value.Context) value.Value {
 	case parse.CellAccess:
 		return evalCellAccess(e, ctx)
 	default:
-		fmt.Printf("%T\n", expr)
 		return value.ErrNA
 	}
 }
