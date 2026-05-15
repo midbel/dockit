@@ -5,6 +5,7 @@ import (
 	"compress/flate"
 	"io"
 	"strconv"
+	"time"
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/formula/format"
@@ -29,7 +30,6 @@ func writeFile(w io.Writer) (*writer, error) {
 
 func (z *writer) WriteFile(file *File) error {
 	z.writeMime()
-	z.writeStyle()
 	z.writeContent(file)
 	z.writeSettings(file)
 	z.writeMeta()
@@ -45,12 +45,21 @@ func (z *writer) writeMime() {
 	if z.invalid() {
 		return
 	}
-	w, err := z.writer.Create("mimetype")
+	hdr := &zip.FileHeader{
+		Name:             "mimetype",
+		Method:           zip.Store,
+		Modified:         time.Now().UTC(),
+		Extra:            nil,
+		NonUTF8:          true,
+		CompressedSize64: uint64(len([]byte(mimeODS))),
+	}
+	hdr.SetMode(0644)
+	w, err := z.writer.CreateRaw(hdr)
 	if err != nil {
 		z.err = err
 		return
 	}
-	_, z.err = io.WriteString(w, mimeODS)
+	_, z.err = w.Write([]byte(mimeODS))
 }
 
 func (z *writer) writeStyle() {
@@ -95,6 +104,10 @@ func (z *writer) writeManifest() {
 	})
 	sx.Empty(entryName, []sax.A{
 		createAttr("full-path", "manifest", "content.xml"),
+		createAttr("media-type", "manifest", mimeXML),
+	})
+	sx.Empty(entryName, []sax.A{
+		createAttr("full-path", "manifest", "settings.xml"),
 		createAttr("media-type", "manifest", mimeXML),
 	})
 	sx.Close(manifestName)
@@ -167,14 +180,17 @@ func (z *writer) writeContent(file *File) {
 		docName   = sax.QualifiedName("document-content", "office")
 		bodyName  = sax.QualifiedName("body", "office")
 		sheetName = sax.QualifiedName("spreadsheet", "office")
+		styleName = sax.QualifiedName("automatic-styles", "office")
 	)
 
 	sx.Open(docName, []sax.A{
 		createNS("office", officeNS),
 		createNS("table", tableNS),
 		createNS("text", textNS),
+		createNS("of", openFormulaNS),
 		createAttr("version", "office", officeVersion),
 	})
+	sx.Empty(styleName, nil)
 	sx.Open(bodyName, nil)
 	sx.Open(sheetName, nil)
 
@@ -206,17 +222,25 @@ func writeSheet(writer *sax.StreamWriter) *sheetWriter {
 }
 
 func (w *sheetWriter) WriteSheet(sheet *Sheet) error {
-	tableName := sax.QualifiedName("table", "table")
+	var (
+		tableName  = sax.QualifiedName("table", "table")
+		columnName = sax.QualifiedName("table-column", "table")
+	)
 	attrs := []sax.A{
 		createAttr("name", "table", sheet.Label),
 	}
-	if sheet.Visible {
-		attrs = append(attrs, createAttr("display", "table", "true"))
-	}
+	// if sheet.Visible {
+	// 	attrs = append(attrs, createAttr("display", "table", "true"))
+	// }
 	if sheet.Locked {
 		attrs = append(attrs, createAttr("protected", "table", "true"))
 	}
 	w.writer.Open(tableName, attrs)
+
+	bd := sheet.Bounds()
+	w.writer.Empty(columnName, []sax.A{
+		createAttr("number-columns-repeated", "table", strconv.FormatInt(bd.Width(), 10)),
+	})
 	for i, row := range sheet.rows {
 		var diff int64
 		if i > 0 {
@@ -270,7 +294,21 @@ func (w *sheetWriter) writeRow(row *row, delta int64) {
 		}
 		attrs := []sax.A{
 			createAttr("value-type", "office", getTypeFromValue(val)),
-			createAttr("value", "office", val.String()),
+		}
+		var name string
+		switch val.(type) {
+		case value.Date:
+			name = "date-value"
+		case value.Boolean:
+			name = "boolean-value"
+		case value.Text:
+			name = "string-value"
+		default:
+			name = "value"
+		}
+		if name != "string-value" {
+			a := createAttr(name, "office", val.String())
+			attrs = append(attrs, a)
 		}
 		if e, ok := cell.formula.(interface{ Expr() parse.Expr }); ok {
 			str, _ := format.FormatOds(e.Expr())

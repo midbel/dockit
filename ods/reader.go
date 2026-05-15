@@ -23,11 +23,12 @@ const (
 )
 
 const (
-	officeNS   = "urn:oasis:names:tc:opendocument:xmlns:office:1.0"
-	tableNS    = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
-	textNS     = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
-	manifestNS = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"
-	configNS   = "urn:oasis:names:tc:opendocument:xmlns:config:1.0"
+	officeNS      = "urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+	tableNS       = "urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+	textNS        = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+	manifestNS    = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0"
+	configNS      = "urn:oasis:names:tc:opendocument:xmlns:config:1.0"
+	openFormulaNS = "urn:oasis:names:tc:opendocument:xmlns:of:1.2"
 )
 
 type reader struct {
