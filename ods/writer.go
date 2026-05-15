@@ -3,9 +3,9 @@ package ods
 import (
 	"archive/zip"
 	"compress/flate"
+	"hash/crc32"
 	"io"
 	"strconv"
-	"time"
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/formula/format"
@@ -45,21 +45,23 @@ func (z *writer) writeMime() {
 	if z.invalid() {
 		return
 	}
+	data := []byte(mimeODS)
+
 	hdr := &zip.FileHeader{
-		Name:             "mimetype",
-		Method:           zip.Store,
-		Modified:         time.Now().UTC(),
-		Extra:            nil,
-		NonUTF8:          true,
-		CompressedSize64: uint64(len([]byte(mimeODS))),
+		Name:               "mimetype",
+		Method:             zip.Store,
+		CRC32:              crc32.ChecksumIEEE(data),
+		CompressedSize64:   uint64(len(data)),
+		UncompressedSize64: uint64(len(data)),
+		ReaderVersion:      20,
+		Extra:              nil,
 	}
-	hdr.SetMode(0644)
 	w, err := z.writer.CreateRaw(hdr)
 	if err != nil {
 		z.err = err
 		return
 	}
-	_, z.err = w.Write([]byte(mimeODS))
+	_, z.err = w.Write(data)
 }
 
 func (z *writer) writeStyle() {
