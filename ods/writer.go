@@ -7,6 +7,8 @@ import (
 	"strconv"
 
 	sax "github.com/midbel/codecs/xml"
+	"github.com/midbel/dockit/formula/format"
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/value"
 )
 
@@ -269,6 +271,11 @@ func (w *sheetWriter) writeRow(row *row, delta int64) {
 		attrs := []sax.A{
 			createAttr("value-type", "office", getTypeFromValue(val)),
 			createAttr("value", "office", val.String()),
+		}
+		if e, ok := cell.formula.(interface{ Expr() parse.Expr }); ok {
+			str, _ := format.FormatOds(e.Expr())
+			a := createAttr("formula", "table", str)
+			attrs = append(attrs, a)
 		}
 		if repeat > 1 {
 			attrs = append(attrs, createAttr("number-columns-repeated", "table", strconv.Itoa(repeat)))

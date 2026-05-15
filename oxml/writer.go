@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	sax "github.com/midbel/codecs/xml"
+	"github.com/midbel/dockit/formula/format"
+	"github.com/midbel/dockit/formula/parse"
 )
 
 const startIx = 1000
@@ -445,9 +447,10 @@ func (w *sheetWriter) writeDefaultCell(cell *Cell) error {
 		attrs = append(attrs, createAttr("t", cell.Type))
 	}
 	w.writer.Open(cellName, attrs)
-	if s, ok := cell.formula.(fmt.Stringer); ok {
+	if e, ok := cell.formula.(interface{ Expr() parse.Expr }); ok {
+		str, _ := format.FormatOxml(e.Expr())
 		w.writer.Open(formName, nil)
-		w.writer.Text(s.String())
+		w.writer.Text(str)
 		w.writer.Close(formName)
 	}
 	w.writer.Open(valName, nil)

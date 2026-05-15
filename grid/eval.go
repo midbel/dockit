@@ -279,6 +279,10 @@ func (f formula) String() string {
 	return f.expr.String()
 }
 
+func (f formula) Expr() parse.Expr {
+	return f.expr
+}
+
 func (f formula) Eval(ctx value.Context) value.Value {
 	return eval(f.expr, ctx)
 }

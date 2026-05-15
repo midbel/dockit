@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"slices"
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/csv"
@@ -68,6 +69,10 @@ func sheet2Table(sheet grid.View, skipErr bool) cli.Table {
 			t.Rows = append(t.Rows, row)
 		}
 		i++
+	}
+	if len(t.Rows) == 0 && len(t.Headers) != 0 {
+		t.Rows = append(t.Rows, slices.Clone(t.Headers))
+		t.Headers = t.Headers[:0]
 	}
 	return t
 }
