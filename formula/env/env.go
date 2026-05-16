@@ -4,6 +4,10 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+type ImmutableValue interface {
+	Immutable() bool
+}
+
 type Environment struct {
 	values map[string]value.Value
 }
@@ -24,5 +28,12 @@ func (c *Environment) Resolve(ident string) value.Value {
 }
 
 func (c *Environment) Define(ident string, val value.Value) {
+	v, ok := c.values[ident]
+	if ok {
+		i, ok := v.(ImmutableValue)
+		if ok && i.Immutable() {
+			return
+		}
+	}
 	c.values[ident] = val
 }

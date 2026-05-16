@@ -208,7 +208,7 @@ func evalAccess(obj value.Value, prop parse.Identifier) value.Value {
 			prop = value.ErrName
 		}
 		return prop
-	case *types.View:
+	case value.ObjectValue:
 		return obj.Get(prop.Ident())
 	default:
 		return value.ErrValue

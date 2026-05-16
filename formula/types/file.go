@@ -2,7 +2,6 @@ package types
 
 import (
 	"errors"
-	"os"
 
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/value"
@@ -147,19 +146,4 @@ func (c *File) Get(ident string) value.Value {
 		}
 		return value.ErrName
 	}
-}
-
-type envValue struct{}
-
-func (envValue) Kind() value.ValueKind {
-	return value.KindObject
-}
-
-func (envValue) String() string {
-	return "env"
-}
-
-func (v envValue) Get(name string) (value.ScalarValue, error) {
-	str := os.Getenv(name)
-	return value.Text(str), nil
 }

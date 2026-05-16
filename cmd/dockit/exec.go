@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/midbel/cli"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/formula/repr"
+	"github.com/midbel/dockit/formula/types"
 )
 
 var runCmd = cli.Command{
@@ -40,12 +42,23 @@ func (c RunCommand) Run(args []string) error {
 	}
 	defer r.Close()
 
+	args = make([]string, 0, set.NArg()-1)
+	for i := 1; i < set.NArg(); i++ {
+		args = append(args, set.Arg(i))
+	}
+	var (
+		ev   = env.Empty()
+		name = filepath.Base(set.Arg(0))
+	)
+	ev.Define("env", types.NewEnvValue())
+	ev.Define("flag", types.NewFlagValue(name, args))
+
 	engine := eval.NewEngine()
 	engine.SetPrintDebug(c.Debug)
 	engine.SetContextDir(c.ContextDir)
 	engine.SetNumberFormat(c.NumberFormat)
 	engine.SetDateFormat(c.DateFormat)
-	_, err = engine.Exec(r, env.Empty())
+	_, err = engine.Exec(r, ev)
 	return err
 }
 
