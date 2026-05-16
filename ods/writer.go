@@ -2,6 +2,7 @@ package ods
 
 import (
 	"archive/zip"
+	"bytes"
 	"compress/flate"
 	"hash/crc32"
 	"io"
@@ -38,6 +39,7 @@ func (z *writer) WriteFile(file *File) error {
 }
 
 func (w *writer) Close() error {
+	w.writer.SetComment("")
 	return w.writer.Close()
 }
 
@@ -79,18 +81,17 @@ func (z *writer) writeManifest() {
 	if z.invalid() {
 		return
 	}
-	w, err := z.writer.Create("META-INF/manifest.xml")
-	if err != nil {
-		z.err = err
-		return
-	}
+	var (
+		buf bytes.Buffer
+		crc = crc32.NewIEEE()
+		w   = io.MultiWriter(&buf, crc)
+	)
 
 	sx, err := sax.Compact(w)
 	if err != nil {
 		z.err = err
 		return
 	}
-	defer sx.Flush()
 
 	var (
 		manifestName = sax.QualifiedName("manifest", "manifest")
@@ -113,23 +114,26 @@ func (z *writer) writeManifest() {
 		createAttr("media-type", "manifest", mimeXML),
 	})
 	sx.Close(manifestName)
+	sx.Flush()
+
+	z.writeEntry("META-INF/manifest.xml", crc.Sum32(), &buf)
 }
 
 func (z *writer) writeSettings(file *File) {
 	if z.invalid() {
 		return
 	}
-	w, err := z.writer.Create("settings.xml")
-	if err != nil {
-		z.err = err
-		return
-	}
+	var (
+		buf bytes.Buffer
+		crc = crc32.NewIEEE()
+		w   = io.MultiWriter(&buf, crc)
+	)
+
 	sx, err := sax.Compact(w)
 	if err != nil {
 		z.err = err
 		return
 	}
-	defer sx.Flush()
 
 	activeSheet, _ := file.activeSheet()
 
@@ -160,23 +164,25 @@ func (z *writer) writeSettings(file *File) {
 	sx.Close(setName)
 	sx.Close(settingName)
 	sx.Close(rootName)
+	sx.Flush()
+
+	z.writeEntry("settings.xml", crc.Sum32(), &buf)
 }
 
 func (z *writer) writeContent(file *File) {
 	if z.invalid() {
 		return
 	}
-	w, err := z.writer.Create("content.xml")
-	if err != nil {
-		z.err = err
-		return
-	}
+	var (
+		buf bytes.Buffer
+		crc = crc32.NewIEEE()
+		w   = io.MultiWriter(&buf, crc)
+	)
 	sx, err := sax.Compact(w)
 	if err != nil {
 		z.err = err
 		return
 	}
-	defer sx.Flush()
 
 	var (
 		docName   = sax.QualifiedName("document-content", "office")
@@ -206,6 +212,23 @@ func (z *writer) writeContent(file *File) {
 	sx.Close(sheetName)
 	sx.Close(bodyName)
 	sx.Close(docName)
+	sx.Flush()
+
+	z.writeEntry("content.xml", crc.Sum32(), &buf)
+}
+
+func (z *writer) writeEntry(name string, crc uint32, buf *bytes.Buffer) {
+	hdr := &zip.FileHeader{
+		Name:   name,
+		Method: zip.Deflate,
+	}
+
+	ws, err := z.writer.CreateHeader(hdr)
+	if err != nil {
+		z.err = err
+		return
+	}
+	_, z.err = io.Copy(ws, buf)
 }
 
 func (z *writer) invalid() bool {
