@@ -146,7 +146,7 @@ func (f *File) Infos() []grid.ViewInfo {
 	return infos
 }
 
-func (f *File) Rename(_, _ string) error {
+func (f *File) Rename(oldName, newName string) error {
 	if err := f.supported(); err != nil {
 		return err
 	}
