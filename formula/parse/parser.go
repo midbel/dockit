@@ -149,6 +149,10 @@ func SliceGrammar() *Grammar {
 	return g
 }
 
+func MappingGrammar() *Grammar {
+	return nil
+}
+
 type ConfigEntry struct {
 	Path  []string
 	Value any

@@ -100,6 +100,8 @@ func (x *ScriptLexer) Scan() Token {
 		x.scanLiteral(&tok)
 	case isDigit(x.char):
 		x.scanNumber(&tok)
+	case x.char == backtick:
+		x.scanSpecialIdent(&tok)
 	default:
 		x.scanIdent(&tok)
 	}
@@ -143,6 +145,21 @@ func (x *ScriptLexer) scanDirective(tok *Token) {
 	}
 	tok.Type = op.Directive
 	tok.Literal = x.literal()
+}
+
+func (x *ScriptLexer) scanSpecialIdent(tok *Token) {
+	x.read()
+	for !x.done() && x.char != backtick {
+		x.write()
+		x.read()
+	}
+	tok.Type = op.Ident
+	tok.Literal = x.literal()
+	if x.char != backtick {
+		tok.Type = op.Invalid
+	} else {
+		x.read()
+	}
 }
 
 func (x *ScriptLexer) scanIdent(tok *Token) {
@@ -316,8 +333,16 @@ func (x *ScriptLexer) scanDelimiter(tok *Token) {
 		tok.Type = op.EndGrp
 	case lsquare:
 		tok.Type = op.BegProp
+		if k := x.peek(); k == lsquare {
+			x.read()
+			tok.Type = op.BegMap
+		}
 	case rsquare:
 		tok.Type = op.EndProp
+		if k := x.peek(); k == rsquare {
+			x.read()
+			tok.Type = op.EndMap
+		}
 	default:
 	}
 	x.read()
@@ -855,6 +880,7 @@ const (
 	rsquare    = ']'
 	backslash  = '\\'
 	arobase    = '@'
+	backtick   = '`'
 )
 
 func isComment(c rune) bool {

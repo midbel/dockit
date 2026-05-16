@@ -52,6 +52,8 @@ const (
 	RangeRef
 	SheetRef
 	Special
+	BegMap
+	EndMap
 )
 
 var mapping = map[Op]string{
