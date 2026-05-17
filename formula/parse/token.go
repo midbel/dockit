@@ -34,6 +34,8 @@ func (t Token) String() string {
 		return "<pragma>"
 	case op.Directive:
 		str = "directive"
+	case op.Mapping:
+		str = "mapping"
 	case op.Keyword:
 		str = "keyword"
 	case op.Ident:
@@ -90,10 +92,6 @@ func (t Token) String() string {
 		return "<not>"
 	case op.Dot:
 		return "<dot>"
-	case op.BegMap:
-		return "<beg-mapping>"
-	case op.EndMap:
-		return "<end-mapping>"
 	case op.Special:
 		return "<special>"
 	case op.BegAddr:

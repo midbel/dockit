@@ -7,6 +7,7 @@ const (
 
 	EOF Op = -(1 + iota)
 	Eol
+	Mapping
 	Directive
 	Pragma
 	Keyword
@@ -52,8 +53,6 @@ const (
 	RangeRef
 	SheetRef
 	Special
-	BegMap
-	EndMap
 )
 
 var mapping = map[Op]string{

@@ -92,6 +92,10 @@ func (x *ScriptLexer) Scan() Token {
 		x.scanComment(&tok)
 	case isComment(x.char) && x.peek() == bang:
 		x.scanDirective(&tok)
+	case x.char == backtick:
+		x.scanSpecialIdent(&tok)
+	case x.char == lsquare && x.peek() == x.char:
+		x.scanMapping(&tok)
 	case isOperator(x.char):
 		x.scanOperator(&tok)
 	case isDelimiter(x.char):
@@ -100,8 +104,6 @@ func (x *ScriptLexer) Scan() Token {
 		x.scanLiteral(&tok)
 	case isDigit(x.char):
 		x.scanNumber(&tok)
-	case x.char == backtick:
-		x.scanSpecialIdent(&tok)
 	default:
 		x.scanIdent(&tok)
 	}
@@ -158,6 +160,23 @@ func (x *ScriptLexer) scanSpecialIdent(tok *Token) {
 	if x.char != backtick {
 		tok.Type = op.Invalid
 	} else {
+		x.read()
+	}
+}
+
+func (x *ScriptLexer) scanMapping(tok *Token) {
+	x.read()
+	x.read()
+	for !x.done() && x.char != lsquare && x.char != x.peek() {
+		x.write()
+		x.read()
+	}
+	tok.Literal = x.literal()
+	tok.Type = op.Mapping
+	if x.char != lsquare && x.char != x.peek() {
+		tok.Type = op.Invalid
+	} else {
+		x.read()
 		x.read()
 	}
 }
@@ -333,16 +352,8 @@ func (x *ScriptLexer) scanDelimiter(tok *Token) {
 		tok.Type = op.EndGrp
 	case lsquare:
 		tok.Type = op.BegProp
-		if k := x.peek(); k == lsquare {
-			x.read()
-			tok.Type = op.BegMap
-		}
 	case rsquare:
 		tok.Type = op.EndProp
-		if k := x.peek(); k == rsquare {
-			x.read()
-			tok.Type = op.EndMap
-		}
 	default:
 	}
 	x.read()
