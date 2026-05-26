@@ -57,6 +57,9 @@ func NewEngine() *Engine {
 	e.RegisterLoader(".xlsx", XlsxLoader())
 	e.RegisterLoader(".ods", OdsLoader())
 	e.RegisterLoader(".log", LogLoader())
+	e.RegisterLoader(".json", JsonLoader())
+	e.RegisterLoader(".json5", Json5Loader())
+	e.RegisterLoader(".xml", XmlLoader())
 	return &e
 }
 

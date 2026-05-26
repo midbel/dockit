@@ -53,7 +53,7 @@ func (c csvLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
 	return flat.OpenReader(rs)
 }
 
-func (x csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, error) {
+func (c csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, error) {
 	r, err := os.Open(file)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (x csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, e
 		case "colon", ":":
 			rs.Comma = ':'
 		case "detect":
-			delim, err := x.detectDelim(file)
+			delim, err := c.detectDelim(file)
 			if err != nil {
 				return nil, err
 			}
@@ -83,8 +83,36 @@ func (x csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, e
 	return rs, nil
 }
 
-func (x csvLoader) detectDelim(file string) (byte, error) {
+func (c csvLoader) detectDelim(file string) (byte, error) {
 	return csv.Sniff(file)
+}
+
+type jsonLoader struct{
+	five bool
+}
+
+func JsonLoader() Loader {
+	return jsonLoader{}
+}
+
+func Json5Loader() Loader {
+	return jsonLoader{
+		five: true,
+	}
+}
+
+func (jsonLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
+	return nil, nil
+}
+
+type xmlLoader struct{}
+
+func XmlLoader() Loader {
+	return xmlLoader{}
+}
+
+func (xmlLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
+	return nil, nil
 }
 
 type xlsxLoader struct{}
