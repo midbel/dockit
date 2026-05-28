@@ -87,6 +87,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.Special, parseSpecialAccess)
 	g.RegisterPostfix(op.BegProp, parseSlice)
+	g.RegisterPostfix(op.Arrow, parseArrow)
 
 	g.RegisterInfix(op.Union, parseBinary)
 	g.RegisterInfix(op.Assign, parseAssignment)
@@ -1115,6 +1116,15 @@ func parseReadonly(p *Parser) (bool, error) {
 
 func parseSlicePrefix(p *Parser) (Expr, error) {
 	return parseSlice(p, nil)
+}
+
+func parseArrow(p *Parser, left Expr) (Expr, error) {
+	p.next()
+	next, err := p.parse(powCall)
+	if err != nil {
+		return nil, err
+	}
+	return NewChainCall(left, next), nil
 }
 
 func parseSlice(p *Parser, left Expr) (Expr, error) {

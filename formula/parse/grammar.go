@@ -59,6 +59,7 @@ var defaultBindings = map[op.Op]int{
 	op.And:          powLogical,
 	op.Or:           powLogical,
 	op.Not:          powUnary,
+	op.Arrow:        powCall,
 }
 
 type GrammarScope int

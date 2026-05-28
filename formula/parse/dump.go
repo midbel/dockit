@@ -96,6 +96,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "deferred(")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
+	case ChainCall:
+		io.WriteString(w, "chain-call(")
+		dumpExpr(w, e.expr)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.next)
+		io.WriteString(w, ")")
 	case Call:
 		io.WriteString(w, "call(")
 		dumpExpr(w, e.ident)

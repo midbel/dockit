@@ -87,7 +87,7 @@ func (c csvLoader) detectDelim(file string) (byte, error) {
 	return csv.Sniff(file)
 }
 
-type jsonLoader struct{
+type jsonLoader struct {
 	five bool
 }
 

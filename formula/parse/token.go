@@ -50,6 +50,8 @@ func (t Token) String() string {
 		str = "literal"
 	case op.Comment:
 		str = "comment"
+	case op.Arrow:
+		return "<arrow>"
 	case op.Assign:
 		return "<assignment>"
 	case op.Add:

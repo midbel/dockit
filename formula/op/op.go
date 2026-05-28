@@ -32,6 +32,7 @@ const (
 	Pow
 	Concat
 	Union
+	Arrow
 	Eq
 	Ne
 	Lt

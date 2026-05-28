@@ -286,9 +286,12 @@ func (x *ScriptLexer) scanOperator(tok *Token) {
 		}
 	case minus:
 		tok.Type = op.Sub
-		if x.peek() == equal {
+		if k := x.peek(); k == equal {
 			x.read()
 			tok.Type = op.SubAssign
+		} else if k == rangle {
+			x.read()
+			tok.Type = op.Arrow
 		}
 	case star:
 		tok.Type = op.Mul

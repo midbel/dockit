@@ -766,6 +766,23 @@ func (n Number) Accept(v Visitor) error {
 	return v.VisitNumber(n)
 }
 
+type ChainCall struct {
+	expr Expr
+	next Expr
+}
+
+func NewChainCall(expr, next Expr) Expr {
+	return ChainCall{
+		expr: expr,
+		next: next,
+	}
+}
+
+func (c ChainCall) String() string {
+	fmt.Println("chainCall", c.expr)
+	return fmt.Sprintf("%s->%s", c.expr, c.next)
+}
+
 type Call struct {
 	ident Expr
 	args  []Expr
