@@ -79,6 +79,10 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 			spec = v.ctx.GetOptionString(slx.Make("log", "pattern"))
 		}
 		options["pattern"] = spec
+	case "json":
+		options["query"] = spec
+	case "xml":
+		options["query"] = spec
 	default:
 	}
 	file, err := v.ctx.Open(expr.File(), options)

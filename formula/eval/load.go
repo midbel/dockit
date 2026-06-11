@@ -31,11 +31,11 @@ func LogLoader() Loader {
 }
 
 func (logLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	pattern, ok := opts["pattern"]
+	pattern, ok := opts["pattern"].(string)
 	if !ok {
 		return nil, fmt.Errorf("missing pattern to load log file")
 	}
-	return flat.OpenLog(file, pattern.(string))
+	return flat.OpenLog(file, pattern)
 }
 
 type csvLoader struct{}
@@ -63,7 +63,7 @@ func (c csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, e
 	}
 	rs := csv.NewReader(r)
 
-	if delim, ok := opts["delimiter"]; ok {
+	if delim, ok := opts["delimiter"].(string); ok {
 		switch delim {
 		case "comma", ",":
 			rs.Comma = ','
@@ -105,7 +105,7 @@ func Json5Loader() Loader {
 }
 
 func (j jsonLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	arr, err := j.readFile(file)
+	arr, err := j.readFile(file, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func (jsonLoader) processData(arr []any) ([][]value.ScalarValue, error) {
 	return values, nil
 }
 
-func (jsonLoader) readFile(file string) ([]any, error) {
+func (jsonLoader) readFile(file string, opts LoaderOptions) ([]any, error) {
 	r, err := os.Open(file)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,17 @@ func (jsonLoader) readFile(file string) ([]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	result, err := probe.Traverse("", data, nil)
+	var ps probe.Options
+	if ps.Missing, err = probe.ParseMissingMode(opts["missing"].(string)); err != nil {
+		return nil, err
+	}
+	if ps.Zip, err = probe.ParseZipMode(opts["zip"].(string)); err != nil {
+		return nil, err
+	}
+	if ps.Expand, err = probe.ParseExpandMode(opts["expand"].(string)); err != nil {
+		return nil, err
+	}
+	result, err := probe.Traverse(opts["query"].(string), data, &ps)
 	if err != nil {
 		return nil, err
 	}
