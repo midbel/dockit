@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/midbel/codecs/json"
+	"github.com/midbel/codecs/probe"
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/ods"
 	"github.com/midbel/dockit/oxml"
+	"github.com/midbel/dockit/value"
 )
 
 type LoaderOptions map[string]any
@@ -101,8 +104,65 @@ func Json5Loader() Loader {
 	}
 }
 
-func (jsonLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	return nil, nil
+func (j jsonLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
+	arr, err := j.readFile(file)
+	if err != nil {
+		return nil, err
+	}
+	values, err := j.processData(arr)
+	if err != nil {
+		return nil, err
+	}
+	return flat.NewFileFromRows(values), nil
+}
+
+func (jsonLoader) processData(arr []any) ([][]value.ScalarValue, error) {
+	var values [][]value.ScalarValue
+	for i := range arr {
+		vs, ok := arr[i].([]any)
+		if !ok {
+			return nil, fmt.Errorf("array expected")
+		}
+		row := make([]value.ScalarValue, 0, len(vs))
+		for j := range vs {
+			var x value.ScalarValue
+			switch v := vs[j].(type) {
+			case float64:
+				x = value.Float(v)
+			case string:
+				x = value.Text(v)
+			case bool:
+				x = value.Boolean(v)
+			default:
+				return nil, fmt.Errorf("unexpected type from json array")
+			}
+			row = append(row, x)
+		}
+		values = append(values, row)
+	}
+	return values, nil
+}
+
+func (jsonLoader) readFile(file string) ([]any, error) {
+	r, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	data, err := json.Decode(r)
+	if err != nil {
+		return nil, err
+	}
+	result, err := probe.Traverse("", data, nil)
+	if err != nil {
+		return nil, err
+	}
+	arr, ok := result.([]any)
+	if !ok {
+		return nil, fmt.Errorf("array expected")
+	}
+	return arr, nil
 }
 
 type xmlLoader struct{}
