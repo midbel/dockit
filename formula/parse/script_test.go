@@ -69,7 +69,7 @@ func TestImportStmt(t *testing.T) {
 			},
 		},
 		{
-			Expr: "import \"file.log\" using log with \"%time %user %level %message\" as file",
+			Expr: "import \"file.log\" using log[[%time %user %level %message]] as file",
 			Expect: importExpect{
 				File:      "file.log",
 				Alias:     "file",

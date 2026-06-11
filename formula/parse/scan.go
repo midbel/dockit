@@ -167,13 +167,13 @@ func (x *ScriptLexer) scanSpecialIdent(tok *Token) {
 func (x *ScriptLexer) scanMapping(tok *Token) {
 	x.read()
 	x.read()
-	for !x.done() && x.char != lsquare && x.char != x.peek() {
+	for !x.done() && !(x.char == rsquare && x.peek() == rsquare) {
 		x.write()
 		x.read()
 	}
 	tok.Literal = x.literal()
 	tok.Type = op.Mapping
-	if x.char != lsquare && x.char != x.peek() {
+	if x.char != rsquare && x.peek() != rsquare {
 		tok.Type = op.Invalid
 	} else {
 		x.read()

@@ -1062,6 +1062,10 @@ func parseImport(p *Parser) (Expr, error) {
 		}
 		stmt.format = p.currentLiteral()
 		p.next()
+		if p.is(op.Mapping) {
+			stmt.specifier = p.currentLiteral()
+			p.next()
+		}
 		if p.is(op.Keyword) && p.currentLiteral() == kwWith {
 			p.next()
 			if p.is(op.BegGrp) {
@@ -1071,7 +1075,7 @@ func parseImport(p *Parser) (Expr, error) {
 				}
 				stmt.options = options
 			} else {
-				stmt.specifier = p.currentLiteral()
+				return nil, p.makeError("with expects options list")
 			}
 			p.next()
 		}
