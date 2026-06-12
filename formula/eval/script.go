@@ -416,28 +416,6 @@ func (v *evalVisitor) evalArrayWithScalarBinary(left, right value.Value, oper op
 	})
 }
 
-// func (v *evalVisitor) evalScalarArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
-// 	if v, ok := right.(interface{ AsArray() value.ArrayValue }); ok {
-// 		right = v.AsArray()
-// 	}
-// 	arr, err := value.CastToArray(right)
-// 	if err != nil {
-// 		return value.ErrValue, nil
-// 	}
-// 	arr.Apply(func(val value.ScalarValue) value.ScalarValue {
-// 		ret, err := v.evalScalarBinary(val, left, oper)
-// 		if err != nil {
-// 			return value.ErrValue
-// 		}
-// 		scalar, ok := ret.(value.ScalarValue)
-// 		if !ok {
-// 			return value.ErrValue
-// 		}
-// 		return scalar
-// 	})
-// 	return arr, nil
-// }
-
 func (v *evalVisitor) evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	left, _ = v.normalize(left)
 	right, _ = v.normalize(right)

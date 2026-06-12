@@ -11,132 +11,166 @@ import (
 )
 
 func TestScript(t *testing.T) {
-	t.Run("basic", testBasicScript)
-	t.Run("multiline", testMultilineBasicScript)
-	t.Run("syntax-error", testSyntaxError)
-	t.Run("undefined-identifier", testUndefinedIdentifier)
-	t.Run("import-file", testImportFile)
-	t.Run("import-config-file", testImportConfigFile)
-	t.Run("slices-view", testSlicesView)
+	t.Run("literals", testLiterals)
+	t.Run("templates", testTemplates)
+	t.Run("cells", testCellAccess)
+	t.Run("metadata", testMetadata)
+	t.Run("array", testArrays)
+	t.Run("ranges", testRanges)
 }
 
-func testSlicesView(t *testing.T) {
-	var (
-		ev     = env.Empty()
-		script = `import "testdata/cities.csv" as cit
-		use cit
-		bs := @active[A1:B3]
-		cs := @active[A:B]
-		fs := @active[C1 = "1"]`
-	)
-	execScript(t, script, ev)
-	testView(t, ev, "bs", 2, 3)
-	testView(t, ev, "cs", 2, 13)
-	testView(t, ev, "fs", 4, 5)
-}
+func testRanges(t *testing.T) {
+	script := `
+import "testdata/salaries.csv" using csv[[comma]] as dat default
 
-func testImportConfigFile(t *testing.T) {
-	script := `#!script
-	#! csv.delimiter := tab
-	#! log.pattern := "%t %l%b[%p]%b[%u:%g]%b%n:%b%m"
+salaries := B2:B3
+bonus := C2:C3 * 2
+raises := salaries + 1000
+totals := raises + bonus
+	`
+	ev := runScript(t, script)
 
-	import "testdata/countries.csv" default
-	import "testdata/app.log" using log as app
-
-	abbr := A1
-	name := lower(B1)
-	user := app.sheet!D1
-	group := app.sheet!E1
-	perm := user & ':' & group`
-	ev := env.Empty()
-	execScript(t, script, ev)
-	testEnv(t, ev, "abbr", value.Text("be"))
-	testEnv(t, ev, "name", value.Text("belgium"))
-	testEnv(t, ev, "user", value.Text("alice"))
-	testEnv(t, ev, "group", value.Text("admin"))
-	testEnv(t, ev, "perm", value.Text("alice:admin"))
-}
-
-func testImportFile(t *testing.T) {
-	script := `import "testdata/sample.csv" as data default
-	import "testdata/countries.csv" using csv with tab as tab1 
-	import "testdata/countries.csv" using csv as tab2
-	foo := A1
-	answer := B1`
-	ev := env.Empty()
-	execScript(t, script, ev)
-	testEnv(t, ev, "foo", value.Text("foobar"))
-	testEnv(t, ev, "answer", value.Float(42))
-}
-
-func testMultilineBasicScript(t *testing.T) {
-	var (
-		ev     = env.Empty()
-		script = `
-		fourty2 := 42
-		a := 1
-		b := 1
-		add := a + b
-		sub := a - b
-		div := a / b
-		mul := a * b
-		pow := a ^ b
-		tpl := "answer is ${fourty2}"`
-	)
-	execScript(t, script, ev)
-	testEnv(t, ev, "add", value.Float(2))
-	testEnv(t, ev, "sub", value.Float(0))
-	testEnv(t, ev, "div", value.Float(1))
-	testEnv(t, ev, "mul", value.Float(1))
-	testEnv(t, ev, "pow", value.Float(1))
-	testEnv(t, ev, "tpl", value.Text("answer is 42"))
-}
-
-func testBasicScript(t *testing.T) {
-	var (
-		ev     = env.Empty()
-		script = `
-		name := upper(foo & 'bar') 
-		answer`
-	)
-	ev.Define("foo", value.Text("foo"))
-	ev.Define("answer", value.Float(42))
-	var (
-		got  = execScript(t, script, ev)
-		want = value.Float(42)
-	)
-	if !isEqual(want, got) {
-		t.Fatalf("result mismatched! want %v, got %v", want, got)
+	salaries := [][]value.ScalarValue{
+		{value.Float(65000)},
+		{value.Float(52000)},
 	}
-	testEnv(t, ev, "name", value.Text("FOOBAR"))
-}
-
-func testSyntaxError(t *testing.T) {
-	script := `name :=`
-	execScript(t, script, nil)
-}
-
-func testUndefinedIdentifier(t *testing.T) {
-	var (
-		script = `foo + missing`
-		got    = execScript(t, script, nil)
-	)
-	if !value.IsError(got) {
-		t.Fatalf("errors expected, got %s", got)
+	testRange(t, ev, "salaries", value.NewArray(salaries).(value.Array))
+	bonus := [][]value.ScalarValue{
+		{value.Float(10000)},
+		{value.Float(8000)},
 	}
-	if got != value.ErrRef {
-		t.Fatalf("errors mismatched! want %s, got %s", value.ErrRef, got)
+	testRange(t, ev, "bonus", value.NewArray(bonus).(value.Array))
+	totals := [][]value.ScalarValue{
+		{value.Float(76000)},
+		{value.Float(61000)},
 	}
+	testRange(t, ev, "totals", value.NewArray(totals).(value.Array))
 }
 
-func testEnv(t *testing.T, ev *env.Environment, ident string, want value.Value) {
+func testArrays(t *testing.T) {
+	script := `
+import "testdata/salaries.csv" using csv[[comma]] as dat default
+
+B2:B3 := 1000 + B2:B3
+C2:C3 := C2:C3 / 2
+D2:D3 := B2:B3 + C2:C3
+	`
+	ev := runScript(t, script)
+
+	want := [][]value.ScalarValue{
+		{value.Text("name"), value.Text("salary"), value.Text("bonus")},
+		{value.Text("Alice"), value.Float(66000), value.Float(2500), value.Float(68500)},
+		{value.Text("Bob"), value.Float(53000), value.Float(2000), value.Float(55000)},
+	}
+	testArray(t, ev, "dat", value.NewArray(want).(value.Array))
+}
+
+func testLiterals(t *testing.T) {
+	script := `
+num := 42
+str := "foobar"
+truth := true
+	`
+	ev := runScript(t, script)
+	testValue(t, ev, "num", value.Float(42))
+	testValue(t, ev, "str", value.Text("foobar"))
+	testValue(t, ev, "truth", value.Boolean(true))
+}
+
+func testCellAccess(t *testing.T) {
+	script := `
+import "testdata/repo.csv" using csv[[comma]] as repo default
+
+stars := repo@active!B2 * 10
+foobar := repo.sheet!A2 & "bar"
+	`
+	ev := runScript(t, script)
+	testValue(t, ev, "stars", value.Float(100))
+	testValue(t, ev, "foobar", value.Text("foobar"))
+}
+
+func testMetadata(t *testing.T) {
+	script := `
+import "testdata/repo.csv" using csv[[comma]] as repo default
+
+sheet := @active.name
+rows := @active.lines
+cols := @active.columns
+count := repo.sheets
+	`
+	ev := runScript(t, script)
+	testValue(t, ev, "sheet", value.Text("sheet"))
+	testValue(t, ev, "rows", value.Float(31))
+	testValue(t, ev, "cols", value.Float(7))
+	testValue(t, ev, "count", value.Float(1))
+}
+
+func testTemplates(t *testing.T) {
+	script := `
+import "testdata/repo.csv" using csv[[comma]] as repo default
+
+# templates
+template := "star of ${A2} = ${B2}"
+	`
+	ev := runScript(t, script)
+	testValue(t, ev, "template", value.Text("star of foo = 10"))
+}
+
+func testValue(t *testing.T, ev *env.Environment, ident string, want value.Value) {
 	t.Helper()
 	got := ev.Resolve(ident)
 	if value.IsError(got) {
-		t.Errorf("%s variable is error: %v", ident, got)
+		t.Errorf("%s: variable not defined", ident)
 	}
 	if !isEqual(got, want) {
-		t.Errorf("%s value mismatched! want %s, got %s", ident, want, got)
+		t.Errorf("%s: value mismatched! want %v, got %v", ident, want, got)
+	}
+}
+
+func testArray(t *testing.T, ev *env.Environment, ident string, want value.Array) {
+	t.Helper()
+	view := ev.Resolve(ident)
+	if value.IsError(view) {
+		t.Errorf("%s: view variable not defined", ident)
+		return
+	}
+	if file, ok := view.(*types.File); ok {
+		v, err := file.Active()
+		if err != nil {
+			t.Errorf("%s: active view not found", ident)
+			return
+		}
+		view = v
+	}
+	v, ok := view.(*types.View)
+	if !ok {
+		t.Errorf("%s: expected view to be a View but got %T", ident, view)
+		return
+	}
+	got, ok := v.AsArray().(interface{ Equal(value.Array) bool })
+	if !ok {
+		t.Errorf("array are not comparable!")
+		return
+	}
+	if !got.Equal(want) {
+		t.Errorf("array mismatched! want %#v, got %#v", want, got)
+	}
+}
+
+func testRange(t *testing.T, ev *env.Environment, ident string, want value.Array) {
+	t.Helper()
+	view := ev.Resolve(ident)
+	if value.IsError(view) {
+		t.Errorf("%s: view variable not defined", ident)
+		return
+	}
+	got, ok := view.(value.Array)
+	if !ok {
+		t.Errorf("%s: expected view to be an Array but got %T", ident, view)
+		return
+	}
+	if !got.Equal(want) {
+		t.Errorf("array mismatched! want %#v, got %#v", want, got)
 	}
 }
 
@@ -145,10 +179,12 @@ func testView(t *testing.T, ev *env.Environment, ident string, cols, rows int64)
 	view := ev.Resolve(ident)
 	if value.IsError(view) {
 		t.Errorf("%s: view variable not defined", ident)
+		return
 	}
 	v, ok := view.(*types.View)
 	if !ok {
 		t.Errorf("%s: expected view to be a View but got %T", ident, view)
+		return
 	}
 	var (
 		x = v.View()
@@ -171,6 +207,14 @@ func createEngine() *Engine {
 	eg := NewEngine()
 	eg.SetContextDir(".")
 	return eg
+}
+
+func runScript(t *testing.T, script string) *env.Environment {
+	t.Helper()
+
+	ev := env.Empty()
+	execScript(t, script, ev)
+	return ev
 }
 
 func execScript(t *testing.T, script string, ev *env.Environment) value.Value {

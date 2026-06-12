@@ -14,3 +14,7 @@ func (d Dimension) Max(other Dimension) Dimension {
 	}
 	return d
 }
+
+func (d Dimension) Equal(other Dimension) bool {
+	return d.Lines == other.Lines && d.Columns == other.Columns
+}

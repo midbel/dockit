@@ -218,11 +218,11 @@ func (c *View) Get(ident string) value.Value {
 	case "lines":
 		rg := c.view.Bounds()
 		lines := rg.Ends.Line - rg.Starts.Line
-		return value.Float(float64(lines))
+		return value.Float(float64(lines) + 1)
 	case "columns":
 		rg := c.view.Bounds()
-		lines := rg.Ends.Column - rg.Starts.Column
-		return value.Float(float64(lines))
+		cols := rg.Ends.Column - rg.Starts.Column
+		return value.Float(float64(cols) + 1)
 	case "cells":
 		var count int
 		for _, x := range c.view.Rows() {

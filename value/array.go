@@ -97,6 +97,24 @@ func (a Array) Clone() Array {
 	return NewArray(other).(Array)
 }
 
+func (a Array) Equal(other Array) bool {
+	dim := a.Dimension()
+	if !dim.Equal(other.Dimension()) {
+		return false
+	}
+	for i := range dim.Lines {
+		for j := range dim.Columns {
+			v1 := a.At(int(i), int(j))
+			v2 := other.At(int(i), int(j))
+			ok := Eq(v1, v2)
+			if !True(ok) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (a Array) Apply(do func(ScalarValue) ScalarValue) {
 	if len(a.Data) == 0 {
 		return
