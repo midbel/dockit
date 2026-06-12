@@ -11,12 +11,48 @@ import (
 )
 
 func TestScript(t *testing.T) {
-	t.Run("literals", testLiterals)
-	t.Run("templates", testTemplates)
-	t.Run("cells", testCellAccess)
+	t.Run("values", func(t *testing.T) {
+		t.Run("literals", testLiterals)
+		t.Run("templates", testTemplates)
+		t.Run("cells", testCellAccess)
+		t.Run("array", testArrays)
+		t.Run("ranges", testRanges)
+	})
 	t.Run("metadata", testMetadata)
-	t.Run("array", testArrays)
-	t.Run("ranges", testRanges)
+	t.Run("errors", func(t *testing.T) {
+		t.Run("syntax", testSyntaxError)
+		t.Run("undefined-identifier", testUndefinedIdentifier)
+	})
+	t.Run("import-file", func(t *testing.T) {
+		t.Run("json", testImportJson)
+		t.Run("xml", testImportXml)
+	})
+}
+
+func testImportJson(t *testing.T) {
+	t.SkipNow()
+}
+
+func testImportXml(t *testing.T) {
+	t.SkipNow()
+}
+
+func testSyntaxError(t *testing.T) {
+	script := `name :=`
+	execScript(t, script, nil)
+}
+
+func testUndefinedIdentifier(t *testing.T) {
+	var (
+		script = `foo + missing`
+		got    = execScript(t, script, nil)
+	)
+	if !value.IsError(got) {
+		t.Fatalf("errors expected, got %s", got)
+	}
+	if got != value.ErrRef {
+		t.Fatalf("errors mismatched! want %s, got %s", value.ErrRef, got)
+	}
 }
 
 func testRanges(t *testing.T) {
@@ -34,17 +70,17 @@ totals := raises + bonus
 		{value.Float(60)},
 		{value.Float(50)},
 	}
-	testRange(t, ev, "salaries", value.NewArray(salaries).(value.Array))
+	checkRange(t, ev, "salaries", value.NewArray(salaries).(value.Array))
 	bonus := [][]value.ScalarValue{
 		{value.Float(10)},
 		{value.Float(8)},
 	}
-	testRange(t, ev, "bonus", value.NewArray(bonus).(value.Array))
+	checkRange(t, ev, "bonus", value.NewArray(bonus).(value.Array))
 	totals := [][]value.ScalarValue{
 		{value.Float(71)},
 		{value.Float(59)},
 	}
-	testRange(t, ev, "totals", value.NewArray(totals).(value.Array))
+	checkRange(t, ev, "totals", value.NewArray(totals).(value.Array))
 }
 
 func testArrays(t *testing.T) {
@@ -76,7 +112,7 @@ D2:D3 := B2:B3 + C2:C3
 			value.Float(53),
 		},
 	}
-	testArray(t, ev, "dat", value.NewArray(want).(value.Array))
+	checkArray(t, ev, "dat", value.NewArray(want).(value.Array))
 }
 
 func testLiterals(t *testing.T) {
@@ -141,7 +177,7 @@ func testValue(t *testing.T, ev *env.Environment, ident string, want value.Value
 	}
 }
 
-func testArray(t *testing.T, ev *env.Environment, ident string, want value.Array) {
+func checkArray(t *testing.T, ev *env.Environment, ident string, want value.Array) {
 	t.Helper()
 	view := ev.Resolve(ident)
 	if value.IsError(view) {
@@ -171,7 +207,7 @@ func testArray(t *testing.T, ev *env.Environment, ident string, want value.Array
 	}
 }
 
-func testRange(t *testing.T, ev *env.Environment, ident string, want value.Array) {
+func checkRange(t *testing.T, ev *env.Environment, ident string, want value.Array) {
 	t.Helper()
 	view := ev.Resolve(ident)
 	if value.IsError(view) {
@@ -188,7 +224,7 @@ func testRange(t *testing.T, ev *env.Environment, ident string, want value.Array
 	}
 }
 
-func testView(t *testing.T, ev *env.Environment, ident string, cols, rows int64) {
+func checkView(t *testing.T, ev *env.Environment, ident string, cols, rows int64) {
 	t.Helper()
 	view := ev.Resolve(ident)
 	if value.IsError(view) {
