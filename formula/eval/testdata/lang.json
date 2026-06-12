@@ -1,0 +1,18 @@
+{
+	"owner": {
+		"name": "midbel"
+	},
+	"languages": [
+		{
+			"name": "go",
+			"star": 10
+		},
+		{
+			"name": "rust"
+		},
+		{
+			"name": "python",
+			"star": 6
+		}
+	]
+}

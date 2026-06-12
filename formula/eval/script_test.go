@@ -30,11 +30,19 @@ func TestScript(t *testing.T) {
 }
 
 func testImportJson(t *testing.T) {
-	t.SkipNow()
+	script := `
+import "testdata/lang.json" using json[[$.owner.name, $.languages.name, $.languages.star | 0]] as lgg
+	`
+	ev := runScript(t, script)
+	_ = ev
 }
 
 func testImportXml(t *testing.T) {
-	t.SkipNow()
+	script := `
+import "testdata/lang.xml" using json[[$.owner.name, $.languages.language.name, $.languages.language.star | 0]] as lgg
+	`
+	ev := runScript(t, script)
+	_ = ev
 }
 
 func testSyntaxError(t *testing.T) {

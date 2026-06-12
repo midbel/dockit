@@ -1,0 +1,21 @@
+<?xml encoding="utf-8" version="1.0"?>
+
+<repo>
+	<owner>
+		<name>midbel</name>
+	</owner>
+	<languages>
+		<language>
+			<name>go</name>
+			<star>10</star>
+		</language>
+		<language>
+			<name>rust</name>
+			<star>6</star>
+		</language>
+		<language>
+			<name>python</name>
+			<star>6</star>
+		</language>
+	</languages>
+</repo>
