@@ -20,6 +20,15 @@ type Loader interface {
 	Open(string, LoaderOptions) (grid.File, error)
 }
 
+func (o LoaderOptions) getAsString(key string) string {
+	v, ok := o[key]
+	if !ok {
+		return ""
+	}
+	s, _ := v.(string)
+	return s
+}
+
 type Writer interface {
 	Write(string, grid.File) error
 }
@@ -31,10 +40,7 @@ func LogLoader() Loader {
 }
 
 func (logLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	pattern, ok := opts["pattern"].(string)
-	if !ok {
-		return nil, fmt.Errorf("missing pattern to load log file")
-	}
+	pattern := opts.getAsString("pattern")
 	return flat.OpenLog(file, pattern)
 }
 
@@ -63,25 +69,23 @@ func (c csvLoader) createReader(file string, opts LoaderOptions) (*csv.Reader, e
 	}
 	rs := csv.NewReader(r)
 
-	if delim, ok := opts["delimiter"].(string); ok {
-		switch delim {
-		case "comma", ",":
-			rs.Comma = ','
-		case "semi", "semicolon", ";":
-			rs.Comma = ';'
-		case "tab", "\t":
-			rs.Comma = '\t'
-		case "colon", ":":
-			rs.Comma = ':'
-		case "detect":
-			delim, err := c.detectDelim(file)
-			if err != nil {
-				return nil, err
-			}
-			rs.Comma = delim
-		default:
-			return nil, fmt.Errorf("unsupported csv delimiter %q", delim)
+	switch delim := opts.getAsString("delimiter"); delim {
+	case "comma", ",":
+		rs.Comma = ','
+	case "semi", "semicolon", ";":
+		rs.Comma = ';'
+	case "tab", "\t":
+		rs.Comma = '\t'
+	case "colon", ":":
+		rs.Comma = ':'
+	case "detect":
+		delim, err := c.detectDelim(file)
+		if err != nil {
+			return nil, err
 		}
+		rs.Comma = delim
+	default:
+		return nil, fmt.Errorf("unsupported csv delimiter %q", delim)
 	}
 	return rs, nil
 }
@@ -133,6 +137,8 @@ func (jsonLoader) processData(arr []any) ([][]value.ScalarValue, error) {
 				x = value.Text(v)
 			case bool:
 				x = value.Boolean(v)
+			case nil:
+				x = value.ErrNA
 			default:
 				return nil, fmt.Errorf("unexpected type from json array")
 			}
@@ -154,17 +160,24 @@ func (jsonLoader) readFile(file string, opts LoaderOptions) ([]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	var ps probe.Options
-	if ps.Missing, err = probe.ParseMissingMode(opts["missing"].(string)); err != nil {
+	var (
+		ps  probe.Options
+		val string
+	)
+	val = opts.getAsString("missing")
+	if ps.Missing, err = probe.ParseMissingMode(val); val != "" && err != nil {
 		return nil, err
 	}
-	if ps.Zip, err = probe.ParseZipMode(opts["zip"].(string)); err != nil {
+	val = opts.getAsString("zip")
+	if ps.Zip, err = probe.ParseZipMode(val); val != "" && err != nil {
 		return nil, err
 	}
-	if ps.Expand, err = probe.ParseExpandMode(opts["expand"].(string)); err != nil {
+	val = opts.getAsString("expand")
+	if ps.Expand, err = probe.ParseExpandMode(val); val != "" && err != nil {
 		return nil, err
 	}
-	result, err := probe.Traverse(opts["query"].(string), data, &ps)
+	query := opts.getAsString("query")
+	result, err := probe.Traverse(query, data, &ps)
 	if err != nil {
 		return nil, err
 	}
