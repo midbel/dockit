@@ -25,24 +25,24 @@ import "testdata/salaries.csv" using csv[[comma]] as dat default
 
 salaries := B2:B3
 bonus := C2:C3 * 2
-raises := salaries + 1000
+raises := salaries + 1
 totals := raises + bonus
 	`
 	ev := runScript(t, script)
 
 	salaries := [][]value.ScalarValue{
-		{value.Float(65000)},
-		{value.Float(52000)},
+		{value.Float(60)},
+		{value.Float(50)},
 	}
 	testRange(t, ev, "salaries", value.NewArray(salaries).(value.Array))
 	bonus := [][]value.ScalarValue{
-		{value.Float(10000)},
-		{value.Float(8000)},
+		{value.Float(10)},
+		{value.Float(8)},
 	}
 	testRange(t, ev, "bonus", value.NewArray(bonus).(value.Array))
 	totals := [][]value.ScalarValue{
-		{value.Float(76000)},
-		{value.Float(61000)},
+		{value.Float(71)},
+		{value.Float(59)},
 	}
 	testRange(t, ev, "totals", value.NewArray(totals).(value.Array))
 }
@@ -51,16 +51,30 @@ func testArrays(t *testing.T) {
 	script := `
 import "testdata/salaries.csv" using csv[[comma]] as dat default
 
-B2:B3 := 1000 + B2:B3
+B2:B3 := 1 + B2:B3
 C2:C3 := C2:C3 / 2
 D2:D3 := B2:B3 + C2:C3
 	`
 	ev := runScript(t, script)
 
 	want := [][]value.ScalarValue{
-		{value.Text("name"), value.Text("salary"), value.Text("bonus")},
-		{value.Text("Alice"), value.Float(66000), value.Float(2500), value.Float(68500)},
-		{value.Text("Bob"), value.Float(53000), value.Float(2000), value.Float(55000)},
+		{
+			value.Text("name"),
+			value.Text("salary"),
+			value.Text("bonus"),
+		},
+		{
+			value.Text("A"),
+			value.Float(61),
+			value.Float(2.5),
+			value.Float(63.5),
+		},
+		{
+			value.Text("B"),
+			value.Float(51),
+			value.Float(2),
+			value.Float(53),
+		},
 	}
 	testArray(t, ev, "dat", value.NewArray(want).(value.Array))
 }
