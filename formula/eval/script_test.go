@@ -31,10 +31,23 @@ func TestScript(t *testing.T) {
 
 func testImportJson(t *testing.T) {
 	script := `
-import "testdata/lang.json" using json[[$.owner.name, $.languages.name, $.languages.star | 0]] as lgg
+import "testdata/lang.json" using json[[$.owner.name, $.languages.name, $.languages.star | 0]] default
+
+name := lang@active.name
+rows := @active.lines
+cols := @active.columns
 	`
 	ev := runScript(t, script)
-	_ = ev
+	checkValue(t, ev, "name", value.Text("sheet"))
+	checkValue(t, ev, "rows", value.Float(3))
+	checkValue(t, ev, "cols", value.Float(3))
+
+	want := [][]value.ScalarValue{
+		{value.Text("midbel"), value.Text("go"), value.Float(10)},
+		{value.Text("midbel"), value.Text("rust"), value.Float(0)},
+		{value.Text("midbel"), value.Text("python"), value.Float(6)},
+	}
+	checkArray(t, ev, "lang", value.NewArray(want).(value.Array))
 }
 
 func testImportXml(t *testing.T) {
@@ -127,12 +140,12 @@ func testLiterals(t *testing.T) {
 	script := `
 num := 42
 str := "foobar"
-truth := true
+truth := 42 >= 0	
 	`
 	ev := runScript(t, script)
-	testValue(t, ev, "num", value.Float(42))
-	testValue(t, ev, "str", value.Text("foobar"))
-	testValue(t, ev, "truth", value.Boolean(true))
+	checkValue(t, ev, "num", value.Float(42))
+	checkValue(t, ev, "str", value.Text("foobar"))
+	checkValue(t, ev, "truth", value.Boolean(true))
 }
 
 func testCellAccess(t *testing.T) {
@@ -143,8 +156,8 @@ stars := repo@active!B2 * 10
 foobar := repo.sheet!A2 & "bar"
 	`
 	ev := runScript(t, script)
-	testValue(t, ev, "stars", value.Float(100))
-	testValue(t, ev, "foobar", value.Text("foobar"))
+	checkValue(t, ev, "stars", value.Float(100))
+	checkValue(t, ev, "foobar", value.Text("foobar"))
 }
 
 func testMetadata(t *testing.T) {
@@ -157,10 +170,10 @@ cols := @active.columns
 count := repo.sheets
 	`
 	ev := runScript(t, script)
-	testValue(t, ev, "sheet", value.Text("sheet"))
-	testValue(t, ev, "rows", value.Float(31))
-	testValue(t, ev, "cols", value.Float(7))
-	testValue(t, ev, "count", value.Float(1))
+	checkValue(t, ev, "sheet", value.Text("sheet"))
+	checkValue(t, ev, "rows", value.Float(31))
+	checkValue(t, ev, "cols", value.Float(7))
+	checkValue(t, ev, "count", value.Float(1))
 }
 
 func testTemplates(t *testing.T) {
@@ -171,10 +184,10 @@ import "testdata/repo.csv" using csv[[comma]] as repo default
 template := "star of ${A2} = ${B2}"
 	`
 	ev := runScript(t, script)
-	testValue(t, ev, "template", value.Text("star of foo = 10"))
+	checkValue(t, ev, "template", value.Text("star of foo = 10"))
 }
 
-func testValue(t *testing.T, ev *env.Environment, ident string, want value.Value) {
+func checkValue(t *testing.T, ev *env.Environment, ident string, want value.Value) {
 	t.Helper()
 	got := ev.Resolve(ident)
 	if value.IsError(got) {

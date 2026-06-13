@@ -5,14 +5,17 @@
 	"languages": [
 		{
 			"name": "go",
-			"star": 10
+			"star": 10,
+			"active": true
 		},
 		{
-			"name": "rust"
+			"name": "rust",
+			"active": false
 		},
 		{
 			"name": "python",
-			"star": 6
+			"star": 6,
+			"active": false
 		}
 	]
 }
