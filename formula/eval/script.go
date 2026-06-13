@@ -66,7 +66,7 @@ func (v *evalVisitor) VisitIncludeFile(expr parse.IncludeFile) error {
 	return nil
 }
 
-func (v evalVisitor) VisitMergeRef(expr parse.MergeRef) error {
+func (v *evalVisitor) VisitMergeRef(expr parse.MergeRef) error {
 	return nil
 }
 
