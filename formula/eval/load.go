@@ -2,10 +2,12 @@ package eval
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/midbel/codecs/json"
 	"github.com/midbel/codecs/probe"
+	"github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/grid"
@@ -94,21 +96,29 @@ func (c csvLoader) detectDelim(file string) (byte, error) {
 	return csv.Sniff(file)
 }
 
-type jsonLoader struct {
-	five bool
+type structuredLoader struct {
+	decoder func(r io.Reader) (any, error)
 }
 
 func JsonLoader() Loader {
-	return jsonLoader{}
-}
-
-func Json5Loader() Loader {
-	return jsonLoader{
-		five: true,
+	return structuredLoader{
+		decoder: json.Decode,
 	}
 }
 
-func (j jsonLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
+func Json5Loader() Loader {
+	return structuredLoader{
+		decoder: json.Decode,
+	}
+}
+
+func XmlLoader() Loader {
+	return structuredLoader{
+		decoder: xml.Decode,
+	}
+}
+
+func (j structuredLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
 	arr, err := j.readFile(file, opts)
 	if err != nil {
 		return nil, err
@@ -120,7 +130,7 @@ func (j jsonLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
 	return flat.NewFileFromRows(values), nil
 }
 
-func (jsonLoader) processData(arr []any) ([][]value.ScalarValue, error) {
+func (structuredLoader) processData(arr []any) ([][]value.ScalarValue, error) {
 	var values [][]value.ScalarValue
 	for i := range arr {
 		vs, ok := arr[i].([]any)
@@ -149,14 +159,14 @@ func (jsonLoader) processData(arr []any) ([][]value.ScalarValue, error) {
 	return values, nil
 }
 
-func (jsonLoader) readFile(file string, opts LoaderOptions) ([]any, error) {
+func (j structuredLoader) readFile(file string, opts LoaderOptions) ([]any, error) {
 	r, err := os.Open(file)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
 
-	data, err := json.Decode(r)
+	data, err := j.decoder(r)
 	if err != nil {
 		return nil, err
 	}
@@ -186,16 +196,6 @@ func (jsonLoader) readFile(file string, opts LoaderOptions) ([]any, error) {
 		return nil, fmt.Errorf("array expected")
 	}
 	return arr, nil
-}
-
-type xmlLoader struct{}
-
-func XmlLoader() Loader {
-	return xmlLoader{}
-}
-
-func (xmlLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	return nil, nil
 }
 
 type xlsxLoader struct{}

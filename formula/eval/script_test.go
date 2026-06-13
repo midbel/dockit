@@ -52,10 +52,23 @@ cols := @active.columns
 
 func testImportXml(t *testing.T) {
 	script := `
-import "testdata/lang.xml" using json[[$.owner.name, $.languages.language.name, $.languages.language.star | 0]] as lgg
+import "testdata/lang.xml" using json[[$.owner.name, $.languages.language.name, $.languages.language.star:as("number") | 0]] default
+
+name := lang@active.name
+rows := @active.lines
+cols := @active.columns
 	`
 	ev := runScript(t, script)
-	_ = ev
+	checkValue(t, ev, "name", value.Text("sheet"))
+	checkValue(t, ev, "rows", value.Float(3))
+	checkValue(t, ev, "cols", value.Float(3))
+
+	want := [][]value.ScalarValue{
+		{value.Text("midbel"), value.Text("go"), value.Float(10)},
+		{value.Text("midbel"), value.Text("rust"), value.Float(6)},
+		{value.Text("midbel"), value.Text("python"), value.Float(6)},
+	}
+	checkArray(t, ev, "lang", value.NewArray(want).(value.Array))
 }
 
 func testSyntaxError(t *testing.T) {
