@@ -130,6 +130,10 @@ func (v astVisitor) VisitIncludeFile(expr parse.IncludeFile) error {
 	return nil
 }
 
+func (v astVisitor) VisitMergeRef(expr parse.MergeRef) error {
+	return nil
+}
+
 func (v astVisitor) VisitImportFile(expr parse.ImportFile) error {
 	node := v.newStmt("import", expr)
 	node.Params = []Param{

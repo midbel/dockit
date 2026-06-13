@@ -52,7 +52,7 @@ cols := @active.columns
 
 func testImportXml(t *testing.T) {
 	script := `
-import "testdata/lang.xml" using json[[$.owner.name, $.languages.language.name, $.languages.language.star:as("number") | 0]] default
+import "testdata/lang.xml" using xml[[$.owner.name, $.languages.language.name, $.languages.language.star:as("number") | 0]] default
 
 name := lang@active.name
 rows := @active.lines

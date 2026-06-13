@@ -6,6 +6,7 @@ type Visitor interface {
 	VisitIncludeFile(IncludeFile) error
 	VisitImportFile(ImportFile) error
 	VisitExportRef(ExportRef) error
+	VisitMergeRef(MergeRef) error
 	VisitPrintRef(PrintRef) error
 	VisitUseRef(UseRef) error
 

@@ -66,6 +66,10 @@ func (v *evalVisitor) VisitIncludeFile(expr parse.IncludeFile) error {
 	return nil
 }
 
+func (v evalVisitor) VisitMergeRef(expr parse.MergeRef) error {
+	return nil
+}
+
 func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 	options := expr.Options()
 	switch spec := expr.Specifier(); expr.Format() {
