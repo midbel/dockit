@@ -38,7 +38,7 @@ rows := @active.lines
 cols := @active.columns
 	`
 	ev := runScript(t, script)
-	checkValue(t, ev, "name", value.Text("sheet"))
+	checkValue(t, ev, "name", value.Text("sheet1"))
 	checkValue(t, ev, "rows", value.Float(3))
 	checkValue(t, ev, "cols", value.Float(3))
 
@@ -59,7 +59,7 @@ rows := @active.lines
 cols := @active.columns
 	`
 	ev := runScript(t, script)
-	checkValue(t, ev, "name", value.Text("sheet"))
+	checkValue(t, ev, "name", value.Text("sheet1"))
 	checkValue(t, ev, "rows", value.Float(3))
 	checkValue(t, ev, "cols", value.Float(3))
 

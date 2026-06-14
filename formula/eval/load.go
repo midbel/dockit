@@ -119,15 +119,24 @@ func XmlLoader() Loader {
 }
 
 func (j structuredLoader) Open(file string, opts LoaderOptions) (grid.File, error) {
-	arr, err := j.readFile(file, opts)
+	result, err := j.readFile(file, opts)
 	if err != nil {
 		return nil, err
 	}
-	values, err := j.processData(arr)
-	if err != nil {
-		return nil, err
+	var sheets []*flat.Sheet
+	for i, set := range result.Sets {
+		arr, ok := set.([]any)		
+		if !ok {
+			return nil, fmt.Errorf("expected array")
+		}
+		values, err := j.processData(arr)
+		if err != nil {
+			return nil, err
+		}
+		sh := flat.NewSheet(fmt.Sprintf("sheet%d", i+1), values)
+		sheets = append(sheets, sh)
 	}
-	return flat.NewFileFromRows(values), nil
+	return flat.NewFileFromSheets(sheets...), nil
 }
 
 func (structuredLoader) processData(arr []any) ([][]value.ScalarValue, error) {
@@ -159,7 +168,7 @@ func (structuredLoader) processData(arr []any) ([][]value.ScalarValue, error) {
 	return values, nil
 }
 
-func (j structuredLoader) readFile(file string, opts LoaderOptions) ([]any, error) {
+func (j structuredLoader) readFile(file string, opts LoaderOptions) (*probe.Result, error) {
 	r, err := os.Open(file)
 	if err != nil {
 		return nil, err
@@ -187,15 +196,7 @@ func (j structuredLoader) readFile(file string, opts LoaderOptions) ([]any, erro
 		return nil, err
 	}
 	query := opts.getAsString("query")
-	result, err := probe.Traverse(query, data, &ps)
-	if err != nil {
-		return nil, err
-	}
-	arr, ok := result.([]any)
-	if !ok {
-		return nil, fmt.Errorf("array expected")
-	}
-	return arr, nil
+	return probe.Execute(query, data, &ps)
 }
 
 type xlsxLoader struct{}
