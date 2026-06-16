@@ -677,6 +677,15 @@ func parseAlias(p *Parser) (Expr, error) {
 
 func parseIdentifier(p *Parser) (Expr, error) {
 	if expr, ok := p.aliases[p.currentLiteral()]; ok {
+		switch expr.(type) {
+		case CellAddr:
+		case RangeAddr:
+		case ColumnAddr:
+		case Access:
+		case CellAccess:
+		default:
+			return nil, p.makeError("only cell/column/range addresses can be aliased!")
+		}
 		return expr, nil
 	}
 	id := NewIdentifier(p.currentLiteral())
