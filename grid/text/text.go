@@ -22,9 +22,9 @@ func Match(str, pattern string) bool {
 				return true
 			}
 			offset += z
-			for ptr < len(ptr) {
-				x, z := utf8.DecodeRuneInString(ptr[str:])
-				if x == z {
+			for ptr < len(str) {
+				x, z := utf8.DecodeRuneInString(str[ptr:])
+				if x == c {
 					break
 				}
 				ptr += z
