@@ -1,6 +1,7 @@
 package parse
 
 const (
+	kwAlias   = "alias"
 	kwImport  = "import"
 	kwExport  = "export"
 	kwMerge   = "merge"
@@ -27,6 +28,7 @@ const (
 
 func isKeyword(str string) bool {
 	switch str {
+	case kwAlias:
 	case kwAssert:
 	case kwImport:
 	case kwMerge:

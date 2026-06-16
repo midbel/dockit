@@ -21,6 +21,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "identifier(")
 		io.WriteString(w, e.name)
 		io.WriteString(w, ")")
+	case AliasRef:
+		io.WriteString(w, "alias(")
+		io.WriteString(w, e.ident)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.target)
+		io.WriteString(w, ")")
 	case Literal:
 		io.WriteString(w, "literal(")
 		io.WriteString(w, e.value)

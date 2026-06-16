@@ -184,6 +184,10 @@ func (v astVisitor) VisitIdentifier(expr parse.Identifier) error {
 	return nil
 }
 
+func (v astVisitor) VisitAliasRef(expr parse.AliasRef) error {
+	return nil
+}
+
 func (v astVisitor) VisitLiteral(expr parse.Literal) error {
 	node := v.newValue("literal", expr)
 	node.Value = expr.Text()

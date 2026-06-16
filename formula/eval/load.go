@@ -125,7 +125,7 @@ func (j structuredLoader) Open(file string, opts LoaderOptions) (grid.File, erro
 	}
 	var sheets []*flat.Sheet
 	for i, set := range result.Sets {
-		arr, ok := set.([]any)		
+		arr, ok := set.([]any)
 		if !ok {
 			return nil, fmt.Errorf("expected array")
 		}

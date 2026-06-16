@@ -99,6 +99,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterInfix(op.ConcatAssign, parseAssignment)
 
 	g.RegisterPrefixKeyword(kwAssert, parseAssert)
+	g.RegisterPrefixKeyword(kwAlias, parseAlias)
 	g.RegisterPrefixKeyword(kwUse, parseUse)
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
@@ -175,6 +176,8 @@ type Parser struct {
 
 	stack   *GrammarStack
 	dialect DialectRules
+
+	aliases map[string]Expr
 }
 
 func ParseFormula(str string) (Expr, error) {
@@ -207,9 +210,10 @@ func ParseOdsFormula(str string) (Expr, error) {
 
 func NewParser(scan Scanner) (*Parser, error) {
 	p := Parser{
-		scan:  scan,
-		stack: new(GrammarStack),
-		mode:  ModeScript,
+		scan:    scan,
+		stack:   new(GrammarStack),
+		mode:    ModeScript,
+		aliases: make(map[string]Expr),
 	}
 	switch scan.Type() {
 	case TypeOds:
@@ -652,7 +656,29 @@ func parseLiteral(p *Parser) (Expr, error) {
 	return NewTemplate(list), nil
 }
 
+func parseAlias(p *Parser) (Expr, error) {
+	p.next()
+	expr, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	if !p.is(op.Keyword) && p.currentLiteral() != kwAs {
+		return nil, p.makeError("expected 'as' keyword after expression")
+	}
+	p.next()
+	var (
+		ident = p.currentLiteral()
+		alias = NewAlias(ident, expr)
+	)
+	p.next()
+	p.aliases[ident] = alias
+	return alias, nil
+}
+
 func parseIdentifier(p *Parser) (Expr, error) {
+	if expr, ok := p.aliases[p.currentLiteral()]; ok {
+		return expr, nil
+	}
 	id := NewIdentifier(p.currentLiteral())
 	p.next()
 	return id, nil

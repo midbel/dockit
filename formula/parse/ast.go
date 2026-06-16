@@ -74,6 +74,30 @@ func (m Macro) String() string {
 	return m.name
 }
 
+type AliasRef struct {
+	ident  string
+	target Expr
+}
+
+func NewAlias(ident string, target Expr) Expr {
+	return AliasRef{
+		ident:  ident,
+		target: target,
+	}
+}
+
+func (a AliasRef) Target() Expr {
+	return a.target
+}
+
+func (a AliasRef) String() string {
+	return fmt.Sprintf("alias(%s)", a.ident)
+}
+
+func (a AliasRef) Accept(v Visitor) error {
+	return v.VisitAliasRef(a)
+}
+
 type UseRef struct {
 	ident    string
 	readOnly bool

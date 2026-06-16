@@ -693,6 +693,10 @@ func (v *evalVisitor) VisitIdentifier(expr parse.Identifier) error {
 	return nil
 }
 
+func (v *evalVisitor) VisitAliasRef(expr parse.AliasRef) error {
+	return v.visitExpr(expr.Target())
+}
+
 func (v *evalVisitor) VisitColumnAddr(expr parse.ColumnAddr) error {
 	var (
 		view  = v.ctx.CurrentActiveView()

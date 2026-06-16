@@ -11,6 +11,7 @@ type Visitor interface {
 	VisitUseRef(UseRef) error
 
 	VisitIdentifier(Identifier) error
+	VisitAliasRef(AliasRef) error
 	VisitLiteral(Literal) error
 	VisitNumber(Number) error
 	VisitCellAddr(CellAddr) error
