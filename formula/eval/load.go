@@ -108,7 +108,7 @@ func JsonLoader() Loader {
 
 func Json5Loader() Loader {
 	return structuredLoader{
-		decoder: json.Decode,
+		decoder: json.Decode5,
 	}
 }
 

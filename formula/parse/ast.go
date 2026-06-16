@@ -225,7 +225,8 @@ func (i ImportFile) Accept(v Visitor) error {
 }
 
 type MergeRef struct {
-	ident Expr
+	target  Expr
+	sources []Expr
 }
 
 func (m MergeRef) String() string {

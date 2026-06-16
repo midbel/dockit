@@ -17,6 +17,9 @@ func TestScript(t *testing.T) {
 		t.Run("cells", testCellAccess)
 		t.Run("array", testArrays)
 		t.Run("ranges", testRanges)
+		t.Run("slices-bounded", testSliceBounded)
+		t.Run("slices-selection", testSliceSelection)
+		t.Run("slices-filter", testSliceFilter)
 	})
 	t.Run("metadata", testMetadata)
 	t.Run("errors", func(t *testing.T) {
@@ -27,6 +30,26 @@ func TestScript(t *testing.T) {
 		t.Run("json", testImportJson)
 		t.Run("xml", testImportXml)
 	})
+	t.Run("export", testExport)
+	t.Run("assert", testAssert)
+	t.Run("print", testPrint)
+	t.Run("use", testUse)
+}
+
+func testAssert(t *testing.T) {
+	t.SkipNow()
+}
+
+func testPrint(t *testing.T) {
+	t.SkipNow()
+}
+
+func testUse(t *testing.T) {
+
+}
+
+func testExport(t *testing.T) {
+	t.SkipNow()
 }
 
 func testImportJson(t *testing.T) {
@@ -147,6 +170,27 @@ D2:D3 := B2:B3 + C2:C3
 		},
 	}
 	checkArray(t, ev, "dat", value.NewArray(want).(value.Array))
+}
+
+func testSliceFilter(t *testing.T) {
+	script := ``
+	ev := runScript(t, script)
+	_ = ev
+	t.SkipNow()
+}
+
+func testSliceBounded(t *testing.T) {
+	script := ``
+	ev := runScript(t, script)
+	_ = ev
+	t.SkipNow()
+}
+
+func testSliceSelection(t *testing.T) {
+	script := ``
+	ev := runScript(t, script)
+	_ = ev
+	t.SkipNow()
 }
 
 func testLiterals(t *testing.T) {
