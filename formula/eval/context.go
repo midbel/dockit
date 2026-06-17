@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/types"
@@ -89,6 +90,10 @@ func (c *EngineContext) Export(val value.Value, out, format string) error {
 		if err := f.Sync(); err != nil {
 			return err
 		}
+	}
+	if format == "" {
+		ext := filepath.Ext(out)
+		format = strings.TrimPrefix(ext, ".")
 	}
 	wb, err := c.createFile(format)
 	if err != nil {

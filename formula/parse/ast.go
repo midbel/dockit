@@ -305,9 +305,9 @@ func (p PrintRef) Accept(v Visitor) error {
 type ExportRef struct {
 	expr Expr
 
-	file string
-	format    string // using
-	options   map[string]any
+	file    string
+	format  string // using
+	options map[string]any
 
 	Position
 }
