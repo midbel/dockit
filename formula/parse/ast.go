@@ -224,19 +224,6 @@ func (i ImportFile) Accept(v Visitor) error {
 	return v.VisitImportFile(i)
 }
 
-type MergeRef struct {
-	target  Expr
-	sources []Expr
-}
-
-func (m MergeRef) String() string {
-	return fmt.Sprintf("merge")
-}
-
-func (m MergeRef) Accept(v Visitor) error {
-	return v.VisitMergeRef(m)
-}
-
 type AssertType int8
 
 const (

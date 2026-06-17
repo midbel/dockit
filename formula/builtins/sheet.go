@@ -157,7 +157,7 @@ func Merge(args []value.Value) value.Value {
 		}
 		f.Append(v)
 	}
-	return nil
+	return f
 }
 
 var sheetBuiltins = []gbs.Builtin{

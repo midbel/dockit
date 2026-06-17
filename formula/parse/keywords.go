@@ -4,7 +4,6 @@ const (
 	kwAlias   = "alias"
 	kwImport  = "import"
 	kwExport  = "export"
-	kwMerge   = "merge"
 	kwUse     = "use"
 	kwUsing   = "using"
 	kwWith    = "with"
@@ -31,7 +30,6 @@ func isKeyword(str string) bool {
 	case kwAlias:
 	case kwAssert:
 	case kwImport:
-	case kwMerge:
 	case kwElse:
 	case kwUse:
 	case kwUsing:

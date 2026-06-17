@@ -104,7 +104,6 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
-	g.RegisterPrefixKeyword(kwMerge, parseMerge)
 	// g.RegisterPrefixKeyword(kwInclude, parseInclude)
 	// g.RegisterPrefixKeyword(kwMacro, parseMacro)
 
@@ -1138,10 +1137,6 @@ func parseImport(p *Parser) (Expr, error) {
 	}
 	stmt.readOnly = ro
 	return stmt, nil
-}
-
-func parseMerge(p *Parser) (Expr, error) {
-	return nil, nil
 }
 
 func parseReadonly(p *Parser) (bool, error) {

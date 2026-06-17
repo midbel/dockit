@@ -206,9 +206,6 @@ func dumpExpr(w io.Writer, expr Expr) {
 			io.WriteString(w, ", readonly")
 		}
 		io.WriteString(w, ")")
-	case MergeRef:
-		io.WriteString(w, "merge(")
-		io.WriteString(w, ")")
 	case UseRef:
 		io.WriteString(w, "use(")
 		io.WriteString(w, e.ident)
