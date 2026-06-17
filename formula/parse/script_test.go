@@ -17,6 +17,10 @@ func TestClearStmt(t *testing.T) {
 	t.SkipNow()
 }
 
+func TestExportStmt(t *testing.T) {
+	t.SkipNow()
+}
+
 type importExpect struct {
 	File      string
 	Format    string

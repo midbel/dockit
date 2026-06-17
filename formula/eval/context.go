@@ -84,34 +84,13 @@ func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error)
 	return loader.Open(file, opts)
 }
 
-func (c *EngineContext) EmptyFile(format string) (*types.File, error) {
-	var file grid.File
-	switch format {
-	case "oxml", "xlsx":
-		file = oxml.NewFile()
-	case "ods":
-		file = ods.NewFile()
-	case "csv", "tsv":
-	case "":
-		format = c.GetOptionString(slx.Make("export", "format"))
-		if format == "" {
-			return nil, fmt.Errorf("empty file can not be created for format %s", format)
-		}
-		return c.EmptyFile(format)
-	default:
-		return nil, fmt.Errorf("empty file can not be created for format %s", format)
-	}
-	tmp := types.NewFileValue(file, false)
-	return tmp.(*types.File), nil
-}
-
 func (c *EngineContext) Export(val value.Value, out, format string) error {
 	if f, ok := val.(interface{ Sync() error }); ok {
 		if err := f.Sync(); err != nil {
 			return err
 		}
 	}
-	wb, err := c.EmptyFile(format)
+	wb, err := c.createFile(format)
 	if err != nil {
 		return err
 	}
@@ -238,4 +217,25 @@ func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.V
 		err = types.ErrType
 	}
 	return tv, err
+}
+
+func (c *EngineContext) createFile(format string) (*types.File, error) {
+	var file grid.File
+	switch format {
+	case "oxml", "xlsx":
+		file = oxml.NewFile()
+	case "ods":
+		file = ods.NewFile()
+	case "csv", "tsv":
+	case "":
+		format = c.GetOptionString(slx.Make("export", "format"))
+		if format == "" {
+			return nil, fmt.Errorf("empty file can not be created for format %s", format)
+		}
+		return c.createFile(format)
+	default:
+		return nil, fmt.Errorf("empty file can not be created for format %s", format)
+	}
+	tmp := types.NewFileValue(file, false)
+	return tmp.(*types.File), nil
 }
