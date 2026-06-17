@@ -871,10 +871,7 @@ func parseExport(p *Parser) (Expr, error) {
 	}
 	if p.is(op.Keyword) && p.currentLiteral() == kwWith {
 		p.next()
-		if p.is(op.Literal) {
-			stmt.specifier = p.currentLiteral()
-			p.next()
-		} else if p.is(op.BegGrp) {
+		if p.is(op.BegGrp) {
 			opts, err := parseKeyValuePairs(p)
 			if err != nil {
 				return nil, err

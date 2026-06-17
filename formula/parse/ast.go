@@ -306,9 +306,7 @@ type ExportRef struct {
 	expr Expr
 
 	file string
-
 	format    string // using
-	specifier string // with
 	options   map[string]any
 
 	Position
