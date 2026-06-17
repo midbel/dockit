@@ -31,13 +31,37 @@ func TestScript(t *testing.T) {
 		t.Run("xml", testImportXml)
 	})
 	t.Run("export", testExport)
-	t.Run("assert", testAssert)
+	t.Run("assert", func(t *testing.T) {
+		t.Run("assertion-ok", testAssertOk)
+		t.Run("assertion-fail", testAssertFail)
+	})
 	t.Run("print", testPrint)
 	t.Run("use", testUse)
 }
 
-func testAssert(t *testing.T) {
-	t.SkipNow()
+func testAssertOk(t *testing.T) {
+	var (
+		script = `assert 1 = 1`
+		engine = createEngine()
+	)
+	_, err := engine.Exec(strings.NewReader(script), env.Empty())
+	if err != nil {
+		t.Errorf("expected assertion to pass! got error: %s", err)
+	}
+}
+
+func testAssertFail(t *testing.T) {
+	var (
+		script = `assert 1 != 1`
+		engine = createEngine()
+	)
+	_, err := engine.Exec(strings.NewReader(script), env.Empty())
+	if err == nil {
+		t.Errorf("expected assertion to fail")
+	}
+	if _, ok := err.(AbortError); ok {
+		t.Errorf("expected error to be of type AbortError, got %T", err)
+	}
 }
 
 func testPrint(t *testing.T) {
@@ -45,7 +69,7 @@ func testPrint(t *testing.T) {
 }
 
 func testUse(t *testing.T) {
-
+	t.SkipNow()
 }
 
 func testExport(t *testing.T) {
