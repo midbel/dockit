@@ -17,21 +17,21 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-type evalVisitor struct {
+type evaluator struct {
 	ctx    *EngineContext
 	stack  *ds.Stack[value.Value]
 	phases *ds.Stack[scriptPhase]
 }
 
-func evalScript(ctx *EngineContext) *evalVisitor {
-	return &evalVisitor{
+func evalScript(ctx *EngineContext) *evaluator {
+	return &evaluator{
 		ctx:    ctx,
 		stack:  ds.NewStack[value.Value](),
 		phases: ds.NewStack[scriptPhase](),
 	}
 }
 
-func (v *evalVisitor) Run(expr parse.Expr) (value.Value, error) {
+func (v *evaluator) Run(expr parse.Expr) (value.Value, error) {
 	if err := v.visitExpr(expr); err != nil {
 		return value.ErrValue, err
 	}
@@ -39,7 +39,7 @@ func (v *evalVisitor) Run(expr parse.Expr) (value.Value, error) {
 	return v.normalize(val)
 }
 
-func (v *evalVisitor) VisitScript(expr parse.Script) error {
+func (v *evaluator) VisitScript(expr parse.Script) error {
 	for i := range expr.Body {
 		if err := v.visitExpr(expr.Body[i]); err != nil {
 			return err
@@ -48,7 +48,7 @@ func (v *evalVisitor) VisitScript(expr parse.Script) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitUseRef(expr parse.UseRef) error {
+func (v *evaluator) VisitUseRef(expr parse.UseRef) error {
 	val, err := v.resolve(expr.Identifier())
 	if err != nil {
 		return err
@@ -62,15 +62,15 @@ func (v *evalVisitor) VisitUseRef(expr parse.UseRef) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitIncludeFile(expr parse.IncludeFile) error {
+func (v *evaluator) VisitIncludeFile(expr parse.IncludeFile) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitMergeRef(expr parse.MergeRef) error {
+func (v *evaluator) VisitMergeRef(expr parse.MergeRef) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
+func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {
 	options := expr.Options()
 	switch spec := expr.Specifier(); expr.Format() {
 	case "csv":
@@ -113,7 +113,7 @@ func (v *evalVisitor) VisitImportFile(expr parse.ImportFile) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitPrintRef(expr parse.PrintRef) error {
+func (v *evaluator) VisitPrintRef(expr parse.PrintRef) error {
 	val, err := v.visitNormalize(expr.Expr())
 	if err != nil {
 		return err
@@ -121,7 +121,7 @@ func (v *evalVisitor) VisitPrintRef(expr parse.PrintRef) error {
 	return v.ctx.Print(val)
 }
 
-func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
+func (v *evaluator) VisitExportRef(expr parse.ExportRef) error {
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (v *evalVisitor) VisitExportRef(expr parse.ExportRef) error {
 	return v.ctx.Export(val, expr.File(), expr.Format())
 }
 
-func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {
+func (v *evaluator) VisitCellAccess(expr parse.CellAccess) error {
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
 	}
@@ -156,7 +156,7 @@ func (v *evalVisitor) VisitCellAccess(expr parse.CellAccess) error {
 	return err
 }
 
-func (v *evalVisitor) VisitSpecial(expr parse.SpecialAccess) error {
+func (v *evaluator) VisitSpecial(expr parse.SpecialAccess) error {
 	var target value.Value
 	if src := expr.Object(); src != nil {
 		err := v.visitExpr(src)
@@ -180,7 +180,7 @@ func (v *evalVisitor) VisitSpecial(expr parse.SpecialAccess) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitAccess(expr parse.Access) error {
+func (v *evaluator) VisitAccess(expr parse.Access) error {
 	if err := v.visitExpr(expr.Object()); err != nil {
 		return err
 	}
@@ -223,7 +223,7 @@ func evalAccess(obj value.Value, prop parse.Identifier) value.Value {
 	}
 }
 
-func (v *evalVisitor) VisitTemplate(expr parse.Template) error {
+func (v *evaluator) VisitTemplate(expr parse.Template) error {
 	var str strings.Builder
 	for _, e := range expr.Parts() {
 		if err := v.visitExpr(e); err != nil {
@@ -236,12 +236,12 @@ func (v *evalVisitor) VisitTemplate(expr parse.Template) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitDeferred(expr parse.Deferred) error {
+func (v *evaluator) VisitDeferred(expr parse.Deferred) error {
 	v.pushValue(expr)
 	return nil
 }
 
-func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
+func (v *evaluator) VisitAssignment(expr parse.Assignment) error {
 	v.enterPhase(phaseAssign)
 	defer v.leavePhase()
 
@@ -275,7 +275,7 @@ func (v *evalVisitor) VisitAssignment(expr parse.Assignment) error {
 	return err
 }
 
-func (v *evalVisitor) VisitAssert(expr parse.Assert) error {
+func (v *evaluator) VisitAssert(expr parse.Assert) error {
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func (v *evalVisitor) VisitAssert(expr parse.Assert) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitBinary(expr parse.Binary) error {
+func (v *evaluator) VisitBinary(expr parse.Binary) error {
 	v.enterPhase(phaseBinary)
 	defer v.leavePhase()
 
@@ -334,7 +334,7 @@ func (v *evalVisitor) VisitBinary(expr parse.Binary) error {
 	return err
 }
 
-func (v *evalVisitor) evalScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+func (v *evaluator) evalScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	if err := value.HasErrors(left, right); err != nil {
 		return err, nil
 	}
@@ -370,7 +370,7 @@ func (v *evalVisitor) evalScalarBinary(left, right value.Value, oper op.Op) (val
 	return ret, nil
 }
 
-func (v *evalVisitor) evalScalarInArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+func (v *evaluator) evalScalarInArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	if v, ok := right.(interface{ AsArray() value.ArrayValue }); ok {
 		right = v.AsArray()
 	}
@@ -395,7 +395,7 @@ func (v *evalVisitor) evalScalarInArrayBinary(left, right value.Value, oper op.O
 	})
 }
 
-func (v *evalVisitor) evalArrayWithScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+func (v *evaluator) evalArrayWithScalarBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	if v, ok := left.(interface{ AsArray() value.ArrayValue }); ok {
 		left = v.AsArray()
 	}
@@ -420,7 +420,7 @@ func (v *evalVisitor) evalArrayWithScalarBinary(left, right value.Value, oper op
 	})
 }
 
-func (v *evalVisitor) evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+func (v *evaluator) evalArrayBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	left, _ = v.normalize(left)
 	right, _ = v.normalize(right)
 
@@ -446,7 +446,7 @@ func (v *evalVisitor) evalArrayBinary(left, right value.Value, oper op.Op) (valu
 	return res, nil
 }
 
-func (v *evalVisitor) evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
+func (v *evaluator) evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
 	lv, ok := left.(*types.View)
 	if !ok {
 		return value.ErrValue, nil
@@ -481,7 +481,7 @@ func (v *evalVisitor) evalViewBinary(left, right value.Value, oper op.Op) (value
 	return types.NewViewValue(view), nil
 }
 
-func (v *evalVisitor) VisitNot(expr parse.Not) error {
+func (v *evaluator) VisitNot(expr parse.Not) error {
 	val, err := v.visitNormalize(expr.Expr())
 	if err != nil {
 		v.pushValue(value.ErrValue)
@@ -492,7 +492,7 @@ func (v *evalVisitor) VisitNot(expr parse.Not) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitAnd(expr parse.And) error {
+func (v *evaluator) VisitAnd(expr parse.And) error {
 	left, err := v.visitNormalize(expr.Left())
 	if err != nil {
 		v.pushValue(value.ErrValue)
@@ -508,7 +508,7 @@ func (v *evalVisitor) VisitAnd(expr parse.And) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitOr(expr parse.Or) error {
+func (v *evaluator) VisitOr(expr parse.Or) error {
 	left, err := v.visitNormalize(expr.Left())
 	if err != nil {
 		v.pushValue(value.ErrValue)
@@ -524,7 +524,7 @@ func (v *evalVisitor) VisitOr(expr parse.Or) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitPostfix(expr parse.Postfix) error {
+func (v *evaluator) VisitPostfix(expr parse.Postfix) error {
 	val, err := v.visitNormalize(expr.Expr())
 	if err != nil {
 		return err
@@ -542,7 +542,7 @@ func (v *evalVisitor) VisitPostfix(expr parse.Postfix) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitUnary(expr parse.Unary) error {
+func (v *evaluator) VisitUnary(expr parse.Unary) error {
 	val, err := v.visitNormalize(expr.Expr())
 	if err != nil {
 		return err
@@ -563,19 +563,19 @@ func (v *evalVisitor) VisitUnary(expr parse.Unary) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitLiteral(expr parse.Literal) error {
+func (v *evaluator) VisitLiteral(expr parse.Literal) error {
 	val := value.Text(expr.Text())
 	v.pushValue(val)
 	return nil
 }
 
-func (v *evalVisitor) VisitNumber(expr parse.Number) error {
+func (v *evaluator) VisitNumber(expr parse.Number) error {
 	val := value.Float(expr.Float())
 	v.pushValue(val)
 	return nil
 }
 
-func (v *evalVisitor) VisitCall(expr parse.Call) error {
+func (v *evaluator) VisitCall(expr parse.Call) error {
 	v.enterPhase(phaseCall)
 	defer v.leavePhase()
 
@@ -611,7 +611,7 @@ func (v *evalVisitor) VisitCall(expr parse.Call) error {
 	return nil
 }
 
-func (v *evalVisitor) vectorizeCall(fn gbs.BuiltinFunc, args []parse.Expr) error {
+func (v *evaluator) vectorizeCall(fn gbs.BuiltinFunc, args []parse.Expr) error {
 	var (
 		count  int
 		values []value.Value
@@ -650,7 +650,7 @@ func (v *evalVisitor) vectorizeCall(fn gbs.BuiltinFunc, args []parse.Expr) error
 	return nil
 }
 
-func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
+func (v *evaluator) VisitSlice(expr parse.Slice) error {
 	var (
 		val value.Value
 		err error
@@ -687,17 +687,17 @@ func (v *evalVisitor) VisitSlice(expr parse.Slice) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitIdentifier(expr parse.Identifier) error {
+func (v *evaluator) VisitIdentifier(expr parse.Identifier) error {
 	val, _ := v.resolve(expr.Ident())
 	v.pushValue(val)
 	return nil
 }
 
-func (v *evalVisitor) VisitAliasRef(expr parse.AliasRef) error {
+func (v *evaluator) VisitAliasRef(expr parse.AliasRef) error {
 	return v.visitExpr(expr.Target())
 }
 
-func (v *evalVisitor) VisitColumnAddr(expr parse.ColumnAddr) error {
+func (v *evaluator) VisitColumnAddr(expr parse.ColumnAddr) error {
 	var (
 		view  = v.ctx.CurrentActiveView()
 		bd    = view.Bounds()
@@ -709,19 +709,19 @@ func (v *evalVisitor) VisitColumnAddr(expr parse.ColumnAddr) error {
 	return nil
 }
 
-func (v *evalVisitor) VisitCellAddr(expr parse.CellAddr) error {
+func (v *evaluator) VisitCellAddr(expr parse.CellAddr) error {
 	val := v.ctx.At(expr.Position)
 	v.pushValue(val)
 	return nil
 }
 
-func (v *evalVisitor) VisitRangeAddr(expr parse.RangeAddr) error {
+func (v *evaluator) VisitRangeAddr(expr parse.RangeAddr) error {
 	rg := types.NewRangeValue(expr.StartAt().Position, expr.EndAt().Position)
 	v.pushValue(rg)
 	return nil
 }
 
-func (v *evalVisitor) visitExpr(expr parse.Expr) error {
+func (v *evaluator) visitExpr(expr parse.Expr) error {
 	a, ok := expr.(parse.VisitableExpr)
 	if !ok {
 		return ErrEval
@@ -729,14 +729,14 @@ func (v *evalVisitor) visitExpr(expr parse.Expr) error {
 	return a.Accept(v)
 }
 
-func (v *evalVisitor) visitNormalize(expr parse.Expr) (value.Value, error) {
+func (v *evaluator) visitNormalize(expr parse.Expr) (value.Value, error) {
 	if err := v.visitExpr(expr); err != nil {
 		return value.ErrValue, err
 	}
 	return v.normalize(v.popValue())
 }
 
-func (v *evalVisitor) normalize(val value.Value) (value.Value, error) {
+func (v *evaluator) normalize(val value.Value) (value.Value, error) {
 	switch val := val.(type) {
 	case *types.Range:
 		rg := val.Range()
@@ -751,11 +751,11 @@ func (v *evalVisitor) normalize(val value.Value) (value.Value, error) {
 	}
 }
 
-func (v *evalVisitor) resolve(ident string) (value.Value, error) {
+func (v *evaluator) resolve(ident string) (value.Value, error) {
 	return v.ctx.Resolve(ident), nil
 }
 
-func (v *evalVisitor) top() value.Value {
+func (v *evaluator) top() value.Value {
 	val, ok := v.stack.Peek()
 	if !ok {
 		return value.ErrValue
@@ -763,11 +763,11 @@ func (v *evalVisitor) top() value.Value {
 	return val
 }
 
-func (v *evalVisitor) pushValue(val value.Value) {
+func (v *evaluator) pushValue(val value.Value) {
 	v.stack.Push(val)
 }
 
-func (v *evalVisitor) popValue() value.Value {
+func (v *evaluator) popValue() value.Value {
 	val, ok := v.stack.Pop()
 	if !ok {
 		return value.ErrValue
@@ -775,19 +775,19 @@ func (v *evalVisitor) popValue() value.Value {
 	return val
 }
 
-func (v *evalVisitor) enterPhase(ph scriptPhase) {
+func (v *evaluator) enterPhase(ph scriptPhase) {
 	v.phases.Push(ph)
 }
 
-func (v *evalVisitor) leavePhase() {
+func (v *evaluator) leavePhase() {
 	v.phases.Pop()
 }
 
-func (v *evalVisitor) inAssignment() bool {
+func (v *evaluator) inAssignment() bool {
 	return v.inPhase(phaseAssign)
 }
 
-func (v *evalVisitor) inPhase(ph scriptPhase) bool {
+func (v *evaluator) inPhase(ph scriptPhase) bool {
 	top, _ := v.phases.Peek()
 	return top == ph
 }
