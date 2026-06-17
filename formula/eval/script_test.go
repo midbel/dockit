@@ -34,6 +34,8 @@ func TestScript(t *testing.T) {
 	t.Run("assert", func(t *testing.T) {
 		t.Run("assertion-ok", testAssertOk)
 		t.Run("assertion-fail", testAssertFail)
+		t.Run("assertion-fail-ignore", testAssertFailIgnore)
+		t.Run("assertion-fail-warning", testAssertFailWarning)
 	})
 	t.Run("print", testPrint)
 	t.Run("use", testUse)
@@ -52,15 +54,40 @@ func testAssertOk(t *testing.T) {
 
 func testAssertFail(t *testing.T) {
 	var (
-		script = `assert 1 != 1`
+		script = `assert 1 <> 1`
 		engine = createEngine()
 	)
 	_, err := engine.Exec(strings.NewReader(script), env.Empty())
 	if err == nil {
 		t.Errorf("expected assertion to fail")
 	}
-	if _, ok := err.(AbortError); ok {
+	if _, ok := err.(AbortError); !ok {
 		t.Errorf("expected error to be of type AbortError, got %T", err)
+	}
+}
+
+func testAssertFailIgnore(t *testing.T) {
+	var (
+		script = `assert as ignore 1 <> 1`
+		engine = createEngine()
+	)
+	_, err := engine.Exec(strings.NewReader(script), env.Empty())
+	if err != nil {
+		t.Errorf("expected assertion to fail without error, got %s", err)
+	}
+}
+
+func testAssertFailWarning(t *testing.T) {
+	var (
+		script = `assert as warn 1 <> 1`
+		engine = createEngine()
+	)
+	got, err := engine.Exec(strings.NewReader(script), env.Empty())
+	if err != nil {
+		t.Errorf("expected assertion to fail without error, got %s", err)
+	}
+	if got != value.ErrValue {
+		t.Errorf("result mismatched! want %s, got %s", value.ErrValue, got)
 	}
 }
 

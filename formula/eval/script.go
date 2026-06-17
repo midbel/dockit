@@ -295,6 +295,7 @@ func (v *evaluator) VisitAssert(expr parse.Assert) error {
 			}
 			return Abort(msg)
 		case parse.AssertWarn:
+			v.pushValue(value.ErrValue)
 		case parse.AssertIgnore:
 		}
 	}
