@@ -286,34 +286,34 @@ func (p PrintRef) Accept(v Visitor) error {
 	return v.VisitPrintRef(p)
 }
 
-type ExportRef struct {
+type ExportFile struct {
 	expr Expr
 
-	file    string
+	file    Expr
 	format  string // using
 	options map[string]any
 
 	Position
 }
 
-func (e ExportRef) Expr() Expr {
+func (e ExportFile) Expr() Expr {
 	return e.expr
 }
 
-func (e ExportRef) File() string {
+func (e ExportFile) File() Expr {
 	return e.file
 }
 
-func (e ExportRef) Format() string {
+func (e ExportFile) Format() string {
 	return e.format
 }
 
-func (e ExportRef) String() string {
+func (e ExportFile) String() string {
 	return fmt.Sprintf("export %s", e.expr.String())
 }
 
-func (e ExportRef) Accept(v Visitor) error {
-	return v.VisitExportRef(e)
+func (e ExportFile) Accept(v Visitor) error {
+	return v.VisitExportFile(e)
 }
 
 type CellAccess struct {

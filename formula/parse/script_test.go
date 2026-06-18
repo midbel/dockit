@@ -17,10 +17,6 @@ func TestClearStmt(t *testing.T) {
 	t.SkipNow()
 }
 
-func TestExportStmt(t *testing.T) {
-	t.SkipNow()
-}
-
 type importExpect struct {
 	File      string
 	Format    string
@@ -125,7 +121,7 @@ func TestImportStmt(t *testing.T) {
 
 func assertImportRef(t *testing.T, expr string, got ImportFile, want importExpect) {
 	t.Helper()
-	if want.File != got.file {
+	if want.File != got.file.String() {
 		t.Errorf("%s: file mismatched! want %s, got %s", expr, want.File, got.file)
 	}
 	if want.Alias != got.alias {

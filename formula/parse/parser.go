@@ -860,7 +860,7 @@ func parsePrint(p *Parser) (Expr, error) {
 func parseExport(p *Parser) (Expr, error) {
 	p.next()
 	var (
-		stmt ExportRef
+		stmt ExportFile
 		err  error
 	)
 	if stmt.expr, err = p.parse(powLowest); err != nil {
@@ -890,11 +890,10 @@ func parseExport(p *Parser) (Expr, error) {
 		return nil, p.makeError("keyword 'to' expected")
 	}
 	p.next()
-	if !p.is(op.Literal) {
-		return nil, p.makeError("literal expected")
+	stmt.file, err = p.parse(powLowest)
+	if err != nil {
+		return nil, err
 	}
-	stmt.file = p.currentLiteral()
-	p.next()
 	return stmt, nil
 }
 

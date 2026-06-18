@@ -122,12 +122,17 @@ func (v *evaluator) VisitPrintRef(expr parse.PrintRef) error {
 	return v.ctx.Print(val)
 }
 
-func (v *evaluator) VisitExportRef(expr parse.ExportRef) error {
+func (v *evaluator) VisitExportFile(expr parse.ExportFile) error {
 	if err := v.visitExpr(expr.Expr()); err != nil {
 		return err
 	}
 	val := v.popValue()
-	return v.ctx.Export(val, expr.File(), expr.Format())
+
+	target, err := v.visitNormalize(expr.File())
+	if err != nil {
+		return err
+	}
+	return v.ctx.Export(val, target.String(), expr.Format())
 }
 
 func (v *evaluator) VisitCellAccess(expr parse.CellAccess) error {

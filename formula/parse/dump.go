@@ -214,7 +214,7 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "print(")
 		dumpExpr(w, e.expr)
 		io.WriteString(w, ")")
-	case ExportRef:
+	case ExportFile:
 	default:
 		io.WriteString(w, fmt.Sprintf("unknown(%T)", e))
 	}

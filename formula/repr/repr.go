@@ -143,7 +143,7 @@ func (v astVisitor) VisitImportFile(expr parse.ImportFile) error {
 	return nil
 }
 
-func (v astVisitor) VisitExportRef(expr parse.ExportRef) error {
+func (v astVisitor) VisitExportFile(expr parse.ExportFile) error {
 	node := v.newStmt("export", expr)
 	v.pushNode(node)
 	return nil
