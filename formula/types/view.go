@@ -63,6 +63,13 @@ func (c *View) Sync() error {
 	return err
 }
 
+func (c *View) Rename(name string) {
+	r, ok := c.view.(interface{ Rename(string) })
+	if ok {
+		r.Rename(name)
+	}
+}
+
 func (c *View) IsLock() bool {
 	k, ok := c.view.(interface{ IsLock() bool })
 	if ok {

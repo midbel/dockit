@@ -277,6 +277,10 @@ func (s *Sheet) Name() string {
 	return s.Label
 }
 
+func (s *Sheet) Rename(name string) {
+	s.Label = name
+}
+
 func (s *Sheet) Reload(_ value.Context) error {
 	return grid.ErrSupported
 }

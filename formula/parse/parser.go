@@ -104,6 +104,11 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwImport, parseImport)
 	g.RegisterPrefixKeyword(kwPrint, parsePrint)
 	g.RegisterPrefixKeyword(kwExport, parseExport)
+	g.RegisterPrefixKeyword(kwLock, parseLock)
+	g.RegisterPrefixKeyword(kwUnlock, parseUnlock)
+	g.RegisterPrefixKeyword(kwRename, parseRename)
+	g.RegisterPrefixKeyword(kwInsert, parseInsert)
+	g.RegisterPrefixKeyword(kwRemove, parseRemove)
 	// g.RegisterPrefixKeyword(kwInclude, parseInclude)
 	// g.RegisterPrefixKeyword(kwMacro, parseMacro)
 
@@ -1080,6 +1085,51 @@ func parseInclude(p *Parser) (Expr, error) {
 		p.next()
 	}
 	return NewInclude(file, alias), nil
+}
+
+func parseLock(p *Parser) (Expr, error) {
+	p.next()
+	ident, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	return newLock(ident), nil
+}
+
+func parseUnlock(p *Parser) (Expr, error) {
+	p.next()
+	ident, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	return newUnlock(ident), nil
+}
+
+func parseRename(p *Parser) (Expr, error) {
+	p.next()
+	ident, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	if !p.is(op.Keyword) && p.currentLiteral() != kwAs {
+		return nil, p.makeError("keyword 'as' expected")
+	}
+	p.next()
+	name, err := p.parse(powLowest)
+	if err != nil {
+		return nil, err
+	}
+	return newRename(ident, name), nil
+}
+
+func parseInsert(p *Parser) (Expr, error) {
+	p.next()
+	return nil, nil
+}
+
+func parseRemove(p *Parser) (Expr, error) {
+	p.next()
+	return nil, nil
 }
 
 func parseImport(p *Parser) (Expr, error) {

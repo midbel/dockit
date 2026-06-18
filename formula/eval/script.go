@@ -67,14 +67,41 @@ func (v *evaluator) VisitIncludeFile(expr parse.IncludeFile) error {
 }
 
 func (v *evaluator) VisitLock(expr parse.Lock) error {
+	val, err := v.visitNormalize(expr.Ident())
+	if err != nil {
+		return nil
+	}
+	lock, ok := val.(interface{ Lock() })
+	if !ok {
+		return fmt.Errorf("given value can not be locked")
+	}
+	lock.Lock()
 	return nil
 }
 
 func (v *evaluator) VisitUnlock(expr parse.Unlock) error {
+	val, err := v.visitNormalize(expr.Ident())
+	if err != nil {
+		return nil
+	}
+	lock, ok := val.(interface{ Unlock() })
+	if !ok {
+		return fmt.Errorf("given value can not be unlocked")
+	}
+	lock.Unlock()
 	return nil
 }
 
 func (v *evaluator) VisitRename(expr parse.Rename) error {
+	val, err := v.visitNormalize(expr.Ident())
+	if err != nil {
+		return nil
+	}
+	view, ok := val.(interface{ Rename(string) })
+	if !ok {
+		return fmt.Errorf("given value can not be renamed")
+	}
+	view.Rename(expr.Name().String())
 	return nil
 }
 

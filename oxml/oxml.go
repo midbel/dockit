@@ -240,6 +240,13 @@ func (s *Sheet) Name() string {
 	return s.Label
 }
 
+func (s *Sheet) Rename(name string) {
+	if s.IsLock() {
+		return
+	}
+	s.Label = name
+}
+
 func (s *Sheet) View(rg *layout.Range) grid.View {
 	bd := s.Bounds()
 	rg.Starts = rg.Starts.Update(bd.Starts)
