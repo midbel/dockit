@@ -93,10 +93,36 @@ func MakeAddr(args []value.Value) value.Value {
 	return value.ErrValue
 }
 
+var mergeBuiltin = gbs.Builtin{
+	Name:     "merge",
+	Desc:     "",
+	Category: "sheet",
+	Params: []gbs.Param{
+		gbs.Var(gbs.Object("value", "", value.TypeAny)),
+	},
+	Func:     Merge,
+}
+
+func Merge(args []value.Value) value.Value {
+	if err := value.HasErrors(args...); err != nil {
+		return err
+	}
+	f := types.NewFileValue(flat.NewFile(), false).(*types.File)
+	for _, a := range args {
+		v, ok := a.(*types.View)
+		if !ok {
+			return value.ErrValue
+		}
+		f.Append(v)
+	}
+	return f
+}
+
 var sheetBuiltins = []gbs.Builtin{
 	mkRefBuiltin,
 	mkRangeBuiltin,
 	newSheetBuiltin,
 	fileBuiltin,
 	copyBuiltin,
+	mergeBuiltin,
 }
