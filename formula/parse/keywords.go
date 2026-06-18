@@ -4,6 +4,11 @@ const (
 	kwAlias   = "alias"
 	kwImport  = "import"
 	kwExport  = "export"
+	kwRename  = "rename"
+	kwLock    = "lock"
+	kwUnlock  = "unlock"
+	kwInsert  = "insert"
+	kwRemove  = "remove"
 	kwUse     = "use"
 	kwUsing   = "using"
 	kwWith    = "with"
@@ -30,6 +35,11 @@ func isKeyword(str string) bool {
 	case kwAlias:
 	case kwAssert:
 	case kwImport:
+	case kwRename:
+	case kwLock:
+	case kwUnlock:
+	case kwInsert:
+	case kwRemove:
 	case kwElse:
 	case kwUse:
 	case kwUsing:

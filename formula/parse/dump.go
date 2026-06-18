@@ -180,6 +180,32 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ", ")
 		io.WriteString(w, e.msg)
 		io.WriteString(w, ")")
+	case Lock:
+		io.WriteString(w, "lock(")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ")")
+	case Unlock:
+		io.WriteString(w, "unlock(")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ")")
+	case Rename:
+		io.WriteString(w, "rename(")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.name)
+		io.WriteString(w, ")")
+	case Insert:
+		io.WriteString(w, "insert(")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.target)
+		io.WriteString(w, ")")
+	case Remove:
+		io.WriteString(w, "remove(")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.target)
+		io.WriteString(w, ")")
 	case IncludeFile:
 		io.WriteString(w, "include(")
 		io.WriteString(w, e.file)

@@ -163,6 +163,134 @@ func (i IncludeFile) Accept(v Visitor) error {
 	return v.VisitIncludeFile(i)
 }
 
+type Lock struct {
+	ident Expr
+}
+
+func newLock(ident Expr) Expr {
+	return Lock{
+		ident: ident,
+	}
+}
+
+func (e Lock) Ident() Expr {
+	return e.ident
+}
+
+func (e Lock) String() string {
+	return fmt.Sprintf("lock(%s)", e.ident)
+}
+
+func (e Lock) Accept(v Visitor) error {
+	return v.VisitLock(e)
+}
+
+type Unlock struct {
+	ident Expr
+}
+
+func newUnlock(ident Expr) Expr {
+	return Unlock{
+		ident: ident,
+	}
+}
+
+func (e Unlock) Ident() Expr {
+	return e.ident
+}
+
+func (e Unlock) String() string {
+	return fmt.Sprintf("unlock(%s)", e.ident)
+}
+
+func (e Unlock) Accept(v Visitor) error {
+	return v.VisitUnlock(e)
+}
+
+type Rename struct {
+	ident Expr
+	name  Expr
+}
+
+func newRename(ident, name Expr) Expr {
+	return Rename{
+		ident: ident,
+		name:  name,
+	}
+}
+
+func (e Rename) Ident() Expr {
+	return e.ident
+}
+
+func (e Rename) Name() Expr {
+	return e.name
+}
+
+func (e Rename) String() string {
+	return fmt.Sprintf("rename(%s, %s)", e.ident, e.name)
+}
+
+func (e Rename) Accept(v Visitor) error {
+	return v.VisitRename(e)
+}
+
+type Insert struct {
+	ident  Expr
+	target Expr
+}
+
+func newInsert(ident, target Expr) Expr {
+	return Insert{
+		ident:  ident,
+		target: target,
+	}
+}
+
+func (e Insert) Ident() Expr {
+	return e.ident
+}
+
+func (e Insert) Target() Expr {
+	return e.target
+}
+
+func (e Insert) String() string {
+	return fmt.Sprintf("insert(%s, %s)", e.ident, e.target)
+}
+
+func (e Insert) Accept(v Visitor) error {
+	return v.VisitInsert(e)
+}
+
+type Remove struct {
+	ident  Expr
+	target Expr
+}
+
+func newRemove(ident, target Expr) Expr {
+	return Remove{
+		ident:  ident,
+		target: target,
+	}
+}
+
+func (e Remove) Ident() Expr {
+	return e.ident
+}
+
+func (e Remove) Target() Expr {
+	return e.target
+}
+
+func (e Remove) String() string {
+	return fmt.Sprintf("remove(%s, %s)", e.ident, e.target)
+}
+
+func (e Remove) Accept(v Visitor) error {
+	return v.VisitRemove(e)
+}
+
 type ImportFile struct {
 	// file string
 	file Expr

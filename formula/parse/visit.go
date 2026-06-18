@@ -8,6 +8,11 @@ type Visitor interface {
 	VisitExportFile(ExportFile) error
 	VisitPrintRef(PrintRef) error
 	VisitUseRef(UseRef) error
+	VisitLock(Lock) error
+	VisitUnlock(Unlock) error
+	VisitRename(Rename) error
+	VisitInsert(Insert) error
+	VisitRemove(Remove) error
 
 	VisitIdentifier(Identifier) error
 	VisitAliasRef(AliasRef) error

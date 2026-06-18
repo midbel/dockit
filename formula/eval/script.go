@@ -66,6 +66,26 @@ func (v *evaluator) VisitIncludeFile(expr parse.IncludeFile) error {
 	return nil
 }
 
+func (v *evaluator) VisitLock(expr parse.Lock) error {
+	return nil
+}
+
+func (v *evaluator) VisitUnlock(expr parse.Unlock) error {
+	return nil
+}
+
+func (v *evaluator) VisitRename(expr parse.Rename) error {
+	return nil
+}
+
+func (v *evaluator) VisitInsert(expr parse.Insert) error {
+	return nil
+}
+
+func (v *evaluator) VisitRemove(expr parse.Remove) error {
+	return nil
+}
+
 func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {
 	options := expr.Options()
 	switch spec := expr.Specifier(); expr.Format() {

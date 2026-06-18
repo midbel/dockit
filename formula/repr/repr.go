@@ -143,6 +143,36 @@ func (v astVisitor) VisitImportFile(expr parse.ImportFile) error {
 	return nil
 }
 
+func (v astVisitor) VisitLock(expr parse.Lock) error {
+	node := v.newStmt("lock", expr)
+	v.pushNode(node)
+	return nil
+}
+
+func (v astVisitor) VisitUnlock(expr parse.Unlock) error {
+	node := v.newStmt("unlock", expr)
+	v.pushNode(node)
+	return nil
+}
+
+func (v astVisitor) VisitRename(expr parse.Rename) error {
+	node := v.newStmt("rename", expr)
+	v.pushNode(node)
+	return nil
+}
+
+func (v astVisitor) VisitInsert(expr parse.Insert) error {
+	node := v.newStmt("insert", expr)
+	v.pushNode(node)
+	return nil
+}
+
+func (v astVisitor) VisitRemove(expr parse.Remove) error {
+	node := v.newStmt("remove", expr)
+	v.pushNode(node)
+	return nil
+}
+
 func (v astVisitor) VisitExportFile(expr parse.ExportFile) error {
 	node := v.newStmt("export", expr)
 	v.pushNode(node)
