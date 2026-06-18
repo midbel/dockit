@@ -19,48 +19,6 @@ func CopySheet(args []value.Value) value.Value {
 	return value.ErrValue
 }
 
-var lockBuiltin = gbs.Builtin{
-	Name:     "lock",
-	Desc:     "",
-	Category: "sheet",
-	Params: []gbs.Param{
-		gbs.Object("value", "", value.TypeAny),
-	},
-	Func: Lock,
-}
-
-func Lock(args []value.Value) value.Value {
-	k, ok := args[0].(interface{ Lock() error })
-	if ok {
-		err := k.Lock()
-		if err != nil {
-			return value.ErrValue
-		}
-	}
-	return value.Boolean(true)
-}
-
-var unlockBuiltin = gbs.Builtin{
-	Name:     "unlock",
-	Desc:     "",
-	Category: "sheet",
-	Params: []gbs.Param{
-		gbs.Object("value", "", value.TypeAny),
-	},
-	Func: Unlock,
-}
-
-func Unlock(args []value.Value) value.Value {
-	k, ok := args[0].(interface{ Unlock() error })
-	if ok {
-		err := k.Unlock()
-		if err != nil {
-			return value.ErrValue
-		}
-	}
-	return value.Boolean(true)
-}
-
 var fileBuiltin = gbs.Builtin{
 	Name:     "file",
 	Desc:     "",
@@ -135,39 +93,10 @@ func MakeAddr(args []value.Value) value.Value {
 	return value.ErrValue
 }
 
-var mergeBuiltin = gbs.Builtin{
-	Name:     "merge",
-	Desc:     "",
-	Category: "sheet",
-	Params: []gbs.Param{
-		gbs.Var(gbs.Object("value", "", value.TypeAny)),
-	},
-	Func: Merge,
-}
-
-func Merge(args []value.Value) value.Value {
-	if err := value.HasErrors(args...); err != nil {
-		return err
-	}
-	f := types.NewFileValue(flat.NewFile(), false).(*types.File)
-	for _, a := range args {
-		v, ok := a.(*types.View)
-		if !ok {
-			return value.ErrValue
-		}
-		f.Append(v)
-	}
-	return f
-}
-
 var sheetBuiltins = []gbs.Builtin{
 	mkRefBuiltin,
 	mkRangeBuiltin,
 	newSheetBuiltin,
 	fileBuiltin,
-	unlockBuiltin,
-	lockBuiltin,
-	joinBuiltin,
 	copyBuiltin,
-	mergeBuiltin,
 }
