@@ -48,6 +48,7 @@ func (v flagValue) Get(name string) value.Value {
 		if err != nil {
 			return value.ErrValue
 		}
+		ix--
 		if ix < 0 || ix >= len(v.args) {
 			return value.ErrName
 		}

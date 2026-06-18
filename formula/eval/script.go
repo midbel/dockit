@@ -85,21 +85,26 @@ func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {
 		options["query"] = spec
 	default:
 	}
-	file, err := v.ctx.Open(expr.File(), options)
+	source, err := v.visitNormalize(expr.File())
+	if err != nil {
+		return err
+	}
+	name := source.String()
+	file, err := v.ctx.Open(name, options)
 	if err != nil {
 		return err
 	}
 	alias := expr.Alias()
-	if file := expr.File(); alias == "" {
-		file = filepath.Base(file)
+	if alias == "" {
+		name = filepath.Base(name)
 		for {
-			ext := filepath.Ext(file)
+			ext := filepath.Ext(name)
 			if ext == "" {
 				break
 			}
-			file = strings.TrimSuffix(file, ext)
+			name = strings.TrimSuffix(name, ext)
 		}
-		alias = file
+		alias = name
 	}
 	wb := types.NewFileValue(file, expr.ReadOnly())
 	v.ctx.Define(alias, wb)

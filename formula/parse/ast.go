@@ -164,7 +164,8 @@ func (i IncludeFile) Accept(v Visitor) error {
 }
 
 type ImportFile struct {
-	file string
+	// file string
+	file Expr
 
 	format    string // using
 	specifier string // with
@@ -188,15 +189,11 @@ func (i ImportFile) Specifier() string {
 	return i.specifier
 }
 
-func (i ImportFile) File() string {
+func (i ImportFile) File() Expr {
 	return i.file
 }
 
 func (i ImportFile) Format() string {
-	if i.format == "" {
-		ext := filepath.Ext(i.file)
-		return strings.TrimPrefix(ext, ".")
-	}
 	return i.format
 }
 

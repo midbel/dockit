@@ -190,7 +190,7 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, ")")
 	case ImportFile:
 		io.WriteString(w, "import(")
-		io.WriteString(w, e.file)
+		dumpExpr(w, e.file)
 		if e.format != "" {
 			io.WriteString(w, ", format: ")
 			io.WriteString(w, e.format)

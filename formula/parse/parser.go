@@ -1085,13 +1085,14 @@ func parseInclude(p *Parser) (Expr, error) {
 
 func parseImport(p *Parser) (Expr, error) {
 	p.next()
-	var stmt ImportFile
-	if !p.is(op.Literal) {
-		msg := fmt.Sprintf("literal expected instead of %s", p.curr)
-		return nil, p.makeError(msg)
+	var (
+		stmt ImportFile
+		err  error
+	)
+	stmt.file, err = p.parse(powLowest)
+	if err != nil {
+		return nil, err
 	}
-	stmt.file = p.currentLiteral()
-	p.next()
 	if p.is(op.Keyword) && p.currentLiteral() == kwUsing {
 		p.next()
 		if !p.is(op.Ident) {

@@ -133,7 +133,7 @@ func (v astVisitor) VisitIncludeFile(expr parse.IncludeFile) error {
 func (v astVisitor) VisitImportFile(expr parse.ImportFile) error {
 	node := v.newStmt("import", expr)
 	node.Params = []Param{
-		{Name: "file", Value: expr.File()},
+		{Name: "file", Value: expr.File().String()},
 		{Name: "alias", Value: expr.Alias()},
 		{Name: "format", Value: expr.Format()},
 		{Name: "default", Value: expr.Default()},
