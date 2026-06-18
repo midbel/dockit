@@ -235,15 +235,37 @@ func (e Rename) Accept(v Visitor) error {
 	return v.VisitRename(e)
 }
 
+type colrow int8
+
+const (
+	Row colrow = 1 << iota
+	Column
+)
+
+type anchor int8
+
+const (
+	AnchorDefault anchor = 1 << iota
+	AnchorAfter
+	AnchorBefore
+)
+
+// insert [count] <row(s)|column(s)> <before|after> <offset> into <sheet> [with <value>]
 type Insert struct {
+	count  Expr
+	offset Expr
 	ident  Expr
-	target Expr
+	value  Expr
+	anchor
+	colrow
 }
 
-func newInsert(ident, target Expr) Expr {
+func newInsert(ident, count, offset, value Expr) Expr {
 	return Insert{
 		ident:  ident,
-		target: target,
+		count:  count,
+		offset: offset,
+		value:  value,
 	}
 }
 
@@ -251,27 +273,40 @@ func (e Insert) Ident() Expr {
 	return e.ident
 }
 
-func (e Insert) Target() Expr {
-	return e.target
+func (e Insert) Count() Expr {
+	return e.count
+}
+
+func (e Insert) Offset() Expr {
+	return e.offset
+}
+
+func (e Insert) Value() Expr {
+	return e.value
 }
 
 func (e Insert) String() string {
-	return fmt.Sprintf("insert(%s, %s)", e.ident, e.target)
+	return fmt.Sprintf("insert(%s)", e.ident)
 }
 
 func (e Insert) Accept(v Visitor) error {
 	return v.VisitInsert(e)
 }
 
+// remove [count] <row(s)|column(s)> <before|after> <offset> from <sheet>
 type Remove struct {
+	count  Expr
+	offset Expr
 	ident  Expr
-	target Expr
+	anchor
+	colrow
 }
 
-func newRemove(ident, target Expr) Expr {
+func newRemove(ident, count, offset Expr) Expr {
 	return Remove{
 		ident:  ident,
-		target: target,
+		count:  count,
+		offset: offset,
 	}
 }
 
@@ -279,12 +314,16 @@ func (e Remove) Ident() Expr {
 	return e.ident
 }
 
-func (e Remove) Target() Expr {
-	return e.target
+func (e Remove) Count() Expr {
+	return e.count
+}
+
+func (e Remove) Offset() Expr {
+	return e.offset
 }
 
 func (e Remove) String() string {
-	return fmt.Sprintf("remove(%s, %s)", e.ident, e.target)
+	return fmt.Sprintf("remove(%s)", e.ident)
 }
 
 func (e Remove) Accept(v Visitor) error {

@@ -197,14 +197,10 @@ func dumpExpr(w io.Writer, expr Expr) {
 	case Insert:
 		io.WriteString(w, "insert(")
 		dumpExpr(w, e.ident)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.target)
 		io.WriteString(w, ")")
 	case Remove:
 		io.WriteString(w, "remove(")
 		dumpExpr(w, e.ident)
-		io.WriteString(w, ", ")
-		dumpExpr(w, e.target)
 		io.WriteString(w, ")")
 	case IncludeFile:
 		io.WriteString(w, "include(")
