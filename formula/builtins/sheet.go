@@ -100,7 +100,7 @@ var mergeBuiltin = gbs.Builtin{
 	Params: []gbs.Param{
 		gbs.Var(gbs.Object("value", "", value.TypeAny)),
 	},
-	Func:     Merge,
+	Func: Merge,
 }
 
 func Merge(args []value.Value) value.Value {

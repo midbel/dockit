@@ -19,15 +19,7 @@ type Reader interface {
 	Read() ([]string, error)
 }
 
-type Mode int
-
-const (
-	flatMode Mode = iota
-	memMode
-)
-
 type File struct {
-	mode   Mode
 	sheets []*Sheet
 }
 
@@ -60,7 +52,6 @@ func OpenReader(r Reader) (*File, error) {
 	}
 	file := File{
 		sheets: []*Sheet{sh},
-		mode:   flatMode,
 	}
 	return &file, nil
 }
@@ -77,7 +68,6 @@ func NewFileFromRows(rs [][]value.ScalarValue) *File {
 
 func NewFileFromSheets(sheets ...*Sheet) *File {
 	f := NewFile()
-	f.mode = memMode
 	for _, s := range sheets {
 		f.sheets = append(f.sheets, s)
 	}
@@ -98,16 +88,13 @@ func (f *File) WriteTo(w io.Writer) error {
 }
 
 func (f *File) ActiveSheet() (grid.View, error) {
+	if len(f.sheets) == 0 {
+		return nil, fmt.Errorf("no sheets in file")
+	}
 	return f.sheets[0], nil
 }
 
 func (f *File) Sheet(ident string) (grid.View, error) {
-	if f.mode == flatMode {
-		if ident != defaultSheetName {
-			return nil, fmt.Errorf("default sheet not found")
-		}
-		return f.sheets[0], nil
-	}
 	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
 		return s.Label == ident
 	})
@@ -147,30 +134,26 @@ func (f *File) Infos() []grid.ViewInfo {
 }
 
 func (f *File) Rename(oldName, newName string) error {
-	if err := f.supported(); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (f *File) Copy(oldName, newName string) error {
-	if err := f.supported(); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (f *File) AppendSheet(view grid.View) error {
-	if err := f.supported(); err != nil {
-		return err
+	sh, ok := view.(*Sheet)
+	if !ok {
+		sh = NewSheet(view.Name(), nil)
+		if err := sh.FillWith(view); err != nil {
+			return err
+		}
 	}
+	f.sheets = append(f.sheets, sh)
 	return nil
 }
 
 func (f *File) RemoveSheet(name string) error {
-	if err := f.supported(); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -179,9 +162,6 @@ func (f *File) CloneSheet(ident string, mode grid.CopyMode) (grid.View, error) {
 }
 
 func (f *File) Sync() error {
-	if err := f.supported(); err != nil {
-		return err
-	}
 	ctx := grid.FileContext(f)
 	for _, s := range f.sheets {
 		if err := s.Sync(ctx); err != nil {
@@ -191,18 +171,10 @@ func (f *File) Sync() error {
 	return nil
 }
 
-func (f *File) supported() error {
-	if f.mode == flatMode {
-		return grid.ErrSupported
-	}
-	return nil
-}
-
 const defaultSheetName = "sheet"
 
 type Sheet struct {
 	Label string
-	mode  Mode
 
 	rows  []*row
 	cells map[layout.Position]*Cell
@@ -213,7 +185,6 @@ func NewSheet(name string, values [][]value.ScalarValue) *Sheet {
 	s := Sheet{
 		Label: name,
 		cells: make(map[layout.Position]*Cell),
-		mode:  memMode,
 	}
 	for i, rs := range values {
 		r := &row{
@@ -238,7 +209,6 @@ func emptySheet() *Sheet {
 	return &Sheet{
 		Label: defaultSheetName,
 		cells: make(map[layout.Position]*Cell),
-		mode:  flatMode,
 	}
 }
 
@@ -297,9 +267,6 @@ func (s *Sheet) Sub(start, end layout.Position) grid.View {
 }
 
 func (s *Sheet) Sync(ctx value.Context) error {
-	if err := s.supported(); err != nil {
-		return err
-	}
 	ctx = grid.EnclosedContext(ctx, grid.SheetContext(s))
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
@@ -357,6 +324,11 @@ func (s *Sheet) Clone(mode grid.CopyMode) (grid.View, error) {
 }
 
 func (s *Sheet) FillWith(other grid.View) error {
+	b := other.Bounds()
+	for p := range b.Positions() {
+		c, _ := other.Cell(p)
+		s.put(c, grid.CopyAll)
+	}
 	return nil
 }
 
@@ -384,9 +356,6 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 }
 
 func (s *Sheet) SetFormula(pos layout.Position, f value.Formula) error {
-	if err := s.supported(); err != nil {
-		return err
-	}
 	cell, ok := s.cells[pos]
 	if !ok {
 		cell = &Cell{
@@ -417,44 +386,22 @@ func (s *Sheet) ClearValue(pos layout.Position) error {
 }
 
 func (s *Sheet) ClearRange(rg *layout.Range) error {
-	if err := s.supported(); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (s *Sheet) ClearFormula(_ layout.Position) error {
-	if err := s.supported(); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (s *Sheet) AppendRow(values []value.ScalarValue) error {
-	if err := s.supported(); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (s *Sheet) InsertRow(ix int64, values []value.ScalarValue) error {
-	if err := s.supported(); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (s *Sheet) DeleteRow(ix int64) error {
-	if err := s.supported(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *Sheet) supported() error {
-	if s.mode == flatMode {
-		return grid.ErrSupported
-	}
 	return nil
 }
 
@@ -483,6 +430,24 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 func (s *Sheet) updateSize(cell *Cell) {
 	s.size.Columns = max(s.size.Columns, cell.Column)
 	s.size.Lines = max(s.size.Lines, cell.Line)
+}
+
+func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
+	var (
+		pos = cell.At()
+		val = cell.Value()
+	)
+	c := &Cell{
+		Position: pos,
+	}
+	if mode.Value() {
+		c.raw = val.String()
+		c.parsed = val
+	}
+	if f := cell.Formula(); f != nil && mode.Formula() {
+		c.formula = f
+	}
+	s.insertOrReplaceCell(c)
 }
 
 type row struct {
@@ -518,7 +483,6 @@ func (r *row) Values() []value.ScalarValue {
 
 type Cell struct {
 	layout.Position
-	mode Mode
 
 	raw     string
 	parsed  value.ScalarValue
@@ -550,16 +514,10 @@ func (c *Cell) Formula() value.Formula {
 }
 
 func (c *Cell) Dirty() bool {
-	if err := c.supported(); err != nil {
-		return false
-	}
 	return c.dirty
 }
 
 func (c *Cell) Sync(ctx value.Context) error {
-	if err := c.supported(); err != nil {
-		return err
-	}
 	if c.formula == nil {
 		return nil
 	}
@@ -569,13 +527,6 @@ func (c *Cell) Sync(ctx value.Context) error {
 		c.dirty = false
 	}
 	return err
-}
-
-func (c *Cell) supported() error {
-	if c.mode == flatMode {
-		return grid.ErrSupported
-	}
-	return nil
 }
 
 func (c *Cell) update(val value.Value) error {
