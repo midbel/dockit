@@ -7,6 +7,10 @@ const (
 	kwRename  = "rename"
 	kwLock    = "lock"
 	kwUnlock  = "unlock"
+	kwRow     = "row"
+	kwRows    = "rows"
+	kwColumn  = "column"
+	kwColumns = "columns"
 	kwInsert  = "insert"
 	kwRemove  = "remove"
 	kwUse     = "use"
@@ -18,6 +22,7 @@ const (
 	kwIn      = "in"
 	kwAs      = "as"
 	kwTo      = "to"
+	kwInto    = "into"
 	kwRo      = "ro"
 	kwRw      = "rw"
 	kwAnd     = "and"
@@ -38,6 +43,10 @@ func isKeyword(str string) bool {
 	case kwRename:
 	case kwLock:
 	case kwUnlock:
+	case kwRow:
+	case kwRows:
+	case kwColumn:
+	case kwColumns:
 	case kwInsert:
 	case kwRemove:
 	case kwElse:
@@ -51,6 +60,7 @@ func isKeyword(str string) bool {
 	case kwIn:
 	case kwAs:
 	case kwTo:
+	case kwInto:
 	case kwEnd:
 	case kwRo:
 	case kwRw:
