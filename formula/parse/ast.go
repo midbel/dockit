@@ -170,11 +170,11 @@ type Resize struct {
 	columns Expr
 }
 
-func newResize(ident, rows, columns) Expr {
+func newResize(ident, rows, columns Expr) Expr {
 	return Resize{
-		ident: ident,
-		rows: rows,
-		columns,
+		ident:   ident,
+		rows:    rows,
+		columns: columns,
 	}
 }
 
@@ -197,8 +197,6 @@ func (e Resize) String() string {
 func (e Resize) Accept(v Visitor) error {
 	return nil
 }
-
-
 
 type Lock struct {
 	ident Expr

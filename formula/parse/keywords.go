@@ -34,6 +34,8 @@ const (
 	kwInclude = "include"
 	kwMacro   = "macro"
 	kwEnd     = "end"
+	kwBefore  = "before"
+	kwAfter   = "after"
 )
 
 func isKeyword(str string) bool {
@@ -68,6 +70,8 @@ func isKeyword(str string) bool {
 	case kwAnd:
 	case kwOr:
 	case kwNot:
+	case kwBefore:
+	case kwAfter:
 	// case kwMacro:
 	// case kwInclude:
 	default:

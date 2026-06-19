@@ -1129,12 +1129,98 @@ func parseRename(p *Parser) (Expr, error) {
 
 func parseInsert(p *Parser) (Expr, error) {
 	p.next()
-	return nil, nil
+	var (
+		stmt Insert
+		err  error
+	)
+	if p.is(op.Ident) || p.is(op.Number) {
+		stmt.count, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !p.is(op.Keyword) {
+		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
+	}
+	switch p.currentLiteral() {
+	case kwRow, kwRows:
+	case kwColumn, kwColumns:
+	default:
+		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
+	}
+	p.next()
+	if !p.is(op.Keyword) {
+		return nil, p.makeError("'before' or 'after' keyword expected")
+	}
+	switch p.currentLiteral() {
+	case kwBefore:
+	case kwAfter:
+	default:
+		return nil, p.makeError("'before' or 'after' keyword expected")
+	}
+	p.next()
+	if stmt.offset, err = p.parse(powLowest); err != nil {
+		return nil, err
+	}
+	if !p.is(op.Keyword) && p.currentLiteral() != kwInto {
+		return nil, p.makeError("'into' keyword expected")
+	}
+	p.next()
+	if stmt.ident, err = p.parse(powLowest); err != nil {
+		return nil, err
+	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwWith {
+		stmt.value, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return stmt, nil
 }
 
 func parseRemove(p *Parser) (Expr, error) {
 	p.next()
-	return nil, nil
+	var (
+		stmt Remove
+		err  error
+	)
+	if p.is(op.Ident) || p.is(op.Number) {
+		stmt.count, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !p.is(op.Keyword) {
+		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
+	}
+	switch p.currentLiteral() {
+	case kwRow, kwRows:
+	case kwColumn, kwColumns:
+	default:
+		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
+	}
+	p.next()
+	if !p.is(op.Keyword) {
+		return nil, p.makeError("'before' or 'after' keyword expected")
+	}
+	switch p.currentLiteral() {
+	case kwBefore:
+	case kwAfter:
+	default:
+		return nil, p.makeError("'before' or 'after' keyword expected")
+	}
+	p.next()
+	if stmt.offset, err = p.parse(powLowest); err != nil {
+		return nil, err
+	}
+	if !p.is(op.Keyword) && p.currentLiteral() != kwFrom {
+		return nil, p.makeError("'into' keyword expected")
+	}
+	p.next()
+	if stmt.ident, err = p.parse(powLowest); err != nil {
+		return nil, err
+	}
+	return stmt, nil
 }
 
 func parseImport(p *Parser) (Expr, error) {
