@@ -1149,18 +1149,17 @@ func parseInsert(p *Parser) (Expr, error) {
 		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
 	}
 	p.next()
-	if !p.is(op.Keyword) {
-		return nil, p.makeError("'before' or 'after' keyword expected")
-	}
-	switch p.currentLiteral() {
-	case kwBefore:
-	case kwAfter:
-	default:
-		return nil, p.makeError("'before' or 'after' keyword expected")
-	}
-	p.next()
-	if stmt.offset, err = p.parse(powLowest); err != nil {
-		return nil, err
+	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
+		switch p.currentLiteral() {
+		case kwBefore:
+		case kwAfter:
+		default:
+			return nil, p.makeError("'before' or 'after' keyword expected")
+		}
+		p.next()
+		if stmt.offset, err = p.parse(powLowest); err != nil {
+			return nil, err
+		}
 	}
 	if !p.is(op.Keyword) && p.currentLiteral() != kwInto {
 		return nil, p.makeError("'into' keyword expected")
@@ -1170,6 +1169,7 @@ func parseInsert(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	if p.is(op.Keyword) && p.currentLiteral() == kwWith {
+		p.next()
 		stmt.value, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
@@ -1200,18 +1200,17 @@ func parseRemove(p *Parser) (Expr, error) {
 		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
 	}
 	p.next()
-	if !p.is(op.Keyword) {
-		return nil, p.makeError("'before' or 'after' keyword expected")
-	}
-	switch p.currentLiteral() {
-	case kwBefore:
-	case kwAfter:
-	default:
-		return nil, p.makeError("'before' or 'after' keyword expected")
-	}
-	p.next()
-	if stmt.offset, err = p.parse(powLowest); err != nil {
-		return nil, err
+	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
+		switch p.currentLiteral() {
+		case kwBefore:
+		case kwAfter:
+		default:
+			return nil, p.makeError("'before'/'after' keyword expected")
+		}
+		p.next()
+		if stmt.offset, err = p.parse(powLowest); err != nil {
+			return nil, err
+		}
 	}
 	if !p.is(op.Keyword) && p.currentLiteral() != kwFrom {
 		return nil, p.makeError("'into' keyword expected")

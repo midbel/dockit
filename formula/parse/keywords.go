@@ -38,6 +38,22 @@ const (
 	kwAfter   = "after"
 )
 
+func isReserved(str string) bool {
+	switch str {
+	case kwBefore:
+	case kwAfter:
+	case kwIn:
+	case kwAs:
+	case kwTo:
+	case kwInto:
+	case kwWith:
+	case kwFrom:
+	default:
+		return false
+	}
+	return true
+}
+
 func isKeyword(str string) bool {
 	switch str {
 	case kwAlias:
