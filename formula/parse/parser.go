@@ -109,6 +109,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwRename, parseRename)
 	g.RegisterPrefixKeyword(kwInsert, parseInsert)
 	g.RegisterPrefixKeyword(kwRemove, parseRemove)
+	g.RegisterPrefixKeyword(kwResize, parseResize)
 	// g.RegisterPrefixKeyword(kwInclude, parseInclude)
 	// g.RegisterPrefixKeyword(kwMacro, parseMacro)
 
@@ -1085,6 +1086,10 @@ func parseInclude(p *Parser) (Expr, error) {
 		p.next()
 	}
 	return NewInclude(file, alias), nil
+}
+
+func parseResize(p *Parser) (Expr, error) {
+	return nil, nil
 }
 
 func parseLock(p *Parser) (Expr, error) {
