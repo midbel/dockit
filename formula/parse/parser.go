@@ -1174,15 +1174,20 @@ func parseInsert(p *Parser) (Expr, error) {
 	}
 	switch p.currentLiteral() {
 	case kwRow, kwRows:
+		stmt.colrow = Row
 	case kwColumn, kwColumns:
+		stmt.colrow = Column
 	default:
 		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
 	}
 	p.next()
+	stmt.anchor = AnchorDefault
 	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
 		switch p.currentLiteral() {
 		case kwBefore:
+			stmt.anchor = AnchorBefore
 		case kwAfter:
+			stmt.anchor = AnchorDefault
 		default:
 			return nil, p.makeError("'before' or 'after' keyword expected")
 		}
@@ -1225,11 +1230,14 @@ func parseRemove(p *Parser) (Expr, error) {
 	}
 	switch p.currentLiteral() {
 	case kwRow, kwRows:
+		stmt.colrow = Row
 	case kwColumn, kwColumns:
+		stmt.colrow = Column
 	default:
 		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
 	}
 	p.next()
+	stmt.anchor = AnchorDefault
 	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
 		switch p.currentLiteral() {
 		case kwBefore:
