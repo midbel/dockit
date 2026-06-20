@@ -173,6 +173,12 @@ func (v astVisitor) VisitRemove(expr parse.Remove) error {
 	return nil
 }
 
+func (v astVisitor) VisitSheet(expr parse.Sheet) error {
+	node := v.newStmt("sheet", expr)
+	v.pushNode(node)
+	return nil
+}
+
 func (v astVisitor) VisitExportFile(expr parse.ExportFile) error {
 	node := v.newStmt("export", expr)
 	v.pushNode(node)

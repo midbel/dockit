@@ -13,6 +13,7 @@ type Visitor interface {
 	VisitRename(Rename) error
 	VisitInsert(Insert) error
 	VisitRemove(Remove) error
+	VisitSheet(Sheet) error
 
 	VisitIdentifier(Identifier) error
 	VisitAliasRef(AliasRef) error

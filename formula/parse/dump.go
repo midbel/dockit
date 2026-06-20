@@ -202,6 +202,12 @@ func dumpExpr(w io.Writer, expr Expr) {
 		io.WriteString(w, "remove(")
 		dumpExpr(w, e.ident)
 		io.WriteString(w, ")")
+	case Sheet:
+		io.WriteString(w, "sheet(")
+		dumpExpr(w, e.name)
+		io.WriteString(w, ", ")
+		dumpExpr(w, e.ident)
+		io.WriteString(w, ")")
 	case IncludeFile:
 		io.WriteString(w, "include(")
 		io.WriteString(w, e.file)

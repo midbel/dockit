@@ -198,6 +198,41 @@ func (e Resize) Accept(v Visitor) error {
 	return nil
 }
 
+// sheet [name] from <expr> as <expr>
+type Sheet struct {
+	ident Expr
+	name  Expr
+	value Expr
+}
+
+func newSheet(ident, name, value Expr) Expr {
+	return Sheet{
+		ident: ident,
+		name:  name,
+		value: value,
+	}
+}
+
+func (e Sheet) Ident() Expr {
+	return e.ident
+}
+
+func (e Sheet) Name() Expr {
+	return e.name
+}
+
+func (e Sheet) Value() Expr {
+	return e.value
+}
+
+func (e Sheet) String() string {
+	return fmt.Sprintf("sheet(%s)", e.ident)
+}
+
+func (e Sheet) Accept(v Visitor) error {
+	return v.VisitSheet(e)
+}
+
 type Lock struct {
 	ident Expr
 }

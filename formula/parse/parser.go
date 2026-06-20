@@ -110,6 +110,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefixKeyword(kwInsert, parseInsert)
 	g.RegisterPrefixKeyword(kwRemove, parseRemove)
 	g.RegisterPrefixKeyword(kwResize, parseResize)
+	g.RegisterPrefixKeyword(kwSheet, parseSheet)
 	// g.RegisterPrefixKeyword(kwInclude, parseInclude)
 	// g.RegisterPrefixKeyword(kwMacro, parseMacro)
 
@@ -1086,6 +1087,35 @@ func parseInclude(p *Parser) (Expr, error) {
 		p.next()
 	}
 	return NewInclude(file, alias), nil
+}
+
+func parseSheet(p *Parser) (Expr, error) {
+	p.next()
+	var (
+		stmt Sheet
+		err  error
+	)
+	if !p.is(op.Keyword) {
+		stmt.name, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !p.is(op.Keyword) && p.currentLiteral() != kwFrom {
+		return nil, p.makeError("'from' keyword expected")
+	}
+	p.next()
+	if stmt.value, err = p.parse(powLowest); err != nil {
+		return nil, err
+	}
+	if !p.is(op.Keyword) && p.currentLiteral() != kwAs {
+		return nil, p.makeError("'as' keyword expected")
+	}
+	p.next()
+	if stmt.ident, err = p.parse(powLowest); err != nil {
+		return nil, err
+	}
+	return stmt, nil
 }
 
 func parseResize(p *Parser) (Expr, error) {
