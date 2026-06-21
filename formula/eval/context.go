@@ -156,18 +156,74 @@ func (c *EngineContext) CurrentActiveView() *types.View {
 }
 
 func (c *EngineContext) InsertRows(sh, count, offset, data value.Value) (value.Value, error) {
-	return nil, nil
+	var view *types.View
+	if sh == nil {
+		view = c.CurrentActiveView()
+	} else {
+		view, _ = c.getView(sh.String())
+	}
+	var (
+		rows float64
+		off  float64
+	)
+	if c, ok := count.(value.Float); ok {
+		rows = float64(c)
+	} else {
+		return value.ErrValue, fmt.Errorf("number expected")
+	}
+	if o, ok := offset.(value.Float); ok {
+		off = float64(o)
+	} else {
+		return value.ErrValue, fmt.Errorf("number expected")
+	}
+	err := view.InsertRows(int64(off), int64(rows), data)
+	return nil, err
 }
 
 func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value) (value.Value, error) {
-	return nil, nil
+	var view *types.View
+	if sh == nil {
+		view = c.CurrentActiveView()
+	} else {
+		view, _ = c.getView(sh.String())
+	}
+	var (
+		cols float64
+		off  float64
+	)
+	if c, ok := count.(value.Float); ok {
+		cols = float64(c)
+	} else {
+		return value.ErrValue, fmt.Errorf("number expected")
+	}
+	if o, ok := offset.(value.Float); ok {
+		off = float64(o)
+	} else {
+		return value.ErrValue, fmt.Errorf("number expected")
+	}
+	err := view.InsertColumns(int64(off), int64(cols), data)
+	return nil, err
 }
 
 func (c *EngineContext) RemoveRows(sh, count, offset value.Value) (value.Value, error) {
+	var view *types.View
+	if sh == nil {
+		view = c.CurrentActiveView()
+	} else {
+		view, _ = c.getView(sh.String())
+	}
+	_ = view
 	return nil, nil
 }
 
 func (c *EngineContext) RemoveColumns(sh, count, offset value.Value) (value.Value, error) {
+	var view *types.View
+	if sh == nil {
+		view = c.CurrentActiveView()
+	} else {
+		view, _ = c.getView(sh.String())
+	}
+	_ = view
 	return nil, nil
 }
 

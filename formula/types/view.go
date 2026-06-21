@@ -94,6 +94,14 @@ func (c *View) Unlock() error {
 	return nil
 }
 
+func (c *View) InsertColumns(offset, count int64, data value.Value) error {
+	return nil
+}
+
+func (c *View) InsertRows(offset, count int64, data value.Value) error {
+	return nil
+}
+
 func (c *View) FilterView(predicate value.Predicate) *View {
 	var (
 		ctx  = grid.EnclosedContext(c.ctx, grid.SheetContext(c.view))
