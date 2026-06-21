@@ -19,6 +19,7 @@ type Visitor interface {
 	VisitAliasRef(AliasRef) error
 	VisitLiteral(Literal) error
 	VisitNumber(Number) error
+	VisitArray(Array) error
 	VisitCellAddr(CellAddr) error
 	VisitColumnAddr(ColumnAddr) error
 	VisitRangeAddr(RangeAddr) error

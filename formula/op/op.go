@@ -51,6 +51,8 @@ const (
 	EndGrp
 	BegProp
 	EndProp
+	BegArr
+	EndArr
 	RangeRef
 	SheetRef
 	Special

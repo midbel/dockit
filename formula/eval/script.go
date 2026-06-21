@@ -640,6 +640,10 @@ func (v *evaluator) VisitUnary(expr parse.Unary) error {
 	return nil
 }
 
+func (v *evaluator) VisitArray(expr parse.Array) error {
+	return nil
+}
+
 func (v *evaluator) VisitLiteral(expr parse.Literal) error {
 	val := value.Text(expr.Text())
 	v.pushValue(val)

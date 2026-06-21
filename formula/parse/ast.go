@@ -968,6 +968,24 @@ func (u Unary) Accept(v Visitor) error {
 	return v.VisitUnary(u)
 }
 
+type Array struct {
+	expr []Expr	
+}
+
+func newArray(expr []Expr) Expr {
+	return Array{
+		expr: expr,
+	}
+}
+
+func (a Array) String() string {
+	return  fmt.Sprintf("array(%s)", a.expr)
+}
+
+func (a Array) Accept(v Visitor) error {
+	return nil
+}
+
 type Literal struct {
 	value string
 	Position

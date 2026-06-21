@@ -357,6 +357,10 @@ func (x *ScriptLexer) scanDelimiter(tok *Token) {
 		tok.Type = op.BegProp
 	case rsquare:
 		tok.Type = op.EndProp
+	case lcurly:
+		tok.Type = op.BegArr
+	case rcurly:
+		tok.Type = op.EndArr
 	default:
 	}
 	x.read()
@@ -939,7 +943,8 @@ func isNL(c rune) bool {
 
 func isDelimiter(c rune) bool {
 	return c == semi || c == lparen || c == rparen ||
-		c == comma || c == lsquare || c == rsquare
+		c == comma || c == lsquare || c == rsquare ||
+		c == lcurly || c == rcurly
 }
 
 func isOperator(c rune) bool {

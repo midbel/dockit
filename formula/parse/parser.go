@@ -82,6 +82,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(op.Column, parseColumn)
 	g.RegisterPrefix(op.BegProp, parseSlicePrefix)
 	g.RegisterPrefix(op.BegGrp, parseGroup)
+	g.RegisterPrefix(op.BegArr, parseArray)
 	g.RegisterPrefix(op.Special, parseSpecialAccessPrefix)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
@@ -617,6 +618,30 @@ func parseGroup(p *Parser) (Expr, error) {
 	}
 	p.next()
 	return expr, nil
+}
+
+func parseArray(p *Parser) (Expr, error) {
+	p.next()
+	var list []Expr
+	for !p.done() && !p.is(op.EndArr) {
+		e, err := p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		switch {
+		case p.is(op.Comma):
+			p.next()
+		case p.is(op.EndArr):
+		default:
+			return nil, p.makeError("expected ',' or '}' at end of array")
+		}
+		list = append(list, e)
+	}
+	if !p.is(op.EndArr) {
+		return nil, p.makeError("expected '}' at end of array")
+	}
+	p.next()
+	return newArray(list), nil
 }
 
 func parseNumber(p *Parser) (Expr, error) {
