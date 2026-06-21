@@ -305,17 +305,17 @@ func (e Rename) Accept(v Visitor) error {
 	return v.VisitRename(e)
 }
 
-type colrow int8
+type Colrow int8
 
 const (
-	Row colrow = 1 << iota
+	Row Colrow = 1 << iota
 	Column
 )
 
-type anchor int8
+type Anchor int8
 
 const (
-	AnchorDefault anchor = 1 << iota
+	AnchorDefault Anchor = 1 << iota
 	AnchorAfter
 	AnchorBefore
 )
@@ -326,8 +326,8 @@ type Insert struct {
 	offset Expr
 	ident  Expr
 	value  Expr
-	anchor
-	colrow
+	Anchor
+	Colrow
 }
 
 func newInsert(ident, count, offset, value Expr) Expr {
@@ -355,6 +355,14 @@ func (e Insert) Value() Expr {
 	return e.value
 }
 
+func (e Insert) Where() Anchor {
+	return e.Anchor
+}
+
+func (e Insert) Type() Colrow {
+	return e.Colrow
+}
+
 func (e Insert) String() string {
 	return fmt.Sprintf("insert(%s)", e.ident)
 }
@@ -368,8 +376,8 @@ type Remove struct {
 	count  Expr
 	offset Expr
 	ident  Expr
-	anchor
-	colrow
+	Anchor
+	Colrow
 }
 
 func newRemove(ident, count, offset Expr) Expr {
@@ -390,6 +398,14 @@ func (e Remove) Count() Expr {
 
 func (e Remove) Offset() Expr {
 	return e.offset
+}
+
+func (e Remove) Where() Anchor {
+	return e.Anchor
+}
+
+func (e Remove) Type() Colrow {
+	return e.Colrow
 }
 
 func (e Remove) String() string {
@@ -969,7 +985,7 @@ func (u Unary) Accept(v Visitor) error {
 }
 
 type Array struct {
-	expr []Expr	
+	expr []Expr
 }
 
 func newArray(expr []Expr) Expr {
@@ -979,7 +995,7 @@ func newArray(expr []Expr) Expr {
 }
 
 func (a Array) String() string {
-	return  fmt.Sprintf("array(%s)", a.expr)
+	return fmt.Sprintf("array(%s)", a.expr)
 }
 
 func (a Array) Accept(v Visitor) error {

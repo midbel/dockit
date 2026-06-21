@@ -1199,20 +1199,20 @@ func parseInsert(p *Parser) (Expr, error) {
 	}
 	switch p.currentLiteral() {
 	case kwRow, kwRows:
-		stmt.colrow = Row
+		stmt.Colrow = Row
 	case kwColumn, kwColumns:
-		stmt.colrow = Column
+		stmt.Colrow = Column
 	default:
 		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
 	}
 	p.next()
-	stmt.anchor = AnchorDefault
+	stmt.Anchor = AnchorDefault
 	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
 		switch p.currentLiteral() {
 		case kwBefore:
-			stmt.anchor = AnchorBefore
+			stmt.Anchor = AnchorBefore
 		case kwAfter:
-			stmt.anchor = AnchorDefault
+			stmt.Anchor = AnchorDefault
 		default:
 			return nil, p.makeError("'before' or 'after' keyword expected")
 		}
@@ -1255,18 +1255,20 @@ func parseRemove(p *Parser) (Expr, error) {
 	}
 	switch p.currentLiteral() {
 	case kwRow, kwRows:
-		stmt.colrow = Row
+		stmt.Colrow = Row
 	case kwColumn, kwColumns:
-		stmt.colrow = Column
+		stmt.Colrow = Column
 	default:
 		return nil, p.makeError("'row', 'rows', 'column' or 'columns' keyword expected")
 	}
 	p.next()
-	stmt.anchor = AnchorDefault
+	stmt.Anchor = AnchorDefault
 	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
 		switch p.currentLiteral() {
 		case kwBefore:
+			stmt.Anchor = AnchorBefore
 		case kwAfter:
+			stmt.Anchor = AnchorAfter
 		default:
 			return nil, p.makeError("'before'/'after' keyword expected")
 		}

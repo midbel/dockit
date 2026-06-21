@@ -155,6 +155,22 @@ func (c *EngineContext) CurrentActiveView() *types.View {
 	return v
 }
 
+func (c *EngineContext) InsertRows(sh, count, offset, data value.Value) (value.Value, error) {
+	return nil, nil
+}
+
+func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value) (value.Value, error) {
+	return nil, nil
+}
+
+func (c *EngineContext) RemoveRows(sh, count, offset value.Value) (value.Value, error) {
+	return nil, nil
+}
+
+func (c *EngineContext) RemoveColumns(sh, count, offset value.Value) (value.Value, error) {
+	return nil, nil
+}
+
 func (c *EngineContext) At(pos layout.Position) value.Value {
 	sh, err := c.getView(pos.Sheet)
 	if err != nil {

@@ -129,11 +129,84 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 }
 
 func (v *evaluator) VisitInsert(expr parse.Insert) error {
-	return nil
+	var (
+		ident  value.Value
+		count  value.Value
+		offset value.Value
+		data   value.Value
+		err    error
+	)
+	if i := expr.Ident(); i != nil {
+		ident, err = v.visitNormalize(i)
+		if err != nil {
+			return err
+		}
+	}
+	if c := expr.Count(); c != nil {
+		count, err = v.visitNormalize(c)
+		if err != nil {
+			return err
+		}
+	}
+	if o := expr.Offset(); o != nil {
+		offset, err = v.visitNormalize(o)
+		if err != nil {
+			return err
+		}
+	}
+	if d := expr.Value(); d != nil {
+		data, err = v.visitNormalize(d)
+		if err != nil {
+			return err
+		}
+	}
+	var ret value.Value
+	switch expr.Type() {
+	case parse.Column:
+		ret, err = v.ctx.InsertColumns(ident, count, offset, data)
+	case parse.Row:
+		ret, err = v.ctx.InsertRows(ident, count, offset, data)
+	default:
+	}
+	v.pushValue(ret)
+	return err
 }
 
 func (v *evaluator) VisitRemove(expr parse.Remove) error {
-	return nil
+	var (
+		ident  value.Value
+		count  value.Value
+		offset value.Value
+		err    error
+	)
+	if i := expr.Ident(); i != nil {
+		ident, err = v.visitNormalize(i)
+		if err != nil {
+			return err
+		}
+	}
+	if c := expr.Count(); c != nil {
+		count, err = v.visitNormalize(c)
+		if err != nil {
+			return err
+		}
+	}
+	if o := expr.Offset(); o != nil {
+		offset, err = v.visitNormalize(o)
+		if err != nil {
+			return err
+		}
+	}
+	var ret value.Value
+	switch expr.Type() {
+	case parse.Column:
+		ret, err = v.ctx.RemoveColumns(ident, count, offset)
+	case parse.Row:
+		ret, err = v.ctx.RemoveRows(ident, count, offset)
+	default:
+	}
+	v.pushValue(ret)
+	return err
 }
 
 func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {
