@@ -239,6 +239,8 @@ func readSheet(rs Reader) (*Sheet, error) {
 			sh.cells[p] = c
 		}
 		sh.rows = append(sh.rows, r)
+		sh.size.Lines++
+		sh.size.Columns = max(sh.size.Columns, int64(len(fields)))
 	}
 	return sh, nil
 }
@@ -399,12 +401,13 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 	})
 	rows := make([]*row, count)
 	for i := range rows {
-		rows[i].Line = offset+int64(i)+1
+		rows[i] = new(row)
+		rows[i].Line = offset + int64(i) + 1
 		for j := int64(1); j <= s.size.Columns; j++ {
 			c := &Cell{
 				Position: layout.NewPosition(rows[i].Line, j),
-				raw: "",
-				parsed: value.Empty(),
+				raw:      "",
+				parsed:   value.Empty(),
 			}
 			rows[i].Cells = append(rows[i].Cells, c)
 			s.cells[c.Position] = c
@@ -413,12 +416,33 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 	if ix < 0 {
 		s.rows = append(s.rows, rows...)
 	} else {
-		s.rows = slices.Insert(s.rows, ix, rows...)
+		s.rows = slices.Insert(s.rows, ix+1, rows...)
 	}
+	s.size.Lines += count
 	return nil
 }
 
 func (s *Sheet) InsertColumns(offset, count int64) error {
+	for i := range s.rows {
+		ix := slices.IndexFunc(s.rows[i].Cells, func(c *Cell) bool {
+			return c.Column >= offset
+		})
+		cols := make([]*Cell, count)
+		for j := int64(0); j < count; j++ {
+			c := &Cell{
+				Position: layout.NewPosition(s.rows[i].Line, offset+j+1),
+				raw:      "",
+				parsed:   value.Empty(),
+			}
+			cols[j] = c
+			s.cells[c.Position] = c
+		}
+		if ix < 0 {
+			s.rows[i].Cells = append(s.rows[i].Cells, cols...)
+		} else {
+			s.rows[i].Cells = slices.Insert(s.rows[i].Cells, ix+1, cols...)
+		}
+	}
 	return nil
 }
 

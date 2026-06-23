@@ -120,7 +120,11 @@ func (c *View) RemoveColumns(offset, count int64) error {
 	if c.ro {
 		return ErrReadOnly
 	}
-	return nil
+	i, ok := c.view.(interface{ InsertColumns(int64, int64) error })
+	if !ok {
+		return nil
+	}
+	return i.InsertColumns(offset, count)
 }
 
 func (c *View) RemoveRows(offset, count int64) error {

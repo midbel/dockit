@@ -167,18 +167,27 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 		rows float64
 		off  float64
 	)
-	if c, ok := count.(value.Float); ok {
-		rows = float64(c)
-		if anchor == parse.AnchorBefore {
-			rows -= 1
+	if count != nil {
+		if c, ok := count.(value.Float); ok {
+			rows = float64(c)
+		} else {
+			return value.ErrValue, fmt.Errorf("count: number expected")
 		}
 	} else {
-		return value.ErrValue, fmt.Errorf("number expected")
+		rows = 1
 	}
-	if o, ok := offset.(value.Float); ok {
-		off = float64(o)
+	if offset != nil {
+		if o, ok := offset.(value.Float); ok {
+			off = float64(o)
+			if anchor == parse.AnchorAfter {
+				off += 1
+			}
+		} else {
+			return value.ErrValue, fmt.Errorf("offset: number expected")
+		}
 	} else {
-		return value.ErrValue, fmt.Errorf("number expected")
+		b := view.Bounds()
+		off = float64(b.Height())
 	}
 	err := view.InsertRows(int64(off), int64(rows), data)
 	return nil, err
@@ -195,18 +204,27 @@ func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value, ancho
 		cols float64
 		off  float64
 	)
-	if c, ok := count.(value.Float); ok {
-		cols = float64(c)
-		if anchor == parse.AnchorBefore {
-			cols -= 1
+	if count != nil {
+		if c, ok := count.(value.Float); ok {
+			cols = float64(c)
+			if anchor == parse.AnchorAfter {
+				cols += 1
+			}
+		} else {
+			return value.ErrValue, fmt.Errorf("number expected")
 		}
 	} else {
-		return value.ErrValue, fmt.Errorf("number expected")
+		cols = 1
 	}
-	if o, ok := offset.(value.Float); ok {
-		off = float64(o)
+	if offset != nil {
+		if o, ok := offset.(value.Float); ok {
+			off = float64(o)
+		} else {
+			return value.ErrValue, fmt.Errorf("number expected")
+		}
 	} else {
-		return value.ErrValue, fmt.Errorf("number expected")
+		b := view.Bounds()
+		off = float64(b.Width())
 	}
 	err := view.InsertColumns(int64(off), int64(cols), data)
 	return nil, err
