@@ -416,6 +416,14 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 	if ix < 0 {
 		s.rows = append(s.rows, rows...)
 	} else {
+		for i := ix + 1; i < len(s.rows); i++ {
+			s.rows[i].Line += count
+			for _, c := range s.rows[i].Cells {
+				c.Line = s.rows[i].Line
+
+				s.cells[c.Position] = c
+			}
+		}
 		s.rows = slices.Insert(s.rows, ix+1, rows...)
 	}
 	s.size.Lines += count
