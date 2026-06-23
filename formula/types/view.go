@@ -102,7 +102,12 @@ func (c *View) InsertColumns(offset, count int64, data value.Value) error {
 	if !ok {
 		return nil
 	}
-	return i.InsertColumns(offset, count)
+	if err := i.InsertColumns(offset, count); err != nil {
+		return err
+	}
+	if data != nil {
+	}
+	return nil
 }
 
 func (c *View) InsertRows(offset, count int64, data value.Value) error {
@@ -113,25 +118,43 @@ func (c *View) InsertRows(offset, count int64, data value.Value) error {
 	if !ok {
 		return nil
 	}
-	return i.InsertRows(offset, count)
+	if err := i.InsertRows(offset, count); err != nil {
+		return err
+	}
+	if data != nil {
+		var (
+			bounds = c.Bounds()
+			start  = layout.NewPosition(offset, 1)
+			end    = layout.NewPosition(offset+count, bounds.Width())
+		)
+		if count == 1 {
+			start.Line += 1
+		}
+		return c.SetRange(start, end, data)
+	}
+	return nil
 }
 
 func (c *View) RemoveColumns(offset, count int64) error {
 	if c.ro {
 		return ErrReadOnly
 	}
-	i, ok := c.view.(interface{ InsertColumns(int64, int64) error })
+	i, ok := c.view.(interface{ RemoveColumns(int64, int64) error })
 	if !ok {
 		return nil
 	}
-	return i.InsertColumns(offset, count)
+	return i.RemoveColumns(offset, count)
 }
 
 func (c *View) RemoveRows(offset, count int64) error {
 	if c.ro {
 		return ErrReadOnly
 	}
-	return nil
+	i, ok := c.view.(interface{ RemoveRows(int64, int64) error })
+	if !ok {
+		return nil
+	}
+	return i.RemoveRows(offset, count)
 }
 
 func (c *View) FilterView(predicate value.Predicate) *View {

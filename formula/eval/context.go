@@ -176,6 +176,7 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 	} else {
 		rows = 1
 	}
+	b := view.Bounds()
 	if offset != nil {
 		if o, ok := offset.(value.Float); ok {
 			off = float64(o)
@@ -186,7 +187,6 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 			return value.ErrValue, fmt.Errorf("offset: number expected")
 		}
 	} else {
-		b := view.Bounds()
 		off = float64(b.Height())
 	}
 	err := view.InsertRows(int64(off), int64(rows), data)
