@@ -393,15 +393,32 @@ func (s *Sheet) ClearFormula(_ layout.Position) error {
 	return nil
 }
 
-func (s *Sheet) AppendRow(values []value.ScalarValue) error {
+func (s *Sheet) InsertRows(offset, count int64) error {
+	ix := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line >= offset
+	})
+	rows := make([]*row, count)
+	for i := range rows {
+		rows[i].Line = offset+int64(i)+1
+		for j := int64(1); j <= s.size.Columns; j++ {
+			c := &Cell{
+				Position: layout.NewPosition(rows[i].Line, j),
+				raw: "",
+				parsed: value.Empty(),
+			}
+			rows[i].Cells = append(rows[i].Cells, c)
+			s.cells[c.Position] = c
+		}
+	}
+	if ix < 0 {
+		s.rows = append(s.rows, rows...)
+	} else {
+		s.rows = slices.Insert(s.rows, ix, rows...)
+	}
 	return nil
 }
 
-func (s *Sheet) InsertRow(ix int64, values []value.ScalarValue) error {
-	return nil
-}
-
-func (s *Sheet) DeleteRow(ix int64) error {
+func (s *Sheet) InsertColumns(offset, count int64) error {
 	return nil
 }
 

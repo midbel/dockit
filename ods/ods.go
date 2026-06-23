@@ -353,15 +353,11 @@ func (s *Sheet) ClearFormula(pos layout.Position) error {
 	return nil
 }
 
-func (s *Sheet) AppendRow(values []value.ScalarValue) error {
+func (s *Sheet) InsertRows(offset, count int64) error {
 	return nil
 }
 
-func (s *Sheet) InsertRow(ix int64, values []value.ScalarValue) error {
-	return nil
-}
-
-func (s *Sheet) DeleteRow(ix int64) error {
+func (s *Sheet) InsertColumns(offset, count int64) error {
 	return nil
 }
 

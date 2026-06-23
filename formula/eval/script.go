@@ -163,9 +163,9 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.InsertColumns(ident, count, offset, data)
+		ret, err = v.ctx.InsertColumns(ident, count, offset, data, expr.Where())
 	case parse.Row:
-		ret, err = v.ctx.InsertRows(ident, count, offset, data)
+		ret, err = v.ctx.InsertRows(ident, count, offset, data, expr.Where())
 	default:
 	}
 	v.pushValue(ret)
@@ -200,9 +200,9 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.RemoveColumns(ident, count, offset)
+		ret, err = v.ctx.RemoveColumns(ident, count, offset, expr.Where())
 	case parse.Row:
-		ret, err = v.ctx.RemoveRows(ident, count, offset)
+		ret, err = v.ctx.RemoveRows(ident, count, offset, expr.Where())
 	default:
 	}
 	v.pushValue(ret)

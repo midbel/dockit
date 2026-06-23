@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/midbel/dockit/formula/env"
+	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/format"
@@ -155,7 +156,7 @@ func (c *EngineContext) CurrentActiveView() *types.View {
 	return v
 }
 
-func (c *EngineContext) InsertRows(sh, count, offset, data value.Value) (value.Value, error) {
+func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor parse.Anchor) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -168,6 +169,9 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value) (value.V
 	)
 	if c, ok := count.(value.Float); ok {
 		rows = float64(c)
+		if anchor == parse.AnchorBefore {
+			rows -= 1
+		}
 	} else {
 		return value.ErrValue, fmt.Errorf("number expected")
 	}
@@ -180,7 +184,7 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value) (value.V
 	return nil, err
 }
 
-func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value) (value.Value, error) {
+func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value, anchor parse.Anchor) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -193,6 +197,9 @@ func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value) (valu
 	)
 	if c, ok := count.(value.Float); ok {
 		cols = float64(c)
+		if anchor == parse.AnchorBefore {
+			cols -= 1
+		}
 	} else {
 		return value.ErrValue, fmt.Errorf("number expected")
 	}
@@ -205,7 +212,7 @@ func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value) (valu
 	return nil, err
 }
 
-func (c *EngineContext) RemoveRows(sh, count, offset value.Value) (value.Value, error) {
+func (c *EngineContext) RemoveRows(sh, count, offset value.Value, anchor parse.Anchor) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -216,7 +223,7 @@ func (c *EngineContext) RemoveRows(sh, count, offset value.Value) (value.Value, 
 	return nil, nil
 }
 
-func (c *EngineContext) RemoveColumns(sh, count, offset value.Value) (value.Value, error) {
+func (c *EngineContext) RemoveColumns(sh, count, offset value.Value, anchor parse.Anchor) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()

@@ -95,10 +95,38 @@ func (c *View) Unlock() error {
 }
 
 func (c *View) InsertColumns(offset, count int64, data value.Value) error {
-	return nil
+	if c.ro {
+		return ErrReadOnly
+	}
+	i, ok := c.view.(interface{ InsertColumns(int64, int64) error })
+	if !ok {
+		return nil
+	}
+	return i.InsertColumns(offset, count)
 }
 
 func (c *View) InsertRows(offset, count int64, data value.Value) error {
+	if c.ro {
+		return ErrReadOnly
+	}
+	i, ok := c.view.(interface{ InsertRows(int64, int64) error })
+	if !ok {
+		return nil
+	}
+	return i.InsertRows(offset, count)
+}
+
+func (c *View) RemoveColumns(offset, count int64) error {
+	if c.ro {
+		return ErrReadOnly
+	}
+	return nil
+}
+
+func (c *View) RemoveRows(offset, count int64) error {
+	if c.ro {
+		return ErrReadOnly
+	}
 	return nil
 }
 
