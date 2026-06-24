@@ -106,6 +106,15 @@ func (c *View) InsertColumns(offset, count int64, data value.Value) error {
 		return err
 	}
 	if data != nil {
+		var (
+			bounds = c.Bounds()
+			start  = layout.NewPosition(1, offset+1)
+			end    = layout.NewPosition(bounds.Height(), offset+count)
+		)
+		if count == 1 {
+			start.Line += 1
+		}
+		return c.SetRange(start, end, data)
 	}
 	return nil
 }
