@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/midbel/codecs/json"
-	"github.com/midbel/codecs/probe"
+	"github.com/midbel/probe"
 	"github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/flat"
