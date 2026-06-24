@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/midbel/codecs/json"
-	"github.com/midbel/probe"
 	"github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/flat"
@@ -14,6 +13,7 @@ import (
 	"github.com/midbel/dockit/ods"
 	"github.com/midbel/dockit/oxml"
 	"github.com/midbel/dockit/value"
+	"github.com/midbel/probe"
 )
 
 type LoaderOptions map[string]any

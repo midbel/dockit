@@ -237,8 +237,34 @@ func (c *EngineContext) RemoveRows(sh, count, offset value.Value, anchor parse.A
 	} else {
 		view, _ = c.getView(sh.String())
 	}
-	_ = view
-	return nil, nil
+	var (
+		rows float64
+		off  float64
+	)
+	if count != nil {
+		if c, ok := count.(value.Float); ok {
+			rows = float64(c)
+		} else {
+			return value.ErrValue, fmt.Errorf("count: number expected")
+		}
+	} else {
+		rows = 1
+	}
+	b := view.Bounds()
+	if offset != nil {
+		if o, ok := offset.(value.Float); ok {
+			off = float64(o)
+			if anchor == parse.AnchorAfter {
+				off += 1
+			}
+		} else {
+			return value.ErrValue, fmt.Errorf("offset: number expected")
+		}
+	} else {
+		off = float64(b.Height())
+	}
+	err := view.RemoveRows(int64(off), int64(rows))
+	return nil, err
 }
 
 func (c *EngineContext) RemoveColumns(sh, count, offset value.Value, anchor parse.Anchor) (value.Value, error) {
@@ -248,8 +274,34 @@ func (c *EngineContext) RemoveColumns(sh, count, offset value.Value, anchor pars
 	} else {
 		view, _ = c.getView(sh.String())
 	}
-	_ = view
-	return nil, nil
+	var (
+		cols float64
+		off  float64
+	)
+	if count != nil {
+		if c, ok := count.(value.Float); ok {
+			cols = float64(c)
+			if anchor == parse.AnchorAfter {
+				cols += 1
+			}
+		} else {
+			return value.ErrValue, fmt.Errorf("number expected")
+		}
+	} else {
+		cols = 1
+	}
+	if offset != nil {
+		if o, ok := offset.(value.Float); ok {
+			off = float64(o)
+		} else {
+			return value.ErrValue, fmt.Errorf("number expected")
+		}
+	} else {
+		b := view.Bounds()
+		off = float64(b.Width())
+	}
+	err := view.RemoveColumns(int64(off), int64(cols))
+	return nil, err
 }
 
 func (c *EngineContext) At(pos layout.Position) value.Value {
