@@ -39,6 +39,23 @@ func TestScript(t *testing.T) {
 	})
 	t.Run("print", testPrint)
 	t.Run("use", testUse)
+	t.Run("insert", func(t *testing.T) {
+		t.Run("insert-row-simple", testInsertRowsBase)
+		t.Run("insert-row-after", testInsertRowsAfter)
+		t.Run("insert-row-before", testInsertRowsBefore)
+	})
+}
+
+func testInsertRowsBase(t *testing.T) {
+
+}
+
+func testInsertRowsAfter(t *testing.T) {
+	
+}
+
+func testInsertRowsBefore(t *testing.T) {
+	
 }
 
 func testAssertOk(t *testing.T) {
