@@ -396,10 +396,43 @@ func (s *Sheet) ClearFormula(_ layout.Position) error {
 }
 
 func (s *Sheet) RemoveRows(offset, count int64) error {
+	ix := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line >= offset
+	})
+	if ix < 0 {
+
+	} else {
+		if delta := int64(ix) + count; delta >= int64(len(s.rows)) {
+			count = int64(len(s.rows) - ix)
+		}
+		for i := ix; i < ix+int(count); i++ {
+			for _, c := range s.rows[ix].Cells {
+				delete(s.cells, c.Position)
+			}
+		}
+		s.rows = slices.Delete(s.rows, ix, ix+int(count))
+		for i := range s.rows[ix:] {
+			s.rows[ix+i].Line = s.rows[ix-1].Line+1+int64(i)
+			for _, c := range s.rows[ix+i].Cells {
+				c.Line = s.rows[ix+i].Line
+				s.cells[c.Position] = c
+			}
+		}
+	}
 	return nil
 }
 
 func (s *Sheet) RemoveColumns(offset, count int64) error {
+	for i := range s.rows {
+		ix := slices.IndexFunc(s.rows[i].Cells, func(c *Cell) bool {
+			return c.Column >= offset
+		})
+		if ix < 0 {
+
+		} else {
+
+		}
+	}
 	return nil
 }
 
