@@ -412,7 +412,7 @@ func (s *Sheet) RemoveRows(offset, count int64) error {
 		}
 		s.rows = slices.Delete(s.rows, ix, ix+int(count))
 		for i := range s.rows[ix:] {
-			s.rows[ix+i].Line = s.rows[ix-1].Line+1+int64(i)
+			s.rows[ix+i].Line = s.rows[ix-1].Line + 1 + int64(i)
 			for _, c := range s.rows[ix+i].Cells {
 				c.Line = s.rows[ix+i].Line
 				s.cells[c.Position] = c

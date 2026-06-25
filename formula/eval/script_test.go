@@ -51,11 +51,11 @@ func testInsertRowsBase(t *testing.T) {
 }
 
 func testInsertRowsAfter(t *testing.T) {
-	
+
 }
 
 func testInsertRowsBefore(t *testing.T) {
-	
+
 }
 
 func testAssertOk(t *testing.T) {

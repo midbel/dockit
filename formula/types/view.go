@@ -139,6 +139,10 @@ func (c *View) InsertRows(offset, count int64, data value.Value) error {
 		if count == 1 {
 			start.Line += 1
 		}
+		if offset == 0 {
+			start.Line = 1
+			end.Line = 1
+		}
 		return c.SetRange(start, end, data)
 	}
 	return nil
