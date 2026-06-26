@@ -470,6 +470,21 @@ func (p *Parser) done() bool {
 	return p.is(op.EOF)
 }
 
+func (p *Parser) isIdent() bool {
+	return p.is(op.Ident)
+}
+
+func (p *Parser) isIdentExtended() bool {
+	if p.isIdent() {
+		return true
+	}
+	if p.is(op.Keyword) {
+		str := p.currentLiteral()
+		return str == kwRows || str == kwColumns
+	}
+	return false
+}
+
 func (p *Parser) is(kind op.Op) bool {
 	return p.curr.Type == kind
 }
@@ -824,7 +839,7 @@ func parseDeferred(p *Parser) (Expr, error) {
 
 func parseAccess(p *Parser, left Expr) (Expr, error) {
 	p.next()
-	if !p.is(op.Ident) {
+	if !p.isIdentExtended() {
 		return nil, p.expectedIdent()
 	}
 	defer p.next()

@@ -182,7 +182,7 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 			off = float64(o)
 			if anchor == parse.AnchorBefore {
 				off -= 1
-			} 
+			}
 		} else {
 			return value.ErrValue, fmt.Errorf("offset: number expected")
 		}
@@ -219,7 +219,7 @@ func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value, ancho
 			off = float64(o)
 			if anchor == parse.AnchorBefore {
 				off -= 1
-			} 
+			}
 		} else {
 			return value.ErrValue, fmt.Errorf("number expected")
 		}
