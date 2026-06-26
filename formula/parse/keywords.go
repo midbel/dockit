@@ -11,6 +11,8 @@ const (
 	kwRows    = "rows"
 	kwColumn  = "column"
 	kwColumns = "columns"
+	kwFirst = "first"
+	kwLast = "last"
 	kwSheet   = "sheet"
 	kwInsert  = "insert"
 	kwRemove  = "remove"
@@ -67,6 +69,8 @@ func isKeyword(str string) bool {
 	case kwRows:
 	case kwColumn:
 	case kwColumns:
+	case kwFirst:
+	case kwLast:
 	case kwSheet:
 	case kwInsert:
 	case kwRemove:
