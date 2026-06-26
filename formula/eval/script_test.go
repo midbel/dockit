@@ -197,13 +197,13 @@ func testImportJson(t *testing.T) {
 import "testdata/lang.json" using json[[$.owner.name, $.languages.name, $.languages.star | 0]] default
 
 name := lang@active.name
-rows := @active.lines
-cols := @active.columns
+rs := @active.lines
+cs := @active.columns
 	`
 	ev := runScript(t, script)
 	checkValue(t, ev, "name", value.Text("sheet1"))
-	checkValue(t, ev, "rows", value.Float(3))
-	checkValue(t, ev, "cols", value.Float(3))
+	checkValue(t, ev, "rs", value.Float(3))
+	checkValue(t, ev, "cs", value.Float(3))
 
 	want := [][]value.ScalarValue{
 		{value.Text("midbel"), value.Text("go"), value.Float(10)},
@@ -218,13 +218,13 @@ func testImportXml(t *testing.T) {
 import "testdata/lang.xml" using xml[[$.owner.name, $.languages.language.name, $.languages.language.star:as("number") | 0]] default
 
 name := lang@active.name
-rows := @active.lines
-cols := @active.columns
+rs := @active.lines
+cs := @active.columns
 	`
 	ev := runScript(t, script)
 	checkValue(t, ev, "name", value.Text("sheet1"))
-	checkValue(t, ev, "rows", value.Float(3))
-	checkValue(t, ev, "cols", value.Float(3))
+	checkValue(t, ev, "rs", value.Float(3))
+	checkValue(t, ev, "cs", value.Float(3))
 
 	want := [][]value.ScalarValue{
 		{value.Text("midbel"), value.Text("go"), value.Float(10)},

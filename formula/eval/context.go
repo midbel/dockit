@@ -180,17 +180,16 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 	if offset != nil {
 		if o, ok := offset.(value.Float); ok {
 			off = float64(o)
-			if anchor == parse.AnchorAfter {
-				off += 1
-			} else {
+			if anchor == parse.AnchorBefore {
 				off -= 1
-			}
+			} 
 		} else {
 			return value.ErrValue, fmt.Errorf("offset: number expected")
 		}
 	} else {
 		off = float64(b.Height())
 	}
+	fmt.Println("insertRows", off, rows)
 	err := view.InsertRows(int64(off), int64(rows), data)
 	return nil, err
 }
@@ -218,11 +217,9 @@ func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value, ancho
 	if offset != nil {
 		if o, ok := offset.(value.Float); ok {
 			off = float64(o)
-			if anchor == parse.AnchorAfter {
-				off += 1
-			} else {
+			if anchor == parse.AnchorBefore {
 				off -= 1
-			}
+			} 
 		} else {
 			return value.ErrValue, fmt.Errorf("number expected")
 		}
