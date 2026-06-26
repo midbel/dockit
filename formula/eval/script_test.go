@@ -103,6 +103,19 @@ insrow := A2:C3`,
 				{value.Empty(), value.Empty(), value.Empty()},
 			},
 		},
+		{
+			Name: "row-multi",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert row before 1 into @active
+insert row into @active
+insrow := A1:C1`,
+			Cols: 3,
+			Rows: 5,
+			Want: [][]value.ScalarValue{
+				{value.Empty(), value.Empty(), value.Empty()},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
