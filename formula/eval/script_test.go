@@ -104,6 +104,38 @@ insrow := A2:C3`,
 			},
 		},
 		{
+			Name: "row-before-first",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert 5 rows before first into @active
+insrow := A1:C5`,
+			Cols: 3,
+			Rows: 8,
+			Want: [][]value.ScalarValue{
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+			},
+		},
+		{
+			Name: "row-after-first",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert 5 rows after first into @active
+insrow := A2:C6`,
+			Cols: 3,
+			Rows: 8,
+			Want: [][]value.ScalarValue{
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+			},
+		},
+		{
 			Name: "row-multi",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default

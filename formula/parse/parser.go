@@ -1235,6 +1235,7 @@ func parseInsert(p *Parser) (Expr, error) {
 		switch {
 		case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
 			p.next()
+			stmt.offset = NewNumber(1)
 		case p.is(op.Keyword) && p.currentLiteral() == kwLast:
 			p.next()
 		default:
@@ -1298,6 +1299,7 @@ func parseRemove(p *Parser) (Expr, error) {
 		switch {
 		case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
 			p.next()
+			stmt.offset = NewNumber(1)
 		case p.is(op.Keyword) && p.currentLiteral() == kwLast:
 			p.next()
 		default:
