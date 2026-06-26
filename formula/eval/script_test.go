@@ -70,12 +70,12 @@ insrow := A4:C4`,
 			Name: "row-copy-line",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row into @active with A1:A3
+insert row into @active with A1:C1
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
 			Want: [][]value.ScalarValue{
-				{value.Text("name"), value.Text("salaries"), value.Text("bonus")},
+				{value.Text("name"), value.Text("salary"), value.Text("bonus")},
 			},
 		},
 		{
@@ -127,7 +127,7 @@ insrow := A1:C1`,
 }
 
 func testInsertColumns(t *testing.T) {
-
+	t.SkipNow()
 }
 
 func testAssertOk(t *testing.T) {

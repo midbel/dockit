@@ -189,7 +189,6 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 	} else {
 		off = float64(b.Height())
 	}
-	fmt.Println("insertRows", off, rows)
 	err := view.InsertRows(int64(off), int64(rows), data)
 	return nil, err
 }

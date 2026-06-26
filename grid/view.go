@@ -533,7 +533,7 @@ func (v *boundedView) Unwrap() View {
 func (v *boundedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 	it := func(yield func(int64, []value.ScalarValue) bool) {
 		var (
-			width = v.part.Ends.Column - v.part.Starts.Column + 1
+			width = v.part.Width()
 			out   = make([]value.ScalarValue, width)
 			lino  int64
 		)
