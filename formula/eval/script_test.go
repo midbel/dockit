@@ -2,6 +2,7 @@ package eval
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -40,21 +41,79 @@ func TestScript(t *testing.T) {
 	t.Run("print", testPrint)
 	t.Run("use", testUse)
 	t.Run("insert", func(t *testing.T) {
-		t.Run("insert-row-simple", testInsertRowsBase)
-		t.Run("insert-row-after", testInsertRowsAfter)
-		t.Run("insert-row-before", testInsertRowsBefore)
+		t.Run("insert-rows", testInsertRows)
+		t.Run("insert-columns", testInsertColumns)
 	})
 }
 
-func testInsertRowsBase(t *testing.T) {
-
+func testInsertRows(t *testing.T) {
+	tests := []struct {
+		Name   string
+		Script string
+		Cols   int64
+		Rows   int64
+		Want   [][]value.ScalarValue
+	}{
+		{
+			Name: "row-basic",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert row into @active with 0
+insrow := A4:C4`,
+			Cols: 3,
+			Rows: 4,
+			Want: [][]value.ScalarValue{
+				{value.Float(0), value.Float(0), value.Float(0)},
+			},
+		},
+		{
+			Name: "row-copy-line",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert row into @active with A1:A3
+insrow := A4:C4`,
+			Cols: 3,
+			Rows: 4,
+			Want: [][]value.ScalarValue{
+				{value.Text("name"), value.Text("salaries"), value.Text("bonus")},
+			},
+		},
+		{
+			Name: "row-before",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert row before 1 into @active
+insrow := A1:C1`,
+			Cols: 3,
+			Rows: 4,
+			Want: [][]value.ScalarValue{
+				{value.Empty(), value.Empty(), value.Empty()},
+			},
+		},
+		{
+			Name: "row-after",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert 2 rows after 1 into @active
+insrow := A2:C3`,
+			Cols: 3,
+			Rows: 5,
+			Want: [][]value.ScalarValue{
+				{value.Empty(), value.Empty(), value.Empty()},
+				{value.Empty(), value.Empty(), value.Empty()},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ev := runScript(t, tt.Script)
+			checkView(t, ev, "sh", tt.Cols, tt.Rows)
+			checkRange(t, ev, "insrow", value.NewArray(tt.Want).(value.Array))
+		})
+	}
 }
 
-func testInsertRowsAfter(t *testing.T) {
-
-}
-
-func testInsertRowsBefore(t *testing.T) {
+func testInsertColumns(t *testing.T) {
 
 }
 
@@ -330,17 +389,9 @@ func checkArray(t *testing.T, ev *env.Environment, ident string, want value.Arra
 		t.Errorf("%s: view variable not defined", ident)
 		return
 	}
-	if file, ok := view.(*types.File); ok {
-		v, err := file.Active()
-		if err != nil {
-			t.Errorf("%s: active view not found", ident)
-			return
-		}
-		view = v
-	}
-	v, ok := view.(*types.View)
-	if !ok {
-		t.Errorf("%s: expected view to be a View but got %T", ident, view)
+	v, err := getViewFromValue(view)
+	if err != nil {
+		t.Errorf("%s: %s", ident, err)
 		return
 	}
 	got, ok := v.AsArray().(interface{ Equal(value.Array) bool })
@@ -360,9 +411,9 @@ func checkRange(t *testing.T, ev *env.Environment, ident string, want value.Arra
 		t.Errorf("%s: view variable not defined", ident)
 		return
 	}
-	got, ok := view.(value.Array)
-	if !ok {
-		t.Errorf("%s: expected view to be an Array but got %T", ident, view)
+	got, err := getArrayFromValue(view)
+	if err != nil {
+		t.Errorf("%s: %s", ident, err)
 		return
 	}
 	if !got.Equal(want) {
@@ -377,9 +428,9 @@ func checkView(t *testing.T, ev *env.Environment, ident string, cols, rows int64
 		t.Errorf("%s: view variable not defined", ident)
 		return
 	}
-	v, ok := view.(*types.View)
-	if !ok {
-		t.Errorf("%s: expected view to be a View but got %T", ident, view)
+	v, err := getViewFromValue(view)
+	if err != nil {
+		t.Errorf("%s: %s", ident, err)
 		return
 	}
 	var (
@@ -391,6 +442,32 @@ func checkView(t *testing.T, ev *env.Environment, ident string, cols, rows int64
 	}
 	if r.Height() != rows {
 		t.Errorf("rows number mismatched! want %d, got %d", rows, r.Height())
+	}
+}
+
+func getArrayFromValue(arr value.Value) (value.Array, error) {
+	if arr, ok := arr.(value.Array); ok {
+		return arr, nil
+	}
+	if arr, ok := arr.(interface{ AsArray() value.ArrayValue }); ok {
+		return getArrayFromValue(arr.AsArray())
+	}
+	var x value.Array
+	return x, fmt.Errorf("expected value to be an Array, got %T", arr)
+}
+
+func getViewFromValue(view value.Value) (*types.View, error) {
+	switch x := view.(type) {
+	case *types.File:
+		val, err := x.Active()
+		if err != nil {
+			return nil, fmt.Errorf("file has no active sheet")
+		}
+		return getViewFromValue(val)
+	case *types.View:
+		return x, nil
+	default:
+		return nil, fmt.Errorf("expected value to be a view/file but got %T", view)
 	}
 }
 

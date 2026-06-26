@@ -199,6 +199,11 @@ func Concat(left, right Value) Value {
 }
 
 func Eq(left, right Value) Value {
+	if _, ok := left.(Blank); ok {
+		if _, ok := right.(Blank); ok {
+			return Boolean(ok)
+		}
+	}
 	cmp, ok := left.(Comparable)
 	if !ok {
 		return ErrValue
