@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"maps"
 	"os"
 	"slices"
 
@@ -437,33 +438,35 @@ func (s *Sheet) RemoveColumns(offset, count int64) error {
 }
 
 func (s *Sheet) InsertRows(offset, count int64) error {
+	rows := make([]*row, count)
+	for i := range rows {
+		rows[i] = createRow(offset + int64(i) + 1)
+		for j := int64(1); j <= s.size.Columns; j++ {
+			var (
+				pos  = layout.NewPosition(rows[i].Line, j)
+				cell = emptyCell(pos)
+			)
+			rows[i].Cells = append(rows[i].Cells, cell)
+			s.cells[cell.Position] = cell
+		}
+	}
+	if offset == 0 {
+		s.rows = append(rows, s.rows...)
+		for i := range s.rows {
+			pos := s.rows[i].updateLine(count)
+			maps.Copy(pos, s.cells)
+		}
+		return nil
+	}
 	ix := slices.IndexFunc(s.rows, func(r *row) bool {
 		return r.Line >= offset
 	})
-	rows := make([]*row, count)
-	for i := range rows {
-		rows[i] = new(row)
-		rows[i].Line = offset + int64(i) + 1
-		for j := int64(1); j <= s.size.Columns; j++ {
-			c := &Cell{
-				Position: layout.NewPosition(rows[i].Line, j),
-				raw:      "",
-				parsed:   value.Empty(),
-			}
-			rows[i].Cells = append(rows[i].Cells, c)
-			s.cells[c.Position] = c
-		}
-	}
 	if ix < 0 {
 		s.rows = append(s.rows, rows...)
 	} else {
 		for i := ix + 1; i < len(s.rows); i++ {
-			s.rows[i].Line += count
-			for _, c := range s.rows[i].Cells {
-				c.Line = s.rows[i].Line
-
-				s.cells[c.Position] = c
-			}
+			pos := s.rows[i].updateLine(count)
+			maps.Copy(pos, s.cells)
 		}
 		s.rows = slices.Insert(s.rows, ix+1, rows...)
 	}
@@ -545,6 +548,13 @@ type row struct {
 	Cells []*Cell
 }
 
+func createRow(lino int64) *row {
+	r := &row{
+		Line: lino,
+	}
+	return r
+}
+
 func (r *row) AppendOrReplace(cell *Cell) {
 	cx := slices.IndexFunc(r.Cells, func(other *Cell) bool {
 		return other.Position.Equal(cell.Position)
@@ -571,6 +581,17 @@ func (r *row) Values() []value.ScalarValue {
 	return ds
 }
 
+func (r *row) updateLine(count int64) map[layout.Position]*Cell {
+	r.Line += count
+
+	pos := make(map[layout.Position]*Cell)
+	for _, c := range r.Cells {
+		c.Line = r.Line
+		pos[c.Position] = c
+	}
+	return pos
+}
+
 type Cell struct {
 	layout.Position
 
@@ -578,6 +599,14 @@ type Cell struct {
 	parsed  value.ScalarValue
 	formula value.Formula
 	dirty   bool
+}
+
+func emptyCell(pos layout.Position) *Cell {
+	return &Cell{
+		Position: pos,
+		raw:      "",
+		parsed:   value.Empty(),
+	}
 }
 
 func (c *Cell) At() layout.Position {
