@@ -241,7 +241,7 @@ func (z *writer) writeWorkbook(f *File) {
 		} `xml:"workbookProtection"`
 		Views struct {
 			View struct {
-				activeTab int `xml:"activeTab,attr"`
+				ActiveTab int `xml:"activeTab,attr"`
 			} `xml:"workbookView"`
 		} `xml:"workbookViews"`
 		Sheets []xmlSheet `xml:"sheets>sheet"`

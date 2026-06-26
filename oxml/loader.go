@@ -43,6 +43,7 @@ func isOxml(file string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer z.Close()
 	for _, f := range z.File {
 		switch f.Name {
 		case "xl/workbook.xml", "[Content_Types].xml":

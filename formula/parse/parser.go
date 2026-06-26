@@ -1141,8 +1141,14 @@ func parseSheet(p *Parser) (Expr, error) {
 			return nil, err
 		}
 	}
+	// switch {
+	// case p.is(op.Keyword) && p.currentLiteral() == kwFrom:
+	// case p.is(op.Keyword) && p.currentLiteral() == kwWith:
+	// default:
+	// 	return nil, p.makeError("from/with keyword expected")
+	// }
 	if !p.is(op.Keyword) && p.currentLiteral() != kwFrom {
-		return nil, p.makeError("'from' keyword expected")
+		return nil, p.makeError("from/with keyword expected")
 	}
 	p.next()
 	if stmt.value, err = p.parse(powLowest); err != nil {

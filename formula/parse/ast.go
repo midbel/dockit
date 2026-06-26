@@ -198,7 +198,8 @@ func (e Resize) Accept(v Visitor) error {
 	return nil
 }
 
-// sheet [name] from <expr> as <expr>
+// sheet <name> from <expr> as <expr>
+// sheet <name> with rows,cols as <expr>
 type Sheet struct {
 	ident Expr
 	name  Expr

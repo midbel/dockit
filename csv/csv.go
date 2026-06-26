@@ -144,7 +144,6 @@ func (r *Reader) readQuotedField(line []byte) ([]byte, int, error) {
 				continue
 			}
 			return line[pos:offset], offset + 1, nil
-			break
 		}
 		offset++
 	}
