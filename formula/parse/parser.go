@@ -966,7 +966,7 @@ func parseKeyValuePairs(p *Parser) (map[string]any, error) {
 	kvs := make(map[string]any)
 	for !p.done() && !p.is(op.EndGrp) {
 		p.skipEOL()
-		if !p.is(op.Ident) && !p.is(op.Literal) {
+		if !p.isIdentExtended() && !p.is(op.Literal) {
 			return nil, p.makeError("only identifier or literal allowed as key")
 		}
 		key := p.currentLiteral()
@@ -1135,31 +1135,55 @@ func parseSheet(p *Parser) (Expr, error) {
 		stmt Sheet
 		err  error
 	)
+	if p.is(op.Ident) {
+		stmt.name, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		stmt.ident = stmt.name
+	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwUsing {
+		p.next()
+		stmt.data, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwWith {
+		p.next()
+		if p.is(op.BegGrp) {
+			options, err := parseKeyValuePairs(p)
+			if err != nil {
+				return nil, err
+			}
+			stmt.options = options
+		} else {
+			return nil, p.makeError("with expects options list")
+		}
+		p.next()
+	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwInto {
+		p.next()
+		stmt.file, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if p.is(op.Keyword) && p.currentLiteral() == kwAs {
+		p.next()
+		stmt.ident, err = p.parse(powLowest)
+		if err != nil {
+			return nil, err
+		}
+		if stmt.name == nil {
+			stmt.name = stmt.ident
+		}
+	}
 	if !p.is(op.Keyword) {
 		stmt.name, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
-	}
-	// switch {
-	// case p.is(op.Keyword) && p.currentLiteral() == kwFrom:
-	// case p.is(op.Keyword) && p.currentLiteral() == kwWith:
-	// default:
-	// 	return nil, p.makeError("from/with keyword expected")
-	// }
-	if !p.is(op.Keyword) && p.currentLiteral() != kwFrom {
-		return nil, p.makeError("from/with keyword expected")
-	}
-	p.next()
-	if stmt.value, err = p.parse(powLowest); err != nil {
-		return nil, err
-	}
-	if !p.is(op.Keyword) && p.currentLiteral() != kwAs {
-		return nil, p.makeError("'as' keyword expected")
-	}
-	p.next()
-	if stmt.ident, err = p.parse(powLowest); err != nil {
-		return nil, err
 	}
 	return stmt, nil
 }

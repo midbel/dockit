@@ -201,16 +201,18 @@ func (e Resize) Accept(v Visitor) error {
 // sheet <name> from <expr> as <expr>
 // sheet <name> with rows,cols as <expr>
 type Sheet struct {
-	ident Expr
-	name  Expr
-	value Expr
+	ident   Expr
+	name    Expr
+	data    Expr
+	file    Expr
+	options map[string]any
 }
 
-func newSheet(ident, name, value Expr) Expr {
+func newSheet(ident, name, data Expr) Expr {
 	return Sheet{
 		ident: ident,
 		name:  name,
-		value: value,
+		data: data,
 	}
 }
 
@@ -222,8 +224,16 @@ func (e Sheet) Name() Expr {
 	return e.name
 }
 
-func (e Sheet) Value() Expr {
-	return e.value
+func (e Sheet) Data() Expr {
+	return e.data
+}
+
+func (e Sheet) Options() map[string]any {
+	return e.options
+}
+
+func (e Sheet) File() Expr {
+	return e.file
 }
 
 func (e Sheet) String() string {

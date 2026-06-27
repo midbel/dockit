@@ -106,25 +106,6 @@ func (v *evaluator) VisitRename(expr parse.Rename) error {
 }
 
 func (v *evaluator) VisitSheet(expr parse.Sheet) error {
-	val, err := v.visitNormalize(expr.Value())
-	if err != nil {
-		return err
-	}
-	ident, err := v.visitNormalize(expr.Ident())
-	if err != nil {
-		return err
-	}
-	name := ident
-	if n := expr.Name(); n != nil {
-		x, err := v.visitNormalize(n)
-		if err != nil {
-			return err
-		}
-		name = x
-	}
-	_ = val
-	_ = ident
-	_ = name
 	return nil
 }
 
