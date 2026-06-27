@@ -294,6 +294,7 @@ const (
 	AnchorDefault Anchor = 1 << iota
 	AnchorAfter
 	AnchorBefore
+	AnchorAt
 )
 
 // insert [count] <row(s)|column(s)> <before|after> <offset> into <sheet> [with <value>]

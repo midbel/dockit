@@ -396,6 +396,16 @@ func testRemoveValid(t *testing.T) {
 				Anchor: AnchorBefore,
 			},
 		},
+		{
+			Expr: "remove column at 10 from sh",
+			Want: Remove{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
+				offset: NewNumber(10),
+				Colrow: Column,
+				Anchor: AnchorAt,
+			},
+		},
 	}
 	for _, c := range tests {
 		expr, err := parseExpr(c.Expr)

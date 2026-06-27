@@ -348,6 +348,8 @@ remove 2 rows after 1 from @active
 
 remove first row from @active
 remove last row from @active
+
+remove row at 10 from @active
 ```
 
 ### lock and unlock

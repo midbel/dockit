@@ -397,10 +397,6 @@ func (s *Sheet) ClearFormula(_ layout.Position) error {
 }
 
 func (s *Sheet) RemoveRows(offset, count int64) error {
-	ix := slices.IndexFunc(s.rows, func(r *row) bool {
-		return r.Line >= offset
-	})
-	fmt.Println("removing rows", offset, count, ix)
 	return nil
 }
 

@@ -38,6 +38,7 @@ const (
 	kwEnd     = "end"
 	kwBefore  = "before"
 	kwAfter   = "after"
+	kwAt      = "at"
 )
 
 func isReserved(str string) bool {
@@ -50,6 +51,7 @@ func isReserved(str string) bool {
 	case kwInto:
 	case kwWith:
 	case kwFrom:
+	case kwAt:
 	default:
 		return false
 	}
@@ -93,6 +95,7 @@ func isKeyword(str string) bool {
 	case kwNot:
 	case kwBefore:
 	case kwAfter:
+	case kwAt:
 	// case kwMacro:
 	// case kwInclude:
 	default:
