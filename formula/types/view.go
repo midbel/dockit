@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/midbel/dockit/formula/parse"
@@ -111,9 +112,7 @@ func (c *View) InsertColumns(offset, count int64, data value.Value) error {
 			start  = layout.NewPosition(1, offset+1)
 			end    = layout.NewPosition(bounds.Height(), offset+count)
 		)
-		if count == 1 {
-			start.Line += 1
-		}
+		fmt.Println(start, end)
 		return c.SetRange(start, end, data)
 	}
 	return nil

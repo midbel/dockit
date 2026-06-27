@@ -453,7 +453,7 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 	if offset == 0 {
 		s.rows = append(rows, s.rows...)
 		for i := range s.rows {
-			pos := s.rows[i].updateLine(count)
+			pos := s.rows[i].shift(count)
 			maps.Copy(pos, s.cells)
 		}
 		return nil
@@ -465,7 +465,7 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 		s.rows = append(s.rows, rows...)
 	} else {
 		for i := ix + 1; i < len(s.rows); i++ {
-			pos := s.rows[i].updateLine(count)
+			pos := s.rows[i].shift(count)
 			maps.Copy(pos, s.cells)
 		}
 		s.rows = slices.Insert(s.rows, ix+1, rows...)
@@ -479,14 +479,19 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 		cols := make([]*Cell, count)
 		for j := int64(0); j < count; j++ {
 			var (
-				pos = layout.NewPosition(s.rows[i].Line, offset+j+1)
+				pos  = layout.NewPosition(s.rows[i].Line, offset+j+1)
 				cell = emptyCell(pos)
 			)
 			cols[j] = cell
 			s.cells[cell.Position] = cell
 		}
 		if offset == 0 {
-
+			for _, c := range s.rows[i].Cells {
+				c.Column += count
+				s.cells[c.Position] = c
+			}
+			s.rows[i].Cells = append(cols, s.rows[i].Cells...)
+			continue
 		}
 		ix := slices.IndexFunc(s.rows[i].Cells, func(c *Cell) bool {
 			return c.Column >= offset
@@ -495,6 +500,10 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 			s.rows[i].Cells = append(s.rows[i].Cells, cols...)
 		} else {
 			s.rows[i].Cells = slices.Insert(s.rows[i].Cells, ix+1, cols...)
+			for _, c := range s.rows[i].Cells[ix+1+int(count):] {
+				c.Column += count
+				s.cells[c.Position] = c
+			}
 		}
 	}
 	return nil
@@ -583,7 +592,7 @@ func (r *row) Values() []value.ScalarValue {
 	return ds
 }
 
-func (r *row) updateLine(count int64) map[layout.Position]*Cell {
+func (r *row) shift(count int64) map[layout.Position]*Cell {
 	r.Line += count
 
 	pos := make(map[layout.Position]*Cell)
