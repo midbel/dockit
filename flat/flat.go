@@ -476,19 +476,21 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 
 func (s *Sheet) InsertColumns(offset, count int64) error {
 	for i := range s.rows {
+		cols := make([]*Cell, count)
+		for j := int64(0); j < count; j++ {
+			var (
+				pos = layout.NewPosition(s.rows[i].Line, offset+j+1)
+				cell = emptyCell(pos)
+			)
+			cols[j] = cell
+			s.cells[cell.Position] = cell
+		}
+		if offset == 0 {
+
+		}
 		ix := slices.IndexFunc(s.rows[i].Cells, func(c *Cell) bool {
 			return c.Column >= offset
 		})
-		cols := make([]*Cell, count)
-		for j := int64(0); j < count; j++ {
-			c := &Cell{
-				Position: layout.NewPosition(s.rows[i].Line, offset+j+1),
-				raw:      "",
-				parsed:   value.Empty(),
-			}
-			cols[j] = c
-			s.cells[c.Position] = c
-		}
 		if ix < 0 {
 			s.rows[i].Cells = append(s.rows[i].Cells, cols...)
 		} else {
