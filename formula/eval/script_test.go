@@ -159,7 +159,81 @@ insrow := A1:C1`,
 }
 
 func testInsertColumns(t *testing.T) {
-	t.SkipNow()
+	tests := []struct {
+		Name   string
+		Script string
+		Cols   int64
+		Rows   int64
+		Want   [][]value.ScalarValue
+	}{
+		{
+			Name: "col-basic",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert column into @active with 0
+inscol := D
+			`,
+			Cols: 4,
+			Rows: 3,
+			Want: [][]value.ScalarValue{
+				{value.Float(0)},
+				{value.Float(0)},
+				{value.Float(0)},
+			},
+		},
+		{
+			Name: "col-after-last",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert column into @active with 0
+inscol := D
+			`,
+			Cols: 4,
+			Rows: 3,
+			Want: [][]value.ScalarValue{
+				{value.Float(0)},
+				{value.Float(0)},
+				{value.Float(0)},
+			},
+		},
+		{
+			Name: "col-before-first",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert column before first into @active with 0
+inscol := A
+			`,
+			Cols: 4,
+			Rows: 3,
+			Want: [][]value.ScalarValue{
+				{value.Float(0)},
+				{value.Float(0)},
+				{value.Float(0)},
+			},
+		},
+		{
+			Name: "col-multi",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+insert 4 columns after 2 into @active with "tbd"
+inscol := C1:F3
+			`,
+			Cols: 7,
+			Rows: 3,
+			Want: [][]value.ScalarValue{
+				{value.Text("tbd"), value.Text("tbd"), value.Text("tbd"), value.Text("tbd")},
+				{value.Text("tbd"), value.Text("tbd"), value.Text("tbd"), value.Text("tbd")},
+				{value.Text("tbd"), value.Text("tbd"), value.Text("tbd"), value.Text("tbd")},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			ev := runScript(t, tt.Script)
+			checkView(t, ev, "sh", tt.Cols, tt.Rows)
+			checkRange(t, ev, "inscol", value.NewArray(tt.Want).(value.Array))
+		})
+	}
 }
 
 func testAssertOk(t *testing.T) {
