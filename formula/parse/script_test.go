@@ -35,27 +35,27 @@ func TestImportStmt(t *testing.T) {
 		{
 			Expr: "import \"file.csv\"",
 			Expect: importExpect{
-				File: "file.csv",
+				File: "\"file.csv\"",
 			},
 		},
 		{
 			Expr: "import \"file.csv\" default",
 			Expect: importExpect{
-				File:    "file.csv",
+				File:    "\"file.csv\"",
 				Default: true,
 			},
 		},
 		{
 			Expr: "import \"file.csv\" ro",
 			Expect: importExpect{
-				File:     "file.csv",
+				File:     "\"file.csv\"",
 				Readonly: true,
 			},
 		},
 		{
 			Expr: "import \"file.csv\" default rw",
 			Expect: importExpect{
-				File:     "file.csv",
+				File:     "\"file.csv\"",
 				Default:  true,
 				Readonly: false,
 			},
@@ -63,7 +63,7 @@ func TestImportStmt(t *testing.T) {
 		{
 			Expr: "import \"file.csv\" using csv as file",
 			Expect: importExpect{
-				File:   "file.csv",
+				File:   "\"file.csv\"",
 				Alias:  "file",
 				Format: "csv",
 			},
@@ -71,7 +71,7 @@ func TestImportStmt(t *testing.T) {
 		{
 			Expr: "import \"file.log\" using log[[%time %user %level %message]] as file",
 			Expect: importExpect{
-				File:      "file.log",
+				File:      "\"file.log\"",
 				Alias:     "file",
 				Format:    "log",
 				Specifier: "%time %user %level %message",
@@ -80,7 +80,7 @@ func TestImportStmt(t *testing.T) {
 		{
 			Expr: "import \"file.csv\" using csv with (quote := 'true', separator := 'tab') default ro",
 			Expect: importExpect{
-				File:     "file.csv",
+				File:     "\"file.csv\"",
 				Format:   "csv",
 				Default:  true,
 				Readonly: true,
@@ -93,7 +93,7 @@ func TestImportStmt(t *testing.T) {
 		{
 			Expr: "import \"file.csv\" using csv with (\nquote := 'true',\nseparator := 'tab'\n) default ro",
 			Expect: importExpect{
-				File:     "file.csv",
+				File:     "\"file.csv\"",
 				Format:   "csv",
 				Default:  true,
 				Readonly: true,
@@ -149,6 +149,79 @@ func assertImportRef(t *testing.T, expr string, got ImportFile, want importExpec
 			t.Errorf("value of option %s mismatched! want %s, got %s", k, v, other)
 		}
 	}
+}
+
+func TestInsert(t *testing.T) {
+	tests := []struct {
+		Expr string
+		Want Expr
+	}{
+		{
+			Expr: "insert row into sh",
+			Want: Insert{
+				ident:  NewIdentifier("sh"),
+				Colrow: Row,
+				Anchor: AnchorDefault,
+			},
+		},
+		{
+			Expr: "insert row into sh with 0",
+			Want: Insert{
+				ident:  NewIdentifier("sh"),
+				value: NewNumber(0),
+				Colrow: Row,
+				Anchor: AnchorDefault,
+			},
+		},
+		{
+			Expr: "insert column into sh",
+			Want: Insert{
+				ident:  NewIdentifier("sh"),
+				Colrow: Column,
+				Anchor: AnchorDefault,
+			},
+		},
+		{
+			Expr: "insert 5 rows before first into sh",
+			Want: Insert{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(5),
+				offset: NewNumber(1),
+				Colrow: Row,
+				Anchor: AnchorBefore,
+			},
+		},
+		{
+			Expr: "insert 5 columns after last into sh",
+			Want: Insert{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(5),
+				Colrow: Column,
+				Anchor: AnchorAfter,
+			},
+		},
+	}
+	for _, c := range tests {
+		expr, err := parseExpr(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		pr, ok := unwrapScriptExpr(expr).(Insert)
+		if !ok {
+			t.Errorf("%s: expected Insert statement, got %T", c.Want, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, pr)
+	}
+}
+
+func TestRemove(t *testing.T) {
+
+}
+
+func TestSheet(t *testing.T) {
+
 }
 
 type useExpect struct {
@@ -705,6 +778,26 @@ func TestScript(t *testing.T) {
 func assertEqualExpr(t *testing.T, want, got Expr) {
 	t.Helper()
 	switch w := want.(type) {
+	case nil:
+		if got != nil {
+			t.Errorf("expected nil expression, got %T", got)
+		}
+	case Insert:
+		g, ok := got.(Insert)
+		if !ok {
+			t.Errorf("Insert statement expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.count, g.count)
+		assertEqualExpr(t, w.offset, g.offset)
+		assertEqualExpr(t, w.ident, g.ident)
+		assertEqualExpr(t, w.value, g.value)
+		if w.Anchor != g.Anchor {
+			t.Errorf("anchor mismatched!")
+		}
+		if w.Colrow != g.Colrow {
+			t.Errorf("colrow mismatched!")
+		}
 	case RangeAddr:
 		g, ok := got.(RangeAddr)
 		if !ok {

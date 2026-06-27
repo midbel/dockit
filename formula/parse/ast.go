@@ -212,7 +212,7 @@ func newSheet(ident, name, data Expr) Expr {
 	return Sheet{
 		ident: ident,
 		name:  name,
-		data: data,
+		data:  data,
 	}
 }
 
