@@ -168,7 +168,7 @@ func TestInsert(t *testing.T) {
 			Expr: "insert row into sh with 0",
 			Want: Insert{
 				ident:  NewIdentifier("sh"),
-				value: NewNumber(0),
+				value:  NewNumber(0),
 				Colrow: Row,
 				Anchor: AnchorDefault,
 			},
@@ -217,11 +217,61 @@ func TestInsert(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
-
+	tests := []struct {
+		Expr string
+		Want Expr
+	}{
+		{
+			Expr: "remove row from sh",
+			Want: Remove{
+				ident: NewIdentifier("sh"),
+				Anchor: AnchorDefault,
+				Colrow: Row,
+			},
+		},
+		{
+			Expr: "remove 1 row before last from sh",
+			Want: Remove{
+				ident: NewIdentifier("sh"),
+				count: NewNumber(1),
+				Anchor: AnchorBefore,
+				Colrow: Row,
+			},
+		},
+	}
+	for _, c := range tests {
+		expr, err := parseExpr(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		pr, ok := unwrapScriptExpr(expr).(Remove)
+		if !ok {
+			t.Errorf("%s: expected Remove statement, got %T", c.Want, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, pr)
+	}
 }
 
 func TestSheet(t *testing.T) {
-
+	tests := []struct {
+		Expr string
+		Want Expr
+	}{}
+	for _, c := range tests {
+		expr, err := parseExpr(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		pr, ok := unwrapScriptExpr(expr).(Sheet)
+		if !ok {
+			t.Errorf("%s: expected Sheet statement, got %T", c.Want, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, pr)
+	}
 }
 
 type useExpect struct {
@@ -781,6 +831,28 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 	case nil:
 		if got != nil {
 			t.Errorf("expected nil expression, got %T", got)
+		}
+	case Sheet:
+		g, ok := got.(Sheet)
+		if !ok {
+			t.Errorf("Sheet statement expected but got %T", got)
+			return
+		}
+		_ = g
+	case Remove:
+		g, ok := got.(Remove)
+		if !ok {
+			t.Errorf("Remove statement expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.count, g.count)
+		assertEqualExpr(t, w.offset, g.offset)
+		assertEqualExpr(t, w.ident, g.ident)
+		if w.Anchor != g.Anchor {
+			t.Errorf("anchor mismatched!")
+		}
+		if w.Colrow != g.Colrow {
+			t.Errorf("colrow mismatched!")
 		}
 	case Insert:
 		g, ok := got.(Insert)

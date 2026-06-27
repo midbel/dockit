@@ -16,7 +16,6 @@ const (
 	kwSheet   = "sheet"
 	kwInsert  = "insert"
 	kwRemove  = "remove"
-	kwResize  = "resize"
 	kwUse     = "use"
 	kwUsing   = "using"
 	kwWith    = "with"

@@ -163,41 +163,6 @@ func (i IncludeFile) Accept(v Visitor) error {
 	return v.VisitIncludeFile(i)
 }
 
-// resize <sheet> with <rows>, <columns>
-type Resize struct {
-	ident   Expr
-	rows    Expr
-	columns Expr
-}
-
-func newResize(ident, rows, columns Expr) Expr {
-	return Resize{
-		ident:   ident,
-		rows:    rows,
-		columns: columns,
-	}
-}
-
-func (e Resize) Ident() Expr {
-	return e.ident
-}
-
-func (e Resize) RowsCount() Expr {
-	return e.rows
-}
-
-func (e Resize) ColumnsCount() Expr {
-	return e.columns
-}
-
-func (e Resize) String() string {
-	return fmt.Sprintf("resize(%s)", e.ident)
-}
-
-func (e Resize) Accept(v Visitor) error {
-	return nil
-}
-
 // sheet <name> from <expr> as <expr>
 // sheet <name> with rows,cols as <expr>
 type Sheet struct {
