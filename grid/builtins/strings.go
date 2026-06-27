@@ -69,7 +69,7 @@ func Left(args []value.Value) value.Value {
 
 var rightBuiltin = Builtin{
 	Name:     "right",
-	Desc:     "Returns the first characters from text",
+	Desc:     "Returns the last characters from text",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -160,7 +160,7 @@ func Len(args []value.Value) value.Value {
 
 var upperBuiltin = Builtin{
 	Name:     "upper",
-	Desc:     "",
+	Desc:     "Transform text to uppercase",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -179,7 +179,7 @@ func Upper(args []value.Value) value.Value {
 
 var lowerBuiltin = Builtin{
 	Name:     "lower",
-	Desc:     "",
+	Desc:     "Transform text to lowercase",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
