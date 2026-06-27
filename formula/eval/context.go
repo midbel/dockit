@@ -254,9 +254,7 @@ func (c *EngineContext) RemoveRows(sh, count, offset value.Value, anchor parse.A
 	if offset != nil {
 		if o, ok := offset.(value.Float); ok {
 			off = float64(o)
-			if anchor == parse.AnchorAfter {
-				off += 1
-			} else {
+			if anchor == parse.AnchorBefore {
 				off -= 1
 			}
 		} else {
@@ -283,11 +281,6 @@ func (c *EngineContext) RemoveColumns(sh, count, offset value.Value, anchor pars
 	if count != nil {
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
-			if anchor == parse.AnchorAfter {
-				cols += 1
-			} else {
-				off -= 1
-			}
 		} else {
 			return value.ErrValue, fmt.Errorf("number expected")
 		}
@@ -297,6 +290,9 @@ func (c *EngineContext) RemoveColumns(sh, count, offset value.Value, anchor pars
 	if offset != nil {
 		if o, ok := offset.(value.Float); ok {
 			off = float64(o)
+			if anchor == parse.AnchorBefore {
+				off -= 1
+			}
 		} else {
 			return value.ErrValue, fmt.Errorf("number expected")
 		}

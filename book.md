@@ -345,6 +345,9 @@ Remove rows or columns from the active or named view.
 ```dockit
 remove row from @active
 remove 2 rows after 1 from @active
+
+remove first row from @active
+remove last row from @active
 ```
 
 ### lock and unlock

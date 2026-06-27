@@ -323,6 +323,19 @@ func TestInsert(t *testing.T) {
 }
 
 func TestRemove(t *testing.T) {
+	t.Run("valid-remove", testRemoveValid)
+	t.Run("error-remove", testRemoveError)
+}
+
+func testRemoveError(t *testing.T) {
+	tests := []string{
+		"remove row before first from sh",
+		"remove row after last from sh",
+	}
+	_ = tests
+}
+
+func testRemoveValid(t *testing.T) {
 	tests := []struct {
 		Expr string
 		Want Expr
@@ -342,6 +355,45 @@ func TestRemove(t *testing.T) {
 				count:  NewNumber(1),
 				Anchor: AnchorBefore,
 				Colrow: Row,
+			},
+		},
+		{
+			Expr: "remove first row from sh",
+			Want: Remove{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
+				offset: NewNumber(1),
+				Colrow: Row,
+				Anchor: AnchorDefault,
+			},
+		},
+		{
+			Expr: "remove last row from sh",
+			Want: Remove{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
+				offset: NewNumber(1),
+				Colrow: Row,
+				Anchor: AnchorDefault,
+			},
+		},
+		{
+			Expr: "remove column after first from sh",
+			Want: Remove{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
+				offset: NewNumber(1),
+				Colrow: Column,
+				Anchor: AnchorAfter,
+			},
+		},
+		{
+			Expr: "remove column before last from sh",
+			Want: Remove{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
+				Colrow: Column,
+				Anchor: AnchorBefore,
 			},
 		},
 	}
