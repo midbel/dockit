@@ -11,7 +11,7 @@ import (
 
 var concatBuiltin = Builtin{
 	Name:     "concatenate",
-	Desc:     "",
+	Desc:     "Concat multiple string in one",
 	Category: "text",
 	Alias:    slx.Make("concat"),
 	Params: []Param{

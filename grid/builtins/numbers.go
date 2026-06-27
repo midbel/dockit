@@ -30,7 +30,7 @@ func Sign(args []value.Value) value.Value {
 
 var isOddBuiltin = Builtin{
 	Name:     "isodd",
-	Desc:     "",
+	Desc:     "Check if a number is odd",
 	Category: "math",
 	Params: []Param{
 		Var(Scalar("number", "", value.TypeNumber)),
@@ -49,7 +49,7 @@ func IsOdd(args []value.Value) value.Value {
 
 var isEvenBuiltin = Builtin{
 	Name:     "iseven",
-	Desc:     "",
+	Desc:     "Check if a number is even",
 	Category: "math",
 	Params: []Param{
 		Var(ScalarArray("number", "", value.TypeNumber)),
