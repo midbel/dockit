@@ -1219,7 +1219,7 @@ func parseRename(p *Parser) (Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newRename(ident, name), nil
+	return NewRename(ident, name), nil
 }
 
 func parseInsert(p *Parser) (Expr, error) {

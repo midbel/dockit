@@ -258,7 +258,7 @@ type Rename struct {
 	name  Expr
 }
 
-func newRename(ident, name Expr) Expr {
+func NewRename(ident, name Expr) Expr {
 	return Rename{
 		ident: ident,
 		name:  name,

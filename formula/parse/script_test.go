@@ -151,6 +151,112 @@ func assertImportRef(t *testing.T, expr string, got ImportFile, want importExpec
 	}
 }
 
+func TestUnlock(t *testing.T) {
+	tests := []struct {
+		Expr string
+		Want Expr
+	}{
+		{
+			Expr: "unlock mysheet",
+			Want: newUnlock(NewIdentifier("mysheet")),
+		},
+	}
+	for _, c := range tests {
+		expr, err := parseExpr(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		pr, ok := unwrapScriptExpr(expr).(Unlock)
+		if !ok {
+			t.Errorf("%s: expected Unlock statement, got %T", c.Want, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, pr)
+	}
+}
+
+func TestLock(t *testing.T) {
+	tests := []struct {
+		Expr string
+		Want Expr
+	}{
+		{
+			Expr: "lock mysheet",
+			Want: newLock(NewIdentifier("mysheet")),
+		},
+	}
+	for _, c := range tests {
+		expr, err := parseExpr(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		pr, ok := unwrapScriptExpr(expr).(Lock)
+		if !ok {
+			t.Errorf("%s: expected Lock statement, got %T", c.Want, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, pr)
+	}
+}
+
+func TestAlias(t *testing.T) {
+	tests := []struct {
+		Expr string
+		Want Expr
+	}{
+		{
+			Expr: "alias B2 as myident",
+			Want: NewAlias(
+				"myident",
+				NewCellAddr(layout.NewPosition(2, 2), false, false),
+			),
+		},
+	}
+	for _, c := range tests {
+		expr, err := parseExpr(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		pr, ok := unwrapScriptExpr(expr).(AliasRef)
+		if !ok {
+			t.Errorf("%s: expected AliasRef statement, got %T", c.Want, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, pr)
+	}
+}
+
+func TestRename(t *testing.T) {
+	tests := []struct {
+		Expr string
+		Want Expr
+	}{
+		{
+			Expr: "rename sheet1 as mysheet",
+			Want: NewRename(
+				NewIdentifier("sheet1"),
+				NewIdentifier("mysheet"),
+			),
+		},
+	}
+	for _, c := range tests {
+		expr, err := parseExpr(c.Expr)
+		if err != nil {
+			t.Errorf("%s: fail to parse expr: %s", c.Expr, err)
+			continue
+		}
+		pr, ok := unwrapScriptExpr(expr).(Rename)
+		if !ok {
+			t.Errorf("%s: expected Rename statement, got %T", c.Want, expr)
+			continue
+		}
+		assertEqualExpr(t, c.Want, pr)
+	}
+}
+
 func TestInsert(t *testing.T) {
 	tests := []struct {
 		Expr string
@@ -224,7 +330,7 @@ func TestRemove(t *testing.T) {
 		{
 			Expr: "remove row from sh",
 			Want: Remove{
-				ident: NewIdentifier("sh"),
+				ident:  NewIdentifier("sh"),
 				Anchor: AnchorDefault,
 				Colrow: Row,
 			},
@@ -232,8 +338,8 @@ func TestRemove(t *testing.T) {
 		{
 			Expr: "remove 1 row before last from sh",
 			Want: Remove{
-				ident: NewIdentifier("sh"),
-				count: NewNumber(1),
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
 				Anchor: AnchorBefore,
 				Colrow: Row,
 			},
@@ -832,6 +938,38 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		if got != nil {
 			t.Errorf("expected nil expression, got %T", got)
 		}
+	case AliasRef:
+		g, ok := got.(AliasRef)
+		if !ok {
+			t.Errorf("AliasRef statement expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.target, g.target)
+		if w.ident != g.ident {
+			t.Errorf("identifier mismatched! want %s, got %s", w.ident, g.ident)
+		}
+	case Unlock:
+		g, ok := got.(Unlock)
+		if !ok {
+			t.Errorf("Unlock statement expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.ident, g.ident)
+	case Lock:
+		g, ok := got.(Lock)
+		if !ok {
+			t.Errorf("Lock statement expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.ident, g.ident)
+	case Rename:
+		g, ok := got.(Rename)
+		if !ok {
+			t.Errorf("Rename statement expected but got %T", got)
+			return
+		}
+		assertEqualExpr(t, w.ident, g.ident)
+		assertEqualExpr(t, w.name, g.name)
 	case Sheet:
 		g, ok := got.(Sheet)
 		if !ok {
