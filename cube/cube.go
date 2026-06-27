@@ -69,7 +69,7 @@ func (c *Cube) RegisterMeasure(name string) error {
 		return fmt.Errorf("%s: measure already registered", name)
 	}
 	c.measIndex[name] = len(c.measures)
-	c.measures = append(c.measures, NewMesure(name))
+	c.measures = append(c.measures, NewMeasure(name))
 	return nil
 }
 

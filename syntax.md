@@ -268,7 +268,7 @@ print <expr>
 Load external data
 
 ```
-import <file> [using <format>] [with <specifier|options>] [as <alias>] [default] [ro|rw]
+import <file> [using <format>[[specifier]]] [with (option := value, ...)] [as <alias>] [default] [ro|rw]
 
 ```
 
@@ -309,6 +309,37 @@ The valid modes are:
 * fail: stop execution of current scriot
 * warn: print on stdout given message
 * ignore: do nothing
+
+### insert
+
+```
+insert [<count>] row(s) [before|after <offset|first|last>] into <sheet> [with <data>]
+```
+
+### remove 
+
+```
+insert [<count>] row(s) [before|after <offset|first|last>] into <sheet>
+```
+
+### sheet
+
+```
+sheet [<name>] using <data> as <alias>
+sheet [<name>] with rows,cols as <alias>
+```
+
+### lock
+
+```
+lock <sheet|file>
+```
+
+### unlock
+
+```
+unlock <sheet|file>
+```
 
 ## builtins
 
