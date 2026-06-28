@@ -10,6 +10,11 @@ func TestStrings(t *testing.T) {
 	t.Run("len", testLen)
 	t.Run("upper", testUpper)
 	t.Run("lower", testLower)
+	t.Run("concat", testConcat)
+	t.Run("left", testLeft)
+	t.Run("right", testRight)
+	t.Run("mid", testMid)
+	t.Run("trim", testTrim)
 }
 
 func testLen(t *testing.T) {
@@ -64,4 +69,106 @@ func testLower(t *testing.T) {
 		},
 	}
 	testBuiltin(t, Lower, tests)
+}
+
+func testConcat(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("foo"), value.Text("bar")},
+			Want: value.Text("foobar"),
+		},
+	}
+	testBuiltin(t, Concat, tests)
+}
+
+func testLeft(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("foo"), value.Float(1)},
+			Want: value.Text("f"),
+		},
+		{
+			Args: []value.Value{value.Text("foo")},
+			Want: value.Text("f"),
+		},
+		{
+			Args: []value.Value{value.Text("foo"), value.Float(3)},
+			Want: value.Text("foo"),
+		},
+		{
+			Args: []value.Value{value.Text("foo"), value.Float(7)},
+			Want: value.Text("foo"),
+		},
+	}
+	testBuiltin(t, Left, tests)
+}
+
+func testRight(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("foo"), value.Float(1)},
+			Want: value.Text("o"),
+		},
+		{
+			Args: []value.Value{value.Text("foo")},
+			Want: value.Text("o"),
+		},
+		{
+			Args: []value.Value{value.Text("foo"), value.Float(2)},
+			Want: value.Text("oo"),
+		},
+		{
+			Args: []value.Value{value.Text("foo"), value.Float(7)},
+			Want: value.Text("foo"),
+		},
+	}
+	testBuiltin(t, Right, tests)
+}
+
+func testMid(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("foobar"), value.Float(1), value.Float(6)},
+			Want: value.Text("foobar"),
+		},
+		{
+			Args: []value.Value{value.Text("foobar"), value.Float(1), value.Float(3)},
+			Want: value.Text("foo"),
+		},
+		{
+			Args: []value.Value{value.Text("foobar"), value.Float(4), value.Float(3)},
+			Want: value.Text("bar"),
+		},
+		{
+			Args: []value.Value{value.Text("foobar"), value.Float(3), value.Float(1)},
+			Want: value.Text("o"),
+		},
+	}
+	testBuiltin(t, Mid, tests)
+}
+
+func testTrim(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("foobar")},
+			Want: value.Text("foobar"),
+		},
+		{
+			Args: []value.Value{value.Text(" foobar")},
+			Want: value.Text("foobar"),
+		},
+		{
+			Args: []value.Value{value.Text("foobar ")},
+			Want: value.Text("foobar"),
+		},
+		{
+			Args: []value.Value{value.Text(" foo  bar ")},
+			Want: value.Text("foo bar"),
+		},
+		{
+			Args: []value.Value{value.Text("f oo  ba r")},
+			Want: value.Text("f oo ba r"),
+		},
+	}
+	testBuiltin(t, Trim, tests)
 }

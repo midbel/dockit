@@ -233,7 +233,7 @@ func Proper(args []value.Value) value.Value {
 
 var trimBuiltin = Builtin{
 	Name:     "trim",
-	Desc:     "",
+	Desc:     "Remove extra spaces from text",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -246,8 +246,19 @@ func Trim(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	ret := strings.TrimSpace(asString(args[0]))
-	return value.Text(ret)
+	var (
+		str  = asString(args[0])
+		ret  = make([]rune, 0, len(str))
+		prev rune
+	)
+	for _, c := range str {
+		if prev == ' ' && c == ' ' {
+			continue
+		}
+		prev = c
+		ret = append(ret, c)
+	}
+	return value.Text(strings.TrimSpace(string(ret)))
 }
 
 var searchBuiltin = Builtin{
