@@ -1222,32 +1222,64 @@ func parseRename(p *Parser) (Expr, error) {
 	return NewRename(ident, name), nil
 }
 
+func parseRowOrColumn(p *Parser) (Colrow, error) {
+	if !p.is(op.Keyword) {
+		return 0, p.makeError("row/rows/column/columns keyword expected")
+	}
+	switch p.currentLiteral() {
+	case kwRow, kwRows:
+		return Row, nil
+	case kwColumn, kwColumns:
+		return Column, nil
+	default:
+		return 0, p.makeError("row/rows/column/columns keyword expected")
+	}
+}
+
+func parseTarget(p *Parser) (Target, error) {
+	t := Target{
+		Kind: TargetIndex,
+	}
+	switch {
+	case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
+		p.next()
+		t.Kind = TargetFirst
+	case p.is(op.Keyword) && p.currentLiteral() == kwLast:
+		p.next()
+		t.Kind = TargetLast
+	case p.is(op.Keyword):
+	default:
+		expr, err := p.parse(powLowest)
+		if err != nil {
+			return t, err
+		}
+		t.Expr = expr
+	}
+	return t, nil
+}
+
 func parseInsert(p *Parser) (Expr, error) {
 	p.next()
 	var (
 		stmt Insert
 		err  error
 	)
+	stmt.target = Target{
+		Kind: TargetIndex,
+	}
 	if p.is(op.Ident) || p.is(op.Number) {
 		stmt.count, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
 	}
-	if !p.is(op.Keyword) {
-		return nil, p.makeError("row/rows/column/columns keyword expected")
-	}
-	switch p.currentLiteral() {
-	case kwRow, kwRows:
-		stmt.Colrow = Row
-	case kwColumn, kwColumns:
-		stmt.Colrow = Column
-	default:
-		return nil, p.makeError("row/rows/column/columns keyword expected")
+	stmt.Colrow, err = parseRowOrColumn(p)
+	if err != nil {
+		return nil, err
 	}
 	p.next()
 	stmt.Anchor = AnchorDefault
-	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
+	if p.is(op.Keyword) && (p.currentLiteral() == kwBefore || p.currentLiteral() == kwAfter) {
 		switch p.currentLiteral() {
 		case kwBefore:
 			stmt.Anchor = AnchorBefore
@@ -1257,17 +1289,10 @@ func parseInsert(p *Parser) (Expr, error) {
 			return nil, p.makeError("before/after keyword expected")
 		}
 		p.next()
-		switch {
-		case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
-			p.next()
-			stmt.offset = NewNumber(1)
-		case p.is(op.Keyword) && p.currentLiteral() == kwLast:
-			p.next()
-		default:
-			if stmt.offset, err = p.parse(powLowest); err != nil {
-				return nil, err
-			}
-		}
+	}
+	stmt.target, err = parseTarget(p)
+	if err != nil {
+		return nil, err
 	}
 	if !p.is(op.Keyword) && p.currentLiteral() != kwInto {
 		return nil, p.makeError("'into' keyword expected")
@@ -1289,10 +1314,12 @@ func parseInsert(p *Parser) (Expr, error) {
 func parseRemove(p *Parser) (Expr, error) {
 	p.next()
 	var (
-		stmt        Remove
-		err         error
-		firstOrLast bool
+		stmt Remove
+		err  error
 	)
+	stmt.target = Target{
+		Kind: TargetIndex,
+	}
 	switch {
 	case p.is(op.Ident) || p.is(op.Number):
 		stmt.count, err = p.parse(powLowest)
@@ -1300,60 +1327,51 @@ func parseRemove(p *Parser) (Expr, error) {
 			return nil, err
 		}
 	case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
+		stmt.target = Target{
+			Kind: TargetFirst,
+		}
 		stmt.count = NewNumber(1)
-		stmt.offset = NewNumber(1)
-		firstOrLast = true
 		p.next()
 	case p.is(op.Keyword) && p.currentLiteral() == kwLast:
+		stmt.target = Target{
+			Kind: TargetLast,
+		}
 		stmt.count = NewNumber(1)
-		firstOrLast = true
 		p.next()
-	case p.is(op.Keyword) && (p.currentLiteral() == kwRow || p.currentLiteral() == kwRows || p.currentLiteral() == kwColumn || p.currentLiteral() == kwColumns):
+	case p.is(op.Keyword) && isRowOrColumn(p.currentLiteral()):
 		stmt.count = NewNumber(1)
 	default:
 		return nil, p.makeError("ident/number/first/last expected")
 	}
-	if !p.is(op.Keyword) {
-		return nil, p.makeError("row/rows/column/columns keyword expected")
-	}
-	switch p.currentLiteral() {
-	case kwRow, kwRows:
-		stmt.Colrow = Row
-	case kwColumn, kwColumns:
-		stmt.Colrow = Column
-	default:
-		return nil, p.makeError("row/rows/column/columns keyword expected")
+
+	stmt.Colrow, err = parseRowOrColumn(p)
+	if err != nil {
+		return nil, err
 	}
 	p.next()
+
 	stmt.Anchor = AnchorDefault
-	if !firstOrLast {
-		if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore || p.currentLiteral() == kwAt) {
-			switch p.currentLiteral() {
-			case kwBefore:
-				stmt.Anchor = AnchorBefore
-			case kwAfter:
-				stmt.Anchor = AnchorAfter
-			case kwAt:
-				stmt.Anchor = AnchorAt
-			default:
-				return nil, p.makeError("before/after keyword expected")
-			}
-			p.next()
-			switch {
-			case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
-				p.next()
-				stmt.offset = NewNumber(1)
-			case p.is(op.Keyword) && p.currentLiteral() == kwLast:
-				p.next()
-			default:
-				if stmt.offset, err = p.parse(powLowest); err != nil {
-					return nil, err
-				}
-			}
+	if p.is(op.Keyword) && (p.currentLiteral() == kwBefore || p.currentLiteral() == kwAfter || p.currentLiteral() == kwAt) {
+		switch p.currentLiteral() {
+		case kwBefore:
+			stmt.Anchor = AnchorBefore
+		case kwAfter:
+			stmt.Anchor = AnchorAfter
+		case kwAt:
+			stmt.Anchor = AnchorAt
+		default:
+			return nil, p.makeError("at/before/after keyword expected")
+		}
+		p.next()
+	}
+	if stmt.target.Kind == TargetIndex {
+		stmt.target, err = parseTarget(p)
+		if err != nil {
+			return nil, err
 		}
 	}
 	if !p.is(op.Keyword) && p.currentLiteral() != kwFrom {
-		return nil, p.makeError("'into' keyword expected")
+		return nil, p.makeError("from keyword expected")
 	}
 	p.next()
 	if stmt.ident, err = p.parse(powLowest); err != nil {

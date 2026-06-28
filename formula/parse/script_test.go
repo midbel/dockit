@@ -265,7 +265,10 @@ func TestInsert(t *testing.T) {
 		{
 			Expr: "insert row into sh",
 			Want: Insert{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetIndex,
+				},
 				Colrow: Row,
 				Anchor: AnchorDefault,
 			},
@@ -273,7 +276,10 @@ func TestInsert(t *testing.T) {
 		{
 			Expr: "insert row into sh with 0",
 			Want: Insert{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetIndex,
+				},
 				value:  NewNumber(0),
 				Colrow: Row,
 				Anchor: AnchorDefault,
@@ -282,7 +288,10 @@ func TestInsert(t *testing.T) {
 		{
 			Expr: "insert column into sh",
 			Want: Insert{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetIndex,
+				},
 				Colrow: Column,
 				Anchor: AnchorDefault,
 			},
@@ -290,9 +299,11 @@ func TestInsert(t *testing.T) {
 		{
 			Expr: "insert 5 rows before first into sh",
 			Want: Insert{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetFirst,
+				},
 				count:  NewNumber(5),
-				offset: NewNumber(1),
 				Colrow: Row,
 				Anchor: AnchorBefore,
 			},
@@ -300,7 +311,23 @@ func TestInsert(t *testing.T) {
 		{
 			Expr: "insert 5 columns after last into sh",
 			Want: Insert{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetLast,
+				},
+				count:  NewNumber(5),
+				Colrow: Column,
+				Anchor: AnchorAfter,
+			},
+		},
+		{
+			Expr: "insert 5 columns after 10 into sh",
+			Want: Insert{
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetIndex,
+					Expr: NewNumber(10),
+				},
 				count:  NewNumber(5),
 				Colrow: Column,
 				Anchor: AnchorAfter,
@@ -343,7 +370,10 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove row from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetIndex,
+				},
 				count:  NewNumber(1),
 				Anchor: AnchorDefault,
 				Colrow: Row,
@@ -352,7 +382,10 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove column from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetIndex,
+				},
 				count:  NewNumber(1),
 				Anchor: AnchorDefault,
 				Colrow: Column,
@@ -361,7 +394,10 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove 1 row before last from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetLast,
+				},
 				count:  NewNumber(1),
 				Anchor: AnchorBefore,
 				Colrow: Row,
@@ -370,9 +406,11 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove first row from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetFirst,
+				},
 				count:  NewNumber(1),
-				offset: NewNumber(1),
 				Colrow: Row,
 				Anchor: AnchorDefault,
 			},
@@ -380,7 +418,10 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove last row from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetLast,
+				},
 				count:  NewNumber(1),
 				Colrow: Row,
 				Anchor: AnchorDefault,
@@ -389,9 +430,11 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove column after first from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetFirst,
+				},
 				count:  NewNumber(1),
-				offset: NewNumber(1),
 				Colrow: Column,
 				Anchor: AnchorAfter,
 			},
@@ -399,7 +442,10 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove column before last from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetLast,
+				},
 				count:  NewNumber(1),
 				Colrow: Column,
 				Anchor: AnchorBefore,
@@ -408,9 +454,12 @@ func testRemoveValid(t *testing.T) {
 		{
 			Expr: "remove column at 10 from sh",
 			Want: Remove{
-				ident:  NewIdentifier("sh"),
+				ident: NewIdentifier("sh"),
+				target: Target{
+					Kind: TargetIndex,
+					Expr: NewNumber(10),
+				},
 				count:  NewNumber(1),
-				offset: NewNumber(10),
 				Colrow: Column,
 				Anchor: AnchorAt,
 			},
@@ -1055,8 +1104,11 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 			return
 		}
 		assertEqualExpr(t, w.count, g.count)
-		assertEqualExpr(t, w.offset, g.offset)
 		assertEqualExpr(t, w.ident, g.ident)
+		if w.target.Kind != g.target.Kind {
+			t.Errorf("target kind mismatched! want %v, got %v", w.target.Kind, g.target.Kind)
+		}
+		assertEqualExpr(t, w.target.Expr, g.target.Expr)
 		if w.Anchor != g.Anchor {
 			t.Errorf("anchor mismatched! want %v, got %v", w.Anchor, g.Anchor)
 		}
@@ -1070,7 +1122,10 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 			return
 		}
 		assertEqualExpr(t, w.count, g.count)
-		assertEqualExpr(t, w.offset, g.offset)
+		if w.target.Kind != g.target.Kind {
+			t.Errorf("target kind mismatched! want %v, got %v", w.target.Kind, g.target.Kind)
+		}
+		assertEqualExpr(t, w.target.Expr, g.target.Expr)
 		assertEqualExpr(t, w.ident, g.ident)
 		assertEqualExpr(t, w.value, g.value)
 		if w.Anchor != g.Anchor {

@@ -103,3 +103,7 @@ func isKeyword(str string) bool {
 	}
 	return true
 }
+
+func isRowOrColumn(kw string) bool {
+	return kw == kwRow || kw == kwRows || kw == kwColumn || kw == kwColumns
+}

@@ -297,23 +297,27 @@ const (
 	AnchorAt
 )
 
+type TargetKind int8
+
+const (
+	TargetIndex TargetKind = 1 << iota
+	TargetFirst
+	TargetLast
+)
+
+type Target struct {
+	Kind TargetKind
+	Expr Expr
+}
+
 // insert [count] <row(s)|column(s)> <before|after> <offset> into <sheet> [with <value>]
 type Insert struct {
 	count  Expr
-	offset Expr
+	target Target
 	ident  Expr
 	value  Expr
 	Anchor
 	Colrow
-}
-
-func newInsert(ident, count, offset, value Expr) Expr {
-	return Insert{
-		ident:  ident,
-		count:  count,
-		offset: offset,
-		value:  value,
-	}
 }
 
 func (e Insert) Ident() Expr {
@@ -324,8 +328,8 @@ func (e Insert) Count() Expr {
 	return e.count
 }
 
-func (e Insert) Offset() Expr {
-	return e.offset
+func (e Insert) Target() Target {
+	return e.target
 }
 
 func (e Insert) Value() Expr {
@@ -348,21 +352,13 @@ func (e Insert) Accept(v Visitor) error {
 	return v.VisitInsert(e)
 }
 
-// remove [count] <row(s)|column(s)> <before|after> <offset> from <sheet>
+// remove [count|first|last] <row(s)|column(s)> <before|after|at> <offset> from <sheet>
 type Remove struct {
 	count  Expr
-	offset Expr
+	target Target
 	ident  Expr
 	Anchor
 	Colrow
-}
-
-func newRemove(ident, count, offset Expr) Expr {
-	return Remove{
-		ident:  ident,
-		count:  count,
-		offset: offset,
-	}
 }
 
 func (e Remove) Ident() Expr {
@@ -373,8 +369,8 @@ func (e Remove) Count() Expr {
 	return e.count
 }
 
-func (e Remove) Offset() Expr {
-	return e.offset
+func (e Remove) Target() Target {
+	return e.target
 }
 
 func (e Remove) Where() Anchor {
