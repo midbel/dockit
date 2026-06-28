@@ -344,8 +344,18 @@ func testRemoveValid(t *testing.T) {
 			Expr: "remove row from sh",
 			Want: Remove{
 				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
 				Anchor: AnchorDefault,
 				Colrow: Row,
+			},
+		},
+		{
+			Expr: "remove column from sh",
+			Want: Remove{
+				ident:  NewIdentifier("sh"),
+				count:  NewNumber(1),
+				Anchor: AnchorDefault,
+				Colrow: Column,
 			},
 		},
 		{
@@ -372,7 +382,6 @@ func testRemoveValid(t *testing.T) {
 			Want: Remove{
 				ident:  NewIdentifier("sh"),
 				count:  NewNumber(1),
-				offset: NewNumber(1),
 				Colrow: Row,
 				Anchor: AnchorDefault,
 			},
@@ -1049,7 +1058,7 @@ func assertEqualExpr(t *testing.T, want, got Expr) {
 		assertEqualExpr(t, w.offset, g.offset)
 		assertEqualExpr(t, w.ident, g.ident)
 		if w.Anchor != g.Anchor {
-			t.Errorf("anchor mismatched!")
+			t.Errorf("anchor mismatched! want %v, got %v", w.Anchor, g.Anchor)
 		}
 		if w.Colrow != g.Colrow {
 			t.Errorf("colrow mismatched!")

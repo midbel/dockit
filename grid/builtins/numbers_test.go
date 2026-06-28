@@ -12,7 +12,7 @@ func TestNumbers(t *testing.T) {
 }
 
 func testIsEven(t *testing.T) {
-	tests := []BuiltinTestCase {
+	tests := []BuiltinTestCase{
 		{
 			Args: []value.Value{value.Float(0)},
 			Want: value.Boolean(true),

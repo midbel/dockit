@@ -1289,14 +1289,29 @@ func parseInsert(p *Parser) (Expr, error) {
 func parseRemove(p *Parser) (Expr, error) {
 	p.next()
 	var (
-		stmt Remove
-		err  error
+		stmt        Remove
+		err         error
+		firstOrLast bool
 	)
-	if p.is(op.Ident) || p.is(op.Number) {
+	switch {
+	case p.is(op.Ident) || p.is(op.Number):
 		stmt.count, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
+	case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
+		stmt.count = NewNumber(1)
+		stmt.offset = NewNumber(1)
+		firstOrLast = true
+		p.next()
+	case p.is(op.Keyword) && p.currentLiteral() == kwLast:
+		stmt.count = NewNumber(1)
+		firstOrLast = true
+		p.next()
+	case p.is(op.Keyword) && (p.currentLiteral() == kwRow || p.currentLiteral() == kwRows || p.currentLiteral() == kwColumn || p.currentLiteral() == kwColumns):
+		stmt.count = NewNumber(1)
+	default:
+		return nil, p.makeError("ident/number/first/last expected")
 	}
 	if !p.is(op.Keyword) {
 		return nil, p.makeError("row/rows/column/columns keyword expected")
@@ -1311,25 +1326,29 @@ func parseRemove(p *Parser) (Expr, error) {
 	}
 	p.next()
 	stmt.Anchor = AnchorDefault
-	if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore) {
-		switch p.currentLiteral() {
-		case kwBefore:
-			stmt.Anchor = AnchorBefore
-		case kwAfter:
-			stmt.Anchor = AnchorAfter
-		default:
-			return nil, p.makeError("before/after keyword expected")
-		}
-		p.next()
-		switch {
-		case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
+	if !firstOrLast {
+		if p.is(op.Keyword) && (p.currentLiteral() == kwAfter || p.currentLiteral() == kwBefore || p.currentLiteral() == kwAt) {
+			switch p.currentLiteral() {
+			case kwBefore:
+				stmt.Anchor = AnchorBefore
+			case kwAfter:
+				stmt.Anchor = AnchorAfter
+			case kwAt:
+				stmt.Anchor = AnchorAt
+			default:
+				return nil, p.makeError("before/after keyword expected")
+			}
 			p.next()
-			stmt.offset = NewNumber(1)
-		case p.is(op.Keyword) && p.currentLiteral() == kwLast:
-			p.next()
-		default:
-			if stmt.offset, err = p.parse(powLowest); err != nil {
-				return nil, err
+			switch {
+			case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
+				p.next()
+				stmt.offset = NewNumber(1)
+			case p.is(op.Keyword) && p.currentLiteral() == kwLast:
+				p.next()
+			default:
+				if stmt.offset, err = p.parse(powLowest); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
