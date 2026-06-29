@@ -397,10 +397,51 @@ func (s *Sheet) ClearFormula(_ layout.Position) error {
 }
 
 func (s *Sheet) RemoveRows(offset, count int64) error {
+	ix := slices.IndexFunc(s.rows, func(r *row) bool {
+		return r.Line >= offset
+	})
+	if ix < 0 {
+		return nil
+	}
+	for _, r := range s.rows[ix : ix+int(count)] {
+		for _, c := range r.Cells {
+			delete(s.cells, c.Position)
+		}
+	}
+	for _, r := range s.rows[ix+int(count):] {
+		r.Line -= count
+		for _, c := range r.Cells {
+			c.Line -= count
+			s.cells[c.Position] = c
+		}
+	}
+	if ix+int(count) >= len(s.rows) {
+		count = int64(len(s.rows) - ix)
+	}
+	s.rows = slices.Delete(s.rows, ix, ix+int(count))
 	return nil
 }
 
 func (s *Sheet) RemoveColumns(offset, count int64) error {
+	for _, r := range s.rows {
+		ix := slices.IndexFunc(r.Cells, func(c *Cell) bool {
+			return c.Column >= offset
+		})
+		if ix < 0 {
+			continue
+		}
+		for _, c := range r.Cells[ix : ix+int(count)] {
+			delete(s.cells, c.Position)
+		}
+		for _, c := range r.Cells[ix+int(count):] {
+			c.Column += count
+			s.cells[c.Position] = c
+		}
+		if ix+int(count) >= len(r.Cells) {
+			count = int64(len(r.Cells) - ix)
+		}
+		r.Cells = slices.Delete(r.Cells, ix, ix+int(count))
+	}
 	return nil
 }
 

@@ -372,10 +372,10 @@ func testRemoveValid(t *testing.T) {
 			Want: Remove{
 				ident: NewIdentifier("sh"),
 				target: Target{
-					Kind: TargetIndex,
+					Kind: TargetLast,
 				},
 				count:  NewNumber(1),
-				Anchor: AnchorDefault,
+				Anchor: AnchorAt,
 				Colrow: Row,
 			},
 		},
@@ -384,10 +384,10 @@ func testRemoveValid(t *testing.T) {
 			Want: Remove{
 				ident: NewIdentifier("sh"),
 				target: Target{
-					Kind: TargetIndex,
+					Kind: TargetLast,
 				},
 				count:  NewNumber(1),
-				Anchor: AnchorDefault,
+				Anchor: AnchorAt,
 				Colrow: Column,
 			},
 		},
@@ -412,7 +412,7 @@ func testRemoveValid(t *testing.T) {
 				},
 				count:  NewNumber(1),
 				Colrow: Row,
-				Anchor: AnchorDefault,
+				Anchor: AnchorAt,
 			},
 		},
 		{
@@ -424,7 +424,7 @@ func testRemoveValid(t *testing.T) {
 				},
 				count:  NewNumber(1),
 				Colrow: Row,
-				Anchor: AnchorDefault,
+				Anchor: AnchorAt,
 			},
 		},
 		{

@@ -1350,7 +1350,7 @@ func parseRemove(p *Parser) (Expr, error) {
 	}
 	p.next()
 
-	stmt.Anchor = AnchorDefault
+	stmt.Anchor = AnchorAfter
 	if p.is(op.Keyword) && (p.currentLiteral() == kwBefore || p.currentLiteral() == kwAfter || p.currentLiteral() == kwAt) {
 		switch p.currentLiteral() {
 		case kwBefore:
@@ -1364,12 +1364,12 @@ func parseRemove(p *Parser) (Expr, error) {
 		}
 		p.next()
 	}
-	if stmt.target.Kind == TargetIndex {
-		stmt.target, err = parseTarget(p, stmt.target.Kind)
-		if err != nil {
-			return nil, err
-		}
+	stmt.target, err = parseTarget(p, stmt.target.Kind)
+	if err != nil {
+		return nil, err
 	}
+	// if stmt.target.Kind == TargetIndex {
+	// }
 	if !p.is(op.Keyword) && p.currentLiteral() != kwFrom {
 		return nil, p.makeError("from keyword expected")
 	}

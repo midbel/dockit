@@ -134,16 +134,23 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 	}
-	index, err := v.resolveTarget(ident, expr.Target(), expr.Where(), expr.Type())
+	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
 	if err != nil {
 		return err
+	}
+	switch expr.Where() {
+	case parse.AnchorBefore:
+		ix--
+	case parse.AnchorAfter:
+	default:
+		return fmt.Errorf("invalid anchor for insert statement")
 	}
 	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.InsertColumns(ident, count, index, data)
+		ret, err = v.ctx.InsertColumns(ident, count, value.Float(ix), data)
 	case parse.Row:
-		ret, err = v.ctx.InsertRows(ident, count, index, data)
+		ret, err = v.ctx.InsertRows(ident, count, value.Float(ix), data)
 	default:
 	}
 	v.pushValue(ret)
@@ -168,23 +175,32 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 			return err
 		}
 	}
-	index, err := v.resolveTarget(ident, expr.Target(), expr.Where(), expr.Type())
+	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
 	if err != nil {
 		return err
+	}
+	switch expr.Where() {
+	case parse.AnchorAfter:
+		ix++
+	case parse.AnchorBefore:
+		ix--
+	case parse.AnchorAt:
+	default:
+		return fmt.Errorf("invalid anchor for remove statement")
 	}
 	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.RemoveColumns(ident, count, index)
+		ret, err = v.ctx.RemoveColumns(ident, count, value.Float(ix))
 	case parse.Row:
-		ret, err = v.ctx.RemoveRows(ident, count, index)
+		ret, err = v.ctx.RemoveRows(ident, count, value.Float(ix))
 	default:
 	}
 	v.pushValue(ret)
 	return err
 }
 
-func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, anchor parse.Anchor, kind parse.Colrow) (value.Value, error) {
+func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, kind parse.Colrow) (int64, error) {
 	var (
 		view *types.View
 		err  error
@@ -194,7 +210,7 @@ func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, anchor
 	} else {
 		view, err = v.ctx.getView(ident.String())
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 	}
 
@@ -219,30 +235,20 @@ func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, anchor
 		}
 		val, err := v.visitNormalize(target.Expr)
 		if err != nil {
-			return nil, err
+			return 0, err
 		}
 		n, ok := val.(value.Float)
 		if !ok {
-			return nil, fmt.Errorf("target: number expected")
+			return 0, fmt.Errorf("target: number expected")
 		}
 		index = int64(n)
 	default:
-		return nil, fmt.Errorf("invalid target")
-	}
-
-	switch anchor {
-	case parse.AnchorBefore:
-		index--
-	case parse.AnchorAfter:
-	case parse.AnchorDefault:
-		if target.Kind == parse.TargetIndex && target.Expr == nil {
-			index = max
-		}
+		return 0, fmt.Errorf("invalid target")
 	}
 	if index < 0 {
 		index = 0
 	}
-	return value.Float(index), nil
+	return index, nil
 }
 
 func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {

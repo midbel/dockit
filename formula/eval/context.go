@@ -219,7 +219,6 @@ func (c *EngineContext) InsertColumns(sh, count, index, data value.Value) (value
 		b := view.Bounds()
 		off = float64(b.Width())
 	}
-	fmt.Println("insertColumns", off, cols, data)
 	err := view.InsertColumns(int64(off), int64(cols), data)
 	return nil, err
 }

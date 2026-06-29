@@ -291,10 +291,9 @@ const (
 type Anchor int8
 
 const (
-	AnchorDefault Anchor = 1 << iota
+	AnchorAt Anchor = 1 << iota
 	AnchorAfter
 	AnchorBefore
-	AnchorAt
 )
 
 type TargetKind int8
