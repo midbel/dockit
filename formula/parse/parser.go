@@ -1253,6 +1253,7 @@ func parseTarget(p *Parser, kind TargetKind) (Target, error) {
 		if err != nil {
 			return t, err
 		}
+		t.Kind = TargetIndex
 		t.Expr = expr
 	}
 	return t, nil
@@ -1265,6 +1266,7 @@ func parseInsert(p *Parser) (Expr, error) {
 		err  error
 	)
 	stmt.target.Kind = TargetIndex
+	stmt.Anchor = AnchorAfter
 	if p.is(op.Ident) || p.is(op.Number) {
 		stmt.count, err = p.parse(powLowest)
 		if err != nil {
@@ -1278,7 +1280,6 @@ func parseInsert(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	p.next()
-	stmt.Anchor = AnchorAfter
 	if p.is(op.Keyword) && (p.currentLiteral() == kwBefore || p.currentLiteral() == kwAfter) {
 		switch p.currentLiteral() {
 		case kwBefore:
@@ -1317,9 +1318,8 @@ func parseRemove(p *Parser) (Expr, error) {
 		stmt Remove
 		err  error
 	)
-	stmt.target = Target{
-		Kind: TargetIndex,
-	}
+	stmt.target.Kind = TargetIndex
+	stmt.Anchor = AnchorAfter
 	switch {
 	case p.is(op.Ident) || p.is(op.Number):
 		stmt.count, err = p.parse(powLowest)
@@ -1327,19 +1327,19 @@ func parseRemove(p *Parser) (Expr, error) {
 			return nil, err
 		}
 	case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
-		stmt.target = Target{
-			Kind: TargetFirst,
-		}
+		stmt.target.Kind = TargetFirst
+		stmt.Anchor = AnchorAt
 		stmt.count = NewNumber(1)
 		p.next()
 	case p.is(op.Keyword) && p.currentLiteral() == kwLast:
-		stmt.target = Target{
-			Kind: TargetLast,
-		}
+		stmt.target.Kind = TargetLast
+		stmt.Anchor = AnchorAt
 		stmt.count = NewNumber(1)
 		p.next()
 	case p.is(op.Keyword) && isRowOrColumn(p.currentLiteral()):
 		stmt.count = NewNumber(1)
+		stmt.target.Kind = TargetLast
+		stmt.Anchor = AnchorAt
 	default:
 		return nil, p.makeError("ident/number/first/last expected")
 	}
@@ -1350,7 +1350,6 @@ func parseRemove(p *Parser) (Expr, error) {
 	}
 	p.next()
 
-	stmt.Anchor = AnchorAfter
 	if p.is(op.Keyword) && (p.currentLiteral() == kwBefore || p.currentLiteral() == kwAfter || p.currentLiteral() == kwAt) {
 		switch p.currentLiteral() {
 		case kwBefore:

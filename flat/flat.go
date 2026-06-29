@@ -460,8 +460,8 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 	}
 	if offset == 0 {
 		s.rows = append(rows, s.rows...)
-		for i := range s.rows {
-			pos := s.rows[i].shift(count)
+		for i := range s.rows[int(count):] {
+			pos := s.rows[i+int(count)].shift(count)
 			maps.Copy(pos, s.cells)
 		}
 		return nil
