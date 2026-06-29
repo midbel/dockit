@@ -111,11 +111,10 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 
 func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	var (
-		ident  value.Value
-		count  value.Value
-		offset value.Value
-		data   value.Value
-		err    error
+		ident value.Value
+		count value.Value
+		data  value.Value
+		err   error
 	)
 	if i := expr.Ident(); i != nil {
 		ident, err = v.visitNormalize(i)
@@ -125,12 +124,6 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	}
 	if c := expr.Count(); c != nil {
 		count, err = v.visitNormalize(c)
-		if err != nil {
-			return err
-		}
-	}
-	if o := expr.Offset(); o != nil {
-		offset, err = v.visitNormalize(o)
 		if err != nil {
 			return err
 		}
@@ -141,12 +134,16 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 	}
+	index, err := v.resolveTarget(ident, expr.Target(), expr.Where(), expr.Type())
+	if err != nil {
+		return err
+	}
 	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.InsertColumns(ident, count, offset, data, expr.Where())
+		ret, err = v.ctx.InsertColumns(ident, count, index, data)
 	case parse.Row:
-		ret, err = v.ctx.InsertRows(ident, count, offset, data, expr.Where())
+		ret, err = v.ctx.InsertRows(ident, count, index, data)
 	default:
 	}
 	v.pushValue(ret)
@@ -155,10 +152,9 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 
 func (v *evaluator) VisitRemove(expr parse.Remove) error {
 	var (
-		ident  value.Value
-		count  value.Value
-		offset value.Value
-		err    error
+		ident value.Value
+		count value.Value
+		err   error
 	)
 	if i := expr.Ident(); i != nil {
 		ident, err = v.visitNormalize(i)
@@ -172,22 +168,81 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 			return err
 		}
 	}
-	if o := expr.Offset(); o != nil {
-		offset, err = v.visitNormalize(o)
-		if err != nil {
-			return err
-		}
+	index, err := v.resolveTarget(ident, expr.Target(), expr.Where(), expr.Type())
+	if err != nil {
+		return err
 	}
 	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.RemoveColumns(ident, count, offset, expr.Where())
+		ret, err = v.ctx.RemoveColumns(ident, count, index)
 	case parse.Row:
-		ret, err = v.ctx.RemoveRows(ident, count, offset, expr.Where())
+		ret, err = v.ctx.RemoveRows(ident, count, index)
 	default:
 	}
 	v.pushValue(ret)
 	return err
+}
+
+func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, anchor parse.Anchor, kind parse.Colrow) (value.Value, error) {
+	var (
+		view *types.View
+		err  error
+	)
+	if ident == nil {
+		view = v.ctx.CurrentActiveView()
+	} else {
+		view, err = v.ctx.getView(ident.String())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var max int64
+	switch kind {
+	case parse.Row:
+		max = view.Bounds().Height()
+	case parse.Column:
+		max = view.Bounds().Width()
+	}
+
+	var index int64
+	switch target.Kind {
+	case parse.TargetFirst:
+		index = 1
+	case parse.TargetLast:
+		index = max
+	case parse.TargetIndex:
+		if target.Expr == nil {
+			index = max
+			break
+		}
+		val, err := v.visitNormalize(target.Expr)
+		if err != nil {
+			return nil, err
+		}
+		n, ok := val.(value.Float)
+		if !ok {
+			return nil, fmt.Errorf("target: number expected")
+		}
+		index = int64(n)
+	default:
+		return nil, fmt.Errorf("invalid target")
+	}
+
+	switch anchor {
+	case parse.AnchorBefore:
+		index--
+	case parse.AnchorAfter:
+	case parse.AnchorDefault:
+		if target.Kind == parse.TargetIndex && target.Expr == nil {
+			index = max
+		}
+	}
+	if index < 0 {
+		index = 0
+	}
+	return value.Float(index), nil
 }
 
 func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {

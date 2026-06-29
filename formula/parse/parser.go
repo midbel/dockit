@@ -1236,9 +1236,9 @@ func parseRowOrColumn(p *Parser) (Colrow, error) {
 	}
 }
 
-func parseTarget(p *Parser) (Target, error) {
+func parseTarget(p *Parser, kind TargetKind) (Target, error) {
 	t := Target{
-		Kind: TargetIndex,
+		Kind: kind,
 	}
 	switch {
 	case p.is(op.Keyword) && p.currentLiteral() == kwFirst:
@@ -1264,21 +1264,21 @@ func parseInsert(p *Parser) (Expr, error) {
 		stmt Insert
 		err  error
 	)
-	stmt.target = Target{
-		Kind: TargetIndex,
-	}
+	stmt.target.Kind = TargetIndex
 	if p.is(op.Ident) || p.is(op.Number) {
 		stmt.count, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		stmt.target.Kind = TargetLast
 	}
 	stmt.Colrow, err = parseRowOrColumn(p)
 	if err != nil {
 		return nil, err
 	}
 	p.next()
-	stmt.Anchor = AnchorDefault
+	stmt.Anchor = AnchorAfter
 	if p.is(op.Keyword) && (p.currentLiteral() == kwBefore || p.currentLiteral() == kwAfter) {
 		switch p.currentLiteral() {
 		case kwBefore:
@@ -1290,7 +1290,7 @@ func parseInsert(p *Parser) (Expr, error) {
 		}
 		p.next()
 	}
-	stmt.target, err = parseTarget(p)
+	stmt.target, err = parseTarget(p, stmt.target.Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -1365,7 +1365,7 @@ func parseRemove(p *Parser) (Expr, error) {
 		p.next()
 	}
 	if stmt.target.Kind == TargetIndex {
-		stmt.target, err = parseTarget(p)
+		stmt.target, err = parseTarget(p, stmt.target.Kind)
 		if err != nil {
 			return nil, err
 		}

@@ -267,10 +267,10 @@ func TestInsert(t *testing.T) {
 			Want: Insert{
 				ident: NewIdentifier("sh"),
 				target: Target{
-					Kind: TargetIndex,
+					Kind: TargetLast,
 				},
 				Colrow: Row,
-				Anchor: AnchorDefault,
+				Anchor: AnchorAfter,
 			},
 		},
 		{
@@ -278,11 +278,11 @@ func TestInsert(t *testing.T) {
 			Want: Insert{
 				ident: NewIdentifier("sh"),
 				target: Target{
-					Kind: TargetIndex,
+					Kind: TargetLast,
 				},
 				value:  NewNumber(0),
 				Colrow: Row,
-				Anchor: AnchorDefault,
+				Anchor: AnchorAfter,
 			},
 		},
 		{
@@ -290,10 +290,10 @@ func TestInsert(t *testing.T) {
 			Want: Insert{
 				ident: NewIdentifier("sh"),
 				target: Target{
-					Kind: TargetIndex,
+					Kind: TargetLast,
 				},
 				Colrow: Column,
-				Anchor: AnchorDefault,
+				Anchor: AnchorAfter,
 			},
 		},
 		{

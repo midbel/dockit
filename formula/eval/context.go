@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/midbel/dockit/formula/env"
-	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/format"
@@ -156,7 +155,7 @@ func (c *EngineContext) CurrentActiveView() *types.View {
 	return v
 }
 
-func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor parse.Anchor) (value.Value, error) {
+func (c *EngineContext) InsertRows(sh, count, index, data value.Value) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -177,14 +176,11 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 		rows = 1
 	}
 	b := view.Bounds()
-	if offset != nil {
-		if o, ok := offset.(value.Float); ok {
+	if index != nil {
+		if o, ok := index.(value.Float); ok {
 			off = float64(o)
-			if anchor == parse.AnchorBefore {
-				off -= 1
-			}
 		} else {
-			return value.ErrValue, fmt.Errorf("offset: number expected")
+			return value.ErrValue, fmt.Errorf("index: number expected")
 		}
 	} else {
 		off = float64(b.Height())
@@ -193,7 +189,7 @@ func (c *EngineContext) InsertRows(sh, count, offset, data value.Value, anchor p
 	return nil, err
 }
 
-func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value, anchor parse.Anchor) (value.Value, error) {
+func (c *EngineContext) InsertColumns(sh, count, index, data value.Value) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -208,29 +204,27 @@ func (c *EngineContext) InsertColumns(sh, count, offset, data value.Value, ancho
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
 		} else {
-			return value.ErrValue, fmt.Errorf("number expected")
+			return value.ErrValue, fmt.Errorf("count: number expected")
 		}
 	} else {
 		cols = 1
 	}
-	if offset != nil {
-		if o, ok := offset.(value.Float); ok {
+	if index != nil {
+		if o, ok := index.(value.Float); ok {
 			off = float64(o)
-			if anchor == parse.AnchorBefore {
-				off -= 1
-			}
 		} else {
-			return value.ErrValue, fmt.Errorf("number expected")
+			return value.ErrValue, fmt.Errorf("index: number expected")
 		}
 	} else {
 		b := view.Bounds()
 		off = float64(b.Width())
 	}
+	fmt.Println("insertColumns", off, cols, data)
 	err := view.InsertColumns(int64(off), int64(cols), data)
 	return nil, err
 }
 
-func (c *EngineContext) RemoveRows(sh, count, offset value.Value, anchor parse.Anchor) (value.Value, error) {
+func (c *EngineContext) RemoveRows(sh, count, index value.Value) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -251,14 +245,11 @@ func (c *EngineContext) RemoveRows(sh, count, offset value.Value, anchor parse.A
 		rows = 1
 	}
 	b := view.Bounds()
-	if offset != nil {
-		if o, ok := offset.(value.Float); ok {
+	if index != nil {
+		if o, ok := index.(value.Float); ok {
 			off = float64(o)
-			if anchor == parse.AnchorBefore {
-				off -= 1
-			}
 		} else {
-			return value.ErrValue, fmt.Errorf("offset: number expected")
+			return value.ErrValue, fmt.Errorf("index: number expected")
 		}
 	} else {
 		off = float64(b.Height())
@@ -267,7 +258,7 @@ func (c *EngineContext) RemoveRows(sh, count, offset value.Value, anchor parse.A
 	return nil, err
 }
 
-func (c *EngineContext) RemoveColumns(sh, count, offset value.Value, anchor parse.Anchor) (value.Value, error) {
+func (c *EngineContext) RemoveColumns(sh, count, index value.Value) (value.Value, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -282,19 +273,16 @@ func (c *EngineContext) RemoveColumns(sh, count, offset value.Value, anchor pars
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
 		} else {
-			return value.ErrValue, fmt.Errorf("number expected")
+			return value.ErrValue, fmt.Errorf("count: number expected")
 		}
 	} else {
 		cols = 1
 	}
-	if offset != nil {
-		if o, ok := offset.(value.Float); ok {
+	if index != nil {
+		if o, ok := index.(value.Float); ok {
 			off = float64(o)
-			if anchor == parse.AnchorBefore {
-				off -= 1
-			}
 		} else {
-			return value.ErrValue, fmt.Errorf("number expected")
+			return value.ErrValue, fmt.Errorf("index: number expected")
 		}
 	} else {
 		b := view.Bounds()
