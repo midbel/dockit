@@ -121,6 +121,11 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 		if err != nil {
 			return err
 		}
+	} else if n := expr.Ident(); n != nil {
+		name, err = v.visitNormalize(n)
+		if err != nil {
+			return err
+		}
 	}
 	if n := expr.Ident(); n != nil {
 		ident, err = v.visitNormalize(n)
