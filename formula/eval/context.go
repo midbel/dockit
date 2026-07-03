@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/types"
 	"github.com/midbel/dockit/grid"
@@ -153,6 +154,18 @@ func (c *EngineContext) SetDefault(val value.Value) {
 func (c *EngineContext) CurrentActiveView() *types.View {
 	v, _ := c.getView("")
 	return v
+}
+
+func (c *EngineContext) NewSheet(name, data, target value.Value) (value.Value, error) {
+	arr, err := value.ExtractDataFromValue(data)
+	if err != nil {
+		return nil, err
+	}
+	sh := flat.NewSheet(name.String(), arr)
+	if target != nil {
+
+	}
+	return types.NewViewValue(sh), nil
 }
 
 func (c *EngineContext) InsertRows(sh, count, index, data value.Value) (value.Value, error) {

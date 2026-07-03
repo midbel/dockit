@@ -1178,12 +1178,6 @@ func parseSheet(p *Parser) (Expr, error) {
 			stmt.name = stmt.ident
 		}
 	}
-	if !p.is(op.Keyword) {
-		stmt.name, err = p.parse(powLowest)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return stmt, nil
 }
 

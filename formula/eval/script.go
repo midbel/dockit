@@ -106,6 +106,45 @@ func (v *evaluator) VisitRename(expr parse.Rename) error {
 }
 
 func (v *evaluator) VisitSheet(expr parse.Sheet) error {
+	if expr.Name() == nil && expr.Ident() == nil {
+		return fmt.Errorf("sheet should have a name")
+	}
+	var (
+		name  value.Value
+		ident value.Value
+		data  value.Value
+		file  value.Value
+		err   error
+	)
+	if n := expr.Name(); n != nil {
+		name, err = v.visitNormalize(n)
+		if err != nil {
+			return err
+		}
+	}
+	if n := expr.Ident(); n != nil {
+		ident, err = v.visitNormalize(n)
+		if err != nil {
+			return err
+		}
+		if id, ok := n.(parse.Identifier); ok && ident == value.ErrRef {
+			ident = value.Text(id.Ident())
+		}
+	}
+	if d := expr.Data(); d != nil {
+		data, err = v.visitNormalize(d)
+		if err != nil {
+			return err
+		}
+	}
+	sheet, err := v.ctx.NewSheet(name, data, file)
+	if err != nil {
+		return err
+	}
+	if ident == nil {
+		ident = name
+	}
+	v.ctx.Define(ident.String(), sheet)
 	return nil
 }
 
@@ -158,6 +197,11 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 }
 
 func (v *evaluator) VisitRemove(expr parse.Remove) error {
+	if k := expr.Target().Kind; k == parse.TargetFirst && expr.Anchor == parse.AnchorBefore {
+		return fmt.Errorf("row/column can not be removed before first row/column")
+	} else if k == parse.TargetLast && expr.Anchor == parse.AnchorAfter {
+		return fmt.Errorf("row/column can not be removed after last row/column")
+	}
 	var (
 		ident value.Value
 		count value.Value

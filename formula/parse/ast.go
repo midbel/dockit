@@ -163,8 +163,7 @@ func (i IncludeFile) Accept(v Visitor) error {
 	return v.VisitIncludeFile(i)
 }
 
-// sheet <name> from <expr> as <expr>
-// sheet <name> with rows,cols as <expr>
+// sheet <name> using <expr> as <expr>
 type Sheet struct {
 	ident   Expr
 	name    Expr

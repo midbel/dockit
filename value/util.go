@@ -1,5 +1,30 @@
 package value
 
+import (
+	"fmt"
+)
+
+func ExtractDataFromValue(data Value) ([][]ScalarValue, error) {
+	if IsScalar(data) {
+		data = ScalarToArray(data, 1, 1)
+	}
+	return ExtractDataFromArray(data)
+}
+
+func ExtractDataFromArray(data Value) ([][]ScalarValue, error) {
+	if !IsArray(data) {
+		return nil, fmt.Errorf("array expected")
+	}
+	arr, ok := data.(Array)
+	if ok {
+		return arr.GetData(), nil
+	}
+	if arr, ok := data.(interface{ AsArray() ArrayValue }); ok {
+		return ExtractDataFromArray(arr.AsArray())
+	}
+	return nil, fmt.Errorf("array expected")
+}
+
 func ScalarToArray(val Value, row, col int) Value {
 	scalar, ok := val.(ScalarValue)
 	if !ok {
