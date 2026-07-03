@@ -3,6 +3,7 @@ package eval
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/midbel/dockit/formula/builtins"
@@ -141,6 +142,20 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		var (
+			opts = expr.Options()
+			cols = getInt(opts["columns"])
+			rows = getInt(opts["rows"])
+		)
+		if rows == 0 {
+			rows = 1
+		}
+		if cols == 0 {
+			cols = 1
+		}
+		data = value.ScalarToArray(value.Empty(), rows, cols)
+
 	}
 	sheet, err := v.ctx.NewSheet(name, data, file)
 	if err != nil {
@@ -1035,4 +1050,21 @@ func (v *evaluator) inAssignment() bool {
 func (v *evaluator) inPhase(ph scriptPhase) bool {
 	top, _ := v.phases.Peek()
 	return top == ph
+}
+
+func getInt(value any) int {
+	if i, ok := value.(int); ok {
+		return i
+	}
+	if s, ok := value.(string); ok {
+		i, err := strconv.Atoi(s)
+		if err == nil {
+			return i
+		}
+		f, err := strconv.ParseFloat(s, 64)
+		if err == nil {
+			return int(f)
+		}
+	}
+	return 0
 }
