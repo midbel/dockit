@@ -32,7 +32,10 @@ func TestScript(t *testing.T) {
 		t.Run("xml", testImportXml)
 	})
 	t.Run("export", testExport)
-	t.Run("rename", testRename)
+	t.Run("rename", func(t *testing.T) {
+		t.Run("std", testRename)
+		t.Run("error", testRenameError)
+	})
 	t.Run("assert", func(t *testing.T) {
 		t.Run("assertion-ok", testAssertOk)
 		t.Run("assertion-fail", testAssertFail)
@@ -62,6 +65,18 @@ aft := @active.name
 	ev := runScript(t, script)
 	checkValue(t, ev, "bef", value.Text("sheet"))
 	checkValue(t, ev, "aft", value.Text("my"))
+}
+
+func testRenameError(t *testing.T) {
+	script := `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+rename @active[A;B] as slice
+	`
+	engine := createEngine()
+	_, err := engine.Exec(strings.NewReader(script), env.Empty())
+	if err == nil {
+		t.Errorf("error expected! none returned")
+	}
 }
 
 func testRemoveRows(t *testing.T) {
