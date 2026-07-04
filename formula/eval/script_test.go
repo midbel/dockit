@@ -32,6 +32,7 @@ func TestScript(t *testing.T) {
 		t.Run("xml", testImportXml)
 	})
 	t.Run("export", testExport)
+	t.Run("rename", testRename)
 	t.Run("assert", func(t *testing.T) {
 		t.Run("assertion-ok", testAssertOk)
 		t.Run("assertion-fail", testAssertFail)
@@ -48,6 +49,18 @@ func TestScript(t *testing.T) {
 		t.Run("remove-rows", testRemoveRows)
 		t.Run("remove-columns", testRemoveColumns)
 	})
+}
+
+func testRename(t *testing.T) {
+	script := `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+bef := @active.name
+rename @active as my
+aft := @active.name
+	`
+	ev := runScript(t, script)
+	checkValue(t, ev, "bef", value.Text("sheet"))
+	checkValue(t, ev, "aft", value.Text("my"))
 }
 
 func testRemoveRows(t *testing.T) {
