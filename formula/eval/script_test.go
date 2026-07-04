@@ -46,8 +46,9 @@ func TestScript(t *testing.T) {
 		t.Run("insert-columns", testInsertColumns)
 	})
 	t.Run("remove", func(t *testing.T) {
-		t.Run("remove-rows", testRemoveRows)
-		t.Run("remove-columns", testRemoveColumns)
+		t.Run("rows", testRemoveRows)
+		t.Run("columns", testRemoveColumns)
+		t.Run("error", testRemoveErrors)
 	})
 }
 
@@ -71,7 +72,7 @@ func testRemoveRows(t *testing.T) {
 		Rows   int64
 	}{
 		{
-			Name: "remove-std",
+			Name: "std-1",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 remove row at 1 from @active
@@ -80,7 +81,7 @@ remove row at 1 from @active
 			Rows: 2,
 		},
 		{
-			Name: "remove-std",
+			Name: "std-2",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 remove row at 3 from @active
@@ -89,7 +90,7 @@ remove row at 3 from @active
 			Rows: 2,
 		},
 		{
-			Name: "remove-first-row",
+			Name: "first-row",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 remove first row from @active
@@ -98,7 +99,7 @@ remove first row from @active
 			Rows: 2,
 		},
 		{
-			Name: "remove-last-row",
+			Name: "last-row",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 remove last row from @active
@@ -107,7 +108,7 @@ remove last row from @active
 			Rows: 2,
 		},
 		{
-			Name: "remove-after-row",
+			Name: "after-row",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 remove 2 rows after 1 from @active
@@ -116,7 +117,7 @@ remove 2 rows after 1 from @active
 			Rows: 1,
 		},
 		{
-			Name: "remove-before-row",
+			Name: "before-row",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 remove 2 rows before 2 from @active
@@ -139,11 +140,66 @@ func testRemoveColumns(t *testing.T) {
 		Script string
 		Cols   int64
 		Rows   int64
-	}{}
+	}{
+		{
+			Name: "std",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+remove first column from @active
+			`,
+			Cols: 2,
+			Rows: 3,
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			ev := runScript(t, tt.Script)
 			checkView(t, ev, "sh", tt.Cols, tt.Rows)
+		})
+	}
+}
+
+func testRemoveErrors(t *testing.T) {
+	tests := []struct {
+		Name   string
+		Script string
+	}{
+		{
+			Name: "before-first-row",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+remove row before first from @active
+		`,
+		},
+		{
+			Name: "before-first-col",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+remove column before first from @active
+		`,
+		},
+		{
+			Name: "after-last-row",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+remove row after last from @active
+		`,
+		},
+		{
+			Name: "after-last-col",
+			Script: `
+import "testdata/salaries.csv" using csv[[comma]] as sh default
+remove column after last from @active
+		`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			engine := createEngine()
+			_, err := engine.Exec(strings.NewReader(tt.Script), env.Empty())
+			if err == nil {
+				t.Errorf("error expected! none returned")
+			}
 		})
 	}
 }
