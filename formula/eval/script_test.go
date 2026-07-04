@@ -90,7 +90,7 @@ func testRemoveRows(t *testing.T) {
 			Name: "std-1",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove row at 1 from @active
+remove row at 1 from sh.sheet
 		`,
 			Cols: 3,
 			Rows: 2,
@@ -117,7 +117,7 @@ remove first row from @active
 			Name: "last-row",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove last row from @active
+remove last row from sh.sheet
 		`,
 			Cols: 3,
 			Rows: 2,
@@ -160,7 +160,7 @@ func testRemoveColumns(t *testing.T) {
 			Name: "std",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove first column from @active
+remove first column from sh.sheet
 			`,
 			Cols: 2,
 			Rows: 3,
@@ -190,7 +190,7 @@ remove row before first from @active
 			Name: "before-first-col",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove column before first from @active
+remove column before first from sh.sheet
 		`,
 		},
 		{
@@ -204,7 +204,7 @@ remove row after last from @active
 			Name: "after-last-col",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove column after last from @active
+remove column after last from sh.sheet
 		`,
 		},
 	}
@@ -231,19 +231,19 @@ func testInsertRows(t *testing.T) {
 			Name: "row-basic",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row into @active with 0
+insert row into @active with 40+2
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
 			Want: [][]value.ScalarValue{
-				{value.Float(0), value.Float(0), value.Float(0)},
+				{value.Float(42), value.Float(42), value.Float(42)},
 			},
 		},
 		{
 			Name: "row-copy-line",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row into @active with A1:C1
+insert row into sh.sheet with A1:C1
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
@@ -255,7 +255,8 @@ insrow := A4:C4`,
 			Name: "row-before",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row before 1 into @active
+myrow := 1
+insert row before myrow into @active
 insrow := A1:C1`,
 			Cols: 3,
 			Rows: 4,
@@ -267,7 +268,8 @@ insrow := A1:C1`,
 			Name: "row-after",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert 2 rows after 1 into @active
+corow := 2
+insert corow rows after 1 into @active
 insrow := A2:C3`,
 			Cols: 3,
 			Rows: 5,
@@ -312,7 +314,7 @@ insrow := A2:C6`,
 			Name: "row-multi",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row before 1 into @active
+insert row before 1 into sh.sheet
 insert row into @active
 insrow := A1:C1`,
 			Cols: 3,
@@ -343,7 +345,8 @@ func testInsertColumns(t *testing.T) {
 			Name: "col-basic",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert column into @active with 0
+answer := 40+2
+insert column into @active with answer
 inscol := D
 			`,
 			Cols: 4,
@@ -358,7 +361,7 @@ inscol := D
 			Name: "col-after-last",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert column into @active with 0
+insert column into sh.sheet with 0
 inscol := D
 			`,
 			Cols: 4,
@@ -373,7 +376,7 @@ inscol := D
 			Name: "col-before-first",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert column before first into @active with 0
+insert column before first into @active with 42
 inscol := A
 			`,
 			Cols: 4,
@@ -388,7 +391,8 @@ inscol := A
 			Name: "col-multi",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert 4 columns after 2 into @active with "tbd"
+four := 4
+insert four columns after 2 into @active with "tbd"
 inscol := C1:F3
 			`,
 			Cols: 7,
@@ -410,13 +414,28 @@ inscol := C1:F3
 }
 
 func testAssertOk(t *testing.T) {
-	var (
-		script = `assert 1 = 1`
-		engine = createEngine()
-	)
-	_, err := engine.Exec(strings.NewReader(script), env.Empty())
-	if err != nil {
-		t.Errorf("expected assertion to pass! got error: %s", err)
+	tests := []struct {
+		Name   string
+		Script string
+	}{
+		{
+			Name:   "cmp-literal",
+			Script: `assert 1 = 1`,
+		},
+		{
+			Name:   "cmp-vars",
+			Script: `x := 40; y := 2; assert x >= y`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.Name, func(t *testing.T) {
+			engine := createEngine()
+			_, err := engine.Exec(strings.NewReader(tt.Script), env.Empty())
+			if err != nil {
+				t.Errorf("expected assertion to pass! got error: %s", err)
+			}
+
+		})
 	}
 }
 
