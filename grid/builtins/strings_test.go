@@ -15,6 +15,10 @@ func TestStrings(t *testing.T) {
 	t.Run("right", testRight)
 	t.Run("mid", testMid)
 	t.Run("trim", testTrim)
+	t.Run("search", testSearch)
+	t.Run("find", testFind)
+	t.Run("replace", testReplace)
+	t.Run("substitute", testSubstitute)
 }
 
 func testLen(t *testing.T) {
@@ -171,4 +175,154 @@ func testTrim(t *testing.T) {
 		},
 	}
 	testBuiltin(t, Trim, tests)
+}
+
+func testSearch(t *testing.T) {
+	quick := "the quick brown fox jumps of the lazy dog"
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("quick"),
+			},
+			Want: value.Float(4),
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("the * brown"),
+			},
+			Want: value.Float(1),
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("f?x"),
+			},
+			Want: value.Float(16),
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("quick"),
+				value.Float(4),
+			},
+			Want: value.Float(1),
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("foobar"),
+			},
+			Want: value.ErrValue,
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("f??b*r"),
+			},
+			Want: value.ErrValue,
+		},
+	}
+	testBuiltin(t, Search, tests)
+}
+
+func testFind(t *testing.T) {
+	quick := "the Quick brown fox jumps of the lazy dog"
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("Quick"),
+			},
+			Want: value.Float(4),
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("the quick"),
+			},
+			Want: value.ErrValue,
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("Quick"),
+				value.Float(4),
+			},
+			Want: value.Float(1),
+		},
+		{
+			Args: []value.Value{
+				value.Text(quick),
+				value.Text("foobar"),
+			},
+			Want: value.ErrValue,
+		},
+	}
+	testBuiltin(t, Find, tests)
+}
+
+func testReplace(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Text("foobar"),
+				value.Float(1),
+				value.Float(3),
+				value.Text("FOO"),
+			},
+			Want: value.Text("FOObar"),
+		},
+		{
+			Args: []value.Value{
+				value.Text("foobar"),
+				value.Float(10),
+				value.Float(3),
+				value.Text("FOO"),
+			},
+			Want: value.Text("foobar"),
+		},
+		{
+			Args: []value.Value{
+				value.Text("foobar"),
+				value.Float(3),
+				value.Float(5),
+				value.Text("!!!"),
+			},
+			Want: value.Text("foo!!!"),
+		},
+	}
+	testBuiltin(t, Replace, tests)
+}
+
+func testSubstitute(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Text("foobar"),
+				value.Text("foo"),
+				value.Text("FOO"),
+			},
+			Want: value.Text("FOObar"),
+		},
+		{
+			Args: []value.Value{
+				value.Text("foobar"),
+				value.Text("BAR"),
+				value.Text("bar"),
+			},
+			Want: value.Text("foobar"),
+		},
+		{
+			Args: []value.Value{
+				value.Text("the quick brown dog jumps of the lazy dog"),
+				value.Text("dog"),
+				value.Text("fox"),
+				value.Float(1),
+			},
+			Want: value.Text("the quick brown fox jumps of the lazy dog"),
+		},
+	}
+	testBuiltin(t, Substitute, tests)
 }

@@ -263,7 +263,7 @@ func Trim(args []value.Value) value.Value {
 
 var searchBuiltin = Builtin{
 	Name:     "search",
-	Desc:     "Finds the position of text (case-insensitive). Supports * and ?",
+	Desc:     "Search the position of text (case-insensitive). Supports * and ?",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -283,7 +283,7 @@ func Search(args []value.Value) value.Value {
 		find   = asString(args[1])
 		offset = 1
 	)
-	if len(args) >= 2 {
+	if len(args) >= 3 {
 		ix, _ := value.CastToFloat(args[2])
 		offset = int(ix)
 		offset++
@@ -326,7 +326,7 @@ func Find(args []value.Value) value.Value {
 		find   = asString(args[1])
 		offset = 1
 	)
-	if len(args) >= 2 {
+	if len(args) >= 3 {
 		ix, _ := value.CastToFloat(args[2])
 		offset = int(ix)
 		offset++
@@ -362,7 +362,7 @@ func Replace(args []value.Value) value.Value {
 	}
 	var (
 		str  = asString(args[0])
-		pos  = asFloat(args[1])
+		pos  = asFloat(args[1]) - 1
 		num  = asFloat(args[2])
 		repl = asString(args[3])
 	)
@@ -372,7 +372,7 @@ func Replace(args []value.Value) value.Value {
 	if int(pos+num) >= len(str) {
 		return value.Text(str[:int(pos)+1] + repl)
 	}
-	str = str[:int(pos)+1] + repl + str[int(pos+num):]
+	str = str[:int(pos)] + repl + str[int(pos+num):]
 	return value.Text(str)
 }
 
@@ -398,12 +398,25 @@ func Substitute(args []value.Value) value.Value {
 		str  = asString(args[0])
 		old  = asString(args[1])
 		repl = asString(args[2])
-		num  = asFloat(args[3])
+		num  = 1
 	)
-	if num <= 0 {
-		return value.ErrValue
+	if len(args) >= 4 {
+		c := asFloat(args[3])
+		if c <= 0 {
+			return value.ErrValue
+		}
+		num = int(c)
 	}
-	str = strings.Replace(str, old, repl, int(num))
+	var offset int
+	for i := 0; i < num; i++ {
+		ix := strings.Index(str[offset:], old)
+		if ix < 0 {
+			break
+		}
+		offset += ix
+		str = str[:offset] + repl + str[offset+len(old):]
+		offset += len(repl)
+	}
 	return value.Text(str)
 }
 
