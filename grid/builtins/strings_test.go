@@ -10,6 +10,7 @@ func TestStrings(t *testing.T) {
 	t.Run("len", testLen)
 	t.Run("upper", testUpper)
 	t.Run("lower", testLower)
+	t.Run("proper", testProper)
 	t.Run("concat", testConcat)
 	t.Run("left", testLeft)
 	t.Run("right", testRight)
@@ -19,6 +20,12 @@ func TestStrings(t *testing.T) {
 	t.Run("find", testFind)
 	t.Run("replace", testReplace)
 	t.Run("substitute", testSubstitute)
+	t.Run("text", testText)
+	t.Run("value", testValue)
+	t.Run("textjoin", testTextJoin)
+	t.Run("exact", testExact)
+	t.Run("rept", testRept)
+	t.Run("clean", testClean)
 }
 
 func testLen(t *testing.T) {
@@ -55,6 +62,20 @@ func testUpper(t *testing.T) {
 		},
 	}
 	testBuiltin(t, Upper, tests)
+}
+
+func testProper(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("FOO BAR")},
+			Want: value.Text("Foo Bar"),
+		},
+		{
+			Args: []value.Value{value.Text("foo bar")},
+			Want: value.Text("Foo Bar"),
+		},
+	}
+	testBuiltin(t, Proper, tests)
 }
 
 func testLower(t *testing.T) {
@@ -325,4 +346,128 @@ func testSubstitute(t *testing.T) {
 		},
 	}
 	testBuiltin(t, Substitute, tests)
+}
+
+func testText(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Float(42),
+				value.Text("###"),
+			},
+			Want: value.Text("42"),
+		},
+	}
+	testBuiltin(t, Text, tests)
+}
+
+func testValue(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("1")},
+			Want: value.Float(1),
+		},
+		{
+			Args: []value.Value{value.Text("-1")},
+			Want: value.Float(-1),
+		},
+		{
+			Args: []value.Value{value.Text("$125")},
+			Want: value.Float(125),
+		},
+		{
+			Args: []value.Value{value.Text("32.5%")},
+			Want: value.Float(0.325),
+		},
+		{
+			Args: []value.Value{value.Text("foobar")},
+			Want: value.ErrValue,
+		},
+	}
+	testBuiltin(t, Value, tests)
+}
+
+func testTextJoin(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Text("-"),
+				value.Boolean(true),
+				value.Text("foo"),
+				value.Text("bar"),
+			},
+			Want: value.Text("foo-bar"),
+		},
+		{
+			Args: []value.Value{
+				value.Text("-"),
+				value.Boolean(false),
+				value.Text("foo"),
+				value.Text(""),
+				value.Text("bar"),
+			},
+			Want: value.Text("foo--bar"),
+		},
+		{
+			Args: []value.Value{
+				value.Text("-"),
+				value.Boolean(true),
+				value.Text("foo"),
+				value.Text(""),
+				value.Text("bar"),
+			},
+			Want: value.Text("foo-bar"),
+		},
+	}
+	testBuiltin(t, Textjoin, tests)
+}
+
+func testExact(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Text("foobar"),
+				value.Text("foobar"),
+			},
+			Want: value.Boolean(true),
+		},
+		{
+			Args: []value.Value{
+				value.Text("foobar"),
+				value.Text("Foobar"),
+			},
+			Want: value.Boolean(false),
+		},
+	}
+	testBuiltin(t, Exact, tests)
+}
+
+func testRept(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{
+				value.Text("!"),
+				value.Float(5),
+			},
+			Want: value.Text("!!!!!"),
+		},
+		{
+			Args: []value.Value{
+				value.Text("!"),
+				value.Float(0),
+			},
+			Want: value.Text(""),
+		},
+	}
+	testBuiltin(t, Rept, tests)
+}
+
+func testClean(t *testing.T) {
+	tests := []BuiltinTestCase{
+		{
+			Args: []value.Value{value.Text("foobar")},
+			Want: value.Text("foobar"),
+		},
+	}
+	testBuiltin(t, Clean, tests)
 }

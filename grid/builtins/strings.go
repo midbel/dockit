@@ -198,7 +198,7 @@ func Lower(args []value.Value) value.Value {
 
 var properBuiltin = Builtin{
 	Name:     "proper",
-	Desc:     "",
+	Desc:     "Capitalizes the first letter of every words and converts all others to lowercase",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -422,7 +422,7 @@ func Substitute(args []value.Value) value.Value {
 
 var textBuiltin = Builtin{
 	Name:     "text",
-	Desc:     "",
+	Desc:     "Converts numeric values to text string",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -461,7 +461,7 @@ func Text(args []value.Value) value.Value {
 
 var valueBuiltin = Builtin{
 	Name:     "value",
-	Desc:     "",
+	Desc:     "Converts a text string to a numeric value",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -516,7 +516,7 @@ func Textjoin(args []value.Value) value.Value {
 
 var exactBuiltin = Builtin{
 	Name:     "exact",
-	Desc:     "",
+	Desc:     "Compare two text strings for equality",
 	Category: "text",
 	Params: []Param{
 		Scalar("str1", "", value.TypeText),
@@ -540,7 +540,7 @@ func Exact(args []value.Value) value.Value {
 
 var reptBuiltin = Builtin{
 	Name:     "rept",
-	Desc:     "",
+	Desc:     "Repeat a text string a specified number of times",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
@@ -567,7 +567,7 @@ func Rept(args []value.Value) value.Value {
 
 var cleanBuiltin = Builtin{
 	Name:     "clean",
-	Desc:     "",
+	Desc:     "Removes non printable characters from given text string",
 	Category: "text",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),

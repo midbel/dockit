@@ -70,7 +70,7 @@ func IsBlank(args []value.Value) value.Value {
 
 var isErrorBuiltin = Builtin{
 	Name:     "iserror",
-	Desc:     "",
+	Desc:     "Checks if value/expression results in any error",
 	Category: "type",
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
@@ -86,7 +86,7 @@ func IsError(args []value.Value) value.Value {
 
 var isNaBuiltin = Builtin{
 	Name:     "isna",
-	Desc:     "",
+	Desc:     "Checks if value/expression results in N/A error",
 	Category: "type",
 	Params: []Param{
 		Scalar("value", "", value.TypeAny),
@@ -102,7 +102,7 @@ func IsNA(args []value.Value) value.Value {
 
 var naBuiltin = Builtin{
 	Name:     "na",
-	Desc:     "",
+	Desc:     "Returns the N/A error value",
 	Category: "errors",
 	Func:     Na,
 }
@@ -113,7 +113,7 @@ func Na(args []value.Value) value.Value {
 
 var errBuiltin = Builtin{
 	Name:     "err",
-	Desc:     "",
+	Desc:     "Returns an error value from the given string",
 	Category: "errors",
 	Params: []Param{
 		Scalar("str", "", value.TypeText),
