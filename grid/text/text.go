@@ -5,7 +5,14 @@ import (
 	"unicode/utf8"
 )
 
+func Index(str, pattern string) int {
+	return -1
+}
+
 func Match(str, pattern string) bool {
+	if strings.IndexAny(str, "*?") < 0 {
+		return str == pattern
+	}
 	var (
 		offset int
 		ptr    int
