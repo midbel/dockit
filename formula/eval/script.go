@@ -142,6 +142,12 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 		if err != nil {
 			return err
 		}
+		if expr.Linked() {
+			data, err = v.resolveLink(data)
+			if err != nil {
+				return err
+			}
+		}
 	} else {
 		var (
 			opts = expr.Options()
@@ -191,6 +197,12 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		data, err = v.visitNormalize(d)
 		if err != nil {
 			return err
+		}
+		if expr.Linked() {
+			data, err = v.resolveLink(data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
@@ -262,6 +274,10 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 	}
 	v.pushValue(ret)
 	return err
+}
+
+func (v *evaluator) resolveLink(data value.Value) (value.Value, error) {
+	return data, nil
 }
 
 func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, kind parse.Colrow) (int64, error) {
