@@ -336,12 +336,12 @@ func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {
 	switch spec := expr.Specifier(); expr.Format() {
 	case "csv":
 		if spec == "" {
-			spec = v.ctx.GetOptionString(slx.Make("csv", "delimiter"))
+			spec = v.ctx.GetOptionString(ConfigImportCsvDelim)
 		}
 		options["delimiter"] = csvDelimiter(spec)
 	case "log":
 		if spec == "" {
-			spec = v.ctx.GetOptionString(slx.Make("log", "pattern"))
+			spec = v.ctx.GetOptionString(ConfigImportLogPattern)
 		}
 		options["pattern"] = spec
 	case "json":
@@ -554,7 +554,7 @@ func (v *evaluator) VisitAssert(expr parse.Assert) error {
 	if !ok {
 		mode := expr.Type()
 		if mode == parse.AssertUnknown {
-			opt := v.ctx.GetOptionString(slx.Make("assert", "mode"))
+			opt := v.ctx.GetOptionString(ConfigAssertMode)
 			mode = assertMode(opt)
 		}
 		switch mode {
