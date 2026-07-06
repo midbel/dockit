@@ -9,7 +9,6 @@ import (
 
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/parse"
-	"github.com/midbel/dockit/internal/slx"
 	"github.com/midbel/dockit/value"
 )
 
@@ -67,25 +66,25 @@ func (e *Engine) SetContextDir(dir string) {
 	if dir == "" {
 		return
 	}
-	e.config.Set(slx.Make("context", "dir"), dir)
+	e.config.Set(ConfigContextDir, dir)
 }
 
 func (e *Engine) SetNumberFormat(format string) {
 	if format == "" {
 		return
 	}
-	e.config.Set(slx.Make("format", "number"), format)
+	e.config.Set(ConfigFormatNumber, format)
 }
 
 func (e *Engine) SetDateFormat(format string) {
 	if format == "" {
 		return
 	}
-	e.config.Set(slx.Make("format", "date"), format)
+	e.config.Set(ConfigFormatDate, format)
 }
 
 func (e *Engine) SetPrintDebug(debug bool) {
-	e.config.Set(slx.Make("print", "debug"), debug)
+	e.config.Set(ConfigPrintDebug, debug)
 }
 
 func (e *Engine) RegisterLoader(kind string, loader Loader) {

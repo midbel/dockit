@@ -76,6 +76,14 @@ func (c *EngineContext) GetOptionString(key []string) string {
 	return fmt.Sprint(v)
 }
 
+func (c *EngineContext) Link() bool {
+	v := c.GetOption(ConfigCopyMode)
+	if b, ok := v.(bool); ok {
+		return b
+	}
+	return false
+}
+
 func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error) {
 	ext := filepath.Ext(file)
 	loader, ok := c.loaders[ext]

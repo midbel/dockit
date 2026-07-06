@@ -142,7 +142,7 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 		if err != nil {
 			return err
 		}
-		if expr.Linked() {
+		if expr.Linked() || v.ctx.Link() {
 			data, err = v.resolveLink(data)
 			if err != nil {
 				return err
@@ -198,7 +198,7 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		if err != nil {
 			return err
 		}
-		if expr.Linked() {
+		if expr.Linked() || v.ctx.Link() {
 			data, err = v.resolveLink(data)
 			if err != nil {
 				return err
