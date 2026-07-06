@@ -48,6 +48,23 @@ func testIfs(t *testing.T) {
 			},
 			Want: value.ErrValue,
 		},
+		{
+			Args: []value.Value{
+				value.Boolean(true),
+				value.Float(42),
+				value.Boolean(false),
+			},
+			Want: value.ErrValue,
+		},
+		{
+			Args: []value.Value{
+				value.Boolean(false),
+				value.Float(4),
+				value.Boolean(false),
+				value.Float(2),
+			},
+			Want: value.ErrValue,
+		},
 	}
 	testBuiltin(t, Ifs, tests)
 }
