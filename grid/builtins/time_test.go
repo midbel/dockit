@@ -30,7 +30,7 @@ func testDate(t *testing.T) {
 				value.Float(6),
 				value.Float(6),
 			},
-			Want: value.Date(today.Truncate(time.Hour*24)),
+			Want: value.Date(today.Truncate(time.Hour * 24)),
 		},
 	}
 	testBuiltin(t, Date, tests)

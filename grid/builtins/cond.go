@@ -8,7 +8,7 @@ import (
 
 var ifsBuiltin = Builtin{
 	Name:     "ifs",
-	Desc:     "",
+	Desc:     "Retuns the value of the first true condition",
 	Category: "conditional",
 	Params: []Param{
 		Var(Scalar("value", "", value.TypeAny)),
@@ -18,7 +18,7 @@ var ifsBuiltin = Builtin{
 }
 
 func Ifs(args []value.Value) value.Value {
-	if err := value.HasErrors(args[:3]...); err != nil {
+	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
 	if len(args)%2 == 1 {
@@ -155,12 +155,16 @@ func Xor(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	for i := range args {
-		if !value.True(args[i]) {
-			return value.Boolean(true)
+	if len(args) == 0 {
+		return value.Boolean(false)
+	}
+	var c int
+	for i := 0; i < len(args); i++ {
+		if value.True(args[i]) {
+			c++
 		}
 	}
-	return value.Boolean(false)
+	return value.Boolean(c%2 != 0)
 }
 
 var notBuiltin = Builtin{
@@ -198,8 +202,8 @@ func Choose(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	f := math.Floor(asFloat(args[0])) - 1
-	if int(f) < 0 || int(f) >= len(args)-1 {
+	f := math.Floor(asFloat(args[0]))
+	if int(f) < 1 || int(f) >= len(args) {
 		return value.ErrNA
 	}
 	return args[int(f)]
