@@ -274,7 +274,7 @@ func TestInsert(t *testing.T) {
 			},
 		},
 		{
-			Expr: "insert row into sh with 0",
+			Expr: "insert row into sh using 0",
 			Want: Insert{
 				ident: NewIdentifier("sh"),
 				target: Target{

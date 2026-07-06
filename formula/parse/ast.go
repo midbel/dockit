@@ -163,11 +163,12 @@ func (i IncludeFile) Accept(v Visitor) error {
 	return v.VisitIncludeFile(i)
 }
 
-// sheet <name> using <expr> as <expr>
+// sheet <name> using [linked] <expr> [with (key := value...)] as <expr>
 type Sheet struct {
 	ident   Expr
 	name    Expr
 	data    Expr
+	linked  bool
 	file    Expr
 	options map[string]any
 }
@@ -178,6 +179,10 @@ func newSheet(ident, name, data Expr) Expr {
 		name:  name,
 		data:  data,
 	}
+}
+
+func (e Sheet) Linked() bool {
+	return e.linked
 }
 
 func (e Sheet) Ident() Expr {
@@ -308,14 +313,19 @@ type Target struct {
 	Expr Expr
 }
 
-// insert [count] <row(s)|column(s)> <before|after> <offset> into <sheet> [with <value>]
+// insert [count] <row(s)|column(s)> <before|after> <offset> into <sheet> [using [linked] <value>]
 type Insert struct {
 	count  Expr
 	target Target
 	ident  Expr
+	linked bool
 	value  Expr
 	Anchor
 	Colrow
+}
+
+func (e Insert) Linked() bool {
+	return e.linked
 }
 
 func (e Insert) Ident() Expr {

@@ -39,6 +39,7 @@ const (
 	kwBefore  = "before"
 	kwAfter   = "after"
 	kwAt      = "at"
+	kwLinked  = "linked"
 )
 
 func isReserved(str string) bool {
@@ -77,6 +78,7 @@ func isKeyword(str string) bool {
 	case kwRemove:
 	case kwElse:
 	case kwUse:
+	case kwLinked:
 	case kwUsing:
 	case kwWith:
 	case kwFrom:

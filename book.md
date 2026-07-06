@@ -333,9 +333,9 @@ Modes:
 Insert rows or columns into the active or named view.
 
 ```dockit
-insert row into @active with 0
+insert row into @active using 0
 insert 2 rows after 1 into @active
-insert column before first into @active with "tbd"
+insert column before first into @active using linked "tbd"
 ```
 
 ### remove
@@ -367,6 +367,7 @@ The parser contains syntax for creating sheets, but this area is still under
 active development.
 
 ```dockit
+sheet "summary" using linked data as summary
 sheet "summary" using data as summary
 ```
 

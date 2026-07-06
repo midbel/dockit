@@ -297,7 +297,7 @@ func testSwitch(t *testing.T) {
 	tests := []BuiltinTestCase{
 		{
 			Args: []value.Value{
-				value.Float(42),			
+				value.Float(42),
 				value.Float(0),
 				value.Text("zero"),
 				value.Float(42),
@@ -308,7 +308,7 @@ func testSwitch(t *testing.T) {
 		},
 		{
 			Args: []value.Value{
-				value.Float(-1),			
+				value.Float(-1),
 				value.Float(0),
 				value.Text("zero"),
 				value.Float(42),

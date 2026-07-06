@@ -558,6 +558,14 @@ func (p *Parser) expectedIdent() error {
 	return p.makeError("identifier expected")
 }
 
+func parseLinked(p *Parser) bool {
+	ok := p.is(op.Keyword) && p.currentLiteral() == kwLinked
+	if ok {
+		p.next()
+	}
+	return ok
+}
+
 func parseCall(p *Parser, expr Expr) (Expr, error) {
 	if _, ok := expr.(Identifier); !ok {
 		return nil, fmt.Errorf("identifier expected")
@@ -1143,6 +1151,7 @@ func parseSheet(p *Parser) (Expr, error) {
 	}
 	if p.is(op.Keyword) && p.currentLiteral() == kwUsing {
 		p.next()
+		stmt.linked = parseLinked(p)
 		stmt.data, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
@@ -1296,8 +1305,9 @@ func parseInsert(p *Parser) (Expr, error) {
 	if stmt.ident, err = p.parse(powLowest); err != nil {
 		return nil, err
 	}
-	if p.is(op.Keyword) && p.currentLiteral() == kwWith {
+	if p.is(op.Keyword) && p.currentLiteral() == kwUsing {
 		p.next()
+		stmt.linked = parseLinked(p)
 		stmt.value, err = p.parse(powLowest)
 		if err != nil {
 			return nil, err
