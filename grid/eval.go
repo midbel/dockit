@@ -380,3 +380,23 @@ func (a arrayView) ApplyArray(other value.Array, do func(value.ScalarValue, valu
 	}
 	return value.NewArray(nil)
 }
+
+func (a arrayView) ToLinks() value.Value {
+	var (
+		bs  = a.inner.Bounds()
+		arr [][]value.Value
+	)
+	for row := int64(0); row < bs.Height(); row++ {
+		xs := make([]value.Value, 0, bs.Width())
+		for col := int64(0); col < bs.Width(); col++ {
+			var (
+				pos  = layout.NewPosition(row, col)
+				expr = parse.NewCellAddr(pos, false, false)
+				form = NewFormula(expr)
+			)
+			xs = append(xs, form)
+		}
+		arr = append(arr, xs)
+	}
+	return value.NewArray(arr)
+}
