@@ -3,7 +3,6 @@ package grid
 import (
 	"fmt"
 	"iter"
-	"slices"
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
@@ -354,9 +353,13 @@ func (a arrayView) Values() iter.Seq[value.ScalarValue] {
 }
 
 func (a arrayView) AsArray() value.ArrayValue {
-	var data [][]value.ScalarValue
+	var data [][]value.Value
 	for _, r := range a.inner.Rows() {
-		data = append(data, slices.Clone(r))
+		arr := make([]value.Value, 0, len(r))
+		for i := range r {
+			arr = append(arr, r[i])
+		}
+		data = append(data, arr)
 	}
 	return value.NewArray(data)
 }
@@ -373,7 +376,7 @@ func (a arrayView) Apply(do func(value.ScalarValue) value.ScalarValue) {
 	}
 }
 
-func (a arrayView) ApplyArray(other value.Array, do func(value.ScalarValue, value.ScalarValue) value.ScalarValue) value.Value {
+func (a arrayView) ApplyArray(other value.Array, do func(value.Value, value.Value) value.Value) value.Value {
 	arr := a.AsArray()
 	if arr, ok := arr.(value.Array); ok {
 		return arr.ApplyArray(other, do)
