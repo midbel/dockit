@@ -115,7 +115,7 @@ type ScalarValue interface {
 type ArrayValue interface {
 	Value
 	Dimension() layout.Dimension
-	At(int, int) ScalarValue
+	At(int, int) Value
 }
 
 var ErrProp = errors.New("undefined property")
