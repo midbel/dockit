@@ -280,6 +280,9 @@ func (v *evaluator) resolveLinks(data value.Value) (value.Value, error) {
 	if value.IsScalar(data) {
 		return data, nil
 	}
+	if k, ok := data.(interface{ ToLinks() value.Value }); ok {
+		return k.ToLinks(), nil
+	}
 	return data, nil
 }
 
