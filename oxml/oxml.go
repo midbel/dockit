@@ -745,7 +745,7 @@ func (f *File) activeSheet() (*Sheet, error) {
 		return f.sheets[0], nil
 	}
 	ix := slices.IndexFunc(f.sheets, func(s *Sheet) bool {
-		return s.Active == true
+		return s.Active
 	})
 	if ix < 0 {
 		return nil, fmt.Errorf("missing active sheet")
