@@ -2,7 +2,6 @@ package types
 
 import (
 	"errors"
-	"slices"
 
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/grid"
@@ -362,9 +361,13 @@ func (c *View) getContext() value.Context {
 }
 
 func (c *View) AsArray() value.ArrayValue {
-	var data [][]value.ScalarValue
+	var data [][]value.Value
 	for _, r := range c.view.Rows() {
-		data = append(data, slices.Clone(r))
+		tmp := make([]value.Value, 0, len(r))
+		for i := range r {
+			tmp = append(tmp, r[i])
+		}
+		data = append(data, tmp)
 	}
 	return value.NewArray(data)
 }
@@ -381,7 +384,7 @@ func (c *View) setArray(arr value.ArrayValue, rg *layout.Range) error {
 		dim   = arr.Dimension()
 	)
 	for pos := range rg.Positions() {
-		var val value.ScalarValue
+		var val value.Value
 		switch mode {
 		case broadcastExact:
 			val = arr.At(row, col)
