@@ -1,8 +1,6 @@
 package eval
 
 import (
-	"fmt"
-
 	"github.com/midbel/dockit/formula/parse"
 )
 
@@ -38,15 +36,4 @@ func (p scriptPhase) Next(k parse.Kind) scriptPhase {
 	default:
 		return p
 	}
-}
-
-func nextPhase(expr parse.Expr, phase scriptPhase) (scriptPhase, error) {
-	currKind := parse.KindStmt
-	if ek, ok := expr.(parse.ExprKind); ok {
-		currKind = ek.Kind()
-	}
-	if !phase.Allows(currKind) {
-		return phase, fmt.Errorf("unknown script phase!")
-	}
-	return phase.Next(currKind), nil
 }

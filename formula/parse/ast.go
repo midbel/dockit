@@ -173,14 +173,6 @@ type Sheet struct {
 	options map[string]any
 }
 
-func newSheet(ident, name, data Expr) Expr {
-	return Sheet{
-		ident: ident,
-		name:  name,
-		data:  data,
-	}
-}
-
 func (e Sheet) Linked() bool {
 	return e.linked
 }

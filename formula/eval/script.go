@@ -1037,14 +1037,6 @@ func (v *evaluator) resolve(ident string) (value.Value, error) {
 	return v.ctx.Resolve(ident), nil
 }
 
-func (v *evaluator) top() value.Value {
-	val, ok := v.stack.Peek()
-	if !ok {
-		return value.ErrValue
-	}
-	return val
-}
-
 func (v *evaluator) pushValue(val value.Value) {
 	v.stack.Push(val)
 }
@@ -1063,15 +1055,6 @@ func (v *evaluator) enterPhase(ph scriptPhase) {
 
 func (v *evaluator) leavePhase() {
 	v.phases.Pop()
-}
-
-func (v *evaluator) inAssignment() bool {
-	return v.inPhase(phaseAssign)
-}
-
-func (v *evaluator) inPhase(ph scriptPhase) bool {
-	top, _ := v.phases.Peek()
-	return top == ph
 }
 
 func getInt(value any) int {
