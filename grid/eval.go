@@ -278,10 +278,6 @@ func (f formula) String() string {
 	return f.expr.String()
 }
 
-func (formula) Scalar() any {
-	return nil
-}
-
 func (f formula) Expr() parse.Expr {
 	return f.expr
 }
@@ -391,17 +387,17 @@ func (a arrayView) ApplyArray(other value.Array, do func(value.Value, value.Valu
 func (a arrayView) ToLinks() value.Value {
 	var (
 		bs  = a.inner.Bounds()
-		arr [][]value.ScalarValue
+		arr [][]value.Value
 	)
 	for row := int64(1); row <= bs.Height(); row++ {
-		xs := make([]value.ScalarValue, 0, bs.Width())
+		xs := make([]value.Value, 0, bs.Width())
 		for col := int64(1); col <= bs.Width(); col++ {
 			var (
 				pos  = layout.NewPosition(row, col)
 				expr = parse.NewCellAddr(pos, false, false)
 				form = NewFormula(expr)
 			)
-			xs = append(xs, form.(value.ScalarValue))
+			xs = append(xs, form)
 		}
 		arr = append(arr, xs)
 	}
