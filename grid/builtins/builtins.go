@@ -141,12 +141,12 @@ func (p Param) Convert(val value.Value) value.Value {
 		if !ok {
 			return val
 		}
-		apply := func(v value.ScalarValue) value.ScalarValue {
+		apply := func(v value.Value) value.Value {
 			ret := p.Value(v)
-			if ret.Kind() != value.KindScalar {
+			if !value.IsScalar(ret) {
 				return value.ErrValue
 			}
-			return ret.(value.ScalarValue)
+			return ret
 		}
 
 		other := arr.Clone()
