@@ -329,7 +329,7 @@ func (v *arrayView) Dimension() layout.Dimension {
 	return dm
 }
 
-func (v *arrayView) At(row, col int) value.ScalarValue {
+func (v *arrayView) At(row, col int) value.Value {
 	pos := layout.Position{
 		Line:   int64(row) + 1,
 		Column: int64(col) + 1,
@@ -338,8 +338,8 @@ func (v *arrayView) At(row, col int) value.ScalarValue {
 	return c.Value()
 }
 
-func (a arrayView) Values() iter.Seq[value.ScalarValue] {
-	it := func(yield func(value.ScalarValue) bool) {
+func (a arrayView) Values() iter.Seq[value.Value] {
+	it := func(yield func(value.Value) bool) {
 		for _, rs := range a.inner.Rows() {
 			for _, v := range rs {
 				ok := yield(v)
@@ -364,7 +364,7 @@ func (a arrayView) AsArray() value.ArrayValue {
 	return value.NewArray(data)
 }
 
-func (a arrayView) Apply(do func(value.ScalarValue) value.ScalarValue) {
+func (a arrayView) Apply(do func(value.Value) value.Value) {
 	bd := a.inner.Bounds()
 	mv, ok := a.inner.(MutableView)
 	if !ok {

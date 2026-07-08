@@ -7,7 +7,7 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-func keyFromValues(row []value.ScalarValue) string {
+func keyFromValues(row []value.Value) string {
 	var b strings.Builder
 	for i := range row {
 		if i > 0 {
@@ -19,7 +19,7 @@ func keyFromValues(row []value.ScalarValue) string {
 	return b.String()
 }
 
-func keyFromRow(row []value.ScalarValue, cols []int64) string {
+func keyFromRow(row []value.Value, cols []int64) string {
 	var b strings.Builder
 	for i, c := range cols {
 		if i > 0 {

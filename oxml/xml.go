@@ -2,8 +2,6 @@ package oxml
 
 import (
 	"encoding/xml"
-
-	"github.com/midbel/dockit/value"
 )
 
 const (
@@ -15,21 +13,6 @@ const (
 	TypeBool      = "b"
 	TypeNumber    = "n"
 )
-
-func typeFromValue(val value.ScalarValue) string {
-	switch val.Type() {
-	case value.TypeNumber:
-		return TypeNumber
-	case value.TypeText:
-		return TypeInlineStr
-	case value.TypeBool:
-		return TypeBool
-	case value.TypeDate:
-		return TypeDate
-	default:
-		return TypeInlineStr
-	}
-}
 
 const wbBaseDir = "xl"
 

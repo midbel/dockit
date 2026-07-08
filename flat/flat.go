@@ -62,7 +62,7 @@ func NewFile() *File {
 	return &file
 }
 
-func NewFileFromRows(rs [][]value.ScalarValue) *File {
+func NewFileFromRows(rs [][]value.Value) *File {
 	sh := NewSheet(defaultSheetName, rs)
 	return NewFileFromSheets(sh)
 }
@@ -182,7 +182,7 @@ type Sheet struct {
 	size  layout.Dimension
 }
 
-func NewSheet(name string, values [][]value.ScalarValue) *Sheet {
+func NewSheet(name string, values [][]value.Value) *Sheet {
 	s := Sheet{
 		Label: name,
 		cells: make(map[layout.Position]*Cell),
@@ -304,13 +304,13 @@ func (s *Sheet) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (s *Sheet) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (s *Sheet) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		for _, r := range s.rows {
 			if len(r.Cells) == 0 {
 				continue
 			}
-			res := make([]value.ScalarValue, len(r.Cells))
+			res := make([]value.Value, len(r.Cells))
 			for i, c := range r.Cells {
 				res[i] = c.Value()
 			}
@@ -592,8 +592,8 @@ func (r *row) Append(cell *Cell) {
 	})
 }
 
-func (r *row) Values() []value.ScalarValue {
-	var ds []value.ScalarValue
+func (r *row) Values() []value.Value {
+	var ds []value.Value
 	for _, c := range r.Cells {
 		ds = append(ds, c.Value())
 	}
@@ -615,7 +615,7 @@ type Cell struct {
 	layout.Position
 
 	raw     string
-	parsed  value.ScalarValue
+	parsed  value.Value
 	formula value.Formula
 	dirty   bool
 }
@@ -640,7 +640,7 @@ func (c *Cell) Display() string {
 	return c.raw
 }
 
-func (c *Cell) Value() value.ScalarValue {
+func (c *Cell) Value() value.Value {
 	if c.parsed == nil {
 		return value.Empty()
 	}

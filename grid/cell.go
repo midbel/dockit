@@ -52,7 +52,7 @@ type Row interface {
 
 type Cell interface {
 	At() layout.Position
-	Value() value.ScalarValue
+	Value() value.Value
 	Formula() value.Formula
 	Dirty() bool
 }
@@ -92,7 +92,7 @@ func (c empty) At() layout.Position {
 	return c.pos
 }
 
-func (c empty) Value() value.ScalarValue {
+func (c empty) Value() value.Value {
 	if c.value == nil {
 		return value.Empty()
 	}

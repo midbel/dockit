@@ -6,10 +6,10 @@ import (
 )
 
 type rowContext struct {
-	rows []value.ScalarValue
+	rows []value.Value
 }
 
-func RowContext(rs []value.ScalarValue) value.Context {
+func RowContext(rs []value.Value) value.Context {
 	return rowContext{
 		rows: rs,
 	}
