@@ -4,14 +4,14 @@ import (
 	"fmt"
 )
 
-func ExtractDataFromValue(data Value) ([][]ScalarValue, error) {
+func ExtractDataFromValue(data Value) ([][]Value, error) {
 	if IsScalar(data) {
 		data = ScalarToArray(data, 1, 1)
 	}
 	return ExtractDataFromArray(data)
 }
 
-func ExtractDataFromArray(data Value) ([][]ScalarValue, error) {
+func ExtractDataFromArray(data Value) ([][]Value, error) {
 	if !IsArray(data) {
 		return nil, fmt.Errorf("array expected")
 	}
@@ -30,9 +30,9 @@ func ScalarToArray(val Value, row, col int) Value {
 	if !ok {
 		return NewArray(nil)
 	}
-	arr := make([][]ScalarValue, row)
+	arr := make([][]Value, row)
 	for i := range row {
-		arr[i] = make([]ScalarValue, col)
+		arr[i] = make([]Value, col)
 		for j := range col {
 			arr[i][j] = scalar
 		}
@@ -40,7 +40,7 @@ func ScalarToArray(val Value, row, col int) Value {
 	return NewArray(arr)
 }
 
-func ApplyScalarInArray(val ScalarValue, arr ArrayValue, do func(ScalarValue, ScalarValue) (ScalarValue, error)) (Value, error) {
+func ApplyScalarInArray(val Value, arr ArrayValue, do func(Value, Value) (Value, error)) (Value, error) {
 	out := prepareArray(arr)
 	for i := range out {
 		for j := range out[i] {
@@ -54,7 +54,7 @@ func ApplyScalarInArray(val ScalarValue, arr ArrayValue, do func(ScalarValue, Sc
 	return NewArray(out), nil
 }
 
-func ApplyArrayWithScalar(arr ArrayValue, val ScalarValue, do func(ScalarValue, ScalarValue) (ScalarValue, error)) (Value, error) {
+func ApplyArrayWithScalar(arr ArrayValue, val Value, do func(Value, Value) (Value, error)) (Value, error) {
 	out := prepareArray(arr)
 	for i := range out {
 		for j := range out[i] {
@@ -68,13 +68,13 @@ func ApplyArrayWithScalar(arr ArrayValue, val ScalarValue, do func(ScalarValue, 
 	return NewArray(out), nil
 }
 
-func prepareArray(arr ArrayValue) [][]ScalarValue {
+func prepareArray(arr ArrayValue) [][]Value {
 	var (
 		dim = arr.Dimension()
-		out = make([][]ScalarValue, dim.Lines)
+		out = make([][]Value, dim.Lines)
 	)
 	for i := range out {
-		out[i] = make([]ScalarValue, dim.Columns)
+		out[i] = make([]Value, dim.Columns)
 	}
 	return out
 }

@@ -9,10 +9,10 @@ import (
 )
 
 type Array struct {
-	Data [][]ScalarValue
+	Data [][]Value
 }
 
-func NewArray(data [][]ScalarValue) ArrayValue {
+func NewArray(data [][]Value) ArrayValue {
 	return Array{
 		Data: data,
 	}
@@ -31,7 +31,7 @@ func (Array) String() string {
 	return TypeArray
 }
 
-func (a Array) GetData() [][]ScalarValue {
+func (a Array) GetData() [][]Value {
 	return a.Data
 }
 
@@ -52,7 +52,7 @@ func (a Array) Dimension() layout.Dimension {
 	return d
 }
 
-func (a Array) At(row, col int) ScalarValue {
+func (a Array) At(row, col int) Value {
 	if len(a.Data) == 0 || row >= len(a.Data) {
 		return Empty()
 	}
@@ -63,7 +63,7 @@ func (a Array) At(row, col int) ScalarValue {
 	return a.Data[row][col]
 }
 
-func (a Array) SetAt(row, col int, val ScalarValue) {
+func (a Array) SetAt(row, col int, val Value) {
 	if len(a.Data) == 0 || row >= len(a.Data) {
 		return
 	}
@@ -74,8 +74,8 @@ func (a Array) SetAt(row, col int, val ScalarValue) {
 	a.Data[row][col] = val
 }
 
-func (a Array) Values() iter.Seq[ScalarValue] {
-	it := func(yield func(ScalarValue) bool) {
+func (a Array) Values() iter.Seq[Value] {
+	it := func(yield func(Value) bool) {
 		dim := a.Dimension()
 		for row := range dim.Lines {
 			for col := range dim.Columns {
@@ -90,7 +90,7 @@ func (a Array) Values() iter.Seq[ScalarValue] {
 }
 
 func (a Array) Clone() Array {
-	other := make([][]ScalarValue, 0, len(a.Data))
+	other := make([][]Value, 0, len(a.Data))
 	for i := range a.Data {
 		other = append(other, slices.Clone(a.Data[i]))
 	}
@@ -115,7 +115,7 @@ func (a Array) Equal(other Array) bool {
 	return true
 }
 
-func (a Array) Apply(do func(ScalarValue) ScalarValue) {
+func (a Array) Apply(do func(Value) Value) {
 	if len(a.Data) == 0 {
 		return
 	}
@@ -129,15 +129,15 @@ func (a Array) Apply(do func(ScalarValue) ScalarValue) {
 	return
 }
 
-func (a Array) ApplyArray(other Array, do func(ScalarValue, ScalarValue) ScalarValue) Value {
+func (a Array) ApplyArray(other Array, do func(Value, Value) Value) Value {
 	var (
 		dleft  = a.Dimension()
 		dright = other.Dimension()
 		dim    = dleft.Max(dright)
-		data   = make([][]ScalarValue, dim.Lines)
+		data   = make([][]Value, dim.Lines)
 	)
 	for i := range data {
-		data[i] = make([]ScalarValue, dim.Columns)
+		data[i] = make([]Value, dim.Columns)
 	}
 	for i := range dim.Lines {
 		for j := range dim.Columns {
