@@ -81,7 +81,7 @@ func IsBlank(v Value) bool {
 	return ok
 }
 
-func Rows(rs ...[]ScalarValue) [][]ScalarValue {
+func Rows(rs ...[]Value) [][]Value {
 	return rs
 }
 
