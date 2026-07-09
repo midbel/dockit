@@ -72,10 +72,10 @@ func ResetAt(cell Cell, pos layout.Position) Cell {
 
 type empty struct {
 	pos   layout.Position
-	value value.ScalarValue
+	value value.Value
 }
 
-func Single(val value.ScalarValue, pos layout.Position) Cell {
+func Single(val value.Value, pos layout.Position) Cell {
 	return empty{
 		pos:   pos,
 		value: val,

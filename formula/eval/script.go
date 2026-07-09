@@ -660,7 +660,7 @@ func (v *evaluator) evalScalarInArrayBinary(left, right value.Value, oper op.Op)
 	if !ok {
 		return value.ErrValue, nil
 	}
-	return value.ApplyScalarInArray(scalar, arr, func(left, right value.ScalarValue) (value.ScalarValue, error) {
+	return value.ApplyScalarInArray(scalar, arr, func(left, right value.Value) (value.Value, error) {
 		ret, err := v.evalScalarBinary(left, right, oper)
 		if err != nil {
 			return value.ErrValue, err
@@ -685,16 +685,15 @@ func (v *evaluator) evalArrayWithScalarBinary(left, right value.Value, oper op.O
 	if !ok {
 		return value.ErrValue, nil
 	}
-	return value.ApplyArrayWithScalar(arr, scalar, func(left, right value.ScalarValue) (value.ScalarValue, error) {
+	return value.ApplyArrayWithScalar(arr, scalar, func(left, right value.Value) (value.Value, error) {
 		ret, err := v.evalScalarBinary(left, right, oper)
 		if err != nil {
 			return value.ErrValue, err
 		}
-		scalar, ok := ret.(value.ScalarValue)
-		if !ok {
+		if !value.IsScalar(ret) {
 			return value.ErrValue, nil
 		}
-		return scalar, nil
+		return ret, nil
 	})
 }
 
@@ -710,16 +709,15 @@ func (v *evaluator) evalArrayBinary(left, right value.Value, oper op.Op) (value.
 	if err != nil {
 		return value.ErrValue, nil
 	}
-	res := larr.ApplyArray(rarr, func(left, right value.ScalarValue) value.ScalarValue {
+	res := larr.ApplyArray(rarr, func(left, right value.Value) value.Value {
 		ret, err := v.evalScalarBinary(left, right, oper)
 		if err != nil {
 			return value.ErrValue
 		}
-		scalar, ok := ret.(value.ScalarValue)
-		if !ok {
+		if !value.IsScalar(ret) {
 			return value.ErrValue
 		}
-		return scalar
+		return ret
 	})
 	return res, nil
 }
@@ -913,7 +911,7 @@ func (v *evaluator) vectorizeCall(fn gbs.BuiltinFunc, args []parse.Expr) error {
 			count = int(d.Lines)
 		}
 	}
-	arr := make([][]value.ScalarValue, count)
+	arr := make([][]value.Value, count)
 	for i := 0; i < count; i++ {
 		var params []value.Value
 		for j := range args {
@@ -924,8 +922,8 @@ func (v *evaluator) vectorizeCall(fn gbs.BuiltinFunc, args []parse.Expr) error {
 			}
 		}
 		res := fn(params)
-		if s, ok := res.(value.ScalarValue); ok {
-			arr[i] = slx.One(s)
+		if value.IsScalar(res) {
+			arr[i] = slx.One(res)
 		}
 	}
 	v.pushValue(value.NewArray(arr))

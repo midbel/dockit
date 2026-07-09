@@ -139,16 +139,16 @@ func (j structuredLoader) Open(file string, opts LoaderOptions) (grid.File, erro
 	return flat.NewFileFromSheets(sheets...), nil
 }
 
-func (structuredLoader) processData(arr []any) ([][]value.ScalarValue, error) {
-	var values [][]value.ScalarValue
+func (structuredLoader) processData(arr []any) ([][]value.Value, error) {
+	var values [][]value.Value
 	for i := range arr {
 		vs, ok := arr[i].([]any)
 		if !ok {
 			return nil, fmt.Errorf("array expected")
 		}
-		row := make([]value.ScalarValue, 0, len(vs))
+		row := make([]value.Value, 0, len(vs))
 		for j := range vs {
-			var x value.ScalarValue
+			var x value.Value
 			switch v := vs[j].(type) {
 			case float64:
 				x = value.Float(v)
