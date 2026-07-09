@@ -225,7 +225,7 @@ func testInsertRows(t *testing.T) {
 		Script string
 		Cols   int64
 		Rows   int64
-		Want   [][]value.ScalarValue
+		Want   [][]value.Value
 	}{
 		{
 			Name: "row-basic",
@@ -235,7 +235,7 @@ insert row into @active with 40+2
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Float(42), value.Float(42), value.Float(42)},
 			},
 		},
@@ -247,7 +247,7 @@ insert row into sh.sheet with A1:C1
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Text("name"), value.Text("salary"), value.Text("bonus")},
 			},
 		},
@@ -260,7 +260,7 @@ insert row before myrow into @active
 insrow := A1:C1`,
 			Cols: 3,
 			Rows: 4,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Empty(), value.Empty(), value.Empty()},
 			},
 		},
@@ -273,7 +273,7 @@ insert corow rows after 1 into @active
 insrow := A2:C3`,
 			Cols: 3,
 			Rows: 5,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Empty(), value.Empty(), value.Empty()},
 				{value.Empty(), value.Empty(), value.Empty()},
 			},
@@ -286,7 +286,7 @@ insert 5 rows before first into @active
 insrow := A1:C5`,
 			Cols: 3,
 			Rows: 8,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Empty(), value.Empty(), value.Empty()},
 				{value.Empty(), value.Empty(), value.Empty()},
 				{value.Empty(), value.Empty(), value.Empty()},
@@ -302,7 +302,7 @@ insert 5 rows after first into @active
 insrow := A2:C6`,
 			Cols: 3,
 			Rows: 8,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Empty(), value.Empty(), value.Empty()},
 				{value.Empty(), value.Empty(), value.Empty()},
 				{value.Empty(), value.Empty(), value.Empty()},
@@ -319,7 +319,7 @@ insert row into @active
 insrow := A1:C1`,
 			Cols: 3,
 			Rows: 5,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Empty(), value.Empty(), value.Empty()},
 			},
 		},
@@ -339,7 +339,7 @@ func testInsertColumns(t *testing.T) {
 		Script string
 		Cols   int64
 		Rows   int64
-		Want   [][]value.ScalarValue
+		Want   [][]value.Value
 	}{
 		{
 			Name: "col-basic",
@@ -351,7 +351,7 @@ inscol := D
 			`,
 			Cols: 4,
 			Rows: 3,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Float(0)},
 				{value.Float(0)},
 				{value.Float(0)},
@@ -366,7 +366,7 @@ inscol := D
 			`,
 			Cols: 4,
 			Rows: 3,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Float(0)},
 				{value.Float(0)},
 				{value.Float(0)},
@@ -381,7 +381,7 @@ inscol := A
 			`,
 			Cols: 4,
 			Rows: 3,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Float(0)},
 				{value.Float(0)},
 				{value.Float(0)},
@@ -397,7 +397,7 @@ inscol := C1:F3
 			`,
 			Cols: 7,
 			Rows: 3,
-			Want: [][]value.ScalarValue{
+			Want: [][]value.Value{
 				{value.Text("tbd"), value.Text("tbd"), value.Text("tbd"), value.Text("tbd")},
 				{value.Text("tbd"), value.Text("tbd"), value.Text("tbd"), value.Text("tbd")},
 				{value.Text("tbd"), value.Text("tbd"), value.Text("tbd"), value.Text("tbd")},
@@ -503,7 +503,7 @@ cs := @active.columns
 	checkValue(t, ev, "rs", value.Float(3))
 	checkValue(t, ev, "cs", value.Float(3))
 
-	want := [][]value.ScalarValue{
+	want := [][]value.Value{
 		{value.Text("midbel"), value.Text("go"), value.Float(10)},
 		{value.Text("midbel"), value.Text("rust"), value.Float(0)},
 		{value.Text("midbel"), value.Text("python"), value.Float(6)},
@@ -524,7 +524,7 @@ cs := @active.columns
 	checkValue(t, ev, "rs", value.Float(3))
 	checkValue(t, ev, "cs", value.Float(3))
 
-	want := [][]value.ScalarValue{
+	want := [][]value.Value{
 		{value.Text("midbel"), value.Text("go"), value.Float(10)},
 		{value.Text("midbel"), value.Text("rust"), value.Float(6)},
 		{value.Text("midbel"), value.Text("python"), value.Float(6)},
@@ -561,17 +561,17 @@ totals := raises + bonus
 	`
 	ev := runScript(t, script)
 
-	salaries := [][]value.ScalarValue{
+	salaries := [][]value.Value{
 		{value.Float(60)},
 		{value.Float(50)},
 	}
 	checkRange(t, ev, "salaries", value.NewArray(salaries).(value.Array))
-	bonus := [][]value.ScalarValue{
+	bonus := [][]value.Value{
 		{value.Float(10)},
 		{value.Float(8)},
 	}
 	checkRange(t, ev, "bonus", value.NewArray(bonus).(value.Array))
-	totals := [][]value.ScalarValue{
+	totals := [][]value.Value{
 		{value.Float(71)},
 		{value.Float(59)},
 	}
@@ -588,7 +588,7 @@ D2:D3 := B2:B3 + C2:C3
 	`
 	ev := runScript(t, script)
 
-	want := [][]value.ScalarValue{
+	want := [][]value.Value{
 		{
 			value.Text("name"),
 			value.Text("salary"),
