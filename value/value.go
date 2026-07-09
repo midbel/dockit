@@ -129,13 +129,6 @@ type Predicate interface {
 	Test(Context) bool
 }
 
-type CastableValue interface {
-	ToString() ScalarValue
-	ToBool() ScalarValue
-	ToFloat() ScalarValue
-	// ToDate() ScalarValue
-}
-
 func Add(left, right Value) Value {
 	a, ok := left.(interface {
 		Add(Value) ScalarValue
