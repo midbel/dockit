@@ -55,12 +55,12 @@ func (v *Range) Collect(view grid.View) (value.Value, error) {
 	var (
 		width  = v.rg.Width()
 		height = v.rg.Height()
-		data   = make([][]value.ScalarValue, height)
+		data   = make([][]value.Value, height)
 		col    int64
 		row    int64
 	)
 	for i := range data {
-		data[i] = make([]value.ScalarValue, width)
+		data[i] = make([]value.Value, width)
 	}
 	for pos := range v.rg.Positions() {
 		cell, err := view.Cell(pos)

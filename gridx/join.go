@@ -59,8 +59,8 @@ func (v *joinView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *joinView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *joinView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		for lino, jr := range v.rows {
 			left := collectValues(v.left, jr.Left)
 			right := collectValues(v.right, jr.Right)
@@ -130,9 +130,9 @@ func createIndex(view grid.View, keys layout.Selection) map[string][]int64 {
 	return index
 }
 
-func collectValues(view grid.View, row int64) []value.ScalarValue {
+func collectValues(view grid.View, row int64) []value.Value {
 	var (
-		vs []value.ScalarValue
+		vs []value.Value
 		rg = view.Bounds()
 	)
 	for col := int64(1); col <= rg.Width(); col++ {

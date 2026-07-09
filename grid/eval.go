@@ -3,7 +3,6 @@ package grid
 import (
 	"fmt"
 	"iter"
-	"slices"
 	"strings"
 
 	"github.com/midbel/dockit/formula/op"
@@ -279,10 +278,6 @@ func (f formula) String() string {
 	return f.expr.String()
 }
 
-func (formula) Scalar() any {
-	return nil
-}
-
 func (f formula) Expr() parse.Expr {
 	return f.expr
 }
@@ -334,7 +329,7 @@ func (v *arrayView) Dimension() layout.Dimension {
 	return dm
 }
 
-func (v *arrayView) At(row, col int) value.ScalarValue {
+func (v *arrayView) At(row, col int) value.Value {
 	pos := layout.Position{
 		Line:   int64(row) + 1,
 		Column: int64(col) + 1,
@@ -343,8 +338,8 @@ func (v *arrayView) At(row, col int) value.ScalarValue {
 	return c.Value()
 }
 
-func (a arrayView) Values() iter.Seq[value.ScalarValue] {
-	it := func(yield func(value.ScalarValue) bool) {
+func (a arrayView) Values() iter.Seq[value.Value] {
+	it := func(yield func(value.Value) bool) {
 		for _, rs := range a.inner.Rows() {
 			for _, v := range rs {
 				ok := yield(v)
@@ -358,14 +353,18 @@ func (a arrayView) Values() iter.Seq[value.ScalarValue] {
 }
 
 func (a arrayView) AsArray() value.ArrayValue {
-	var data [][]value.ScalarValue
+	var data [][]value.Value
 	for _, r := range a.inner.Rows() {
-		data = append(data, slices.Clone(r))
+		tmp := make([]value.Value, 0, len(r))
+		for i := range r {
+			tmp = append(tmp, r[i])
+		}
+		data = append(data, tmp)
 	}
 	return value.NewArray(data)
 }
 
-func (a arrayView) Apply(do func(value.ScalarValue) value.ScalarValue) {
+func (a arrayView) Apply(do func(value.Value) value.Value) {
 	bd := a.inner.Bounds()
 	mv, ok := a.inner.(MutableView)
 	if !ok {
@@ -377,7 +376,7 @@ func (a arrayView) Apply(do func(value.ScalarValue) value.ScalarValue) {
 	}
 }
 
-func (a arrayView) ApplyArray(other value.Array, do func(value.ScalarValue, value.ScalarValue) value.ScalarValue) value.Value {
+func (a arrayView) ApplyArray(other value.Array, do func(value.Value, value.Value) value.Value) value.Value {
 	arr := a.AsArray()
 	if arr, ok := arr.(value.Array); ok {
 		return arr.ApplyArray(other, do)
@@ -388,17 +387,17 @@ func (a arrayView) ApplyArray(other value.Array, do func(value.ScalarValue, valu
 func (a arrayView) ToLinks() value.Value {
 	var (
 		bs  = a.inner.Bounds()
-		arr [][]value.ScalarValue
+		arr [][]value.Value
 	)
 	for row := int64(1); row <= bs.Height(); row++ {
-		xs := make([]value.ScalarValue, 0, bs.Width())
+		xs := make([]value.Value, 0, bs.Width())
 		for col := int64(1); col <= bs.Width(); col++ {
 			var (
 				pos  = layout.NewPosition(row, col)
 				expr = parse.NewCellAddr(pos, false, false)
 				form = NewFormula(expr)
 			)
-			xs = append(xs, form.(value.ScalarValue))
+			xs = append(xs, form)
 		}
 		arr = append(arr, xs)
 	}

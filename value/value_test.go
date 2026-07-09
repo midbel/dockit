@@ -143,8 +143,8 @@ func TestErrors(t *testing.T) {
 
 func TestArray(t *testing.T) {
 	arr := NewArray(Rows(
-		[]ScalarValue{Float(1), Text("a")},
-		[]ScalarValue{Float(2), Text("b")},
+		[]Value{Float(1), Text("a")},
+		[]Value{Float(2), Text("b")},
 	)).(Array)
 
 	if got, want := arr.Dimension(), (layout.Dimension{Lines: 2, Columns: 2}); !got.Equal(want) {
@@ -182,18 +182,18 @@ func TestArrayHelpers(t *testing.T) {
 	}
 
 	source := NewArray(Rows(
-		[]ScalarValue{Float(1), Float(2)},
-		[]ScalarValue{Float(3), Float(4)},
+		[]Value{Float(1), Float(2)},
+		[]Value{Float(3), Float(4)},
 	))
-	mapped, err := ApplyArrayWithScalar(source, Float(10), func(left, right ScalarValue) (ScalarValue, error) {
-		return Add(left, right).(ScalarValue), nil
+	mapped, err := ApplyArrayWithScalar(source, Float(10), func(left, right Value) (Value, error) {
+		return Add(left, right), nil
 	})
 	if err != nil {
 		t.Fatalf("apply array with scalar failed: %v", err)
 	}
 	want := NewArray(Rows(
-		[]ScalarValue{Float(11), Float(12)},
-		[]ScalarValue{Float(13), Float(14)},
+		[]Value{Float(11), Float(12)},
+		[]Value{Float(13), Float(14)},
 	)).(Array)
 	if !mapped.(Array).Equal(want) {
 		t.Fatalf("mapped array mismatch: want %#v, got %#v", want, mapped)
@@ -202,8 +202,8 @@ func TestArrayHelpers(t *testing.T) {
 
 func TestIterHelpers(t *testing.T) {
 	arr := NewArray(Rows(
-		[]ScalarValue{Float(1), Text("skip")},
-		[]ScalarValue{Float(2), Float(3)},
+		[]Value{Float(1), Text("skip")},
+		[]Value{Float(2), Float(3)},
 	))
 	args := []Value{Float(4), arr}
 

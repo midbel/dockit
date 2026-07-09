@@ -10,10 +10,10 @@ import (
 )
 
 type scalarView struct {
-	scalar value.ScalarValue
+	scalar value.Value
 }
 
-func NewScalarView(scalar value.ScalarValue) grid.View {
+func NewScalarView(scalar value.Value) grid.View {
 	return scalarView{
 		scalar: scalar,
 	}
@@ -31,8 +31,8 @@ func (a scalarView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (a scalarView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (a scalarView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		yield(1, slx.One(a.scalar))
 	}
 	return it
@@ -76,11 +76,11 @@ func (a arrayView) AsArray() value.ArrayValue {
 	return a.array
 }
 
-func (a arrayView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (a arrayView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		dim := a.array.Dimension()
 		for i := int64(0); i < dim.Lines; i++ {
-			var out []value.ScalarValue
+			var out []value.Value
 			for j := int64(0); j < dim.Columns; j++ {
 				x := a.array.At(int(i), int(j))
 				out = append(out, x)

@@ -52,7 +52,7 @@ type Row interface {
 
 type Cell interface {
 	At() layout.Position
-	Value() value.ScalarValue
+	Value() value.Value
 	Formula() value.Formula
 	Dirty() bool
 }
@@ -72,10 +72,10 @@ func ResetAt(cell Cell, pos layout.Position) Cell {
 
 type empty struct {
 	pos   layout.Position
-	value value.ScalarValue
+	value value.Value
 }
 
-func Single(val value.ScalarValue, pos layout.Position) Cell {
+func Single(val value.Value, pos layout.Position) Cell {
 	return empty{
 		pos:   pos,
 		value: val,
@@ -92,7 +92,7 @@ func (c empty) At() layout.Position {
 	return c.pos
 }
 
-func (c empty) Value() value.ScalarValue {
+func (c empty) Value() value.Value {
 	if c.value == nil {
 		return value.Empty()
 	}

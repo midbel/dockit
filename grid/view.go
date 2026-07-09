@@ -47,7 +47,7 @@ func Unwrap(view View) View {
 type View interface {
 	Name() string
 	Bounds() *layout.Range
-	Rows() iter.Seq2[int64, []value.ScalarValue]
+	Rows() iter.Seq2[int64, []value.Value]
 	Cell(layout.Position) (Cell, error)
 
 	Sync(value.Context) error
@@ -56,7 +56,7 @@ type View interface {
 type MutableView interface {
 	View
 
-	SetValue(layout.Position, value.ScalarValue) error
+	SetValue(layout.Position, value.Value) error
 	SetFormula(layout.Position, value.Formula) error
 
 	ClearCell(layout.Position) error
@@ -112,7 +112,7 @@ func (v *readonlyView) Bounds() *layout.Range {
 	return v.view.Bounds()
 }
 
-func (v *readonlyView) Rows() iter.Seq2[int64, []value.ScalarValue] {
+func (v *readonlyView) Rows() iter.Seq2[int64, []value.Value] {
 	return v.view.Rows()
 }
 
@@ -155,11 +155,11 @@ func (v *transposedView) Bounds() *layout.Range {
 	return bs.Transpose()
 }
 
-func (v *transposedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *transposedView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		bs := v.Bounds()
 		for row := int64(1); row <= bs.Height(); row++ {
-			rs := make([]value.ScalarValue, bs.Width())
+			rs := make([]value.Value, bs.Width())
 			for col := int64(1); col <= bs.Width(); col++ {
 				p := layout.Position{
 					Line:   col,
@@ -245,15 +245,15 @@ func (v *horizontalStackedView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *horizontalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *horizontalStackedView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		var (
-			list []func() (int64, []value.ScalarValue, bool)
+			list []func() (int64, []value.Value, bool)
 			stop []func()
 			dim  = v.Bounds()
 		)
 		for _, vs := range v.views {
-			next, s := iter.Pull2[int64, []value.ScalarValue](vs.Rows())
+			next, s := iter.Pull2[int64, []value.Value](vs.Rows())
 			stop = append(stop, s)
 			list = append(list, next)
 		}
@@ -263,7 +263,7 @@ func (v *horizontalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
 			}
 		}()
 		for i := int64(0); i < dim.Height(); i++ {
-			row := make([]value.ScalarValue, 0, dim.Width())
+			row := make([]value.Value, 0, dim.Width())
 			for _, n := range list {
 				_, rs, ok := n()
 				if !ok {
@@ -351,8 +351,8 @@ func (v *verticalStackedView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *verticalStackedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *verticalStackedView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		var lino int64
 		for i := range v.views {
 			for _, r := range v.views[i].Rows() {
@@ -453,10 +453,10 @@ func (v *projectedView) Cell(pos layout.Position) (Cell, error) {
 	return ResetAt(cell, pos), nil
 }
 
-func (v *projectedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *projectedView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		var (
-			out  = make([]value.ScalarValue, len(v.columns))
+			out  = make([]value.Value, len(v.columns))
 			lino int64
 		)
 		for _, row := range v.view.Rows() {
@@ -530,11 +530,11 @@ func (v *boundedView) Unwrap() View {
 	return v.view
 }
 
-func (v *boundedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *boundedView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		var (
 			width = v.part.Width()
-			out   = make([]value.ScalarValue, width)
+			out   = make([]value.Value, width)
 			lino  int64
 		)
 		for row := v.part.Starts.Line; row <= v.part.Ends.Line; row++ {
@@ -597,11 +597,11 @@ func (v *filteredView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *filteredView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *filteredView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		bd := v.view.Bounds()
 		for i, r := range v.rows {
-			out := make([]value.ScalarValue, 0, bd.Width())
+			out := make([]value.Value, 0, bd.Width())
 			for c := int64(1); c <= bd.Width(); c++ {
 				pos := layout.NewPosition(r, c)
 				cell, _ := v.view.Cell(pos)

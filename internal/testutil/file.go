@@ -21,8 +21,8 @@ func CreateCsvFile(r io.Reader) (grid.File, error) {
 
 func CreateFile() grid.File {
 	sheet1 := flat.NewSheet("sheet1", value.Rows(
-		[]value.ScalarValue{value.Text("foo"), value.Float(2)},
-		[]value.ScalarValue{value.Text("bar"), value.Float(5)},
+		[]value.Value{value.Text("foo"), value.Float(2)},
+		[]value.Value{value.Text("bar"), value.Float(5)},
 	))
 	f1, _ := grid.ParseOxmlFormula("=(B1 + sheet2!B1)*2")
 	f2, _ := grid.ParseOxmlFormula("=(B2 + sheet2!B2)*2")
@@ -30,8 +30,8 @@ func CreateFile() grid.File {
 	sheet1.SetFormula(layout.NewPosition(2, 3), f2)
 
 	sheet2 := flat.NewSheet("sheet2", value.Rows(
-		[]value.ScalarValue{value.Text("quz"), value.Float(10)},
-		[]value.ScalarValue{value.Text("bee"), value.Float(5)},
+		[]value.Value{value.Text("quz"), value.Float(10)},
+		[]value.Value{value.Text("bee"), value.Float(5)},
 	))
 	f3, _ := grid.ParseOxmlFormula("=UPPER(sheet2!A1)")
 	f4, _ := grid.ParseOxmlFormula("=UPPER(sheet2!A2)")
@@ -43,10 +43,10 @@ func CreateFile() grid.File {
 	sheet2.SetFormula(layout.NewPosition(2, 4), f6)
 
 	sheet3 := flat.NewSheet("sheet3", value.Rows(
-		[]value.ScalarValue{value.Text("sum")},
-		[]value.ScalarValue{value.Text("avg")},
-		[]value.ScalarValue{value.Text("min")},
-		[]value.ScalarValue{value.Text("max")},
+		[]value.Value{value.Text("sum")},
+		[]value.Value{value.Text("avg")},
+		[]value.Value{value.Text("min")},
+		[]value.Value{value.Text("max")},
 	))
 	f7, _ := grid.ParseOxmlFormula("=SUM(sheet1!B1:B10)")
 	f8, _ := grid.ParseOxmlFormula("=AVERAGE(sheet1!B1:B10)")

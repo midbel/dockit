@@ -27,7 +27,7 @@ type Cell struct {
 	layout.Position
 
 	raw     string
-	parsed  value.ScalarValue
+	parsed  value.Value
 	formula value.Formula
 	dirty   bool
 }
@@ -44,7 +44,7 @@ func (c *Cell) Display() string {
 	return c.raw
 }
 
-func (c *Cell) Value() value.ScalarValue {
+func (c *Cell) Value() value.Value {
 	if c.parsed == nil {
 		return value.Empty()
 	}
@@ -104,8 +104,8 @@ func (r *row) Append(cell *Cell) {
 	})
 }
 
-func (r *row) Values() []value.ScalarValue {
-	var ds []value.ScalarValue
+func (r *row) Values() []value.Value {
+	var ds []value.Value
 	for _, c := range r.Cells {
 		ds = append(ds, c.Value())
 	}
@@ -314,8 +314,8 @@ func (s *Sheet) Bounds() *layout.Range {
 	return &rg
 }
 
-func (s *Sheet) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (s *Sheet) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		for _, r := range s.rows {
 			row := r.Values()
 			if len(r.Cells) == 0 {

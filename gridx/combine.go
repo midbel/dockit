@@ -88,12 +88,12 @@ func (v *unionView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *unionView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *unionView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		for i, r := range v.rows {
 			var (
 				bd  = r.view.Bounds()
-				out = make([]value.ScalarValue, 0, bd.Width())
+				out = make([]value.Value, 0, bd.Width())
 			)
 			for i := range bd.Width() {
 				p := layout.NewPosition(r.lino, int64(i+1))
@@ -178,11 +178,11 @@ func (v *intersectView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *intersectView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *intersectView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		bd := v.view.Bounds()
 		for i, r := range v.rows {
-			out := make([]value.ScalarValue, 0, int(bd.Width()))
+			out := make([]value.Value, 0, int(bd.Width()))
 			for c := range bd.Width() {
 				p := layout.NewPosition(r.lino, c+1)
 				x, _ := r.view.Cell(p)
@@ -266,11 +266,11 @@ func (v *exceptView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *exceptView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *exceptView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		bd := v.view.Bounds()
 		for i, r := range v.rows {
-			out := make([]value.ScalarValue, 0, int(bd.Width()))
+			out := make([]value.Value, 0, int(bd.Width()))
 			for c := range bd.Width() {
 				p := layout.NewPosition(r.lino, c+1)
 				x, _ := r.view.Cell(p)

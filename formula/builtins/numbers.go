@@ -39,11 +39,11 @@ func Seq(args []value.Value) value.Value {
 }
 
 func generateDateSeq(start time.Time, step, count int64) value.Value {
-	arr := make([][]value.ScalarValue, count)
+	arr := make([][]value.Value, count)
 	for i := int64(0); i < count; i++ {
 		var (
 			t = start.Add(time.Duration(step*24) * time.Hour)
-			x value.ScalarValue
+			x value.Value
 		)
 		x = value.Date(t)
 		arr[i] = slx.One(x)
@@ -52,11 +52,11 @@ func generateDateSeq(start time.Time, step, count int64) value.Value {
 }
 
 func generateNumberSeq(start float64, step, count int64) value.Value {
-	arr := make([][]value.ScalarValue, count)
+	arr := make([][]value.Value, count)
 	for i := int64(0); i < count; i++ {
 		var (
 			t = start + float64(i*step)
-			x value.ScalarValue
+			x value.Value
 		)
 		x = value.Float(t)
 		arr[i] = slx.One(x)

@@ -44,7 +44,7 @@ func NewAggr(col int64, aggr Aggregator) *Aggr {
 	}
 }
 
-func (a *Aggr) Update(row []value.ScalarValue) {
+func (a *Aggr) Update(row []value.Value) {
 	col := a.Column - 1
 	if col < 0 || int(col) >= len(row) {
 		return
@@ -121,8 +121,8 @@ func (v *groupedView) Bounds() *layout.Range {
 	return layout.NewRange(start, end)
 }
 
-func (v *groupedView) Rows() iter.Seq2[int64, []value.ScalarValue] {
-	it := func(yield func(int64, []value.ScalarValue) bool) {
+func (v *groupedView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
 		for lino, r := range v.groups {
 			ok := yield(int64(lino)+1, r.Values())
 			if !ok {
@@ -153,7 +153,7 @@ type groupRow struct {
 	indices []int64
 }
 
-func (r *groupRow) Update(row []value.ScalarValue) {
+func (r *groupRow) Update(row []value.Value) {
 	for i := range r.aggr {
 		r.aggr[i].Update(row)
 	}
@@ -180,11 +180,11 @@ func (r *groupRow) At(pos layout.Position) grid.Cell {
 	return grid.Single(val.(value.ScalarValue), pos)
 }
 
-func (r *groupRow) Values() []value.ScalarValue {
-	out := make([]value.ScalarValue, 0, int(r.Columns()))
+func (r *groupRow) Values() []value.Value {
+	out := make([]value.Value, 0, int(r.Columns()))
 	for _, v := range r.values {
 		if value.IsScalar(v) {
-			out = append(out, v.(value.ScalarValue))
+			out = append(out, v)
 		} else {
 			out = append(out, value.Empty())
 		}
@@ -192,7 +192,7 @@ func (r *groupRow) Values() []value.ScalarValue {
 	for _, v := range r.aggr {
 		res := v.Result()
 		if value.IsScalar(res) {
-			out = append(out, res.(value.ScalarValue))
+			out = append(out, res)
 		} else {
 			out = append(out, value.Empty())
 		}
