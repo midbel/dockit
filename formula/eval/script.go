@@ -142,12 +142,12 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 		if err != nil {
 			return err
 		}
-		if expr.Linked() || v.ctx.Link() {
-			data, err = v.resolveLinks(data)
-			if err != nil {
-				return err
-			}
-		}
+		// if expr.Linked() || v.ctx.Link() {
+		// 	data, err = v.resolveLinks(data)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
 	} else {
 		var (
 			opts = expr.Options()
@@ -198,12 +198,12 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		if err != nil {
 			return err
 		}
-		if expr.Linked() || v.ctx.Link() {
-			data, err = v.resolveLinks(data)
-			if err != nil {
-				return err
-			}
-		}
+		// if expr.Linked() || v.ctx.Link() {
+		// 	data, err = v.resolveLinks(data)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
 	}
 	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
 	if err != nil {
@@ -277,12 +277,6 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 }
 
 func (v *evaluator) resolveLinks(data value.Value) (value.Value, error) {
-	if value.IsScalar(data) {
-		return data, nil
-	}
-	if k, ok := data.(interface{ ToLinks() value.Value }); ok {
-		return k.ToLinks(), nil
-	}
 	return data, nil
 }
 
