@@ -416,8 +416,8 @@ func (s *Sheet) RemoveRows(offset, count int64) error {
 	for _, r := range s.rows[ix+int(count):] {
 		r.Line -= count
 		for _, c := range r.Cells {
-			c.Line -= count
-			s.cells[c.Position] = c
+			c.moveLine(-count)
+			s.cells[c.At()] = c
 		}
 	}
 	if ix+int(count) >= len(s.rows) {
@@ -439,8 +439,8 @@ func (s *Sheet) RemoveColumns(offset, count int64) error {
 			delete(s.cells, c.Position)
 		}
 		for _, c := range r.Cells[ix+int(count):] {
-			c.Column += count
-			s.cells[c.Position] = c
+			c.moveColumn(count)
+			s.cells[c.At()] = c
 		}
 		if ix+int(count) >= len(r.Cells) {
 			count = int64(len(r.Cells) - ix)
@@ -460,7 +460,7 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 				cell = emptyCell(pos)
 			)
 			rows[i].Cells = append(rows[i].Cells, cell)
-			s.cells[cell.Position] = cell
+			s.cells[cell.At()] = cell
 		}
 	}
 	if offset == 0 {
@@ -612,7 +612,7 @@ func (r *row) shift(count int64) map[layout.Position]*Cell {
 	pos := make(map[layout.Position]*Cell)
 	for _, c := range r.Cells {
 		c.Line = r.Line
-		pos[c.Position] = c
+		pos[c.At()] = c
 	}
 	return pos
 }
@@ -641,6 +641,14 @@ func (c *Cell) At() layout.Position {
 
 func (c *Cell) SetAt(pos layout.Position) {
 	c.Position = pos
+}
+
+func (c *Cell) moveLine(count int64) {
+	c.Line += count
+}
+
+func (c *Cell) moveColumn(count int64) {
+	c.Column += count
 }
 
 func (c *Cell) Display() string {
