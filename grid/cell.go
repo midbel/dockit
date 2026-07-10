@@ -52,6 +52,7 @@ type Row interface {
 }
 
 type Cell interface {
+	Id() uint64
 	At() layout.Position
 	Value() value.Value
 	Formula() value.Formula
@@ -87,6 +88,10 @@ func Single(val value.Value, pos layout.Position) Cell {
 
 func Empty(pos layout.Position) Cell {
 	return Single(nil, pos)
+}
+
+func (c empty) Id() uint64 {
+	return c.id
 }
 
 func (c empty) At() layout.Position {

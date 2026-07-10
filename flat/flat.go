@@ -531,7 +531,7 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 	if ix < 0 {
 		r := createRow(cell.Line)
 		r.Append(cell)
-		s.rows = append(s.rows, &r)
+		s.rows = append(s.rows, r)
 		slices.SortFunc(s.rows, func(r1, r2 *row) int {
 			return int(r1.Line) - int(r2.Line)
 		})
@@ -631,6 +631,10 @@ func emptyCell(pos layout.Position) *Cell {
 		raw:      "",
 		parsed:   value.Empty(),
 	}
+}
+
+func (c *Cell) Id() uint64 {
+	return c.id
 }
 
 func (c *Cell) At() layout.Position {

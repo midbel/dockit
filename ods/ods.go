@@ -25,6 +25,10 @@ type Cell struct {
 	dirty   bool
 }
 
+func (c *Cell) Id() uint64 {
+	return c.id
+}
+
 func (c *Cell) At() layout.Position {
 	return c.Position
 }
