@@ -82,10 +82,6 @@ func (c *Cell) update(val value.Value) {
 	}
 }
 
-func (c *Cell) setPosition(pos layout.Position) {
-	c.Position = pos
-}
-
 type row struct {
 	Line   int64
 	Hidden bool
