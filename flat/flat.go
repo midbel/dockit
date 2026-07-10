@@ -11,6 +11,7 @@ import (
 
 	"github.com/midbel/dockit/csv"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/internal/id"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 	"github.com/midbel/log"
@@ -194,6 +195,7 @@ func NewSheet(name string, values [][]value.Value) *Sheet {
 		for j, v := range rs {
 			pos := layout.NewPosition(r.Line, int64(j+1))
 			cell := &Cell{
+				id:       id.Next(),
 				raw:      v.String(),
 				parsed:   v,
 				Position: pos,
@@ -232,6 +234,7 @@ func readSheet(rs Reader) (*Sheet, error) {
 				Column: int64(col) + 1,
 			}
 			c := &Cell{
+				id:       id.Next(),
 				Position: p,
 				raw:      f,
 				parsed:   value.Text(f),
@@ -347,6 +350,7 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		c = &Cell{
+			id:       id.Next(),
 			Position: pos,
 			parsed:   val,
 		}
@@ -362,6 +366,7 @@ func (s *Sheet) SetFormula(pos layout.Position, f value.Formula) error {
 	cell, ok := s.cells[pos]
 	if !ok {
 		cell = &Cell{
+			id:       id.Next(),
 			Position: pos,
 			raw:      f.String(),
 		}
@@ -550,6 +555,7 @@ func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
 		val = cell.Value()
 	)
 	c := &Cell{
+		id:       id.Next(),
 		Position: pos,
 	}
 	if mode.Value() {
@@ -613,7 +619,7 @@ func (r *row) shift(count int64) map[layout.Position]*Cell {
 
 type Cell struct {
 	layout.Position
-
+	id      uint64
 	raw     string
 	parsed  value.Value
 	formula value.Formula
@@ -622,6 +628,7 @@ type Cell struct {
 
 func emptyCell(pos layout.Position) *Cell {
 	return &Cell{
+		id:       id.Next(),
 		Position: pos,
 		raw:      "",
 		parsed:   value.Empty(),

@@ -13,6 +13,7 @@ import (
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/internal/id"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -348,6 +349,7 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 		cell  = &Cell{
 			Position: layout.ParsePosition(index),
 			Type:     kind,
+			id:       id.Next(),
 		}
 	)
 	if kind == TypeInlineStr {

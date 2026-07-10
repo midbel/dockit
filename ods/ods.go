@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/internal/id"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -17,6 +18,7 @@ import (
 type Cell struct {
 	layout.Position
 
+	id      uint64
 	raw     string
 	parsed  value.Value
 	formula value.Formula
@@ -291,6 +293,7 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		c = &Cell{
+			id:       id.Next(),
 			Position: pos,
 			parsed:   val,
 		}
@@ -309,6 +312,7 @@ func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		c = &Cell{
+			id:       id.Next(),
 			Position: pos,
 		}
 	}
@@ -394,6 +398,7 @@ func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
 		val = cell.Value()
 	)
 	c := &Cell{
+		id:       id.Next(),
 		Position: pos,
 	}
 	if mode.Value() {

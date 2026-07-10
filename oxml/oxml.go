@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/internal/id"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -24,6 +25,7 @@ const (
 type Cell struct {
 	Type  string
 	style int
+	id    uint64
 	layout.Position
 
 	raw     string
@@ -372,6 +374,7 @@ func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		c = &Cell{
+			id:       id.Next(),
 			Position: pos,
 			parsed:   val,
 		}
@@ -392,6 +395,7 @@ func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		c = &Cell{
+			id:       id.Next(),
 			Position: pos,
 		}
 	}
@@ -467,6 +471,7 @@ func (s *Sheet) put(cell grid.Cell, mode grid.CopyMode) {
 		val = cell.Value()
 	)
 	c := &Cell{
+		id:       id.Next(),
 		Type:     typeFromValue(val),
 		Position: pos,
 	}

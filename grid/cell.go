@@ -3,6 +3,7 @@ package grid
 import (
 	"fmt"
 
+	"github.com/midbel/dockit/internal/id"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -72,20 +73,20 @@ func ResetAt(cell Cell, pos layout.Position) Cell {
 
 type empty struct {
 	pos   layout.Position
+	id    uint64
 	value value.Value
 }
 
 func Single(val value.Value, pos layout.Position) Cell {
 	return empty{
+		id:    id.Next(),
 		pos:   pos,
 		value: val,
 	}
 }
 
 func Empty(pos layout.Position) Cell {
-	return empty{
-		pos: pos,
-	}
+	return Single(nil, pos)
 }
 
 func (c empty) At() layout.Position {

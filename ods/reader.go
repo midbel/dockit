@@ -11,6 +11,7 @@ import (
 
 	sax "github.com/midbel/codecs/xml"
 	"github.com/midbel/dockit/grid"
+	"github.com/midbel/dockit/internal/id"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -387,6 +388,7 @@ func (h *cellHandler) Close(rs *sax.Reader, e sax.E) error {
 
 func (h *cellHandler) create(line int64) *Cell {
 	cell := Cell{
+		id:       id.Next(),
 		raw:      h.raw,
 		parsed:   h.parsed,
 		Position: layout.NewPosition(line, int64(h.column)),
