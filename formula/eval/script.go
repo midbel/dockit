@@ -142,12 +142,6 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 		if err != nil {
 			return err
 		}
-		// if expr.Linked() || v.ctx.Link() {
-		// 	data, err = v.resolveLinks(data)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
 	} else {
 		var (
 			opts = expr.Options()
@@ -198,12 +192,6 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		if err != nil {
 			return err
 		}
-		// if expr.Linked() || v.ctx.Link() {
-		// 	data, err = v.resolveLinks(data)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
 	}
 	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
 	if err != nil {
@@ -216,15 +204,17 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	default:
 		return fmt.Errorf("invalid anchor for insert statement")
 	}
-	var ret value.Value
+	var wrg *grid.WritableRange
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.InsertColumns(ident, count, value.Float(ix), data)
+		wrg, err = v.ctx.InsertColumns(ident, count, value.Float(ix))
 	case parse.Row:
-		ret, err = v.ctx.InsertRows(ident, count, value.Float(ix), data)
+		wrg, err = v.ctx.InsertRows(ident, count, value.Float(ix))
 	default:
 	}
-	v.pushValue(ret)
+	if err == nil && wrg != nil && data != nil {
+		err = wrg.SetRange(data)
+	}
 	return err
 }
 
@@ -274,10 +264,6 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 	}
 	v.pushValue(ret)
 	return err
-}
-
-func (v *evaluator) resolveLinks(data value.Value) (value.Value, error) {
-	return data, nil
 }
 
 func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, kind parse.Colrow) (int64, error) {

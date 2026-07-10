@@ -58,11 +58,6 @@ type MutableView interface {
 
 	SetValue(layout.Position, value.Value) error
 	SetFormula(layout.Position, value.Formula) error
-
-	ClearCell(layout.Position) error
-	ClearValue(layout.Position) error
-	ClearFormula(layout.Position) error
-	ClearRange(*layout.Range) error
 }
 
 type ViewInfo struct {

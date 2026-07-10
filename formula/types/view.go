@@ -93,55 +93,49 @@ func (c *View) Unlock() error {
 	return nil
 }
 
-func (c *View) InsertColumns(offset, count int64, data value.Value) error {
+func (c *View) InsertColumns(offset, count int64) (*grid.WritableRange, error) {
 	if c.ro {
-		return ErrReadOnly
+		return nil, ErrReadOnly
 	}
 	i, ok := c.view.(interface{ InsertColumns(int64, int64) error })
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	if err := i.InsertColumns(offset, count); err != nil {
-		return err
+		return nil, err
 	}
-	if data != nil {
-		var (
-			bounds = c.Bounds()
-			start  = layout.NewPosition(1, offset+1)
-			end    = layout.NewPosition(bounds.Height(), offset+count)
-		)
-		return c.SetRange(start, end, data)
-	}
-	return nil
+	var (
+		bounds = c.Bounds()
+		start  = layout.NewPosition(1, offset+1)
+		end    = layout.NewPosition(bounds.Height(), offset+count)
+	)
+	return grid.NewWritableRange(c, start, end), nil
 }
 
-func (c *View) InsertRows(offset, count int64, data value.Value) error {
+func (c *View) InsertRows(offset, count int64) (*grid.WritableRange, error) {
 	if c.ro {
-		return ErrReadOnly
+		return nil, ErrReadOnly
 	}
 	i, ok := c.view.(interface{ InsertRows(int64, int64) error })
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	if err := i.InsertRows(offset, count); err != nil {
-		return err
+		return nil, err
 	}
-	if data != nil {
-		var (
-			bounds = c.Bounds()
-			start  = layout.NewPosition(offset, 1)
-			end    = layout.NewPosition(offset+count, bounds.Width())
-		)
-		if count == 1 {
-			start.Line += 1
-		}
-		if offset == 0 {
-			start.Line = 1
-			end.Line = 1
-		}
-		return c.SetRange(start, end, data)
+	var (
+		bounds = c.Bounds()
+		start  = layout.NewPosition(offset, 1)
+		end    = layout.NewPosition(offset+count, bounds.Width())
+	)
+	if count == 1 {
+		start.Line += 1
 	}
-	return nil
+	if offset == 0 {
+		start.Line = 1
+		end.Line = 1
+	}
+	return grid.NewWritableRange(c, start, end), nil
 }
 
 func (c *View) RemoveColumns(offset, count int64) error {

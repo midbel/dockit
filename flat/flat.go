@@ -346,7 +346,7 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 	return cell, nil
 }
 
-func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
+func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		c = &Cell{

@@ -176,7 +176,7 @@ func (c *EngineContext) NewSheet(name, data, target value.Value) (value.Value, e
 	return types.NewViewValue(sh), nil
 }
 
-func (c *EngineContext) InsertRows(sh, count, index, data value.Value) (value.Value, error) {
+func (c *EngineContext) InsertRows(sh, count, index value.Value) (*grid.WritableRange, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -191,7 +191,7 @@ func (c *EngineContext) InsertRows(sh, count, index, data value.Value) (value.Va
 		if c, ok := count.(value.Float); ok {
 			rows = float64(c)
 		} else {
-			return value.ErrValue, fmt.Errorf("count: number expected")
+			return nil, fmt.Errorf("count: number expected")
 		}
 	} else {
 		rows = 1
@@ -201,16 +201,15 @@ func (c *EngineContext) InsertRows(sh, count, index, data value.Value) (value.Va
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return value.ErrValue, fmt.Errorf("index: number expected")
+			return nil, fmt.Errorf("index: number expected")
 		}
 	} else {
 		off = float64(b.Height())
 	}
-	err := view.InsertRows(int64(off), int64(rows), data)
-	return nil, err
+	return view.InsertRows(int64(off), int64(rows))
 }
 
-func (c *EngineContext) InsertColumns(sh, count, index, data value.Value) (value.Value, error) {
+func (c *EngineContext) InsertColumns(sh, count, index value.Value) (*grid.WritableRange, error) {
 	var view *types.View
 	if sh == nil {
 		view = c.CurrentActiveView()
@@ -225,7 +224,7 @@ func (c *EngineContext) InsertColumns(sh, count, index, data value.Value) (value
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
 		} else {
-			return value.ErrValue, fmt.Errorf("count: number expected")
+			return nil, fmt.Errorf("count: number expected")
 		}
 	} else {
 		cols = 1
@@ -234,14 +233,13 @@ func (c *EngineContext) InsertColumns(sh, count, index, data value.Value) (value
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return value.ErrValue, fmt.Errorf("index: number expected")
+			return nil, fmt.Errorf("index: number expected")
 		}
 	} else {
 		b := view.Bounds()
 		off = float64(b.Width())
 	}
-	err := view.InsertColumns(int64(off), int64(cols), data)
-	return nil, err
+	return view.InsertColumns(int64(off), int64(cols))
 }
 
 func (c *EngineContext) RemoveRows(sh, count, index value.Value) (value.Value, error) {

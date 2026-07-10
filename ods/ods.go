@@ -289,7 +289,7 @@ func (s *Sheet) IsLock() bool {
 	return s.Locked
 }
 
-func (s *Sheet) SetValue(pos layout.Position, val value.ScalarValue) error {
+func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
 	c, ok := s.cells[pos]
 	if !ok {
 		c = &Cell{
