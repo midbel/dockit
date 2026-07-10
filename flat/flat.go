@@ -410,7 +410,7 @@ func (s *Sheet) RemoveRows(offset, count int64) error {
 	}
 	for _, r := range s.rows[ix : ix+int(count)] {
 		for _, c := range r.Cells {
-			delete(s.cells, c.Position)
+			delete(s.cells, c.At())
 		}
 	}
 	for _, r := range s.rows[ix+int(count):] {
@@ -436,7 +436,7 @@ func (s *Sheet) RemoveColumns(offset, count int64) error {
 			continue
 		}
 		for _, c := range r.Cells[ix : ix+int(count)] {
-			delete(s.cells, c.Position)
+			delete(s.cells, c.At())
 		}
 		for _, c := range r.Cells[ix+int(count):] {
 			c.moveColumn(count)
@@ -496,12 +496,12 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 				cell = emptyCell(pos)
 			)
 			cols[j] = cell
-			s.cells[cell.Position] = cell
+			s.cells[cell.At()] = cell
 		}
 		if offset == 0 {
 			for _, c := range s.rows[i].Cells {
 				c.Column += count
-				s.cells[c.Position] = c
+				s.cells[c.At()] = c
 			}
 			s.rows[i].Cells = append(cols, s.rows[i].Cells...)
 			continue
@@ -515,7 +515,7 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 			s.rows[i].Cells = slices.Insert(s.rows[i].Cells, ix+1, cols...)
 			for _, c := range s.rows[i].Cells[ix+1+int(count):] {
 				c.Column += count
-				s.cells[c.Position] = c
+				s.cells[c.At()] = c
 			}
 		}
 	}
@@ -529,9 +529,7 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 		return r.Line == cell.Line
 	})
 	if ix < 0 {
-		r := row{
-			Line: cell.Line,
-		}
+		r := createRow(cell.Line)
 		r.Append(cell)
 		s.rows = append(s.rows, &r)
 		slices.SortFunc(s.rows, func(r1, r2 *row) int {
