@@ -683,3 +683,7 @@ func (c *Cell) update(val value.Value) error {
 	c.raw = val.String()
 	return nil
 }
+
+func (c *Cell) setPosition(pos layout.Position) {
+	c.Position = pos
+}

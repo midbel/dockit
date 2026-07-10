@@ -77,6 +77,10 @@ func (c *Cell) update(val value.Value) {
 	c.raw = val.String()
 }
 
+func (c *Cell) setPosition(pos layout.Position) {
+	c.Position = pos
+}
+
 type row struct {
 	Line  int64
 	Cells []*Cell

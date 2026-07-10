@@ -82,6 +82,10 @@ func (c *Cell) update(val value.Value) {
 	}
 }
 
+func (c *Cell) setPosition(pos layout.Position) {
+	c.Position = pos
+}
+
 type row struct {
 	Line   int64
 	Hidden bool
@@ -124,15 +128,6 @@ func (r *row) Sparse() bool {
 		}
 	}
 	return false
-}
-
-func (r *row) cloneCells() []*Cell {
-	var cells []*Cell
-	for i := range r.Cells {
-		c := *r.Cells[i]
-		cells = append(cells, &c)
-	}
-	return cells
 }
 
 func (r *row) Len() int {
