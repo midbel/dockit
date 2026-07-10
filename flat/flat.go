@@ -89,7 +89,7 @@ func (f *File) WriteTo(w io.Writer) error {
 
 func (f *File) ActiveSheet() (grid.View, error) {
 	if len(f.sheets) == 0 {
-		return nil, fmt.Errorf("no sheets in file")
+		return nil, fmt.Errorf("empty file")
 	}
 	return f.sheets[0], nil
 }
@@ -182,33 +182,29 @@ type Sheet struct {
 }
 
 func NewSheet(name string, values [][]value.Value) *Sheet {
-	s := Sheet{
-		Label: name,
-		cells: make(map[layout.Position]*Cell),
-	}
+	s := namedSheet(name)
 	for i, rs := range values {
-		r := &row{
-			Line: int64(i + 1),
-		}
+		r := createRow(int64(i + 1))
 		for j, v := range rs {
-			pos := layout.NewPosition(r.Line, int64(j+1))
-			cell := &Cell{
-				id:       id.Next(),
-				raw:      v.String(),
-				parsed:   v,
-				Position: pos,
-			}
-			s.cells[pos] = cell
+			var (
+				pos  = layout.NewPosition(r.Line, int64(j+1))
+				cell = valueCell(pos, v)
+			)
+			s.cells[cell.At()] = cell
 			r.Cells = append(r.Cells, cell)
 		}
 		s.rows = append(s.rows, r)
 	}
-	return &s
+	return s
 }
 
 func emptySheet() *Sheet {
+	return namedSheet(defaultSheetName)
+}
+
+func namedSheet(name string) *Sheet {
 	return &Sheet{
-		Label: defaultSheetName,
+		Label: name,
 		cells: make(map[layout.Position]*Cell),
 	}
 }
@@ -223,21 +219,13 @@ func readSheet(rs Reader) (*Sheet, error) {
 			}
 			return nil, err
 		}
-		r := &row{
-			Line: int64(line),
-		}
+		r := createRow(int64(line))
 		for col, f := range fields {
-			p := layout.Position{
-				Line:   r.Line,
-				Column: int64(col) + 1,
-			}
-			c := &Cell{
-				id:       id.Next(),
-				Position: p,
-				raw:      f,
-				parsed:   value.Text(f),
-			}
-			r.Cells = append(r.Cells, c)
+			var (
+				pos = layout.NewPosition(r.Line, int64(col) + 1)
+				cell = valueCell(pos, value.Text(f))
+			)
+			r.Cells = append(r.Cells, cell)
 			sh.cells[p] = c
 		}
 		sh.rows = append(sh.rows, r)
@@ -347,15 +335,10 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
 	c, ok := s.cells[pos]
 	if !ok {
-		c = &Cell{
-			id:       id.Next(),
-			Position: pos,
-			parsed:   val,
-		}
+		c = valueCell(pos, val)
 	}
 	s.ClearFormula(pos)
-	c.raw = val.String()
-	c.parsed = val
+	c.update(val)
 	s.insertOrReplaceCell(c)
 	return nil
 }
@@ -363,13 +346,10 @@ func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
 func (s *Sheet) SetFormula(pos layout.Position, f value.Formula) error {
 	cell, ok := s.cells[pos]
 	if !ok {
-		cell = &Cell{
-			id:       id.Next(),
-			Position: pos,
-			raw:      f.String(),
-		}
+		cell = emptyCell(pos)
 	}
 	cell.formula = f
+	cell.raw = f.String()
 	cell.parsed = nil
 	cell.dirty = true
 
@@ -384,10 +364,9 @@ func (s *Sheet) ClearCell(pos layout.Position) error {
 func (s *Sheet) ClearValue(pos layout.Position) error {
 	c, ok := s.cells[pos]
 	if !ok {
-		return grid.NoCell(pos)
+		return nil
 	}
-	c.raw = ""
-	c.parsed = value.Empty()
+	c.Clear()
 	return nil
 }
 
@@ -614,8 +593,8 @@ func (r *row) shift(count int64) map[layout.Position]*Cell {
 }
 
 type Cell struct {
+	id uint64
 	layout.Position
-	id      uint64
 	raw     string
 	parsed  value.Value
 	formula value.Formula
@@ -623,11 +602,15 @@ type Cell struct {
 }
 
 func emptyCell(pos layout.Position) *Cell {
+	return valueCell(pos, value.Empty())
+}
+
+func valueCell(pos layout.Position, val value.Value) *Cell {
 	return &Cell{
 		id:       id.Next(),
 		Position: pos,
-		raw:      "",
-		parsed:   value.Empty(),
+		raw:      val.String(),
+		parsed:   val,
 	}
 }
 
@@ -660,6 +643,11 @@ func (c *Cell) Value() value.Value {
 		return value.Empty()
 	}
 	return c.parsed
+}
+
+func (c *Cell) Clear() {
+	c.raw = ""
+	c.parsed = value.Empty()
 }
 
 func (c *Cell) Formula() value.Formula {
