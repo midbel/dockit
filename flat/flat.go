@@ -70,9 +70,7 @@ func NewFileFromRows(rs [][]value.Value) *File {
 
 func NewFileFromSheets(sheets ...*Sheet) *File {
 	f := NewFile()
-	for _, s := range sheets {
-		f.sheets = append(f.sheets, s)
-	}
+	f.sheets = append(f.sheets, sheets...)
 	return f
 }
 

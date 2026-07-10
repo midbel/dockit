@@ -356,9 +356,7 @@ func (a arrayView) AsArray() value.ArrayValue {
 	var data [][]value.Value
 	for _, r := range a.inner.Rows() {
 		tmp := make([]value.Value, 0, len(r))
-		for i := range r {
-			tmp = append(tmp, r[i])
-		}
+		tmp = append(tmp, r...)
 		data = append(data, tmp)
 	}
 	return value.NewArray(data)
