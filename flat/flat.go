@@ -222,7 +222,7 @@ func readSheet(rs Reader) (*Sheet, error) {
 		r := createRow(int64(line))
 		for col, f := range fields {
 			var (
-				pos = layout.NewPosition(r.Line, int64(col) + 1)
+				pos  = layout.NewPosition(r.Line, int64(col)+1)
 				cell = valueCell(pos, value.Text(f))
 			)
 			r.Cells = append(r.Cells, cell)
