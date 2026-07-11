@@ -439,10 +439,16 @@ func (v *evaluator) VisitSpecial(expr parse.SpecialAccess) error {
 }
 
 func (v *evaluator) VisitAccess(expr parse.Access) error {
-	if err := v.visitExpr(expr.Object()); err != nil {
-		return err
+	var obj value.Value
+	if expr := expr.Object(); expr != nil {
+		if err := v.visitExpr(expr); err != nil {
+			return err
+		}
+		obj = v.popValue()
+	} else {
+		obj = v.ctx.Default()
 	}
-	obj, ok := v.popValue().(value.ObjectValue)
+	obj, ok := obj.(value.ObjectValue)
 	if !ok {
 		return fmt.Errorf("expected file/view")
 	}

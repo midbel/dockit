@@ -84,6 +84,7 @@ func ScriptGrammar() *Grammar {
 	g.RegisterPrefix(op.BegGrp, parseGroup)
 	g.RegisterPrefix(op.BegArr, parseArray)
 	g.RegisterPrefix(op.Special, parseSpecialAccessPrefix)
+	g.RegisterPrefix(op.Dot, parseAccessPrefix)
 
 	g.RegisterPostfix(op.Dot, parseAccess)
 	g.RegisterPostfix(op.Special, parseSpecialAccess)
@@ -842,6 +843,10 @@ func parseDeferred(p *Parser) (Expr, error) {
 		return nil, err
 	}
 	return NewDeferred(expr), nil
+}
+
+func parseAccessPrefix(p *Parser) (Expr, error) {
+	return parseAccess(p, nil)
 }
 
 func parseAccess(p *Parser, left Expr) (Expr, error) {
