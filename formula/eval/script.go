@@ -74,7 +74,7 @@ func (v *evaluator) VisitLock(expr parse.Lock) error {
 	}
 	lock, ok := val.(interface{ Lock() })
 	if !ok {
-		return fmt.Errorf("given value can not be locked")
+		return fmt.Errorf("value can not be locked")
 	}
 	lock.Lock()
 	return nil
@@ -87,7 +87,7 @@ func (v *evaluator) VisitUnlock(expr parse.Unlock) error {
 	}
 	lock, ok := val.(interface{ Unlock() })
 	if !ok {
-		return fmt.Errorf("given value can not be unlocked")
+		return fmt.Errorf("value can not be unlocked")
 	}
 	lock.Unlock()
 	return nil
@@ -100,7 +100,7 @@ func (v *evaluator) VisitRename(expr parse.Rename) error {
 	}
 	view, ok := val.(interface{ Rename(string) })
 	if !ok {
-		return fmt.Errorf("given value can not be renamed")
+		return fmt.Errorf("value can not be renamed")
 	}
 	view.Rename(expr.Name().String())
 	return nil
@@ -108,7 +108,7 @@ func (v *evaluator) VisitRename(expr parse.Rename) error {
 
 func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 	if expr.Name() == nil && expr.Ident() == nil {
-		return fmt.Errorf("sheet should have a name")
+		return fmt.Errorf("unnamed sheet")
 	}
 	var (
 		name  value.Value
@@ -168,11 +168,22 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 	return nil
 }
 
+func (v *evaluator) captureCells(data value.Value) ([]grid.Cell, error) {
+	if data == nil || value.IsScalar(data) {
+		return nil, nil
+	}
+	if c, ok := data.(interface{ Cells() []grid.Cell }); ok {
+		return c.Cells(), nil
+	}
+	return nil, nil
+}
+
 func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	var (
 		sheet value.Value
 		count value.Value
 		data  value.Value
+		cells []grid.Cell
 		err   error
 	)
 	if i := expr.Ident(); i != nil {
@@ -187,6 +198,17 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 	}
+	if d := expr.Value(); d != nil {
+		data, err = v.visitNormalize(d)
+		if err != nil {
+			return err
+		}
+		cells, err = v.captureCells(data)
+		if err != nil {
+			return err
+		}
+	}
+	_ = cells
 	ix, err := v.resolveTarget(sheet, expr.Target(), expr.Type())
 	if err != nil {
 		return err
@@ -209,11 +231,7 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	if err != nil || wrg == nil {
 		return err
 	}
-	if d := expr.Value(); d != nil {
-		data, err = v.visitNormalize(d)
-		if err != nil {
-			return err
-		}
+	if data != nil {
 		err = wrg.SetRange(data)
 	}
 	return err
