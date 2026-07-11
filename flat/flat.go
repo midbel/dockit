@@ -171,7 +171,7 @@ func (f *File) Sync() error {
 	return nil
 }
 
-const defaultSheetName = "sheet"
+const defaultSheetName = "sheet1"
 
 type Sheet struct {
 	Label string

@@ -63,7 +63,7 @@ rename @active as my
 aft := @active.name
 	`
 	ev := runScript(t, script)
-	checkValue(t, ev, "bef", value.Text("sheet"))
+	checkValue(t, ev, "bef", value.Text("sheet1"))
 	checkValue(t, ev, "aft", value.Text("my"))
 }
 
@@ -90,7 +90,7 @@ func testRemoveRows(t *testing.T) {
 			Name: "std-1",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove row at 1 from sh.sheet
+remove row at 1 from sh.sheet1
 		`,
 			Cols: 3,
 			Rows: 2,
@@ -117,7 +117,7 @@ remove first row from @active
 			Name: "last-row",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove last row from sh.sheet
+remove last row from sh.sheet1
 		`,
 			Cols: 3,
 			Rows: 2,
@@ -160,7 +160,7 @@ func testRemoveColumns(t *testing.T) {
 			Name: "std",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove first column from sh.sheet
+remove first column from sh.sheet1
 			`,
 			Cols: 2,
 			Rows: 3,
@@ -190,7 +190,7 @@ remove row before first from @active
 			Name: "before-first-col",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove column before first from sh.sheet
+remove column before first from sh.sheet1
 		`,
 		},
 		{
@@ -204,7 +204,7 @@ remove row after last from @active
 			Name: "after-last-col",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-remove column after last from sh.sheet
+remove column after last from sh.sheet1
 		`,
 		},
 	}
@@ -243,7 +243,7 @@ insrow := A4:C4`,
 			Name: "row-copy-line",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row into sh.sheet using A1:C1
+insert row into sh.sheet1 using A1:C1
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
@@ -314,7 +314,7 @@ insrow := A2:C6`,
 			Name: "row-multi",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row before 1 into sh.sheet
+insert row before 1 into sh.sheet1
 insert row into @active
 insrow := A1:C1`,
 			Cols: 3,
@@ -352,16 +352,16 @@ inscol := D
 			Cols: 4,
 			Rows: 3,
 			Want: [][]value.Value{
-				{value.Float(0)},
-				{value.Float(0)},
-				{value.Float(0)},
+				{value.Float(42)},
+				{value.Float(42)},
+				{value.Float(42)},
 			},
 		},
 		{
 			Name: "col-after-last",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert column into sh.sheet using 0
+insert column into sh.sheet1 using 0
 inscol := D
 			`,
 			Cols: 4,
@@ -382,9 +382,9 @@ inscol := A
 			Cols: 4,
 			Rows: 3,
 			Want: [][]value.Value{
-				{value.Float(0)},
-				{value.Float(0)},
-				{value.Float(0)},
+				{value.Float(42)},
+				{value.Float(42)},
+				{value.Float(42)},
 			},
 		},
 		{
@@ -648,7 +648,7 @@ func testCellAccess(t *testing.T) {
 import "testdata/repo.csv" using csv[[comma]] as repo default
 
 stars := repo@active!B2 * 10
-foobar := repo.sheet!A2 & "bar"
+foobar := repo.sheet1!A2 & "bar"
 	`
 	ev := runScript(t, script)
 	checkValue(t, ev, "stars", value.Float(100))
@@ -665,7 +665,7 @@ cs := @active.columns
 ct := repo.sheets
 	`
 	ev := runScript(t, script)
-	checkValue(t, ev, "sh", value.Text("sheet"))
+	checkValue(t, ev, "sh", value.Text("sheet1"))
 	checkValue(t, ev, "rs", value.Float(31))
 	checkValue(t, ev, "cs", value.Float(7))
 	checkValue(t, ev, "ct", value.Float(1))
