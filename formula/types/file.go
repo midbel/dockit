@@ -117,7 +117,11 @@ func (c *File) Sheet(ident string) (value.Value, error) {
 	if err != nil {
 		return value.ErrNA, nil
 	}
-	return newView(sh, grid.FileContext(c.file), c.ro), nil
+	v := newView(sh, grid.FileContext(c.file), c.ro)
+	if v, ok := v.(*View); ok {
+		v.setFile(c)
+	}
+	return v, nil
 }
 
 func (c *File) File() grid.File {

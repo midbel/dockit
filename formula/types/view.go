@@ -12,6 +12,7 @@ import (
 type View struct {
 	view grid.View
 	ro   bool
+	file *File
 	ctx  value.Context
 }
 
@@ -408,4 +409,8 @@ func (c *View) setArray(arr value.ArrayValue, rg *layout.Range) error {
 		}
 	}
 	return nil
+}
+
+func (v *View) setFile(file *File) {
+	v.file = file
 }
