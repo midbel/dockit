@@ -35,6 +35,7 @@ func (z *writer) WriteFile(file *File) error {
 	z.writeSettings(file)
 	z.writeMeta()
 	z.writeManifest()
+	z.writeStyle()
 	return z.err
 }
 

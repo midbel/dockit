@@ -679,7 +679,7 @@ func parseNumber(p *Parser) (Expr, error) {
 func parseLiteral(p *Parser) (Expr, error) {
 	lit := p.currentLiteral()
 	p.next()
-	if strings.Index(lit, "${") < 0 {
+	if !strings.Contains(lit, "${") {
 		return NewLiteral(lit), nil
 	}
 	var (

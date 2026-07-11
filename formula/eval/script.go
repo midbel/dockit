@@ -427,11 +427,11 @@ func (v *evaluator) VisitSpecial(expr parse.SpecialAccess) error {
 	}
 	obj, ok := target.(*types.File)
 	if !ok {
-		return fmt.Errorf("file expected")
+		return fmt.Errorf("expected file")
 	}
 	id, ok := expr.Property().(parse.Identifier)
 	if !ok {
-		return fmt.Errorf("identifier expected")
+		return fmt.Errorf("expected identifier")
 	}
 	val := obj.Get(id.Ident())
 	v.pushValue(val)
@@ -442,25 +442,16 @@ func (v *evaluator) VisitAccess(expr parse.Access) error {
 	if err := v.visitExpr(expr.Object()); err != nil {
 		return err
 	}
-	curr := v.popValue()
-	obj, ok := curr.(value.ObjectValue)
+	obj, ok := v.popValue().(value.ObjectValue)
 	if !ok {
-		return fmt.Errorf("object expected")
+		return fmt.Errorf("expected file/view")
 	}
 	var val value.Value
 	switch prop := expr.Property().(type) {
 	case parse.Identifier:
 		val = evalAccess(obj, prop)
 	default:
-		sub := evalScript(v.ctx.Sub(obj))
-		sub.stack = v.stack.Clone()
-		sub.phases = v.phases.Clone()
-
-		v, err := sub.Run(prop)
-		if err != nil {
-			return err
-		}
-		val = v
+		return fmt.Errorf("unexpected property type")
 	}
 	v.pushValue(val)
 	return nil

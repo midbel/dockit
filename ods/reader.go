@@ -120,7 +120,6 @@ func (r *reader) readSettings(file *File) {
 	if !found {
 		file.sheets[0].Active = true
 	}
-	return
 }
 
 func (r *reader) readMeta(file *File) {

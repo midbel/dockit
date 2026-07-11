@@ -88,7 +88,7 @@ func (c *EngineContext) Open(file string, opts LoaderOptions) (grid.File, error)
 	ext := filepath.Ext(file)
 	loader, ok := c.loaders[ext]
 	if !ok {
-		return nil, fmt.Errorf("file %s can not be loaded!", ext)
+		return nil, fmt.Errorf("file %s can not be loaded", ext)
 	}
 	file = filepath.Join(c.contextDir, file)
 	return loader.Open(file, opts)
@@ -122,6 +122,9 @@ func (c *EngineContext) Export(val value.Value, out, format string) error {
 		err = wb.Append(sh.(*types.View))
 	default:
 		return nil
+	}
+	if err != nil {
+		return err
 	}
 	file := filepath.Join(c.contextDir, out)
 	return wb.WriteFile(file)
