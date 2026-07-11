@@ -198,12 +198,12 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	default:
 		return fmt.Errorf("invalid anchor for insert statement")
 	}
-	var wrg *grid.WritableRange
+	var wrg *types.WritableRange
 	switch expr.Type() {
 	case parse.Column:
-		wrg, err = v.ctx.InsertColumns(sheet, count, value.Float(ix))
+		wrg, _, err = v.ctx.InsertColumns(sheet, count, value.Float(ix))
 	case parse.Row:
-		wrg, err = v.ctx.InsertRows(sheet, count, value.Float(ix))
+		wrg, _, err = v.ctx.InsertRows(sheet, count, value.Float(ix))
 	default:
 	}
 	if err != nil || wrg == nil {
@@ -255,15 +255,13 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 	default:
 		return fmt.Errorf("invalid anchor for remove statement")
 	}
-	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.RemoveColumns(sheet, count, value.Float(ix))
+		_, err = v.ctx.RemoveColumns(sheet, count, value.Float(ix))
 	case parse.Row:
-		ret, err = v.ctx.RemoveRows(sheet, count, value.Float(ix))
+		_, err = v.ctx.RemoveRows(sheet, count, value.Float(ix))
 	default:
 	}
-	v.pushValue(ret)
 	return err
 }
 

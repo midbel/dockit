@@ -93,35 +93,37 @@ func (c *View) Unlock() error {
 	return nil
 }
 
-func (c *View) InsertColumns(offset, count int64) (*grid.WritableRange, error) {
+func (c *View) InsertColumns(offset, count int64) (*WritableRange, Mutation, error) {
+	var mut Mutation
 	if c.ro {
-		return nil, ErrReadOnly
+		return nil, mut, ErrReadOnly
 	}
 	i, ok := c.view.(interface{ InsertColumns(int64, int64) error })
 	if !ok {
-		return nil, nil
+		return nil, mut, nil
 	}
 	if err := i.InsertColumns(offset, count); err != nil {
-		return nil, err
+		return nil, mut, err
 	}
 	var (
 		bounds = c.Bounds()
 		start  = layout.NewPosition(1, offset+1)
 		end    = layout.NewPosition(bounds.Height(), offset+count)
 	)
-	return grid.NewWritableRange(c, start, end), nil
+	return NewWritableRange(c, start, end), InsertRows(offset, count), nil
 }
 
-func (c *View) InsertRows(offset, count int64) (*grid.WritableRange, error) {
+func (c *View) InsertRows(offset, count int64) (*WritableRange, Mutation, error) {
+	var mut Mutation
 	if c.ro {
-		return nil, ErrReadOnly
+		return nil, mut, ErrReadOnly
 	}
 	i, ok := c.view.(interface{ InsertRows(int64, int64) error })
 	if !ok {
-		return nil, nil
+		return nil, mut, nil
 	}
 	if err := i.InsertRows(offset, count); err != nil {
-		return nil, err
+		return nil, mut, err
 	}
 	var (
 		bounds = c.Bounds()
@@ -135,29 +137,31 @@ func (c *View) InsertRows(offset, count int64) (*grid.WritableRange, error) {
 		start.Line = 1
 		end.Line = 1
 	}
-	return grid.NewWritableRange(c, start, end), nil
+	return NewWritableRange(c, start, end), InsertColumns(offset, count), nil
 }
 
-func (c *View) RemoveColumns(offset, count int64) error {
+func (c *View) RemoveColumns(offset, count int64) (Mutation, error) {
+	var mut Mutation
 	if c.ro {
-		return ErrReadOnly
+		return mut, ErrReadOnly
 	}
 	i, ok := c.view.(interface{ RemoveColumns(int64, int64) error })
 	if !ok {
-		return nil
+		return mut, nil
 	}
-	return i.RemoveColumns(offset, count)
+	return RemoveColumns(offset, count), i.RemoveColumns(offset, count)
 }
 
-func (c *View) RemoveRows(offset, count int64) error {
+func (c *View) RemoveRows(offset, count int64) (Mutation, error) {
+	var mut Mutation
 	if c.ro {
-		return ErrReadOnly
+		return mut, ErrReadOnly
 	}
 	i, ok := c.view.(interface{ RemoveRows(int64, int64) error })
 	if !ok {
-		return nil
+		return mut, nil
 	}
-	return i.RemoveRows(offset, count)
+	return RemoveRows(offset, count), i.RemoveRows(offset, count)
 }
 
 func (c *View) FilterView(predicate value.Predicate) *View {

@@ -179,10 +179,10 @@ func (c *EngineContext) NewSheet(name, data, target value.Value) (value.Value, e
 	return types.NewViewValue(sh), nil
 }
 
-func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*grid.WritableRange, error) {
+func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*types.WritableRange, types.Mutation, error) {
 	view, ok := sheet.(*types.View)
 	if !ok {
-		return nil, fmt.Errorf("view expected")
+		return nil, types.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		rows float64
@@ -192,7 +192,7 @@ func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*grid.Writa
 		if c, ok := count.(value.Float); ok {
 			rows = float64(c)
 		} else {
-			return nil, fmt.Errorf("count: number expected")
+			return nil, types.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		rows = 1
@@ -202,7 +202,7 @@ func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*grid.Writa
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return nil, fmt.Errorf("index: number expected")
+			return nil, types.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		off = float64(b.Height())
@@ -210,10 +210,10 @@ func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*grid.Writa
 	return view.InsertRows(int64(off), int64(rows))
 }
 
-func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*grid.WritableRange, error) {
+func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*types.WritableRange, types.Mutation, error) {
 	view, ok := sheet.(*types.View)
 	if !ok {
-		return nil, fmt.Errorf("view expected")
+		return nil, types.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		cols float64
@@ -223,7 +223,7 @@ func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*grid.Wr
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
 		} else {
-			return nil, fmt.Errorf("count: number expected")
+			return nil, types.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		cols = 1
@@ -232,7 +232,7 @@ func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*grid.Wr
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return nil, fmt.Errorf("index: number expected")
+			return nil, types.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		b := view.Bounds()
@@ -241,12 +241,10 @@ func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*grid.Wr
 	return view.InsertColumns(int64(off), int64(cols))
 }
 
-func (c *EngineContext) RemoveRows(sh, count, index value.Value) (value.Value, error) {
-	var view *types.View
-	if sh == nil {
-		view = c.CurrentActiveView()
-	} else {
-		view, _ = c.getView(sh.String())
+func (c *EngineContext) RemoveRows(sheet, count, index value.Value) (types.Mutation, error) {
+	view, ok := sheet.(*types.View)
+	if !ok {
+		return types.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		rows float64
@@ -256,7 +254,7 @@ func (c *EngineContext) RemoveRows(sh, count, index value.Value) (value.Value, e
 		if c, ok := count.(value.Float); ok {
 			rows = float64(c)
 		} else {
-			return value.ErrValue, fmt.Errorf("count: number expected")
+			return types.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		rows = 1
@@ -266,21 +264,18 @@ func (c *EngineContext) RemoveRows(sh, count, index value.Value) (value.Value, e
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return value.ErrValue, fmt.Errorf("index: number expected")
+			return types.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		off = float64(b.Height())
 	}
-	err := view.RemoveRows(int64(off), int64(rows))
-	return nil, err
+	return view.RemoveRows(int64(off), int64(rows))
 }
 
-func (c *EngineContext) RemoveColumns(sh, count, index value.Value) (value.Value, error) {
-	var view *types.View
-	if sh == nil {
-		view = c.CurrentActiveView()
-	} else {
-		view, _ = c.getView(sh.String())
+func (c *EngineContext) RemoveColumns(sheet, count, index value.Value) (types.Mutation, error) {
+	view, ok := sheet.(*types.View)
+	if !ok {
+		return types.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		cols float64
@@ -290,7 +285,7 @@ func (c *EngineContext) RemoveColumns(sh, count, index value.Value) (value.Value
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
 		} else {
-			return value.ErrValue, fmt.Errorf("count: number expected")
+			return types.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		cols = 1
@@ -299,14 +294,13 @@ func (c *EngineContext) RemoveColumns(sh, count, index value.Value) (value.Value
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return value.ErrValue, fmt.Errorf("index: number expected")
+			return types.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		b := view.Bounds()
 		off = float64(b.Width())
 	}
-	err := view.RemoveColumns(int64(off), int64(cols))
-	return nil, err
+	return view.RemoveColumns(int64(off), int64(cols))
 }
 
 func (c *EngineContext) At(pos layout.Position) value.Value {

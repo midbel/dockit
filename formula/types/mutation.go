@@ -1,4 +1,4 @@
-package grid
+package types
 
 import (
 	"github.com/midbel/dockit/layout"
