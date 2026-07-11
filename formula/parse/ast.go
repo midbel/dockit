@@ -307,9 +307,9 @@ type Target struct {
 
 // insert [count] <row(s)|column(s)> <before|after> <offset> into <sheet> [using [linked] <value>]
 type Insert struct {
-	count  Expr
-	target Target
-	ident  Expr
+	count  Expr   // rows/columns count to be inserted
+	target Target // position in the sheet where insertion will be performed
+	ident  Expr   // sheet where to perform insertion
 	linked bool
 	value  Expr
 	Anchor
@@ -354,9 +354,9 @@ func (e Insert) Accept(v Visitor) error {
 
 // remove [count|first|last] <row(s)|column(s)> <before|after|at> <offset> from <sheet>
 type Remove struct {
-	count  Expr
-	target Target
-	ident  Expr
+	count  Expr   // rows/columns count to be removed
+	target Target // position in the sheet where removal will be performed
+	ident  Expr   // sheet where to perform removal
 	Anchor
 	Colrow
 }

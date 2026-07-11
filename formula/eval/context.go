@@ -179,12 +179,10 @@ func (c *EngineContext) NewSheet(name, data, target value.Value) (value.Value, e
 	return types.NewViewValue(sh), nil
 }
 
-func (c *EngineContext) InsertRows(sh, count, index value.Value) (*grid.WritableRange, error) {
-	var view *types.View
-	if sh == nil {
-		view = c.CurrentActiveView()
-	} else {
-		view, _ = c.getView(sh.String())
+func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*grid.WritableRange, error) {
+	view, ok := sheet.(*types.View)
+	if !ok {
+		return nil, fmt.Errorf("view expected")
 	}
 	var (
 		rows float64
@@ -212,12 +210,10 @@ func (c *EngineContext) InsertRows(sh, count, index value.Value) (*grid.Writable
 	return view.InsertRows(int64(off), int64(rows))
 }
 
-func (c *EngineContext) InsertColumns(sh, count, index value.Value) (*grid.WritableRange, error) {
-	var view *types.View
-	if sh == nil {
-		view = c.CurrentActiveView()
-	} else {
-		view, _ = c.getView(sh.String())
+func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*grid.WritableRange, error) {
+	view, ok := sheet.(*types.View)
+	if !ok {
+		return nil, fmt.Errorf("view expected")
 	}
 	var (
 		cols float64

@@ -170,13 +170,13 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 
 func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	var (
-		ident value.Value
+		sheet value.Value
 		count value.Value
 		data  value.Value
 		err   error
 	)
 	if i := expr.Ident(); i != nil {
-		ident, err = v.visitNormalize(i)
+		sheet, err = v.visitNormalize(i)
 		if err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 	}
-	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
+	ix, err := v.resolveTarget(sheet, expr.Target(), expr.Type())
 	if err != nil {
 		return err
 	}
@@ -201,9 +201,9 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	var wrg *grid.WritableRange
 	switch expr.Type() {
 	case parse.Column:
-		wrg, err = v.ctx.InsertColumns(ident, count, value.Float(ix))
+		wrg, err = v.ctx.InsertColumns(sheet, count, value.Float(ix))
 	case parse.Row:
-		wrg, err = v.ctx.InsertRows(ident, count, value.Float(ix))
+		wrg, err = v.ctx.InsertRows(sheet, count, value.Float(ix))
 	default:
 	}
 	if err != nil || wrg == nil {
@@ -226,12 +226,12 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 		return fmt.Errorf("row/column can not be removed after last row/column")
 	}
 	var (
-		ident value.Value
+		sheet value.Value
 		count value.Value
 		err   error
 	)
 	if i := expr.Ident(); i != nil {
-		ident, err = v.visitNormalize(i)
+		sheet, err = v.visitNormalize(i)
 		if err != nil {
 			return err
 		}
@@ -242,7 +242,7 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 			return err
 		}
 	}
-	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
+	ix, err := v.resolveTarget(sheet, expr.Target(), expr.Type())
 	if err != nil {
 		return err
 	}
@@ -258,27 +258,19 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 	var ret value.Value
 	switch expr.Type() {
 	case parse.Column:
-		ret, err = v.ctx.RemoveColumns(ident, count, value.Float(ix))
+		ret, err = v.ctx.RemoveColumns(sheet, count, value.Float(ix))
 	case parse.Row:
-		ret, err = v.ctx.RemoveRows(ident, count, value.Float(ix))
+		ret, err = v.ctx.RemoveRows(sheet, count, value.Float(ix))
 	default:
 	}
 	v.pushValue(ret)
 	return err
 }
 
-func (v *evaluator) resolveTarget(ident value.Value, target parse.Target, kind parse.Colrow) (int64, error) {
-	var (
-		view *types.View
-		err  error
-	)
-	if ident == nil {
-		view = v.ctx.CurrentActiveView()
-	} else {
-		view, err = v.ctx.getView(ident.String())
-		if err != nil {
-			return 0, err
-		}
+func (v *evaluator) resolveTarget(source value.Value, target parse.Target, kind parse.Colrow) (int64, error) {
+	view, ok := source.(*types.View)
+	if !ok {
+		return 0, fmt.Errorf("expected view")
 	}
 
 	var max int64
