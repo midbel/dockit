@@ -226,7 +226,7 @@ func readSheet(rs Reader) (*Sheet, error) {
 				cell = valueCell(pos, value.Text(f))
 			)
 			r.Cells = append(r.Cells, cell)
-			sh.cells[p] = c
+			sh.cells[pos] = cell
 		}
 		sh.rows = append(sh.rows, r)
 		sh.size.Lines++
