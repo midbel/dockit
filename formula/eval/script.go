@@ -187,12 +187,6 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 	}
-	if d := expr.Value(); d != nil {
-		data, err = v.visitNormalize(d)
-		if err != nil {
-			return err
-		}
-	}
 	ix, err := v.resolveTarget(ident, expr.Target(), expr.Type())
 	if err != nil {
 		return err
@@ -212,7 +206,14 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		wrg, err = v.ctx.InsertRows(ident, count, value.Float(ix))
 	default:
 	}
-	if err == nil && wrg != nil && data != nil {
+	if err != nil || wrg == nil {
+		return err
+	}
+	if d := expr.Value(); d != nil {
+		data, err = v.visitNormalize(d)
+		if err != nil {
+			return err
+		}
 		err = wrg.SetRange(data)
 	}
 	return err

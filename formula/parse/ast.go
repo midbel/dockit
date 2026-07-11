@@ -542,6 +542,7 @@ func (e ExportFile) Accept(v Visitor) error {
 	return v.VisitExportFile(e)
 }
 
+// <source>!(<addr|range>)
 type CellAccess struct {
 	expr Expr
 	addr Expr
@@ -580,6 +581,7 @@ func (a CellAccess) Accept(v Visitor) error {
 	return v.VisitCellAccess(a)
 }
 
+// [<source>]@property
 type SpecialAccess struct {
 	expr Expr
 	prop Expr
@@ -613,6 +615,7 @@ func (a SpecialAccess) Accept(v Visitor) error {
 	return v.VisitSpecial(a)
 }
 
+// [<source>].property
 type Access struct {
 	expr Expr
 	prop Expr
