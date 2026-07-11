@@ -231,7 +231,7 @@ func testInsertRows(t *testing.T) {
 			Name: "row-basic",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row into @active with 40+2
+insert row into @active using 40+2
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
@@ -243,7 +243,7 @@ insrow := A4:C4`,
 			Name: "row-copy-line",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert row into sh.sheet with A1:C1
+insert row into sh.sheet using A1:C1
 insrow := A4:C4`,
 			Cols: 3,
 			Rows: 4,
@@ -346,7 +346,7 @@ func testInsertColumns(t *testing.T) {
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 answer := 40+2
-insert column into @active with answer
+insert column into @active using answer
 inscol := D
 			`,
 			Cols: 4,
@@ -361,7 +361,7 @@ inscol := D
 			Name: "col-after-last",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert column into sh.sheet with 0
+insert column into sh.sheet using 0
 inscol := D
 			`,
 			Cols: 4,
@@ -376,7 +376,7 @@ inscol := D
 			Name: "col-before-first",
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
-insert column before first into @active with 42
+insert column before first into @active using 42
 inscol := A
 			`,
 			Cols: 4,
@@ -392,7 +392,7 @@ inscol := A
 			Script: `
 import "testdata/salaries.csv" using csv[[comma]] as sh default
 four := 4
-insert four columns after 2 into @active with "tbd"
+insert four columns after 2 into @active using "tbd"
 inscol := C1:F3
 			`,
 			Cols: 7,
@@ -562,8 +562,8 @@ totals := raises + bonus
 	ev := runScript(t, script)
 
 	salaries := [][]value.Value{
-		{value.Float(60)},
-		{value.Float(50)},
+		{value.Text("60")},
+		{value.Text("50")},
 	}
 	checkRange(t, ev, "salaries", value.NewArray(salaries).(value.Array))
 	bonus := [][]value.Value{
@@ -659,16 +659,16 @@ func testMetadata(t *testing.T) {
 	script := `
 import "testdata/repo.csv" using csv[[comma]] as repo default
 
-sheet := @active.name
-rows := @active.lines
-cols := @active.columns
-count := repo.sheets
+sh := @active.name
+rs := @active.lines
+cs := @active.columns
+ct := repo.sheets
 	`
 	ev := runScript(t, script)
-	checkValue(t, ev, "sheet", value.Text("sheet"))
-	checkValue(t, ev, "rows", value.Float(31))
-	checkValue(t, ev, "cols", value.Float(7))
-	checkValue(t, ev, "count", value.Float(1))
+	checkValue(t, ev, "sh", value.Text("sheet"))
+	checkValue(t, ev, "rs", value.Float(31))
+	checkValue(t, ev, "cs", value.Float(7))
+	checkValue(t, ev, "ct", value.Float(1))
 }
 
 func testTemplates(t *testing.T) {
