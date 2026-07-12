@@ -184,17 +184,31 @@ func (v astVisitor) VisitInsert(expr parse.Insert) error {
 	if c == nil {
 		c = parse.NewNumber(1)
 	}
-	node.Params = []Param{
-		createParam("target", expr.Ident().String()),
-		createParam("count", c.String()),
-		createParam("linked", expr.Linked()),
-		createParam("offset", expr.Target().Expr.String()),
+	a := createParam("anchor", "at")
+	if where := expr.Where(); where == parse.AnchorAfter {
+		a.Value = "after"
+	} else if where == parse.AnchorBefore {
+		a.Value = "before"
 	}
 	p := createParam("axis", "row")
 	if expr.Type() == parse.Column {
 		p.Value = "column"
 	}
-	node.Params = append(node.Params, p)
+	k := createParam("kind", "index")
+	if kind := expr.Target().Kind; kind == parse.TargetFirst {
+		k.Value = "first"
+	} else if kind == parse.TargetLast {
+		k.Value = "last"
+	}
+	node.Params = []Param{
+		createParam("target", expr.Ident().String()),
+		createParam("count", c.String()),
+		createParam("link", expr.Linked()),
+		p,
+		a,
+		createParam("offset", expr.Target().Expr.String()),
+		k,
+	}
 	if d := expr.Value(); d != nil {
 		v.stack.Push(node)
 		if err := v.visitExpr(d); err != nil {
@@ -212,16 +226,30 @@ func (v astVisitor) VisitRemove(expr parse.Remove) error {
 	if c == nil {
 		c = parse.NewNumber(1)
 	}
-	node.Params = []Param{
-		createParam("target", expr.Ident().String()),
-		createParam("count", c.String()),
-		createParam("offset", expr.Target().Expr.String()),
+	a := createParam("anchor", "at")
+	if where := expr.Where(); where == parse.AnchorAfter {
+		a.Value = "after"
+	} else if where == parse.AnchorBefore {
+		a.Value = "before"
 	}
 	p := createParam("axis", "row")
 	if expr.Type() == parse.Column {
 		p.Value = "column"
 	}
-	node.Params = append(node.Params, p)
+	k := createParam("at", "index")
+	if kind := expr.Target().Kind; kind == parse.TargetFirst {
+		k.Value = "first"
+	} else if kind == parse.TargetLast {
+		k.Value = "last"
+	}
+	node.Params = []Param{
+		createParam("target", expr.Ident().String()),
+		createParam("count", c.String()),
+		p,
+		a,
+		createParam("offset", expr.Target().Expr.String()),
+		k,
+	}
 	v.pushNode(node)
 	return nil
 }

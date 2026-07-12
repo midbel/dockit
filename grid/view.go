@@ -310,7 +310,7 @@ func (v *horizontalStackedView) Sync(ctx value.Context) error {
 }
 
 func (v *horizontalStackedView) Cells() [][]Cell {
-	return cellsFromView(v.view)
+	return nil // cellsFromView(v.view)
 }
 
 type verticalStackedView struct {
@@ -401,7 +401,7 @@ func (v *verticalStackedView) Sync(ctx value.Context) error {
 }
 
 func (v *verticalStackedView) Cells() [][]Cell {
-	return cellsFromView(v.view)
+	return nil // cellsFromView(v.view)
 }
 
 type projectedView struct {
@@ -651,7 +651,7 @@ func (v *filteredView) Cells() [][]Cell {
 	return cellsFromView(v.view)
 }
 
-func cellsFromView(view grid.View) [][]Cell {
+func cellsFromView(view View) [][]Cell {
 	var (
 		bs  = view.Bounds()
 		arr [][]Cell
