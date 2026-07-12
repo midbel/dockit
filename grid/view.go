@@ -123,6 +123,10 @@ func (v *readonlyView) Sync(ctx value.Context) error {
 	return ErrWritable
 }
 
+func (v *readonlyView) Cells() [][]Cell {
+	return nil
+}
+
 type transposedView struct {
 	view View
 }
@@ -193,6 +197,10 @@ func (v *transposedView) Cell(pos layout.Position) (Cell, error) {
 
 func (v *transposedView) Sync(ctx value.Context) error {
 	return ErrWritable
+}
+
+func (v *transposedView) Cells() [][]Cell {
+	return nil
 }
 
 type horizontalStackedView struct {
@@ -301,6 +309,10 @@ func (v *horizontalStackedView) Sync(ctx value.Context) error {
 	return nil
 }
 
+func (v *horizontalStackedView) Cells() [][]Cell {
+	return nil
+}
+
 type verticalStackedView struct {
 	views []View
 }
@@ -385,6 +397,10 @@ func (v *verticalStackedView) Sync(ctx value.Context) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (v *verticalStackedView) Cells() [][]Cell {
 	return nil
 }
 
@@ -480,6 +496,10 @@ func (v *projectedView) getOriginalPosition(pos layout.Position) layout.Position
 	return mod
 }
 
+func (v *projectedView) Cells() [][]Cell {
+	return nil
+}
+
 type boundedView struct {
 	view View
 	part *layout.Range
@@ -559,6 +579,10 @@ func (v *boundedView) recomputePosition(pos layout.Position) layout.Position {
 	return pos
 }
 
+func (v *boundedView) Cells() [][]Cell {
+	return nil
+}
+
 type filteredView struct {
 	view View
 	rows []int64
@@ -621,4 +645,8 @@ func (v *filteredView) Cell(pos layout.Position) (Cell, error) {
 
 func (v *filteredView) Sync(ctx value.Context) error {
 	return v.view.Sync(ctx)
+}
+
+func (v *filteredView) Cells() [][]Cell {
+	return nil
 }
