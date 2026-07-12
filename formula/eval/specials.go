@@ -2,7 +2,7 @@ package eval
 
 import (
 	"github.com/midbel/dockit/formula/parse"
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
 )
@@ -45,7 +45,7 @@ func (i inspectForm) Run(eg Runnable, args []parse.Expr, ctx *EngineContext) (va
 }
 
 func (i inspectForm) inspectCell(eg Runnable, expr parse.CellAddr, ctx *EngineContext) (value.Value, error) {
-	iv := types.InspectCell()
+	iv := runtime.InspectCell()
 	iv.Set("position", value.Text(expr.Position.String()))
 	iv.Set("kind", value.Text(expr.KindOf()))
 
@@ -59,19 +59,19 @@ func (i inspectForm) inspectCell(eg Runnable, expr parse.CellAddr, ctx *EngineCo
 
 	val, _ := eg.Run(expr)
 	if val != nil {
-		iv = types.ReinspectValue(iv, val)
+		iv = runtime.ReinspectValue(iv, val)
 	}
 	return iv, nil
 }
 
 func (i inspectForm) inspectColumn(eg Runnable, expr parse.ColumnAddr, ctx *EngineContext) (value.Value, error) {
-	iv := types.InspectRange()
+	iv := runtime.InspectRange()
 	return iv, nil
 }
 
 func (i inspectForm) inspectRange(eg Runnable, expr parse.RangeAddr, ctx *EngineContext) (value.Value, error) {
 	var (
-		iv = types.InspectRange()
+		iv = runtime.InspectRange()
 		rg = layout.NewRange(expr.StartAt().Position, expr.EndAt().Position)
 	)
 	iv.Set("start", value.Text(expr.StartAt().Position.String()))
@@ -90,7 +90,7 @@ func (i inspectForm) inspectRange(eg Runnable, expr parse.RangeAddr, ctx *Engine
 }
 
 func (i inspectForm) inspectSlice(eg Runnable, expr parse.Slice, ctx *EngineContext) (value.Value, error) {
-	iv := types.InspectSlice()
+	iv := runtime.InspectSlice()
 	if v := expr.View(); v == nil {
 		iv.Set("owner", value.Text("view"))
 	} else {
@@ -98,7 +98,7 @@ func (i inspectForm) inspectSlice(eg Runnable, expr parse.Slice, ctx *EngineCont
 		if err != nil {
 			return value.ErrValue, err
 		}
-		v, ok := val.(*types.View)
+		v, ok := val.(*runtime.View)
 		if !ok {
 			return value.ErrValue, nil
 		}
@@ -131,10 +131,10 @@ func (i inspectForm) inspectIdent(eg Runnable, expr parse.Identifier, ctx *Engin
 	if value.IsError(val) {
 		return val, nil
 	}
-	if i, ok := val.(interface{ Inspect() *types.InspectValue }); ok {
+	if i, ok := val.(interface{ Inspect() *runtime.InspectValue }); ok {
 		return i.Inspect(), nil
 	}
-	return types.InspectPrimitive(), nil
+	return runtime.InspectPrimitive(), nil
 }
 
 func (i inspectForm) inspectNumber(eg Runnable, expr parse.Number, ctx *EngineContext) (value.Value, error) {
@@ -142,8 +142,8 @@ func (i inspectForm) inspectNumber(eg Runnable, expr parse.Number, ctx *EngineCo
 	if err != nil {
 		return value.ErrValue, err
 	}
-	iv := types.InspectPrimitive()
-	return types.ReinspectValue(iv, val), nil
+	iv := runtime.InspectPrimitive()
+	return runtime.ReinspectValue(iv, val), nil
 }
 
 func (i inspectForm) inspectLiteral(eg Runnable, expr parse.Literal, ctx *EngineContext) (value.Value, error) {
@@ -151,8 +151,8 @@ func (i inspectForm) inspectLiteral(eg Runnable, expr parse.Literal, ctx *Engine
 	if err != nil {
 		return value.ErrValue, err
 	}
-	iv := types.InspectPrimitive()
-	return types.ReinspectValue(iv, val), nil
+	iv := runtime.InspectPrimitive()
+	return runtime.ReinspectValue(iv, val), nil
 }
 
 type kindofForm struct{}

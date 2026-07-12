@@ -12,4 +12,4 @@
 // arrays into ranges, formula synchronization, projection, filtering, and
 // bounded views. File values expose workbook-level sheet access and sheet
 // management.
-package types
+package runtime

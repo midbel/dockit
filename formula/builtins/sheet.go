@@ -2,7 +2,7 @@ package builtins
 
 import (
 	"github.com/midbel/dockit/flat"
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 	gbs "github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -32,7 +32,7 @@ func EmptyFile(args []value.Value) value.Value {
 		return err
 	}
 	f := flat.NewFile()
-	return types.NewFileValue(f, false)
+	return runtime.NewFileValue(f, false)
 }
 
 var newSheetBuiltin = gbs.Builtin{
@@ -53,7 +53,7 @@ func EmptySheet(args []value.Value) value.Value {
 		name = asString(args[0])
 		sh   = flat.NewSheet(name, nil)
 	)
-	return types.NewViewValue(sh)
+	return runtime.NewViewValue(sh)
 }
 
 var mkRangeBuiltin = gbs.Builtin{
@@ -78,7 +78,7 @@ func MakeRange(args []value.Value) value.Value {
 		start   = layout.NewPosition(int64(fromRow), int64(fromCol))
 		end     = layout.NewPosition(int64(toRow), int64(toCol))
 	)
-	return types.NewRangeValue(start, end)
+	return runtime.NewRangeValue(start, end)
 }
 
 var mkRefBuiltin = gbs.Builtin{
@@ -107,9 +107,9 @@ func Merge(args []value.Value) value.Value {
 	if err := value.HasErrors(args...); err != nil {
 		return err
 	}
-	f := types.NewFileValue(flat.NewFile(), false).(*types.File)
+	f := runtime.NewFileValue(flat.NewFile(), false).(*runtime.File)
 	for _, a := range args {
-		v, ok := a.(*types.View)
+		v, ok := a.(*runtime.View)
 		if !ok {
 			return value.ErrValue
 		}

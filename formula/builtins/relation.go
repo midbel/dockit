@@ -1,7 +1,7 @@
 package builtins
 
 import (
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 	"github.com/midbel/dockit/grid"
 	gbs "github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/gridx"
@@ -99,11 +99,11 @@ func Except(args []value.Value) value.Value {
 type combineFunc func(grid.View, grid.View) (grid.View, error)
 
 func combineViews(v1 value.Value, v2 value.Value, fn combineFunc) value.Value {
-	left, ok := v1.(*types.View)
+	left, ok := v1.(*runtime.View)
 	if !ok {
 		return value.ErrValue
 	}
-	right, ok := v2.(*types.View)
+	right, ok := v2.(*runtime.View)
 	if !ok {
 		return value.ErrValue
 	}
@@ -111,7 +111,7 @@ func combineViews(v1 value.Value, v2 value.Value, fn combineFunc) value.Value {
 	if err != nil {
 		return value.ErrValue
 	}
-	return types.NewViewValue(v)
+	return runtime.NewViewValue(v)
 }
 
 var relationBuiltins = []gbs.Builtin{

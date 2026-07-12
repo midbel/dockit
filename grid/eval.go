@@ -391,20 +391,22 @@ func (a arrayView) ApplyArray(other value.Array, do func(value.Value, value.Valu
 	return value.NewArray(nil)
 }
 
-func (a arrayView) Cells() []Cell {
+func (a arrayView) Cells() [][]Cell {
 	var (
 		bs  = a.inner.Bounds()
-		arr []Cell
+		arr [][]Cell
 	)
 	for row := int64(1); row <= bs.Height(); row++ {
+		cs := make([]Cell, 0, bs.Width())
 		for col := int64(1); col <= bs.Width(); col++ {
 			p := layout.NewPosition(row, col)
 			c, err := a.inner.Cell(p)
 			if err != nil {
 				continue
 			}
-			arr = append(arr, c)
+			cs = append(cs, c)
 		}
+		arr = append(arr, cs)
 	}
 	return arr
 }

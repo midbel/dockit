@@ -7,7 +7,7 @@ import (
 
 	"github.com/midbel/dockit/flat"
 	"github.com/midbel/dockit/formula/env"
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 	"github.com/midbel/dockit/grid"
 	"github.com/midbel/dockit/grid/format"
 	"github.com/midbel/dockit/internal/slx"
@@ -109,17 +109,17 @@ func (c *EngineContext) Export(val value.Value, out, format string) error {
 		return err
 	}
 	switch val := val.(type) {
-	case *types.File:
+	case *runtime.File:
 		err = wb.Merge(val)
-	case *types.View:
+	case *runtime.View:
 		err = wb.Append(val)
-	case *types.Range:
+	case *runtime.Range:
 	case value.ScalarValue:
-		sh := types.NewViewValue(NewScalarView(val))
-		err = wb.Append(sh.(*types.View))
+		sh := runtime.NewViewValue(NewScalarView(val))
+		err = wb.Append(sh.(*runtime.View))
 	case value.ArrayValue:
-		sh := types.NewViewValue(NewArrayView(val))
-		err = wb.Append(sh.(*types.View))
+		sh := runtime.NewViewValue(NewArrayView(val))
+		err = wb.Append(sh.(*runtime.View))
 	default:
 		return nil
 	}
@@ -162,7 +162,7 @@ func (c *EngineContext) SetDefault(val value.Value) {
 	c.currentValue = val
 }
 
-func (c *EngineContext) CurrentActiveView() *types.View {
+func (c *EngineContext) CurrentActiveView() *runtime.View {
 	v, _ := c.getView("")
 	return v
 }
@@ -176,13 +176,13 @@ func (c *EngineContext) NewSheet(name, data, target value.Value) (value.Value, e
 	if target != nil {
 
 	}
-	return types.NewViewValue(sh), nil
+	return runtime.NewViewValue(sh), nil
 }
 
-func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*types.WritableRange, types.Mutation, error) {
-	view, ok := sheet.(*types.View)
+func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*runtime.WritableRange, runtime.Mutation, error) {
+	view, ok := sheet.(*runtime.View)
 	if !ok {
-		return nil, types.Mutation{}, fmt.Errorf("view expected")
+		return nil, runtime.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		rows float64
@@ -192,7 +192,7 @@ func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*types.Writ
 		if c, ok := count.(value.Float); ok {
 			rows = float64(c)
 		} else {
-			return nil, types.Mutation{}, fmt.Errorf("count: number expected")
+			return nil, runtime.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		rows = 1
@@ -202,7 +202,7 @@ func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*types.Writ
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return nil, types.Mutation{}, fmt.Errorf("index: number expected")
+			return nil, runtime.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		off = float64(b.Height())
@@ -210,10 +210,10 @@ func (c *EngineContext) InsertRows(sheet, count, index value.Value) (*types.Writ
 	return view.InsertRows(int64(off), int64(rows))
 }
 
-func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*types.WritableRange, types.Mutation, error) {
-	view, ok := sheet.(*types.View)
+func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*runtime.WritableRange, runtime.Mutation, error) {
+	view, ok := sheet.(*runtime.View)
 	if !ok {
-		return nil, types.Mutation{}, fmt.Errorf("view expected")
+		return nil, runtime.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		cols float64
@@ -223,7 +223,7 @@ func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*types.W
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
 		} else {
-			return nil, types.Mutation{}, fmt.Errorf("count: number expected")
+			return nil, runtime.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		cols = 1
@@ -232,7 +232,7 @@ func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*types.W
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return nil, types.Mutation{}, fmt.Errorf("index: number expected")
+			return nil, runtime.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		b := view.Bounds()
@@ -241,10 +241,10 @@ func (c *EngineContext) InsertColumns(sheet, count, index value.Value) (*types.W
 	return view.InsertColumns(int64(off), int64(cols))
 }
 
-func (c *EngineContext) RemoveRows(sheet, count, index value.Value) (types.Mutation, error) {
-	view, ok := sheet.(*types.View)
+func (c *EngineContext) RemoveRows(sheet, count, index value.Value) (runtime.Mutation, error) {
+	view, ok := sheet.(*runtime.View)
 	if !ok {
-		return types.Mutation{}, fmt.Errorf("view expected")
+		return runtime.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		rows float64
@@ -254,7 +254,7 @@ func (c *EngineContext) RemoveRows(sheet, count, index value.Value) (types.Mutat
 		if c, ok := count.(value.Float); ok {
 			rows = float64(c)
 		} else {
-			return types.Mutation{}, fmt.Errorf("count: number expected")
+			return runtime.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		rows = 1
@@ -264,7 +264,7 @@ func (c *EngineContext) RemoveRows(sheet, count, index value.Value) (types.Mutat
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return types.Mutation{}, fmt.Errorf("index: number expected")
+			return runtime.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		off = float64(b.Height())
@@ -272,10 +272,10 @@ func (c *EngineContext) RemoveRows(sheet, count, index value.Value) (types.Mutat
 	return view.RemoveRows(int64(off), int64(rows))
 }
 
-func (c *EngineContext) RemoveColumns(sheet, count, index value.Value) (types.Mutation, error) {
-	view, ok := sheet.(*types.View)
+func (c *EngineContext) RemoveColumns(sheet, count, index value.Value) (runtime.Mutation, error) {
+	view, ok := sheet.(*runtime.View)
 	if !ok {
-		return types.Mutation{}, fmt.Errorf("view expected")
+		return runtime.Mutation{}, fmt.Errorf("view expected")
 	}
 	var (
 		cols float64
@@ -285,7 +285,7 @@ func (c *EngineContext) RemoveColumns(sheet, count, index value.Value) (types.Mu
 		if c, ok := count.(value.Float); ok {
 			cols = float64(c)
 		} else {
-			return types.Mutation{}, fmt.Errorf("count: number expected")
+			return runtime.Mutation{}, fmt.Errorf("count: number expected")
 		}
 	} else {
 		cols = 1
@@ -294,7 +294,7 @@ func (c *EngineContext) RemoveColumns(sheet, count, index value.Value) (types.Mu
 		if o, ok := index.(value.Float); ok {
 			off = float64(o)
 		} else {
-			return types.Mutation{}, fmt.Errorf("index: number expected")
+			return runtime.Mutation{}, fmt.Errorf("index: number expected")
 		}
 	} else {
 		b := view.Bounds()
@@ -342,17 +342,17 @@ func (c *EngineContext) setEnv(environ *env.Environment) {
 	c.env = environ
 }
 
-func (c *EngineContext) getView(name string) (*types.View, error) {
-	if f, ok := c.Default().(*types.File); ok {
+func (c *EngineContext) getView(name string) (*runtime.View, error) {
+	if f, ok := c.Default().(*runtime.File); ok {
 		return c.getViewFromFile(f, name)
 	}
-	if v, ok := c.Default().(*types.View); ok {
+	if v, ok := c.Default().(*runtime.View); ok {
 		return v, nil
 	}
 	return nil, fmt.Errorf("%s: view can not be found", name)
 }
 
-func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.View, error) {
+func (c *EngineContext) getViewFromFile(file *runtime.File, name string) (*runtime.View, error) {
 	var (
 		sheet value.Value
 		err   error
@@ -365,14 +365,14 @@ func (c *EngineContext) getViewFromFile(file *types.File, name string) (*types.V
 	if err != nil {
 		return nil, err
 	}
-	tv, ok := sheet.(*types.View)
+	tv, ok := sheet.(*runtime.View)
 	if !ok {
-		err = types.ErrType
+		err = runtime.ErrType
 	}
 	return tv, err
 }
 
-func (c *EngineContext) createFile(format string) (*types.File, error) {
+func (c *EngineContext) createFile(format string) (*runtime.File, error) {
 	var file grid.File
 	switch format {
 	case "oxml", "xlsx":
@@ -389,6 +389,6 @@ func (c *EngineContext) createFile(format string) (*types.File, error) {
 	default:
 		return nil, fmt.Errorf("empty file can not be created for format %s", format)
 	}
-	tmp := types.NewFileValue(file, false)
-	return tmp.(*types.File), nil
+	tmp := runtime.NewFileValue(file, false)
+	return tmp.(*runtime.File), nil
 }

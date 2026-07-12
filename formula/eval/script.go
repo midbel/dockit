@@ -9,7 +9,7 @@ import (
 	"github.com/midbel/dockit/formula/builtins"
 	"github.com/midbel/dockit/formula/op"
 	"github.com/midbel/dockit/formula/parse"
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 	"github.com/midbel/dockit/grid"
 	gbs "github.com/midbel/dockit/grid/builtins"
 	"github.com/midbel/dockit/internal/ds"
@@ -55,7 +55,7 @@ func (v *evaluator) VisitUseRef(expr parse.UseRef) error {
 		return err
 	}
 	switch val.(type) {
-	case *types.File:
+	case *runtime.File:
 		v.ctx.SetDefault(val)
 	default:
 		return fmt.Errorf("only file can be used as default")
@@ -172,11 +172,11 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 	return nil
 }
 
-func (v *evaluator) captureCells(data value.Value) ([]grid.Cell, error) {
+func (v *evaluator) captureCells(data value.Value) ([][]grid.Cell, error) {
 	if data == nil || value.IsScalar(data) {
 		return nil, nil
 	}
-	if c, ok := data.(interface{ Cells() []grid.Cell }); ok {
+	if c, ok := data.(interface{ Cells() [][]grid.Cell }); ok {
 		return c.Cells(), nil
 	}
 	return nil, nil
@@ -187,7 +187,7 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		sheet value.Value
 		count value.Value
 		data  value.Value
-		cells []grid.Cell
+		cells [][]grid.Cell
 		err   error
 	)
 	if i := expr.Ident(); i != nil {
@@ -223,7 +223,7 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 	default:
 		return fmt.Errorf("invalid anchor for insert statement")
 	}
-	var wrg *types.WritableRange
+	var wrg *runtime.WritableRange
 	switch expr.Type() {
 	case parse.Column:
 		wrg, _, err = v.ctx.InsertColumns(sheet, count, value.Float(ix))
@@ -235,13 +235,17 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		return err
 	}
 	if data != nil {
-		if expr.Linked() || v.ctx.Link() {
-			tmp := make([]value.Value, 0, len(cells))
-			for _, c := range cells {
-				fm := grid.NewFormulaFromPosition(c.At())
-				tmp = append(tmp, fm)
+		if (expr.Linked() || v.ctx.Link()) && len(cells) > 0 {
+			arr := make([][]value.Value, 0, len(cells))
+			for _, cs := range cells {
+				tmp := make([]value.Value, 0, len(cs))
+				for _, c := range cs {
+					fm := grid.NewFormulaFromPosition(c.At())
+					tmp = append(tmp, fm)
+				}
+				arr = append(arr, tmp)
 			}
-			data = value.NewArray([][]value.Value{tmp})
+			data = value.NewArray(arr)
 		}
 		err = wrg.SetRange(data)
 	}
@@ -295,7 +299,7 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 }
 
 func (v *evaluator) resolveTarget(source value.Value, target parse.Target, kind parse.Colrow) (int64, error) {
-	view, ok := source.(*types.View)
+	view, ok := source.(*runtime.View)
 	if !ok {
 		return 0, fmt.Errorf("expected view")
 	}
@@ -377,7 +381,7 @@ func (v *evaluator) VisitImportFile(expr parse.ImportFile) error {
 		}
 		alias = name
 	}
-	wb := types.NewFileValue(file, expr.ReadOnly())
+	wb := runtime.NewFileValue(file, expr.ReadOnly())
 	v.ctx.Define(alias, wb)
 	if expr.Default() {
 		v.ctx.SetDefault(wb)
@@ -413,9 +417,9 @@ func (v *evaluator) VisitCellAccess(expr parse.CellAccess) error {
 	val := v.popValue()
 	switch x := val.(type) {
 	case value.ScalarValue:
-		val = types.NewViewValue(NewScalarView(x))
+		val = runtime.NewViewValue(NewScalarView(x))
 	case value.ArrayValue:
-		val = types.NewViewValue(NewArrayView(x))
+		val = runtime.NewViewValue(NewArrayView(x))
 	default:
 	}
 	var (
@@ -444,7 +448,7 @@ func (v *evaluator) VisitSpecial(expr parse.SpecialAccess) error {
 	} else {
 		target = v.ctx.Default()
 	}
-	obj, ok := target.(*types.File)
+	obj, ok := target.(*runtime.File)
 	if !ok {
 		return fmt.Errorf("expected file")
 	}
@@ -484,7 +488,7 @@ func (v *evaluator) VisitAccess(expr parse.Access) error {
 
 func evalAccess(obj value.Value, prop parse.Identifier) value.Value {
 	switch obj := obj.(type) {
-	case *types.File:
+	case *runtime.File:
 		prop, err := obj.Sheet(prop.Ident())
 		if err != nil {
 			prop = value.ErrName
@@ -720,11 +724,11 @@ func (v *evaluator) evalArrayBinary(left, right value.Value, oper op.Op) (value.
 }
 
 func (v *evaluator) evalViewBinary(left, right value.Value, oper op.Op) (value.Value, error) {
-	lv, ok := left.(*types.View)
+	lv, ok := left.(*runtime.View)
 	if !ok {
 		return value.ErrValue, nil
 	}
-	rv, ok := right.(*types.View)
+	rv, ok := right.(*runtime.View)
 	if !ok {
 		return value.ErrValue, nil
 	}
@@ -751,7 +755,7 @@ func (v *evaluator) evalViewBinary(left, right value.Value, oper op.Op) (value.V
 	default:
 		return value.ErrValue, nil
 	}
-	return types.NewViewValue(view), nil
+	return runtime.NewViewValue(view), nil
 }
 
 func (v *evaluator) VisitNot(expr parse.Not) error {
@@ -940,7 +944,7 @@ func (v *evaluator) VisitSlice(expr parse.Slice) error {
 	if err != nil {
 		return err
 	}
-	view, ok := val.(*types.View)
+	view, ok := val.(*runtime.View)
 	if !ok {
 		return fmt.Errorf("slice can only be used on view")
 	}
@@ -954,7 +958,7 @@ func (v *evaluator) VisitSlice(expr parse.Slice) error {
 		}
 		view = view.ProjectView(sel)
 	case parse.Binary, parse.And, parse.Or, parse.Not:
-		p := types.NewExprPredicate(grid.NewFormula(e))
+		p := runtime.NewExprPredicate(grid.NewFormula(e))
 		view = view.FilterView(p)
 	case parse.Identifier:
 	default:
@@ -980,7 +984,7 @@ func (v *evaluator) VisitColumnAddr(expr parse.ColumnAddr) error {
 		bd    = view.Bounds()
 		start = layout.NewPosition(bd.Starts.Line, expr.Column)
 		end   = layout.NewPosition(bd.Ends.Line, expr.Column)
-		rg    = types.NewRangeValue(start, end)
+		rg    = runtime.NewRangeValue(start, end)
 	)
 	v.pushValue(rg)
 	return nil
@@ -993,7 +997,7 @@ func (v *evaluator) VisitCellAddr(expr parse.CellAddr) error {
 }
 
 func (v *evaluator) VisitRangeAddr(expr parse.RangeAddr) error {
-	rg := types.NewRangeValue(expr.StartAt().Position, expr.EndAt().Position)
+	rg := runtime.NewRangeValue(expr.StartAt().Position, expr.EndAt().Position)
 	v.pushValue(rg)
 	return nil
 }
@@ -1015,10 +1019,10 @@ func (v *evaluator) visitNormalize(expr parse.Expr) (value.Value, error) {
 
 func (v *evaluator) normalize(val value.Value) (value.Value, error) {
 	switch val := val.(type) {
-	case *types.Range:
+	case *runtime.Range:
 		rg := val.Range()
 		return v.ctx.Range(rg.Starts, rg.Ends), nil
-	case *types.View, *types.File:
+	case *runtime.View, *runtime.File:
 		return val, nil
 	default:
 		if a, ok := val.(interface{ AsArray() value.ArrayValue }); ok {

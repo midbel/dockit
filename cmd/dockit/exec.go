@@ -11,7 +11,7 @@ import (
 	"github.com/midbel/dockit/formula/env"
 	"github.com/midbel/dockit/formula/eval"
 	"github.com/midbel/dockit/formula/repr"
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 )
 
 var runCmd = cli.Command{
@@ -50,8 +50,8 @@ func (c RunCommand) Run(args []string) error {
 		ev   = env.Empty()
 		name = filepath.Base(set.Arg(0))
 	)
-	ev.Define("env", types.NewEnvValue())
-	ev.Define("flag", types.NewFlagValue(name, args))
+	ev.Define("env", runtime.NewEnvValue())
+	ev.Define("flag", runtime.NewFlagValue(name, args))
 
 	engine := eval.NewEngine()
 	engine.SetPrintDebug(c.Debug)

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 	"github.com/midbel/dockit/grid/format"
 	"github.com/midbel/dockit/value"
 )
@@ -69,9 +69,9 @@ func (p valuePrinter) Format(v value.Value, f format.Formatter) {
 		p.printScalar(v, f)
 	case value.ArrayValue:
 		p.printArray(v, f)
-	case *types.View:
+	case *runtime.View:
 		p.printView(v, f)
-	case *types.InspectValue:
+	case *runtime.InspectValue:
 		p.printInspect(v)
 	default:
 	}
@@ -91,7 +91,7 @@ func (p valuePrinter) printArray(v value.ArrayValue, f format.Formatter) {
 	writer.Flush()
 }
 
-func (p valuePrinter) printView(v *types.View, f format.Formatter) {
+func (p valuePrinter) printView(v *runtime.View, f format.Formatter) {
 	var (
 		view      = v.View()
 		bounds    = view.Bounds()
@@ -147,24 +147,24 @@ func (p valuePrinter) printView(v *types.View, f format.Formatter) {
 	writer.Flush()
 }
 
-func (p valuePrinter) printInspect(v *types.InspectValue) {
+func (p valuePrinter) printInspect(v *runtime.InspectValue) {
 	var (
 		prefix = v.Type()
 		props  = make([]string, 0, 5)
 		values = make([]string, 0, 5)
 	)
 	switch prefix {
-	case types.InspectKindCell:
+	case runtime.InspectKindCell:
 		props = append(props, "position", "value", "type")
-	case types.InspectKindFile:
+	case runtime.InspectKindFile:
 		props = append(props, "sheets")
-	case types.InspectKindSlice:
+	case runtime.InspectKindSlice:
 		props = append(props, "owner", "type", "rows", "cols")
-	case types.InspectKindRange:
+	case runtime.InspectKindRange:
 		props = append(props, "owner", "rows", "cols")
-	case types.InspectKindView:
+	case runtime.InspectKindView:
 		props = append(props, "name", "rows", "cols")
-	case types.InspectKindPrimitive:
+	case runtime.InspectKindPrimitive:
 		props = append(props, "type", "value")
 	default:
 	}
@@ -194,9 +194,9 @@ func (p debugPrinter) Format(v value.Value, _ format.Formatter) {
 		p.printScalar(v)
 	case value.ArrayValue:
 		p.printArray(v)
-	case *types.View:
+	case *runtime.View:
 		p.printView(v)
-	case *types.InspectValue:
+	case *runtime.InspectValue:
 		p.printInspect(v)
 	default:
 	}
@@ -222,7 +222,7 @@ func (p debugPrinter) printArray(v value.ArrayValue) {
 	writer.Flush()
 }
 
-func (p debugPrinter) printView(v *types.View) {
+func (p debugPrinter) printView(v *runtime.View) {
 	var (
 		view      = v.View()
 		bounds    = view.Bounds()
@@ -282,7 +282,7 @@ func (p debugPrinter) printView(v *types.View) {
 	writer.Flush()
 }
 
-func (p debugPrinter) printInspect(v *types.InspectValue) {
+func (p debugPrinter) printInspect(v *runtime.InspectValue) {
 	var (
 		writer = bufio.NewWriter(p.w)
 		lino   int

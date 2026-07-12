@@ -1,4 +1,4 @@
-package types
+package runtime
 
 import (
 	"github.com/midbel/dockit/layout"

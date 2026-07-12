@@ -1,8 +1,7 @@
-package types
+package runtime
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/midbel/dockit/layout"
 	"github.com/midbel/dockit/value"
@@ -44,7 +43,6 @@ func getBroadcastMode(target *layout.Range, val value.ArrayValue) (broadcastMode
 	case dim.Lines*dim.Columns == width*height:
 		mode = broadcastFlat
 	default:
-		fmt.Println(width, height, dim.Columns, dim.Lines)
 		return mode, ErrDimension
 	}
 	return mode, nil
