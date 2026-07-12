@@ -262,15 +262,9 @@ func (s *Sheet) Sync(ctx value.Context) error {
 	ctx = grid.EnclosedContext(ctx, grid.SheetContext(s))
 	for _, r := range s.rows {
 		for _, c := range r.Cells {
-			f := c.Formula()
-			if f == nil {
-				continue
-			}
-			val, err := grid.Eval(f, ctx)
-			if err != nil {
+			if err := c.Sync(ctx); err != nil {
 				return err
 			}
-			c.update(val)
 		}
 	}
 	return nil
@@ -379,6 +373,7 @@ func (s *Sheet) ClearFormula(_ layout.Position) error {
 }
 
 func (s *Sheet) RemoveRows(offset, count int64) error {
+	defer s.updateDims(-count, 0)
 	ix := slices.IndexFunc(s.rows, func(r *row) bool {
 		return r.Line >= offset
 	})
@@ -405,6 +400,7 @@ func (s *Sheet) RemoveRows(offset, count int64) error {
 }
 
 func (s *Sheet) RemoveColumns(offset, count int64) error {
+	defer s.updateDims(0, -count)
 	for _, r := range s.rows {
 		ix := slices.IndexFunc(r.Cells, func(c *Cell) bool {
 			return c.Column >= offset
@@ -440,11 +436,12 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 			s.cells[cell.At()] = cell
 		}
 	}
+	defer s.updateDims(count, 0)
 	if offset == 0 {
 		s.rows = append(rows, s.rows...)
 		for i := range s.rows[int(count):] {
 			pos := s.rows[i+int(count)].shift(count)
-			maps.Copy(pos, s.cells)
+			maps.Copy(s.cells, pos)
 		}
 		return nil
 	}
@@ -456,15 +453,15 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 	} else {
 		for i := ix + 1; i < len(s.rows); i++ {
 			pos := s.rows[i].shift(count)
-			maps.Copy(pos, s.cells)
+			maps.Copy(s.cells, pos)
 		}
 		s.rows = slices.Insert(s.rows, ix+1, rows...)
 	}
-	s.size.Lines += count
 	return nil
 }
 
 func (s *Sheet) InsertColumns(offset, count int64) error {
+	defer s.updateDims(0, count)
 	for i := range s.rows {
 		cols := make([]*Cell, count)
 		for j := int64(0); j < count; j++ {
@@ -517,6 +514,11 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 	}
 
 	s.updateSize(cell)
+}
+
+func (s *Sheet) updateDims(rows, cols int64) {
+	s.size.Lines += rows
+	s.size.Columns += cols
 }
 
 func (s *Sheet) updateSize(cell *Cell) {
@@ -586,7 +588,7 @@ func (r *row) shift(count int64) map[layout.Position]*Cell {
 
 	pos := make(map[layout.Position]*Cell)
 	for _, c := range r.Cells {
-		c.Line = r.Line
+		c.moveLine(count)
 		pos[c.At()] = c
 	}
 	return pos

@@ -260,6 +260,11 @@ type formula struct {
 	expr parse.Expr
 }
 
+func NewFormulaFromPosition(pos layout.Position) value.Formula {
+	expr := parse.NewCellAddr(pos, false, false)
+	return NewFormula(expr)
+}
+
 func NewFormula(expr parse.Expr) value.Formula {
 	return formula{
 		expr: expr,
@@ -275,7 +280,11 @@ func (formula) Kind() value.ValueKind {
 }
 
 func (f formula) String() string {
-	return f.expr.String()
+	str := f.expr.String()
+	if !strings.HasPrefix(str, "=") {
+		str = "=" + str
+	}
+	return str
 }
 
 func (f formula) Expr() parse.Expr {

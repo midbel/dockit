@@ -208,7 +208,6 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 	}
-	_ = cells
 	ix, err := v.resolveTarget(sheet, expr.Target(), expr.Type())
 	if err != nil {
 		return err
@@ -232,6 +231,14 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		return err
 	}
 	if data != nil {
+		if expr.Linked() || v.ctx.Link() {
+			tmp := make([]value.Value, 0, len(cells))
+			for _, c := range cells {
+				fm := grid.NewFormulaFromPosition(c.At())
+				tmp = append(tmp, fm)
+			}
+			data = value.NewArray([][]value.Value{tmp})
+		}
 		err = wrg.SetRange(data)
 	}
 	return err
