@@ -98,11 +98,15 @@ func (v *evaluator) VisitRename(expr parse.Rename) error {
 	if err != nil {
 		return nil
 	}
+	name, err := v.visitNormalize(expr.Name())
+	if err != nil {
+		return err
+	}
 	view, ok := val.(interface{ Rename(string) })
 	if !ok {
 		return fmt.Errorf("value can not be renamed")
 	}
-	view.Rename(expr.Name().String())
+	view.Rename(name.String())
 	return nil
 }
 

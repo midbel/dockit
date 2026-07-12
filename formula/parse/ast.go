@@ -638,6 +638,9 @@ func (a Access) Property() Expr {
 }
 
 func (a Access) String() string {
+	if a.expr == nil {
+		return fmt.Sprintf(".%s", a.prop)
+	}
 	return fmt.Sprintf("%s.%s", a.expr.String(), a.prop)
 }
 
