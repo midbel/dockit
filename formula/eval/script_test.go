@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/midbel/dockit/formula/env"
-	"github.com/midbel/dockit/formula/types"
+	"github.com/midbel/dockit/formula/runtime"
 	"github.com/midbel/dockit/value"
 )
 
@@ -767,15 +767,15 @@ func getArrayFromValue(arr value.Value) (value.Array, error) {
 	return x, fmt.Errorf("expected value to be an Array, got %T", arr)
 }
 
-func getViewFromValue(view value.Value) (*types.View, error) {
+func getViewFromValue(view value.Value) (*runtime.View, error) {
 	switch x := view.(type) {
-	case *types.File:
+	case *runtime.File:
 		val, err := x.Active()
 		if err != nil {
 			return nil, fmt.Errorf("file has no active sheet")
 		}
 		return getViewFromValue(val)
-	case *types.View:
+	case *runtime.View:
 		return x, nil
 	default:
 		return nil, fmt.Errorf("expected value to be a view/file but got %T", view)
