@@ -13,7 +13,7 @@ type formulaView struct {
 }
 
 func FormulaView(view View) value.Value {
-	return &formulaVliew{
+	return &formulaView{
 		view: view,
 	}
 }
@@ -31,11 +31,11 @@ func (v *formulaView) String() string {
 }
 
 func (v *formulaView) Unwrap() View {
-	return v.inner
+	return v.view
 }
 
 func (v *formulaView) Dimension() layout.Dimension {
-	rg := v.inner.Bounds()
+	rg := v.view.Bounds()
 	dm := layout.Dimension{
 		Lines:   int64(rg.Height()),
 		Columns: int64(rg.Width()),
@@ -48,18 +48,18 @@ func (v *formulaView) At(row, col int) value.Value {
 		Line:   int64(row) + 1,
 		Column: int64(col) + 1,
 	}
-	c, _ := v.inner.Cell(pos)
+	c, _ := v.view.Cell(pos)
 	return NewFormulaFromPosition(c.At())
 }
 
-func (a formulaView) Values() iter.Seq[value.Value] {
+func (v *formulaView) Values() iter.Seq[value.Value] {
 	it := func(yield func(value.Value) bool) {
-		for _, rs := range a.view.Rows() {
-			for _, v := range rs {
-				ok := yield(v)
-				if !ok {
-					return
-				}
+		bd := v.view.Bounds()
+		for pos := range bd.Positions() {
+			fm := NewFormulaFromPosition(pos)
+			ok := yield(fm)
+			if !ok {
+				return
 			}
 		}
 	}

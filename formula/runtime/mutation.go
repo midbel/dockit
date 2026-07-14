@@ -62,18 +62,13 @@ func InsertColumns(offset, count int64) Mutation {
 	}
 }
 
-type Rangeable interface {
-	Range(layout.Position, layout.Position) value.Value
-	SetRange(layout.Position, layout.Position, value.Value) error
-}
-
 type WritableRange struct {
-	view  Rangeable
+	view  *View
 	start layout.Position
 	end   layout.Position
 }
 
-func NewWritableRange(view Rangeable, start, end layout.Position) *WritableRange {
+func NewWritableRange(view *View, start, end layout.Position) *WritableRange {
 	return &WritableRange{
 		view:  view,
 		start: start,

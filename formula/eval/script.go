@@ -207,9 +207,11 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		if err != nil {
 			return err
 		}
-		cells, err = v.captureCells(data)
-		if err != nil {
-			return err
+		if expr.Linked() || v.ctx.Link() {
+			cells, err = v.captureCells(data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	ix, err := v.resolveTarget(sheet, expr.Target(), expr.Type())
