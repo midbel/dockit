@@ -82,6 +82,81 @@ type File interface {
 	RemoveSheet(string) error
 }
 
+type cellsView struct {
+	cells [][]Cell
+}
+
+func NewCellsView(cells [][]Cell) View {
+	return &cellsView{
+		cells: cells,
+	}
+}
+
+func (v *cellsView) Name() string {
+	return "cells"
+}
+
+func (v *cellsView) Type() string {
+	return "cells"
+}
+
+func (v *cellsView) Bounds() *layout.Range {
+	var (
+		rows = int64(len(v.cells))
+		cols int64
+	)
+	for _, cs := range v.cells {
+		cols = max(cols, int64(len(cs)))
+	}
+	var (
+		start = layout.NewPosition(1, 1)
+		end   = layout.NewPosition(rows, cols)
+	)
+	return layout.NewRange(start, end)
+}
+
+func (v *cellsView) Rows() iter.Seq2[int64, []value.Value] {
+	it := func(yield func(int64, []value.Value) bool) {
+		for i, cs := range v.cells {
+			tmp := make([]value.Value, 0, len(cs))
+			for i := range cs {
+				tmp = append(tmp, cs[i].Value())
+			}
+			if !yield(int64(i+1), tmp) {
+				return
+			}
+		}
+	}
+	return it
+}
+
+func (v *cellsView) Cell(pos layout.Position) (Cell, error) {
+	for _, cs := range v.cells {
+		for _, c := range cs {
+			if c.At().Equal(pos) {
+				return c, nil
+			}
+		}
+	}
+	return Empty(pos), nil
+}
+
+func (v *cellsView) Sync(ctx value.Context) error {
+	for _, cs := range v.cells {
+		for _, c := range cs {
+			_ = c
+			// if err := c.Sync(ctx); err != nil {
+			// 	return err
+			// }
+		}
+	}
+	return nil
+}
+
+func (v *cellsView) Cells() [][]Cell {
+	return v.cells
+}
+
 type readonlyView struct {
 	view View
 }
