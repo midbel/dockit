@@ -8,6 +8,10 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
+func NoCell(pos layout.Position) error {
+	return fmt.Errorf("%s no cell at given position", pos)
+}
+
 type CopyMode int
 
 func CopyModeFromString(str string) (CopyMode, error) {

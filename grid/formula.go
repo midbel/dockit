@@ -8,64 +8,6 @@ import (
 	"github.com/midbel/dockit/value"
 )
 
-type formulaView struct {
-	view View
-}
-
-func FormulaView(view View) value.Value {
-	return &formulaView{
-		view: view,
-	}
-}
-
-func (*formulaView) Type() string {
-	return value.TypeArray
-}
-
-func (*formulaView) Kind() value.ValueKind {
-	return value.KindArray
-}
-
-func (v *formulaView) String() string {
-	return fmt.Sprintf("%s(%s)", value.TypeArray, v.view.Name())
-}
-
-func (v *formulaView) Unwrap() View {
-	return v.view
-}
-
-func (v *formulaView) Dimension() layout.Dimension {
-	rg := v.view.Bounds()
-	dm := layout.Dimension{
-		Lines:   int64(rg.Height()),
-		Columns: int64(rg.Width()),
-	}
-	return dm
-}
-
-func (v *formulaView) At(row, col int) value.Value {
-	pos := layout.Position{
-		Line:   int64(row) + 1,
-		Column: int64(col) + 1,
-	}
-	c, _ := v.view.Cell(pos)
-	return NewFormulaFromPosition(c.At())
-}
-
-func (v *formulaView) Values() iter.Seq[value.Value] {
-	it := func(yield func(value.Value) bool) {
-		bd := v.view.Bounds()
-		for pos := range bd.Positions() {
-			fm := NewFormulaFromPosition(pos)
-			ok := yield(fm)
-			if !ok {
-				return
-			}
-		}
-	}
-	return it
-}
-
 type arrayView struct {
 	inner View
 }

@@ -172,14 +172,15 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 	return nil
 }
 
-func (v *evaluator) captureCells(data value.Value) ([][]grid.Cell, error) {
+func (v *evaluator) captureCells(data value.Value) (value.Value, error) {
 	if data == nil || value.IsScalar(data) {
-		return nil, nil
+		return data, nil
 	}
 	if c, ok := data.(interface{ Cells() [][]grid.Cell }); ok {
-		return c.Cells(), nil
+		cells := c.Cells()
+		return runtime.NewCellsArray(cells), nil
 	}
-	return nil, nil
+	return data, nil
 }
 
 func (v *evaluator) VisitInsert(expr parse.Insert) error {
@@ -187,7 +188,6 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		sheet value.Value
 		count value.Value
 		data  value.Value
-		cells [][]grid.Cell
 		err   error
 	)
 	if i := expr.Ident(); i != nil {
@@ -208,7 +208,7 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 		if expr.Linked() || v.ctx.Link() {
-			cells, err = v.captureCells(data)
+			data, err = v.captureCells(data)
 			if err != nil {
 				return err
 			}
@@ -237,18 +237,6 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		return err
 	}
 	if data != nil {
-		if (expr.Linked() || v.ctx.Link()) && len(cells) > 0 {
-			arr := make([][]value.Value, 0, len(cells))
-			for _, cs := range cells {
-				tmp := make([]value.Value, 0, len(cs))
-				for _, c := range cs {
-					fm := grid.NewFormulaFromPosition(c.At())
-					tmp = append(tmp, fm)
-				}
-				arr = append(arr, tmp)
-			}
-			data = value.NewArray(arr)
-		}
 		err = wrg.SetRange(data)
 	}
 	return err
