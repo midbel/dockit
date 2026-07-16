@@ -453,11 +453,7 @@ func (v *array) String() string {
 
 func (v *array) Dimension() layout.Dimension {
 	rg := v.view.Bounds()
-	dm := layout.Dimension{
-		Lines:   int64(rg.Height()),
-		Columns: int64(rg.Width()),
-	}
-	return dm
+	return rg.Dimension()
 }
 
 func (v *array) At(row, col int) value.Value {

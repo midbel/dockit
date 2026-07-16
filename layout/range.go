@@ -114,6 +114,14 @@ func (r *Range) Range() *Range {
 	return NewRange(start, end)
 }
 
+func (r *Range) Dimension() Dimension {
+	dm := Dimension{
+		Lines:   int64(r.Height()),
+		Columns: int64(r.Width()),
+	}
+	return dm
+}
+
 type RangeSet struct {
 	list []*Range
 }
