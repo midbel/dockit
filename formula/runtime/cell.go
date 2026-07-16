@@ -13,6 +13,13 @@ type Cell struct {
 	view *View
 }
 
+func newCell(view *View, cell grid.Cell) grid.Cell {
+	return &Cell{
+		Cell: cell,
+		view: view,
+	}
+}
+
 type cellsArray struct {
 	cells [][]grid.Cell
 }

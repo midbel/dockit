@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/midbel/dockit/formula/parse"
 	"github.com/midbel/dockit/grid"
@@ -29,6 +30,10 @@ func createView(view grid.View, ctx value.Context, ro bool) *View {
 		view: view,
 		ro:   ro,
 	}
+}
+
+func (v *View) Name() string {
+	return v.view.Name()
 }
 
 func (v *View) Type() string {
@@ -61,6 +66,57 @@ func (c *View) Sync() error {
 		err = nil
 	}
 	return err
+}
+
+func (c *View) AsArray() value.ArrayValue {
+	var data [][]value.Value
+	for _, r := range c.view.Rows() {
+		tmp := make([]value.Value, 0, len(r))
+		tmp = append(tmp, r...)
+		data = append(data, tmp)
+	}
+	return value.NewArray(data)
+}
+
+func (c *View) Bounds() *layout.Range {
+	return c.view.Bounds()
+}
+
+func (c *View) Cell(pos layout.Position) (grid.Cell, error) {
+	cell, err := c.view.Cell(pos.WithoutSheet())
+	if err != nil {
+		return nil, value.ErrNA
+	}
+	if err := c.syncIfNeeded(cell); err != nil {
+		return nil, value.ErrValue
+	}
+	return newCell(c, cell), nil
+}
+
+func (c *View) At(pos layout.Position) value.Value {
+	cell, err := c.Cell(pos)
+	if err != nil {
+		return value.ErrValue
+	}
+	return cell.Value()
+}
+
+func (c *View) FilterView(predicate value.Predicate) *View {
+	var (
+		ctx  = grid.EnclosedContext(c.ctx, grid.SheetContext(c.view))
+		view = grid.FilterView(c.view, ctx, predicate)
+	)
+	return createView(view, c.ctx, false)
+}
+
+func (c *View) ProjectView(sel layout.Selection) *View {
+	view := grid.NewProjectView(c.view, sel)
+	return createView(view, c.ctx, false)
+}
+
+func (c *View) BoundedView(rg *layout.Range) *View {
+	view := grid.NewBoundedView(c.view, rg)
+	return createView(view, c.ctx, false)
 }
 
 func (c *View) Rename(name string) {
@@ -165,28 +221,6 @@ func (c *View) RemoveRows(offset, count int64) (Mutation, error) {
 	return RemoveRows(offset, count), i.RemoveRows(offset, count)
 }
 
-func (c *View) FilterView(predicate value.Predicate) *View {
-	var (
-		ctx  = grid.EnclosedContext(c.ctx, grid.SheetContext(c.view))
-		view = grid.FilterView(c.view, ctx, predicate)
-	)
-	return createView(view, c.ctx, false)
-}
-
-func (c *View) ProjectView(sel layout.Selection) *View {
-	view := grid.NewProjectView(c.view, sel)
-	return createView(view, c.ctx, false)
-}
-
-func (c *View) BoundedView(rg *layout.Range) *View {
-	view := grid.NewBoundedView(c.view, rg)
-	return createView(view, c.ctx, false)
-}
-
-func (c *View) Bounds() *layout.Range {
-	return c.view.Bounds()
-}
-
 func (c *View) Inspect() *InspectValue {
 	var (
 		iv = InspectView()
@@ -198,17 +232,6 @@ func (c *View) Inspect() *InspectValue {
 	iv.Set("type", value.Text(c.Type()))
 
 	return iv
-}
-
-func (c *View) At(pos layout.Position) value.Value {
-	cell, err := c.view.Cell(pos.WithoutSheet())
-	if err != nil {
-		return value.ErrNA
-	}
-	if err := c.syncIfNeeded(cell); err != nil {
-		return value.ErrValue
-	}
-	return cell.Value()
 }
 
 func (c *View) FormulaAt(pos layout.Position) value.Formula {
@@ -258,7 +281,8 @@ func (c *View) Range(start, end layout.Position) value.Value {
 			return value.ErrValue
 		}
 	}
-	return grid.ArrayView(grid.NewBoundedView(c.view, rg))
+	view := grid.NewBoundedView(c.view, rg)
+	return createArrayFromView(createView(view, nil, true))
 }
 
 func (c *View) SetRange(start, end layout.Position, val value.Value) error {
@@ -359,16 +383,6 @@ func (c *View) getContext() value.Context {
 	return ctx
 }
 
-func (c *View) AsArray() value.ArrayValue {
-	var data [][]value.Value
-	for _, r := range c.view.Rows() {
-		tmp := make([]value.Value, 0, len(r))
-		tmp = append(tmp, r...)
-		data = append(data, tmp)
-	}
-	return value.NewArray(data)
-}
-
 func (c *View) setArray(arr value.ArrayValue, rg *layout.Range) error {
 	mode, err := getBroadcastMode(rg, arr)
 	if err != nil {
@@ -413,4 +427,64 @@ func (c *View) setArray(arr value.ArrayValue, rg *layout.Range) error {
 
 func (v *View) setFile(file *File) {
 	v.file = file
+}
+
+type array struct {
+	view *View
+}
+
+func createArrayFromView(view *View) value.ArrayValue {
+	return &array{
+		view: view,
+	}
+}
+
+func (*array) Type() string {
+	return value.TypeArray
+}
+
+func (*array) Kind() value.ValueKind {
+	return value.KindArray
+}
+
+func (v *array) String() string {
+	return fmt.Sprintf("%s(%s)", value.TypeArray, v.view.Name())
+}
+
+func (v *array) Dimension() layout.Dimension {
+	rg := v.view.Bounds()
+	dm := layout.Dimension{
+		Lines:   int64(rg.Height()),
+		Columns: int64(rg.Width()),
+	}
+	return dm
+}
+
+func (v *array) At(row, col int) value.Value {
+	pos := layout.Position{
+		Line:   int64(row) + 1,
+		Column: int64(col) + 1,
+	}
+	c, _ := v.view.Cell(pos)
+	return c.Value()
+}
+
+func (v *array) Cells() [][]grid.Cell {
+	var (
+		bs  = v.view.Bounds()
+		arr [][]grid.Cell
+	)
+	for row := int64(1); row <= bs.Height(); row++ {
+		cs := make([]grid.Cell, 0, bs.Width())
+		for col := int64(1); col <= bs.Width(); col++ {
+			p := layout.NewPosition(row, col)
+			c, err := v.view.Cell(p)
+			if err != nil {
+				continue
+			}
+			cs = append(cs, c)
+		}
+		arr = append(arr, cs)
+	}
+	return arr
 }
