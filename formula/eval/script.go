@@ -190,12 +190,10 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 		data  value.Value
 		err   error
 	)
-	if i := expr.Ident(); i != nil {
-		sheet, err = v.visitNormalize(i)
-		if err != nil {
-			return err
-		}
+	if expr.Ident() == nil {
+		return fmt.Errorf("target sheet should be specified")
 	}
+	sheet, err = v.visitNormalize(expr.Ident())
 	if c := expr.Count(); c != nil {
 		count, err = v.visitNormalize(c)
 		if err != nil {
@@ -253,12 +251,10 @@ func (v *evaluator) VisitRemove(expr parse.Remove) error {
 		count value.Value
 		err   error
 	)
-	if i := expr.Ident(); i != nil {
-		sheet, err = v.visitNormalize(i)
-		if err != nil {
-			return err
-		}
+	if expr.Ident() == nil {
+		return fmt.Errorf("target sheet should be specified")
 	}
+	sheet, err = v.visitNormalize(expr.Ident())
 	if c := expr.Count(); c != nil {
 		count, err = v.visitNormalize(c)
 		if err != nil {
