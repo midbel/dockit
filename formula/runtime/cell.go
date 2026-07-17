@@ -20,6 +20,10 @@ func newCell(view *View, cell grid.Cell) grid.Cell {
 	}
 }
 
+func (c *Cell) BelongsTo(other *View) bool {
+	return c.view.File() == other.File()
+}
+
 type cellsArray struct {
 	cells [][]grid.Cell
 }
@@ -65,5 +69,6 @@ func (v *cellsArray) At(row, col int) value.Value {
 	if col < 0 || row >= len(cs) {
 		return value.Empty()
 	}
-	return grid.NewFormulaFromPosition(cs[col].At())
+	pos := cs[col].At()
+	return grid.NewFormulaFromPosition(pos)
 }

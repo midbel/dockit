@@ -172,15 +172,24 @@ func (v *evaluator) VisitSheet(expr parse.Sheet) error {
 	return nil
 }
 
-func (v *evaluator) captureCells(data value.Value) (value.Value, error) {
-	if data == nil || value.IsScalar(data) {
+func (v *evaluator) captureCells(sheet *runtime.View, data value.Value) (value.Value, error) {
+	c, ok := data.(interface{ Cells() [][]grid.Cell })
+	if !ok {
 		return data, nil
 	}
-	if c, ok := data.(interface{ Cells() [][]grid.Cell }); ok {
-		cells := c.Cells()
-		return runtime.NewCellsArray(cells), nil
+	cells := c.Cells()
+	for _, cs := range cells {
+		for _, c := range cs {
+			xc, ok := c.(*runtime.Cell)
+			if !ok {
+				return nil, fmt.Errorf("not a runtime cell")
+			}
+			if !xc.BelongsTo(sheet) {
+				return nil, fmt.Errorf("cross workbook links not allowed")
+			}
+		}
 	}
-	return data, nil
+	return runtime.NewCellsArray(cells), nil
 }
 
 func (v *evaluator) VisitInsert(expr parse.Insert) error {
@@ -209,7 +218,7 @@ func (v *evaluator) VisitInsert(expr parse.Insert) error {
 			return err
 		}
 		if expr.Linked() || v.ctx.Link() {
-			data, err = v.captureCells(data)
+			data, err = v.captureCells(sheet.(*runtime.View), data)
 			if err != nil {
 				return err
 			}

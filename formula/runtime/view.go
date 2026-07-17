@@ -32,6 +32,10 @@ func createView(view grid.View, ctx value.Context, ro bool) *View {
 	}
 }
 
+func (v *View) File() *File {
+	return v.file
+}
+
 func (v *View) Name() string {
 	return v.view.Name()
 }
@@ -281,8 +285,12 @@ func (c *View) Range(start, end layout.Position) value.Value {
 			return value.ErrValue
 		}
 	}
-	view := grid.NewBoundedView(c.view, rg)
-	return createArrayFromView(createView(view, nil, true))
+	var (
+		bounded = grid.NewBoundedView(c.view, rg)
+		view    = createView(bounded, c.ctx, true)
+	)
+	view.setFile(c.file)
+	return createArrayFromView(view)
 }
 
 func (c *View) SetRange(start, end layout.Position, val value.Value) error {
