@@ -601,6 +601,8 @@ type Cell struct {
 	parsed  value.Value
 	formula value.Formula
 	dirty   bool
+
+	link *grid.Link
 }
 
 func emptyCell(pos layout.Position) *Cell {
@@ -614,6 +616,14 @@ func valueCell(pos layout.Position, val value.Value) *Cell {
 		raw:      val.String(),
 		parsed:   val,
 	}
+}
+
+func (c *Cell) DependsOn() []grid.Cell {
+	return c.link.DependsOn
+}
+
+func (c *Cell) UsedBy() []grid.Cell {
+	return c.link.UsedBy
 }
 
 func (c *Cell) Id() uint64 {

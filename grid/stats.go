@@ -123,6 +123,11 @@ func AnalyzeView(view View) ViewStats {
 	return stat
 }
 
+func Dependencies(form value.Formula) []layout.Position {
+	stats := Walk(form)
+	return stats.Deps
+}
+
 func AnalyzeFormula(form value.Formula) FormulaStats {
 	return Walk(form)
 }

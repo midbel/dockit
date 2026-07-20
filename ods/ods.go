@@ -23,6 +23,16 @@ type Cell struct {
 	parsed  value.Value
 	formula value.Formula
 	dirty   bool
+
+	link *grid.Link
+}
+
+func (c *Cell) DependsOn() []grid.Cell {
+	return c.link.DependsOn
+}
+
+func (c *Cell) UsedBy() []grid.Cell {
+	return c.link.UsedBy
 }
 
 func (c *Cell) Id() uint64 {
