@@ -185,22 +185,27 @@ func evalCall(e parse.Call, ctx value.Context) value.Value {
 }
 
 func evalCellAccess(e parse.CellAccess, ctx value.Context) value.Value {
-	ident, ok := e.Expr().(parse.Identifier)
-	if !ok {
+	var sheet string
+	switch ident := e.Expr().(type) {
+	case parse.Identifier:
+		sheet = ident.Ident()
+	case parse.Literal:
+		sheet = ident.Text()
+	default:
 		return value.ErrValue
 	}
 	var expr parse.Expr
 	switch addr := e.Addr().(type) {
 	case parse.CellAddr:
-		addr.Sheet = ident.Ident()
+		addr.Sheet = sheet
 		expr = addr
 	case parse.RangeAddr:
 		var (
 			start = addr.StartAt()
 			end   = addr.EndAt()
 		)
-		start.Sheet = ident.Ident()
-		end.Sheet = ident.Ident()
+		start.Sheet = sheet
+		end.Sheet = sheet
 		expr = parse.NewRangeAddr(start, end)
 	default:
 		return value.ErrValue

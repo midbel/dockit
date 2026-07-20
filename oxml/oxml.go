@@ -90,7 +90,7 @@ func (c *Cell) Dirty() bool {
 }
 
 func (c *Cell) Sync(ctx value.Context) error {
-	if c.formula == nil || !c.dirty {
+	if c.formula == nil {
 		return nil
 	}
 	val, err := grid.Eval(c.formula, ctx)
