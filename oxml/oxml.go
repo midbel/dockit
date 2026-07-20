@@ -40,14 +40,14 @@ func (c *Cell) AddDependency(other grid.Cell) {
 	if c.link == nil {
 		c.link = new(grid.Link)
 	}
-	c.link.DependsOn = append(c.link.DependsOn, other)
+	c.link.AddDependsOn(other)
 }
 
 func (c *Cell) AddDependent(other grid.Cell) {
 	if c.link == nil {
 		c.link = new(grid.Link)
 	}
-	c.link.UsedBy = append(c.link.UsedBy, other)
+	c.link.AddUsedBy(other)
 }
 
 func (c *Cell) DependsOn() []grid.Cell {

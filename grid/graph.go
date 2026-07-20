@@ -3,11 +3,30 @@ package grid
 import (
 	"fmt"
 	"iter"
+	"slices"
 )
 
 type Link struct {
 	UsedBy    []Cell
 	DependsOn []Cell
+}
+
+func (k *Link) AddUsedBy(cell Cell) {
+	ok := slices.ContainsFunc(k.UsedBy, func(c Cell) bool {
+		return c.Id() == cell.Id()
+	})
+	if !ok {
+		k.UsedBy = append(k.UsedBy, cell)
+	}
+}
+
+func (k *Link) AddDependsOn(cell Cell) {
+	ok := slices.ContainsFunc(k.DependsOn, func(c Cell) bool {
+		return c.Id() == cell.Id()
+	})
+	if !ok {
+		k.DependsOn = append(k.DependsOn, cell)
+	}
 }
 
 func BuildGraph(file File) error {
@@ -71,9 +90,7 @@ func buildSheetGraph(file File, view View) error {
 			if err != nil {
 				return err
 			}
-			if err := LinkCells(c, cell); err != nil {
-				return err
-			}
+			LinkCells(c, cell)
 		}
 	}
 	return nil
@@ -85,7 +102,7 @@ func iterCellsFromView(view View) iter.Seq[Cell] {
 		for pos := range bd.Positions() {
 			cell, err := view.Cell(pos)
 			if err != nil {
-				return
+				continue
 			}
 			ok := yield(cell)
 			if !ok {

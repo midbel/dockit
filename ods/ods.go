@@ -27,6 +27,20 @@ type Cell struct {
 	link *grid.Link
 }
 
+func (c *Cell) AddDependency(other grid.Cell) {
+	if c.link == nil {
+		c.link = new(grid.Link)
+	}
+	c.link.AddDependsOn(other)
+}
+
+func (c *Cell) AddDependent(other grid.Cell) {
+	if c.link == nil {
+		c.link = new(grid.Link)
+	}
+	c.link.AddUsedBy(other)
+}
+
 func (c *Cell) DependsOn() []grid.Cell {
 	return c.link.DependsOn
 }
