@@ -58,6 +58,14 @@ func (c *Cell) UsedBy() []grid.Cell {
 	return c.link.UsedBy
 }
 
+func (c *Cell) Dirty() bool {
+	return c.dirty
+}
+
+func (c *Cell) MarkDirty() {
+	c.dirty = true
+}
+
 func (c *Cell) Id() uint64 {
 	return c.id
 }
@@ -85,10 +93,6 @@ func (c *Cell) Formula() value.Formula {
 	return c.formula
 }
 
-func (c *Cell) Dirty() bool {
-	return c.dirty
-}
-
 func (c *Cell) Sync(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
@@ -96,7 +100,7 @@ func (c *Cell) Sync(ctx value.Context) error {
 	val, err := grid.Eval(c.formula, ctx)
 	if err == nil {
 		c.update(val)
-		c.dirty = false
+		c.resetDirty()
 	}
 	return err
 }
@@ -108,6 +112,10 @@ func (c *Cell) update(val value.Value) {
 		c.parsed = val.(value.ScalarValue)
 		c.raw = val.String()
 	}
+}
+
+func (c *Cell) resetDirty() {
+	c.dirty = false
 }
 
 type row struct {

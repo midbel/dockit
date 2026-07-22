@@ -49,6 +49,26 @@ type usedByCell interface {
 	AddDependent(Cell)
 }
 
+type mutableCell interface {
+	UsedBy() []Cell
+	Dirty() bool
+	MarkDirty()
+}
+
+func MarkDirty(cell Cell) {
+	mc, ok := cell.(mutableCell)
+	if !ok {
+		return
+	}
+	if mc.Dirty() {
+		return
+	}
+	mc.MarkDirty()
+	for _, c := range mc.UsedBy() {
+		MarkDirty(c)
+	}
+}
+
 func LinkCells(source, target Cell) error {
 	var (
 		d, ok1 = source.(dependsOnCell)

@@ -122,12 +122,6 @@ func evalBinary(e parse.Binary, ctx value.Context) value.Value {
 		return value.Gt(left, right)
 	case op.Ge:
 		return value.Ge(left, right)
-	case op.And:
-		ok := value.True(left) && value.True(right)
-		return value.Boolean(ok)
-	case op.Or:
-		ok := value.True(left) || value.True(right)
-		return value.Boolean(ok)
 	default:
 		return value.ErrValue
 	}

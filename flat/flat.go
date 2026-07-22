@@ -622,12 +622,14 @@ func emptyCell(pos layout.Position) *Cell {
 }
 
 func valueCell(pos layout.Position, val value.Value) *Cell {
-	return &Cell{
+	cell := &Cell{
 		id:       id.Next(),
 		Position: pos,
 		raw:      val.String(),
 		parsed:   val,
 	}
+	cell.MarkDirty()
+	return cell
 }
 
 func (c *Cell) DependsOn() []grid.Cell {
@@ -636,6 +638,14 @@ func (c *Cell) DependsOn() []grid.Cell {
 
 func (c *Cell) UsedBy() []grid.Cell {
 	return c.link.UsedBy
+}
+
+func (c *Cell) Dirty() bool {
+	return c.dirty
+}
+
+func (c *Cell) MarkDirty() {
+	c.dirty = true
 }
 
 func (c *Cell) Id() uint64 {
@@ -678,10 +688,6 @@ func (c *Cell) Formula() value.Formula {
 	return c.formula
 }
 
-func (c *Cell) Dirty() bool {
-	return c.dirty
-}
-
 func (c *Cell) Sync(ctx value.Context) error {
 	if c.formula == nil {
 		return nil
@@ -689,7 +695,7 @@ func (c *Cell) Sync(ctx value.Context) error {
 	val, err := grid.Eval(c.formula, ctx)
 	if err == nil {
 		c.update(val)
-		c.dirty = false
+		c.resetDirty()
 	}
 	return err
 }
@@ -702,4 +708,8 @@ func (c *Cell) update(val value.Value) error {
 	}
 	c.raw = val.String()
 	return nil
+}
+
+func (c *Cell) resetDirty() {
+	c.dirty = false
 }

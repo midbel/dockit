@@ -352,6 +352,7 @@ func (r *sheetReader) onCell(rs *sax.Reader, el sax.E) error {
 			id:       id.Next(),
 		}
 	)
+	cell.MarkDirty()
 	if kind == TypeInlineStr {
 		local = sax.LocalName("is")
 	} else {

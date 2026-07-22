@@ -396,6 +396,7 @@ func (h *cellHandler) create(line int64) *Cell {
 		cell.raw = h.text.Raw()
 		cell.parsed = h.text.Value()
 	}
+	cell.MarkDirty()
 	return &cell
 }
 
