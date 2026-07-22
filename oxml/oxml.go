@@ -280,6 +280,9 @@ func (s *Sheet) Sub(start, end layout.Position) grid.View {
 }
 
 func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
+	if err := grid.CheckName(pos, s); err != nil {
+		return nil, err
+	}
 	cell, ok := s.cells[pos]
 	if !ok {
 		return grid.Empty(pos), nil
@@ -390,7 +393,10 @@ func (s *Sheet) IsLock() bool {
 }
 
 func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
-	c, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	c, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
 		c = &Cell{
 			id:       id.Next(),
@@ -411,7 +417,10 @@ func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
 }
 
 func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
-	c, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	c, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
 		c = &Cell{
 			id:       id.Next(),
@@ -430,6 +439,9 @@ func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
 }
 
 func (s *Sheet) ClearCell(pos layout.Position) error {
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
 	err := s.ClearValue(pos)
 	if err != nil {
 		return err
@@ -438,6 +450,9 @@ func (s *Sheet) ClearCell(pos layout.Position) error {
 }
 
 func (s *Sheet) ClearValue(pos layout.Position) error {
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -458,7 +473,7 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 }
 
 func (s *Sheet) insertOrReplaceCell(cell *Cell) {
-	s.cells[cell.Position] = cell
+	s.cells[cell.At().WithoutSheet()] = cell
 
 	ix := slices.IndexFunc(s.rows, func(r *row) bool {
 		return r.Line == cell.Line
@@ -475,7 +490,7 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 	} else {
 		s.rows[ix].AppendOrReplace(cell)
 	}
-
+	cell.Position = cell.WithSheet(s.Label)
 	s.updateSize(cell)
 }
 

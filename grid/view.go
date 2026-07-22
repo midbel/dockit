@@ -14,6 +14,7 @@ var (
 	ErrSupported = errors.New("operation not supported")
 	ErrFound     = errors.New("not found")
 	ErrPosition  = errors.New("invalid position")
+	ErrBadSheet  = errors.New("bad position sheet")
 	ErrWritable  = errors.New("read only view")
 	ErrEmpty     = errors.New("empty context")
 	ErrMutate    = errors.New("context is not mutable")
@@ -37,6 +38,13 @@ func Unwrap(view View) View {
 		view = u.Unwrap()
 	}
 	return view
+}
+
+func CheckName(pos layout.Position, view View) error {
+	if pos.Sheet != "" && view.Name() != pos.Sheet {
+		return ErrBadSheet
+	}
+	return nil
 }
 
 type View interface {

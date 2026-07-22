@@ -188,9 +188,9 @@ func NewSheet(name string, values [][]value.Value) *Sheet {
 		for j, v := range rs {
 			var (
 				pos  = layout.NewPosition(r.Line, int64(j+1))
-				cell = valueCell(pos, v)
+				cell = valueCell(pos.WithSheet(s.Label), v)
 			)
-			s.cells[cell.At()] = cell
+			s.cells[cell.At().WithoutSheet()] = cell
 			r.Cells = append(r.Cells, cell)
 		}
 		s.rows = append(s.rows, r)
@@ -223,10 +223,10 @@ func readSheet(rs Reader) (*Sheet, error) {
 		for col, f := range fields {
 			var (
 				pos  = layout.NewPosition(r.Line, int64(col)+1)
-				cell = valueCell(pos, value.Text(f))
+				cell = valueCell(pos.WithSheet(sh.Label), value.Text(f))
 			)
 			r.Cells = append(r.Cells, cell)
-			sh.cells[pos] = cell
+			sh.cells[cell.At().WithoutSheet()] = cell
 		}
 		sh.rows = append(sh.rows, r)
 		sh.size.Lines++
@@ -327,20 +327,26 @@ func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
 }
 
 func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
-	c, ok := s.cells[pos]
-	if !ok {
-		c = valueCell(pos, val)
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
 	}
-	s.ClearFormula(pos)
+	c, ok := s.cells[pos.WithoutSheet()]
+	if !ok {
+		c = valueCell(pos.WithoutSheet(), val)
+	}
+	s.ClearFormula(pos.WithoutSheet())
 	c.update(val)
 	s.insertOrReplaceCell(c)
 	return nil
 }
 
 func (s *Sheet) SetFormula(pos layout.Position, f value.Formula) error {
-	cell, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	cell, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
-		cell = emptyCell(pos)
+		cell = emptyCell(pos.WithoutSheet())
 	}
 	cell.formula = f
 	cell.raw = f.String()
@@ -352,11 +358,17 @@ func (s *Sheet) SetFormula(pos layout.Position, f value.Formula) error {
 }
 
 func (s *Sheet) ClearCell(pos layout.Position) error {
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
 	return s.ClearValue(pos)
 }
 
 func (s *Sheet) ClearValue(pos layout.Position) error {
-	c, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	c, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
 		return nil
 	}
@@ -430,10 +442,10 @@ func (s *Sheet) InsertRows(offset, count int64) error {
 		for j := int64(1); j <= s.size.Columns; j++ {
 			var (
 				pos  = layout.NewPosition(rows[i].Line, j)
-				cell = emptyCell(pos)
+				cell = emptyCell(pos.WithSheet(s.Label))
 			)
 			rows[i].Cells = append(rows[i].Cells, cell)
-			s.cells[cell.At()] = cell
+			s.cells[cell.At().WithoutSheet()] = cell
 		}
 	}
 	defer s.updateDims(count, 0)
@@ -467,15 +479,15 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 		for j := int64(0); j < count; j++ {
 			var (
 				pos  = layout.NewPosition(s.rows[i].Line, offset+j+1)
-				cell = emptyCell(pos)
+				cell = emptyCell(pos.WithSheet(s.Label))
 			)
 			cols[j] = cell
-			s.cells[cell.At()] = cell
+			s.cells[cell.At().WithoutSheet()] = cell
 		}
 		if offset == 0 {
 			for _, c := range s.rows[i].Cells {
 				c.Column += count
-				s.cells[c.At()] = c
+				s.cells[c.At().WithoutSheet()] = c
 			}
 			s.rows[i].Cells = append(cols, s.rows[i].Cells...)
 			continue
@@ -497,7 +509,7 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 }
 
 func (s *Sheet) insertOrReplaceCell(cell *Cell) {
-	s.cells[cell.Position] = cell
+	s.cells[cell.At().WithoutSheet()] = cell
 
 	ix := slices.IndexFunc(s.rows, func(r *row) bool {
 		return r.Line == cell.Line
@@ -512,7 +524,7 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 	} else {
 		s.rows[ix].AppendOrReplace(cell)
 	}
-
+	cell.Position = cell.WithSheet(s.Label)
 	s.updateSize(cell)
 }
 

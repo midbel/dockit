@@ -43,6 +43,11 @@ func (p Position) Offset(offRow, offCol int64) Position {
 	return p
 }
 
+func (p Position) WithSheet(name string) Position {
+	p.Sheet = name
+	return p
+}
+
 func (p Position) WithoutSheet() Position {
 	p.Sheet = ""
 	return p

@@ -112,7 +112,7 @@ type row struct {
 
 func (r *row) AppendOrReplace(cell *Cell) {
 	cx := slices.IndexFunc(r.Cells, func(other *Cell) bool {
-		return other.Position.Equal(cell.Position)
+		return other.At().Equal(cell.At())
 	})
 	if cx >= 0 {
 		r.Cells[cx] = cell
@@ -204,7 +204,10 @@ func (s *Sheet) Sub(start, end layout.Position) grid.View {
 }
 
 func (s *Sheet) Cell(pos layout.Position) (grid.Cell, error) {
-	cell, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return nil, err
+	}
+	cell, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
 		return grid.Empty(pos), nil
 	}
@@ -318,7 +321,10 @@ func (s *Sheet) IsLock() bool {
 }
 
 func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
-	c, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	c, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
 		c = &Cell{
 			id:       id.Next(),
@@ -326,7 +332,7 @@ func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
 			parsed:   val,
 		}
 	}
-	if err := s.ClearFormula(pos); err != nil {
+	if err := s.ClearFormula(pos.WithoutSheet()); err != nil {
 		return err
 	}
 	c.raw = val.String()
@@ -337,7 +343,10 @@ func (s *Sheet) SetValue(pos layout.Position, val value.Value) error {
 }
 
 func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
-	c, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	c, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
 		c = &Cell{
 			id:       id.Next(),
@@ -355,17 +364,23 @@ func (s *Sheet) SetFormula(pos layout.Position, expr value.Formula) error {
 }
 
 func (s *Sheet) ClearCell(pos layout.Position) error {
-	err := s.ClearValue(pos)
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	err := s.ClearValue(pos.WithoutSheet())
 	if err != nil {
 		return err
 	}
-	return s.ClearFormula(pos)
+	return s.ClearFormula(pos.WithoutSheet())
 }
 
 func (s *Sheet) ClearValue(pos layout.Position) error {
-	c, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	c, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
-		return grid.NoCell(pos)
+		return grid.NoCell(pos.WithSheet(s.Label))
 	}
 	c.raw = ""
 	c.parsed = value.Empty()
@@ -377,9 +392,12 @@ func (s *Sheet) ClearRange(rg *layout.Range) error {
 }
 
 func (s *Sheet) ClearFormula(pos layout.Position) error {
-	c, ok := s.cells[pos]
+	if err := grid.CheckName(pos, s); err != nil {
+		return err
+	}
+	c, ok := s.cells[pos.WithoutSheet()]
 	if !ok {
-		return grid.NoCell(pos)
+		return grid.NoCell(pos.WithSheet(s.Label))
 	}
 	c.formula = nil
 	return nil
@@ -394,7 +412,7 @@ func (s *Sheet) InsertColumns(offset, count int64) error {
 }
 
 func (s *Sheet) insertOrReplaceCell(cell *Cell) {
-	s.cells[cell.Position] = cell
+	s.cells[cell.At().WithoutSheet()] = cell
 
 	ix := slices.IndexFunc(s.rows, func(r *row) bool {
 		return r.Line == cell.Line
@@ -411,7 +429,7 @@ func (s *Sheet) insertOrReplaceCell(cell *Cell) {
 	} else {
 		s.rows[ix].AppendOrReplace(cell)
 	}
-
+	cell.Position = cell.WithSheet(s.Label)
 	s.updateSize(cell)
 }
 
