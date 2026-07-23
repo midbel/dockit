@@ -10,16 +10,42 @@ import (
 	"github.com/midbel/dockit/grid"
 )
 
-var depsCmd = cli.Command{
-	Name:    "deps",
-	Summary: "Print dependencies information",
-	Usage:   "deps <file>",
-	Handler: &DepCommand{},
+var auditStatsCmd = cli.Command{
+	Name:    "stats",
+	Summary: "Print stats information",
+	Usage:   "audit stats <file>",
+	Handler: &auditStatCommand{},
 }
 
-type DepCommand struct{}
+type auditStatCommand struct{}
 
-func (c DepCommand) Run(args []string) error {
+func (c auditStatCommand) Run(args []string) error {
+	return nil
+}
+
+var auditFormulaCmd = cli.Command{
+	Name:    "formula",
+	Summary: "Print formula information",
+	Usage:   "audit formula <file>",
+	Handler: &auditFormulaCommand{},
+}
+
+type auditFormulaCommand struct{}
+
+func (c auditFormulaCommand) Run(args []string) error {
+	return nil
+}
+
+var auditDepsCmd = cli.Command{
+	Name:    "deps",
+	Summary: "Print dependencies information",
+	Usage:   "audit deps <file>",
+	Handler: &auditDepCommand{},
+}
+
+type auditDepCommand struct{}
+
+func (c auditDepCommand) Run(args []string) error {
 	set := cli.NewFlagSet("deps")
 	if err := set.Parse(args); err != nil {
 		return err
@@ -30,6 +56,19 @@ func (c DepCommand) Run(args []string) error {
 	return withSheet(set.Arg(0), set.Arg(1), func(sh grid.View) error {
 		return nil
 	})
+}
+
+var auditGraphCmd = cli.Command{
+	Name:    "graph",
+	Summary: "Print dependencies graph",
+	Usage:   "audit graph <file>",
+	Handler: &auditGraphCommand{},
+}
+
+type auditGraphCommand struct{}
+
+func (c auditGraphCommand) Run(args []string) error {
+	return nil
 }
 
 var auditCmd = cli.Command{
