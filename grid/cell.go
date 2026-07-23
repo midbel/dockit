@@ -61,6 +61,9 @@ type Cell interface {
 	Value() value.Value
 	Formula() value.Formula
 	Dirty() bool
+
+	// SetValue(value.Value)
+	// SetFormula(value.Formula)
 }
 
 type proxyCell struct {

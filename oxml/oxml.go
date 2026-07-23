@@ -94,13 +94,13 @@ func (c *Cell) Formula() value.Formula {
 }
 
 func (c *Cell) Sync(ctx value.Context) error {
-	if c.formula == nil {
+	if c.formula == nil || !c.Dirty() {
 		return nil
 	}
 	val, err := grid.Eval(c.formula, ctx)
 	if err == nil {
 		c.update(val)
-		c.resetDirty()
+		grid.MarkDirty(c)
 	}
 	return err
 }
